@@ -126,8 +126,8 @@
 }
 
 .grid-2.plan-overview {
-  grid-template-columns: minmax(320px, 0.95fr) minmax(520px, 1.3fr);
-  gap: 14px;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(560px, 1.45fr);
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -138,6 +138,11 @@
   padding: 18px;
   height: 100%;
   min-height: 0;
+}
+
+.plan-card--slim {
+  gap: 10px;
+  padding: 16px;
 }
 
 .plan-card-header {
@@ -164,43 +169,108 @@
 .plan-card-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-}
-
-.plan-card-lists {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  align-content: start;
-  grid-auto-rows: minmax(0, 1fr);
-  min-height: 0;
-}
-
-.plan-card .detail-block {
-  margin-top: 0;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
   gap: 10px;
   min-height: 0;
 }
 
-.plan-card .detail-block-header {
-  margin-bottom: 6px;
+.plan-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.plan-card .detail-list {
-  max-height: none;
-  overflow: auto;
-  padding-right: 4px;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
+.plan-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
 }
+
+.plan-panel.is-empty:not([open]) {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.plan-panel summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.plan-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.plan-panel[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.plan-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.panel-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.panel-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent);
+}
+
+.plan-panel.is-empty .panel-count {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--muted);
+}
+
+.panel-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: right;
+}
+
+.plan-panel.is-empty .panel-meta {
+  color: var(--muted);
+}
+
+.plan-panel .detail-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.plan-panel .empty-state {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+
 
 .plan-card-actions {
   display: flex;
@@ -213,10 +283,16 @@
   flex: 1 1 140px;
 }
 
-@media (min-width: 1440px) {
-  .plan-card-lists {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.plan-card-actions--compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 0;
+}
+
+.plan-card-actions--compact .btn {
+  padding: 10px 12px;
+  font-size: 13px;
 }
 
 .focus-card--compact {
@@ -829,8 +905,6 @@
   .focus-columns { grid-template-columns: 1fr; }
   .bottom-grid { grid-template-columns: 1fr; }
   .grid-2.plan-overview { grid-template-columns: 1fr; }
-  .plan-card-body { grid-template-columns: 1fr; }
-  .plan-card-lists { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -890,7 +964,7 @@
       <div class="content">
         <main class="page-content content-main stack">
           <div class="grid-2 plan-overview">
-            <section class="card focus-card focus-card--compact plan-card">
+            <section class="card focus-card focus-card--compact plan-card plan-card--slim">
               <header class="plan-card-header">
                 <div class="plan-card-title">
                   <span class="tiny muted">Plan na dziś</span>
@@ -904,20 +978,36 @@
               <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
               <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
               <div class="plan-card-body">
-                <div class="plan-card-lists">
-                  <div class="detail-block">
-                    <div class="detail-block-header">Plan treningowy</div>
-                    <div id="day-plan-list" class="detail-list"></div>
-                    <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
-                  </div>
-                  <div class="detail-block">
-                    <div class="detail-block-header">Aktywności dodatkowe</div>
-                    <div id="day-extra-list" class="detail-list"></div>
-                    <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
-                  </div>
+                <div class="plan-panels">
+                  <details id="plan-training-panel" class="plan-panel" open>
+                    <summary>
+                      <div class="panel-main">
+                        <span class="panel-title">Plan treningowy</span>
+                        <span class="panel-count" id="day-plan-count">0</span>
+                      </div>
+                      <span class="panel-meta" id="day-plan-meta">Brak zaplanowanych treningów</span>
+                    </summary>
+                    <div class="plan-panel-body">
+                      <div id="day-plan-list" class="detail-list"></div>
+                      <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
+                    </div>
+                  </details>
+                  <details id="plan-extra-panel" class="plan-panel">
+                    <summary>
+                      <div class="panel-main">
+                        <span class="panel-title">Aktywności dodatkowe</span>
+                        <span class="panel-count" id="day-extra-count">0</span>
+                      </div>
+                      <span class="panel-meta" id="day-extra-meta">Nic zaplanowanego</span>
+                    </summary>
+                    <div class="plan-panel-body">
+                      <div id="day-extra-list" class="detail-list"></div>
+                      <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
+                    </div>
+                  </details>
                 </div>
               </div>
-              <div class="plan-card-actions">
+              <div class="plan-card-actions plan-card-actions--compact">
                 <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
                 <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
                 <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
@@ -1951,12 +2041,33 @@ function renderDayDetail() {
 function renderDayActivities(activities) {
   const list = document.getElementById('day-plan-list');
   const empty = document.getElementById('day-plan-empty');
+  const count = document.getElementById('day-plan-count');
+  const meta = document.getElementById('day-plan-meta');
+  const panel = document.getElementById('plan-training-panel');
   list.innerHTML = '';
   if (!activities.length) {
     empty.style.display = 'block';
+    if (count) count.textContent = '0';
+    if (meta) meta.textContent = 'Brak zaplanowanych treningów';
+    if (panel) {
+      panel.classList.add('is-empty');
+      panel.open = false;
+      panel.removeAttribute('data-user-collapsed');
+    }
     return;
   }
   empty.style.display = 'none';
+  if (count) count.textContent = activities.length.toString();
+  const completed = activities.filter(activity => activity.completed).length;
+  if (meta) meta.textContent = `${completed}/${activities.length} ukończone`;
+  if (panel) {
+    panel.classList.remove('is-empty');
+    if (panel.dataset.userCollapsed === 'true') {
+      panel.open = false;
+    } else {
+      panel.open = true;
+    }
+  }
 
   activities.forEach(activity => {
     const goal = GOAL_DEFINITIONS[activity.type];
@@ -1992,12 +2103,33 @@ function renderDayActivities(activities) {
 function renderDayExtras(extras) {
   const list = document.getElementById('day-extra-list');
   const empty = document.getElementById('day-extra-empty');
+  const count = document.getElementById('day-extra-count');
+  const meta = document.getElementById('day-extra-meta');
+  const panel = document.getElementById('plan-extra-panel');
   list.innerHTML = '';
   if (!extras.length) {
     empty.style.display = 'block';
+    if (count) count.textContent = '0';
+    if (meta) meta.textContent = 'Nic zaplanowanego';
+    if (panel) {
+      panel.classList.add('is-empty');
+      panel.open = false;
+      panel.removeAttribute('data-user-collapsed');
+    }
     return;
   }
   empty.style.display = 'none';
+  if (count) count.textContent = extras.length.toString();
+  const completed = extras.filter(extra => extra.completed).length;
+  if (meta) meta.textContent = `${completed}/${extras.length} ukończone`;
+  if (panel) {
+    panel.classList.remove('is-empty');
+    if (panel.dataset.userCollapsed === 'true') {
+      panel.open = false;
+    } else {
+      panel.open = true;
+    }
+  }
   extras.forEach(extra => {
     const item = document.createElement('div');
     item.className = 'detail-item';
@@ -2478,6 +2610,16 @@ function setupEventListeners() {
     const action = target.dataset.action;
     if (action === 'toggle-extra') toggleExtra(day, id);
     if (action === 'delete-extra') deleteExtra(day, id);
+  });
+
+  document.querySelectorAll('.plan-panel').forEach(panel => {
+    panel.addEventListener('toggle', () => {
+      if (panel.open) {
+        panel.removeAttribute('data-user-collapsed');
+      } else if (!panel.classList.contains('is-empty')) {
+        panel.dataset.userCollapsed = 'true';
+      }
+    });
   });
 
   document.getElementById('modal-overlay').addEventListener('click', (event) => {
