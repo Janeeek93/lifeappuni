@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     :root {
       --gradient-primary: radial-gradient(1200px 400px at 20% -10%, hsl(var(--accent-h) 80% 92%) 0%, transparent 55%),
@@ -159,99 +159,125 @@
     }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <header class="hero-header">
-      <div class="hero-content">
-        <div class="quick-actions">
-          <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-          <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-        </div>
-        <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-        <p id="current-date" class="date-text"></p>
-        <p id="dynamic-message" class="dynamic-message"></p>
-      </div>
-    </header>
-
-    <div class="grid g-main">
-      <div style="display: grid; gap: 14px; align-content: start;">
-        <div class="card">
-          <h3 class="title">📊 Kluczowe wskaźniki</h3>
-          <div class="grid g-2 kpi-grid">
-            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-            <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-            <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-            <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
-          <div id="weekly-activities-list" class="activity-feed"></div>
-        </div>
-        
-        <div class="card">
-          <h3 class="title">🗂️ Moduły</h3>
-          <div class="grid modules-grid" style="margin-top: 14px;">
-            <a class="tile" href="budget.html">
-              <div class="pill">💰 Budżet</div>
-              <div style="font-weight: 600;">Finanse</div>
-              <div class="tiny muted">Zarządzaj wydatkami</div>
-            </a>
-            <a class="tile" href="fuel.html">
-              <div class="pill">⛽ Paliwo</div>
-              <div style="font-weight: 600;">Rozliczenia</div>
-              <div class="tiny muted">Tankowania i faktury</div>
-            </a>
-            <a class="tile" href="tasks.html">
-              <div class="pill">✅ Zadania</div>
-              <div style="font-weight: 600;">Organizacja</div>
-              <div class="tiny muted">Listy i kalendarz</div>
-            </a>
-            <a class="tile" href="trainings.html">
-              <div class="pill">💪 Treningi</div>
-              <div style="font-weight: 600;">Cele</div>
-              <div class="tiny muted">Plany i progres</div>
-            </a>
-            <a class="tile" href="house.html">
-                <div class="pill">🏗️ Budowa</div>
-                <div style="font-weight: 600;">Projekt</div>
-                <div class="tiny muted">Kontroluj budowę</div>
-            </a>
-            <a class="tile" href="loan.html">
-                <div class="pill">🏦 Kredyt</div>
-                <div style="font-weight: 600;">Spłata</div>
-                <div class="tiny muted">Monitoruj postępy</div>
-            </a>
-          </div>
-          <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
-          <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
-          <div class="grid g-2" style="gap: 10px;">
-            <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
-            <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
-            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-          </div>
-          <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
+<body class="lifeos-body">
+  <div class="lifeos-shell">
+    <aside class="lifeos-sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon" aria-hidden="true">🧬</span>
+        <div>
+          <a class="brand-title" href="index.html">LifeOS</a>
+          <p class="brand-subtitle">Twój cyfrowy kokpit</p>
         </div>
       </div>
-
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="card weather-widget" id="weather-widget" aria-live="polite">
-          <!-- Weather content will be dynamically inserted here -->
-        </div>
-        <div class="card priorities-card" id="priorities-card">
-          <div class="upcoming-header">
-            <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
-            <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+      <nav class="sidebar-nav" aria-label="Nawigacja główna">
+        <a href="index.html" class="nav-link is-active"><span class="nav-icon" aria-hidden="true">🧭</span><span class="nav-label">Dashboard</span></a>
+        <a href="budget.html" class="nav-link"><span class="nav-icon" aria-hidden="true">💰</span><span class="nav-label">Budget</span></a>
+        <a href="fuel.html" class="nav-link"><span class="nav-icon" aria-hidden="true">⛽</span><span class="nav-label">Fuel</span></a>
+        <a href="trainings.html" class="nav-link"><span class="nav-icon" aria-hidden="true">🏋️</span><span class="nav-label">Training</span></a>
+        <a href="loan.html" class="nav-link"><span class="nav-icon" aria-hidden="true">🏦</span><span class="nav-label">Loan</span></a>
+        <a href="tasks.html" class="nav-link"><span class="nav-icon" aria-hidden="true">✅</span><span class="nav-label">Tasks</span></a>
+        <a href="house.html" class="nav-link"><span class="nav-icon" aria-hidden="true">🏠</span><span class="nav-label">House</span></a>
+        <a href="settings.html" class="nav-link"><span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">Settings</span></a>
+      </nav>
+    </aside>
+    <div class="lifeos-main">
+      <header class="lifeos-topbar">
+        <div class="topbar-context">
+          <span class="topbar-eyebrow">Panel główny</span>
+          <h1 id="greeting" class="topbar-title">Dzień dobry!</h1>
+          <div class="topbar-meta">
+            <p id="current-date" class="topbar-subtitle"></p>
+            <p id="dynamic-message" class="topbar-hint"></p>
           </div>
-          <div id="upcoming-tasks-list"></div>
-          <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+        </div>
+        <div class="topbar-actions">
+          <button type="button" class="topbar-icon" title="Ustawienia" onclick="openSettingsModal()">⚙️</button>
+          <button type="button" class="topbar-icon" title="Odśwież" onclick="refreshDashboard()">↻</button>
+        </div>
+      </header>
+      <div class="lifeos-main-body">
+        <section class="page-kpis" aria-label="Kluczowe wskaźniki">
+          <a href="budget.html" id="kpi-budget" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+          <a href="fuel.html" id="kpi-fuel" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+          <a href="tasks.html" id="kpi-tasks" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+          <a href="trainings.html" id="kpi-progress" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+          <a href="house.html" id="kpi-house" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+          <a href="loan.html" id="kpi-loan" class="kpi-card kpi-tile-large" aria-live="polite"></a>
+        </section>
+        <div class="page-grid">
+          <div class="page-main">
+            <section class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">🎯 Cele treningowe na ten tydzień</h2>
+                <p class="tiny muted">Synchronizowane z modułem treningowym</p>
+              </div>
+              <div id="weekly-activities-list" class="activity-feed"></div>
+            </section>
+            <section class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">🗂️ Moduły</h2>
+                <p class="tiny muted">Szybkie skróty do całego ekosystemu LifeOS</p>
+              </div>
+              <div class="grid modules-grid">
+                <a class="tile" href="budget.html">
+                  <div class="pill">💰 Budżet</div>
+                  <div style="font-weight: 600;">Finanse</div>
+                  <div class="tiny muted">Zarządzaj wydatkami</div>
+                </a>
+                <a class="tile" href="fuel.html">
+                  <div class="pill">⛽ Paliwo</div>
+                  <div style="font-weight: 600;">Rozliczenia</div>
+                  <div class="tiny muted">Tankowania i faktury</div>
+                </a>
+                <a class="tile" href="tasks.html">
+                  <div class="pill">✅ Zadania</div>
+                  <div style="font-weight: 600;">Organizacja</div>
+                  <div class="tiny muted">Listy i kalendarz</div>
+                </a>
+                <a class="tile" href="trainings.html">
+                  <div class="pill">💪 Treningi</div>
+                  <div style="font-weight: 600;">Cele</div>
+                  <div class="tiny muted">Plany i progres</div>
+                </a>
+                <a class="tile" href="house.html">
+                  <div class="pill">🏗️ Budowa</div>
+                  <div style="font-weight: 600;">Projekt</div>
+                  <div class="tiny muted">Kontroluj budowę</div>
+                </a>
+                <a class="tile" href="loan.html">
+                  <div class="pill">🏦 Kredyt</div>
+                  <div style="font-weight: 600;">Spłata</div>
+                  <div class="tiny muted">Monitoruj postępy</div>
+                </a>
+              </div>
+            </section>
+            <section class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">💾 Zarządzanie danymi</h2>
+                <p class="tiny muted">Kopia zapasowa i migracja ustawień</p>
+              </div>
+              <div class="grid g-2" style="gap: 10px;">
+                <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
+                <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
+                <input type="file" id="import-file-input" style="display:none" accept="application/json" />
+              </div>
+              <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
+            </section>
+          </div>
+          <aside class="page-aside">
+            <section class="card weather-widget" id="weather-widget" aria-live="polite"></section>
+            <section class="card priorities-card" id="priorities-card">
+              <div class="upcoming-header">
+                <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
+                <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+              </div>
+              <div id="upcoming-tasks-list"></div>
+              <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+            </section>
+          </aside>
         </div>
       </div>
     </div>
-
   </div>
 
   <!-- Modals -->
