@@ -111,7 +111,6 @@
         <div class="topbar-info">
           <p class="topbar-eyebrow">Finanse</p>
           <h1 class="topbar-title">Paliwo</h1>
-          <p class="topbar-subtitle">Rozliczaj wydatki służbowe i prywatne tankowania w jednym miejscu.</p>
         </div>
         <div class="topbar-actions">
           <button id="import-csv-btn" class="btn soft">Importuj z CSV</button>
@@ -613,8 +612,10 @@ function renderInsightsSection(metrics) {
     }
 
     const monthEntries = metrics.monthlyTotals ? Object.entries(metrics.monthlyTotals) : [];
-    const monthsWithData = monthEntries.length;
-    const totalMonthlyCost = monthEntries.reduce((sum, [, value]) => sum + value, 0);
+    const referenceStart = '2022-01';
+    const recentEntries = monthEntries.filter(([month]) => month >= referenceStart);
+    const monthsWithData = recentEntries.length;
+    const totalMonthlyCost = recentEntries.reduce((sum, [, value]) => sum + value, 0);
     const avgMonthlyCost = monthsWithData ? totalMonthlyCost / monthsWithData : 0;
 
     const cards = [
