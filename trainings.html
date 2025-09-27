@@ -126,7 +126,7 @@
 }
 
 .grid-2.plan-overview {
-  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+  grid-template-columns: minmax(320px, 0.95fr) minmax(520px, 1.3fr);
   gap: 14px;
   align-items: stretch;
 }
@@ -162,10 +162,9 @@
 }
 
 .plan-card-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.7fr);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: stretch;
   min-height: 0;
 }
 
@@ -203,13 +202,6 @@
   min-height: 0;
 }
 
-.plan-card-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-}
-
 .plan-card-actions {
   display: flex;
   gap: 8px;
@@ -222,8 +214,8 @@
 }
 
 @media (min-width: 1440px) {
-  .plan-card-body {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  .plan-card-lists {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -499,32 +491,22 @@
   margin-top: 2px;
 }
 
-.kpi-goal-progress-list {
-  margin-top: 6px;
-  max-height: 220px;
-  overflow: auto;
-  padding-right: 4px;
+.goal-progress-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.goal-progress-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.goal-progress-item .goal-progress-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-
-.kpi-goal-progress-list .goal-progress-item {
-  gap: 6px;
-}
-
-.kpi-goal-progress-list .goal-progress-label strong {
-  font-size: 12px;
-}
-
-.kpi-goal-progress-list .goal-progress-value {
-  font-size: 10px;
-}
-
-.kpi-goal-progress-list .goal-progress-bar {
-  height: 8px;
-}
-
 
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .card-header p { margin-top: 4px; }
@@ -681,17 +663,20 @@
 .legend-tag.vacation { background: rgba(148, 163, 184, 0.22); color: var(--muted); }
 
 .planning-banner {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   background: rgba(37, 99, 235, 0.04);
   border: 1px dashed rgba(37, 99, 235, 0.2);
   border-radius: 12px;
   padding: 10px 12px;
+  margin-top: 12px;
 }
 
 .planning-banner.active {
+  display: flex;
   border-style: solid;
   background: rgba(37, 99, 235, 0.1);
   box-shadow: var(--shadow-sm);
@@ -763,14 +748,7 @@
 
 .detail-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
 
-.goal-progress-list { display: flex; flex-direction: column; gap: 4px; }
-.goal-progress-item { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.goal-progress-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.goal-progress-heading strong { font-size: 12px; }
-.goal-progress-percent { font-size: 15px; font-weight: 700; color: var(--ink); }
-.goal-progress-meta { font-size: 11px; color: var(--muted); }
-.goal-progress-bar { width: 100%; height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
-.goal-progress-bar span { display: block; height: 100%; border-radius: 999px; transition: width .3s ease; }
+
 
 .heatmap-card { display: flex; flex-direction: column; gap: 16px; }
 .heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; flex-wrap: nowrap; }
@@ -938,23 +916,21 @@
                     <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
                   </div>
                 </div>
-                <aside class="plan-card-mode">
-                  <div class="planning-banner" id="planning-banner" aria-live="polite">
-                    <div class="planning-banner-info">
-                      <i data-lucide="mouse-pointer" class="icon"></i>
-                      <div>
-                        <strong id="planning-banner-title">Tryb planowania</strong>
-                        <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
-                      </div>
-                    </div>
-                    <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
-                  </div>
-                </aside>
               </div>
               <div class="plan-card-actions">
                 <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
                 <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
                 <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
+              </div>
+              <div class="planning-banner" id="planning-banner" aria-live="polite">
+                <div class="planning-banner-info">
+                  <i data-lucide="mouse-pointer" class="icon"></i>
+                  <div>
+                    <strong id="planning-banner-title">Tryb planowania</strong>
+                    <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+                  </div>
+                </div>
+                <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
               </div>
             </section>
 
@@ -1003,14 +979,15 @@
         </main>
 
         <aside class="right-rail">
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🏁</span>
+          <div class="kpi-compact kpi-progress-card">
+            <span class="kpi-emoji">📈</span>
             <div>
-              <div class="kpi-label">Cel miesięczny %</div>
-              <div class="kpi-value" id="metric-goal-progress">0%</div>
-              <div class="tiny muted" id="metric-goal-progress-sub">--</div>
+              <div class="kpi-label">Postęp tygodniowy</div>
+              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
+              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
             </div>
           </div>
+          <div id="goal-progress-list" class="goal-progress-grid"></div>
           <div class="kpi-compact">
             <span class="kpi-emoji">📆</span>
             <div>
@@ -1038,15 +1015,6 @@
               <div class="kpi-label">Najbliższa aktywność</div>
               <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
               <div class="tiny muted">Zaplanuj kolejny ruch</div>
-            </div>
-          </div>
-          <div class="kpi-compact kpi-progress-card">
-            <span class="kpi-emoji">📈</span>
-            <div>
-              <div class="kpi-label">Postęp tygodniowy</div>
-              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
-              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
-              <div id="goal-progress-list" class="goal-progress-list kpi-goal-progress-list"></div>
             </div>
           </div>
         </aside>
@@ -1701,7 +1669,8 @@ function renderHeader(monthStats, weekStats, upcomingWindow, yearStats) {
   if (sameMonth(new Date(), currentMonth)) todayButton.style.display = 'none';
   else todayButton.style.display = 'inline-flex';
   const weeklyPercentLabel = `${weekStats.averageGoalPercent}%`;
-  document.getElementById('metric-goal-progress').textContent = weeklyPercentLabel;
+  const goalProgressEl = document.getElementById('metric-goal-progress');
+  if (goalProgressEl) goalProgressEl.textContent = weeklyPercentLabel;
   const heroGoalProgress = document.getElementById('hero-goal-progress');
   if (heroGoalProgress) heroGoalProgress.textContent = weeklyPercentLabel;
   const goalProgressSub = document.getElementById('metric-goal-progress-sub');
@@ -2053,21 +2022,24 @@ function renderDayExtras(extras) {
 
 function renderGoalProgress(goalPercents) {
   const container = document.getElementById('goal-progress-list');
+  if (!container) return;
   container.innerHTML = '';
   if (!goalPercents) return;
+  const emojiMap = { gym: '🏋️', running: '🏃', reading: '📚' };
   Object.entries(goalPercents).forEach(([type, info]) => {
     const def = GOAL_DEFINITIONS[type];
+    if (!def) return;
     const item = document.createElement('div');
-    item.className = 'goal-progress-item';
+    item.className = 'goal-progress-item kpi-compact';
     const progressValue = Number(info.progress || 0).toLocaleString('pl-PL');
-    const targetValue = Number(info.target || 0).toLocaleString('pl-PL');
+    const targetValue = Number((info && info.target) || def.target || 0).toLocaleString('pl-PL');
     item.innerHTML = `
-      <div class="goal-progress-heading">
-        <strong>${def.label}</strong>
-        <span class="goal-progress-percent">${info.percent}%</span>
+      <span class="kpi-emoji">${emojiMap[type] || '🏅'}</span>
+      <div class="goal-progress-body">
+        <div class="kpi-label">${def.label}</div>
+        <div class="kpi-value">${info.percent}%</div>
+        <div class="tiny muted">${progressValue} / ${targetValue} ${def.unit}</div>
       </div>
-      <div class="goal-progress-meta">${progressValue} / ${targetValue} ${def.unit}</div>
-      <div class="goal-progress-bar"><span style="width:${info.percent}%; background:${def.color};"></span></div>
     `;
     container.appendChild(item);
   });
