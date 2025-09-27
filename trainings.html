@@ -634,26 +634,27 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
 }
 
 .calendar-day {
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  padding: 8px 10px;
-  min-height: 90px;
+  padding: 12px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
 }
 
-.calendar-day:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
-.calendar-day--other-month { opacity: 0.55; }
-.calendar-day--selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12); }
+.calendar-day:hover { border-color: var(--primary); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); transform: translateY(-2px); }
+.calendar-day--other-month { opacity: 0.45; }
+.calendar-day--selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14); }
 .calendar-day--today { border-color: var(--success); }
 .calendar-day--empty { background: var(--day-empty); border-color: var(--day-empty-border); }
 .calendar-day--planned { background: var(--day-planned); border-color: var(--day-planned-border); }
@@ -668,9 +669,49 @@
   outline-offset: 3px;
 }
 
-.calendar-day-header { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.calendar-date-number { font-weight: 700; font-size: 15px; line-height: 1.2; }
-.calendar-day-badges { display: flex; gap: 4px; align-items: center; }
+.calendar-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.calendar-day-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.calendar-date-number {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
+}
+.calendar-day-status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.calendar-day-status[data-state="planned"] { color: var(--warning); }
+.calendar-day-status[data-state="progress"] { color: var(--accent); }
+.calendar-day-status[data-state="done"] { color: var(--success); }
+.calendar-day-status[data-state="vacation"] { color: rgba(30, 41, 59, 0.6); }
+.calendar-day-status[data-state="empty"] { color: var(--muted); }
+.calendar-day-badges {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
 .calendar-badge {
   background: rgba(148, 163, 184, 0.16);
   border-radius: 999px;
@@ -684,40 +725,98 @@
 .calendar-day-tags {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-height: 0;
+  flex: 1;
 }
 .activity-tag {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
-  padding: 3px 6px;
-  border-radius: 9px;
-  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 600;
-  background: rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.12);
   color: var(--ink);
-  border: 1px solid transparent;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.activity-tag::before {
+  content: '•';
+  font-size: 12px;
+  color: var(--muted);
+}
 .activity-tag[draggable="true"] { cursor: grab; }
 .activity-tag.dragging { opacity: 0.6; cursor: grabbing; }
-.activity-tag.gym { background: rgba(91, 33, 182, 0.1); color: var(--gym-color); border-color: rgba(91, 33, 182, 0.18); }
-.activity-tag.running { background: rgba(4, 120, 87, 0.1); color: var(--run-color); border-color: rgba(4, 120, 87, 0.18); }
-.activity-tag.reading { background: rgba(29, 78, 216, 0.1); color: var(--read-color); border-color: rgba(29, 78, 216, 0.18); }
-.activity-tag.extra { background: rgba(14, 165, 233, 0.12); color: var(--extra-color); border-color: rgba(14, 165, 233, 0.18); }
-.activity-tag.vacation { background: rgba(148, 163, 184, 0.2); color: var(--muted); border-color: rgba(148, 163, 184, 0.32); font-weight: 700; }
+.activity-tag.gym { background: rgba(91, 33, 182, 0.08); color: var(--gym-color); border-color: rgba(91, 33, 182, 0.18); }
+.activity-tag.gym::before { content: '🏋️'; }
+.activity-tag.running { background: rgba(4, 120, 87, 0.08); color: var(--run-color); border-color: rgba(4, 120, 87, 0.18); }
+.activity-tag.running::before { content: '🏃'; }
+.activity-tag.reading { background: rgba(29, 78, 216, 0.08); color: var(--read-color); border-color: rgba(29, 78, 216, 0.18); }
+.activity-tag.reading::before { content: '📚'; }
+.activity-tag.extra { background: rgba(14, 165, 233, 0.1); color: var(--extra-color); border-color: rgba(14, 165, 233, 0.18); }
+.activity-tag.extra::before { content: '✨'; }
+.activity-tag.vacation { background: rgba(148, 163, 184, 0.18); color: var(--muted); border-color: rgba(148, 163, 184, 0.32); font-weight: 700; }
+.activity-tag.vacation::before { content: '🌴'; }
 .activity-tag.more { background: rgba(148, 163, 184, 0.12); color: var(--muted); border-style: dashed; }
+.activity-tag.more::before { content: '➕'; color: var(--muted); }
 
-.calendar-day-footer { margin-top: auto; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
-.calendar-footer-label { font-weight: 600; color: var(--muted); }
-.calendar-day--empty .calendar-footer-label { color: var(--danger); }
-.calendar-day--planned .calendar-footer-label { color: var(--warning); }
-.calendar-day--completed .calendar-footer-label { color: var(--success); }
+.calendar-progress {
+  height: 5px;
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.calendar-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.calendar-progress-fill[data-state="empty"] { background: rgba(248, 113, 113, 0.65); }
+.calendar-progress-fill[data-state="planned"] { background: rgba(251, 191, 36, 0.8); }
+.calendar-progress-fill[data-state="progress"] { background: rgba(59, 130, 246, 0.85); }
+.calendar-progress-fill[data-state="done"] { background: rgba(34, 197, 94, 0.85); }
+.calendar-progress-fill[data-state="vacation"] { background: rgba(148, 163, 184, 0.6); }
+
+.calendar-day-footer {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.calendar-footer-label {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--muted);
+}
+.calendar-footer-label::before {
+  content: '✓';
+  font-size: 10px;
+}
+.calendar-day--empty .calendar-footer-label { color: var(--danger); background: rgba(248, 113, 113, 0.12); }
+.calendar-day--empty .calendar-footer-label::before { content: '○'; }
+.calendar-day--planned .calendar-footer-label { color: var(--warning); background: rgba(251, 191, 36, 0.18); }
+.calendar-day--planned .calendar-footer-label::before { content: '•'; }
+.calendar-day--completed .calendar-footer-label { color: var(--success); background: rgba(34, 197, 94, 0.16); }
+.calendar-footer-remaining {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 .calendar-legend { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
 .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -1846,9 +1945,13 @@ function renderCalendar() {
     const vacationDay = isVacationDay(dateString);
     const plannedCount = activities.length + extras.length;
     const completedCount = activities.filter(a => a.completed).length + extras.filter(e => e.completed).length;
+    const pendingCount = Math.max(0, plannedCount - completedCount);
 
     const cell = document.createElement('div');
     cell.className = 'calendar-day';
+    cell.dataset.date = dateString;
+    cell.dataset.planned = String(plannedCount);
+    cell.dataset.completed = String(completedCount);
     if (date.getMonth() !== currentMonth.getMonth()) cell.classList.add('calendar-day--other-month');
     if (dateString === selectedDate) cell.classList.add('calendar-day--selected');
     if (normalizeDate(date).getTime() === today.getTime()) cell.classList.add('calendar-day--today');
@@ -1857,18 +1960,57 @@ function renderCalendar() {
     else if (plannedCount > 0 && completedCount === 0) cell.classList.add('calendar-day--planned');
     else if (plannedCount > 0) cell.classList.add('calendar-day--completed');
 
+    const stateKey = vacationDay
+      ? 'vacation'
+      : (plannedCount === 0
+        ? 'empty'
+        : (completedCount === 0
+          ? 'planned'
+          : (completedCount >= plannedCount ? 'done' : 'progress')));
+    cell.dataset.state = stateKey;
+
+    let statusLabel = 'Plan';
+    if (stateKey === 'vacation') statusLabel = 'Urlop';
+    else if (stateKey === 'empty') statusLabel = 'Wolne';
+    else if (stateKey === 'planned') statusLabel = 'Zaplanowano';
+    else if (stateKey === 'progress') statusLabel = 'W toku';
+    else if (stateKey === 'done') statusLabel = 'Zrealizowano';
+
+    let tooltipSummary = '';
+    if (stateKey === 'vacation') tooltipSummary = 'Urlop – dzień wolny od planów';
+    else if (plannedCount === 0) tooltipSummary = 'Brak zaplanowanych aktywności';
+    else {
+      tooltipSummary = `${completedCount} z ${plannedCount} ukończonych`;
+      if (pendingCount > 0) tooltipSummary += ` · ${pendingCount} otwarte`;
+    }
+    cell.title = tooltipSummary;
+    if (tooltipSummary) {
+      const ariaSummary = `${date.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })} · ${tooltipSummary}`;
+      cell.setAttribute('aria-label', ariaSummary);
+    }
+
     const header = document.createElement('div');
     header.className = 'calendar-day-header';
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'calendar-day-title';
     const number = document.createElement('span');
     number.className = 'calendar-date-number';
     number.textContent = date.getDate();
-    header.appendChild(number);
+    titleWrap.appendChild(number);
+    const status = document.createElement('span');
+    status.className = 'calendar-day-status';
+    status.dataset.state = stateKey;
+    status.textContent = statusLabel;
+    titleWrap.appendChild(status);
+    header.appendChild(titleWrap);
     const badges = document.createElement('div');
     badges.className = 'calendar-day-badges';
     if (plannedCount > 0) {
       const badge = document.createElement('span');
       badge.className = 'calendar-badge';
       badge.textContent = plannedCount;
+      badge.title = 'Liczba zaplanowanych aktywności';
+      badge.setAttribute('aria-label', `${plannedCount} zaplanowanych aktywności`);
       badges.appendChild(badge);
     }
     header.appendChild(badges);
@@ -1924,14 +2066,27 @@ function renderCalendar() {
     }
     cell.appendChild(tags);
 
+    if (plannedCount > 0 || vacationDay) {
+      const progress = document.createElement('div');
+      progress.className = 'calendar-progress';
+      const fill = document.createElement('div');
+      fill.className = 'calendar-progress-fill';
+      fill.dataset.state = stateKey;
+      const ratio = plannedCount > 0 ? Math.min(1, Math.max(0, completedCount / plannedCount)) : 0;
+      const width = stateKey === 'vacation' ? 1 : ratio;
+      fill.style.width = `${Math.round(width * 100)}%`;
+      progress.appendChild(fill);
+      cell.appendChild(progress);
+    }
+
     const footer = document.createElement('div');
     footer.className = 'calendar-day-footer';
     const done = document.createElement('span');
     done.className = 'calendar-footer-label';
     done.textContent = vacationDay && plannedCount === 0 ? 'Urlop' : `${completedCount} ukończ.`;
     const remaining = document.createElement('span');
-    const openCount = Math.max(0, plannedCount - completedCount);
-    remaining.textContent = openCount > 0 ? `${openCount} otwarte` : '';
+    remaining.className = 'calendar-footer-remaining';
+    remaining.textContent = pendingCount > 0 ? `${pendingCount} otwarte` : '';
     footer.appendChild(done);
     footer.appendChild(remaining);
     cell.appendChild(footer);
