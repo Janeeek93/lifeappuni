@@ -87,12 +87,41 @@
       font-size: 10px;
     }
 
+    .heatmap-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .heatmap-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
     .heat-legend {
       display: flex;
       gap: 6px;
       align-items: center;
       font-size: 12px;
       color: #64748b;
+    }
+
+    .table-compact thead th,
+    .table-compact tbody td {
+      padding: 6px 8px;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .table-compact tbody tr:nth-child(even) {
+      background: transparent;
     }
 
     .editor-section {
@@ -389,18 +418,19 @@
         </div>
       </div>
 
-      <div class="grid-2" style="margin-top:16px">
-        <div class="card">
-          <div class="title">Wydatki dzienne — heatmap</div>
-          <div class="muted" style="margin-bottom:8px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
-          <div id="daily-spending-calendar" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-          <div class="heat-legend" style="margin-top:6px">
-            <span class="heat-day" style="background:#dcfce7"> </span> w normie
-            <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
-            <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
-          </div>
+      <div class="card heatmap-card" style="margin-top:16px">
+        <div class="title">Wydatki dzienne — heatmap</div>
+        <div class="muted" style="margin-bottom:4px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
+        <div id="daily-spending-calendar" class="heatmap-strip"></div>
+        <div class="heat-legend">
+          <span class="heat-day" style="background:#dcfce7"> </span> w normie
+          <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
+          <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
         </div>
-        <div class="card">
+      </div>
+
+      <div id="var-table-dashboard-slot" style="margin-top:16px">
+        <div id="var-transactions-card" class="card">
           <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
             <div>
               <div class="title">Transakcje w miesiącu</div>
@@ -417,7 +447,7 @@
             </label>
           </div>
           <div class="table-wrapper" style="max-height:320px;overflow:auto">
-            <table>
+            <table class="table-compact">
               <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
               <tbody id="var-rows"></tbody>
             </table>
@@ -596,8 +626,10 @@
         <input name="note" placeholder="Notatka" />
         <button class="btn" type="submit">Dodaj wydatek</button>
       </form>
-      
-      <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz w panelu „Dashboard finansowy”.</div>
+
+      <div id="var-table-variable-slot" style="margin-top:12px"></div>
+
+      <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz poniżej lub w panelu „Dashboard finansowy”.</div>
     </section>
 
     <!-- Categories -->
@@ -1370,12 +1402,23 @@
   }
   const tabs=document.querySelectorAll('.tab');
   const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),inventory:tab('inventory')};
+  const varCard=document.getElementById('var-transactions-card');
+  const varSlots={dashboard:document.getElementById('var-table-dashboard-slot'),variable:document.getElementById('var-table-variable-slot')};
+  function placeVarCard(target){
+    if(!varCard) return;
+    const slot=varSlots[target];
+    if(slot && varCard.parentElement!==slot){
+      slot.appendChild(varCard);
+    }
+  }
+  placeVarCard('dashboard');
   function tab(id){return document.getElementById('tab-'+id)}
   for(const t of tabs){
     t.addEventListener('click',()=>{
       tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
       Object.values(sections).forEach(s=>s.style.display='none'); sections[t.dataset.tab].style.display='block';
-      if(t.dataset.tab==='variable'){setDefaultDate()}
+      if(t.dataset.tab==='variable'){placeVarCard('variable'); setDefaultDate()}
+      else if(t.dataset.tab==='dashboard'){placeVarCard('dashboard')}
       if(t.dataset.tab==='analytics') renderAnalytics(); // Render analytics when tab is clicked
       if(t.dataset.tab==='eom') renderEOMHistory(); // Render history when tab is clicked
       if(t.dataset.tab==='inventory') renderInventory();
