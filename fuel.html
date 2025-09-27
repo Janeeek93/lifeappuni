@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS — Paliwo</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     .fuel-insights-grid {
       display: grid;
@@ -76,38 +76,69 @@
     }
   </style>
 </head>
-<body class="module-shell">
-  <section class="module-hero">
-    <div class="wrap module-hero-inner">
-      <div class="module-hero-top">
-        <div>
-          <a href="index.html" class="back-link">← Powrót</a>
-          <div class="module-eyebrow">Finanse</div>
-          <h1 class="module-title">Moduł paliwowy</h1>
-          <p class="module-subtitle">Rozliczaj wydatki służbowe i prywatne tankowania w jednym miejscu.</p>
+<body data-page="fuel">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link active" href="fuel.html" aria-current="page"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <div class="topbar-info">
+          <p class="topbar-eyebrow">Finanse</p>
+          <h1 class="topbar-title">Moduł paliwowy</h1>
+          <p class="topbar-subtitle">Rozliczaj wydatki służbowe i prywatne tankowania w jednym miejscu.</p>
         </div>
-        <div class="module-hero-actions">
+        <div class="topbar-actions">
           <button id="import-csv-btn" class="btn soft">Importuj z CSV</button>
           <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
           <button id="export-csv-btn" class="btn soft">Eksportuj do CSV</button>
           <button id="clear-all-btn" class="btn danger">Wyczyść wszystko</button>
         </div>
-      </div>
-      <div class="module-hero-stats">
-        <div class="module-hero-stat">
-          <div class="label">Aktualne saldo</div>
-          <div class="value ok" id="fuel-balance">0,00 PLN</div>
-          <div class="note muted" id="balance-info">—</div>
-        </div>
-        <div class="module-hero-stat" id="last-invoice-card">
-          <div class="muted">Brak faktur w historii</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <main class="module-content">
-    <div class="wrap">
+      <section class="module-hero">
+        <div class="wrap module-hero-inner">
+          <div class="module-hero-top">
+            <div>
+              <div class="module-eyebrow">Analiza paliwa</div>
+              <h1 class="module-title">Saldo i faktury</h1>
+              <p class="module-subtitle">Wszystkie tankowania w jednym miejscu.</p>
+            </div>
+            <div class="module-hero-actions">
+              <span class="badge">⛽ Tankowania</span>
+              <span class="badge">📉 Kontrola kosztów</span>
+            </div>
+          </div>
+          <div class="module-hero-stats">
+            <div class="module-hero-stat">
+              <div class="label">Aktualne saldo</div>
+              <div class="value ok" id="fuel-balance">0,00 PLN</div>
+              <div class="note muted" id="balance-info">—</div>
+            </div>
+            <div class="module-hero-stat" id="last-invoice-card">
+              <div class="muted">Brak faktur w historii</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <main class="page-content">
+        <div class="wrap stack">
       <section class="card card-section">
         <div class="section-heading">
           <h2 class="title">Kluczowe wnioski</h2>
@@ -204,7 +235,9 @@
         </div>
       </section>
     </div>
-  </main>
+      </main>
+    </div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

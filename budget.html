@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS — Budżet (ulepszona wersja)</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
     <style>
     .row {
       display: flex;
@@ -313,17 +313,34 @@
     }
   </style>
 </head>
-<body class="module-shell">
-  <section class="module-hero">
-    <div class="wrap module-hero-inner">
-      <div class="module-hero-top">
-        <div>
-          <a href="index.html" class="back-link">← Powrót</a>
-          <div class="module-eyebrow">Budżet</div>
-          <h1 class="module-title">Mój Budżet</h1>
-          <p class="module-subtitle">Wersja lokalna</p>
+<body data-page="budget">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link active" href="budget.html" aria-current="page"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <div class="topbar-info">
+          <p class="topbar-eyebrow">Finanse</p>
+          <h1 class="topbar-title">Budżet</h1>
+          <p class="topbar-subtitle">Wersja lokalna</p>
         </div>
-        <div class="module-hero-actions">
+        <div class="topbar-actions">
           <div class="toolbar budget-month-nav">
             <button class="btn soft" id="prevMonthBtn" title="Poprzedni miesiąc">←</button>
             <span class="pill" id="workingMonth">YYYY-MM</span>
@@ -335,34 +352,48 @@
             <input type="file" id="importFile" accept="application/json" style="display:none" />
           </div>
         </div>
-      </div>
-      <div class="module-hero-stats">
-        <div class="module-hero-stat">
-          <div class="label">Zostało do wydania</div>
-          <div class="big-number" id="dash-remaining">0</div>
-          <div class="note muted">na wydatki zmienne</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Dzienny limit</div>
-          <div class="big-number" id="dash-daily-budget">0</div>
-          <div class="note" id="dash-daily-trend">—</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Wydano dzisiaj</div>
-          <div class="big-number" id="dash-today-spent">0</div>
-          <div class="note" id="dash-today-vs-budget">—</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Średnia dzienna</div>
-          <div class="big-number" id="dash-avg-daily">0</div>
-          <div class="note" id="dash-avg-trend">—</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <main class="module-content">
-    <div class="wrap">
+      <section class="module-hero">
+        <div class="wrap module-hero-inner">
+          <div class="module-hero-top">
+            <div>
+              <div class="module-eyebrow">Budżet</div>
+              <h1 class="module-title">Mój Budżet</h1>
+              <p class="module-subtitle">Wersja lokalna</p>
+            </div>
+            <div class="module-hero-actions">
+              <span class="badge">💾 Dane lokalne</span>
+              <span class="badge">📈 Analiza offline</span>
+            </div>
+          </div>
+          <div class="module-hero-stats">
+            <div class="module-hero-stat">
+              <div class="label">Zostało do wydania</div>
+              <div class="big-number" id="dash-remaining">0</div>
+              <div class="note muted">na wydatki zmienne</div>
+            </div>
+            <div class="module-hero-stat">
+              <div class="label">Dzienny limit</div>
+              <div class="big-number" id="dash-daily-budget">0</div>
+              <div class="note" id="dash-daily-trend">—</div>
+            </div>
+            <div class="module-hero-stat">
+              <div class="label">Wydano dzisiaj</div>
+              <div class="big-number" id="dash-today-spent">0</div>
+              <div class="note" id="dash-today-vs-budget">—</div>
+            </div>
+            <div class="module-hero-stat">
+              <div class="label">Średnia dzienna</div>
+              <div class="big-number" id="dash-avg-daily">0</div>
+              <div class="note" id="dash-avg-trend">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <main class="page-content">
+        <div class="wrap stack">
     <div class="tabs budget-tabs" style="margin-top:12px">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="overview">Przegląd</button>
@@ -1071,7 +1102,9 @@
       </div>
     </section>
   </div>
-  </main>
+      </main>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
