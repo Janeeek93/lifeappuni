@@ -146,11 +146,24 @@
     }
 
     .recent-day-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .recent-day-weekday {
       font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--muted);
+    }
+
+    .recent-day-date {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ink);
     }
 
     .recent-day-total {
@@ -1947,7 +1960,13 @@
       header.className='recent-day-header';
       const label=document.createElement('div');
       label.className='recent-day-label';
-      label.textContent=`${weekdayFmt.format(dateObj)} ${dateFmt.format(dateObj)}`;
+      const weekdayEl=document.createElement('span');
+      weekdayEl.className='recent-day-weekday';
+      weekdayEl.textContent=weekdayFmt.format(dateObj);
+      const dateEl=document.createElement('span');
+      dateEl.className='recent-day-date';
+      dateEl.textContent=dateFmt.format(dateObj);
+      label.append(weekdayEl, dateEl);
       const total=document.createElement('div');
       total.className='recent-day-total';
       const dayItems=(grouped.get(key)||[]).sort((a,b)=>b.amount-a.amount);
