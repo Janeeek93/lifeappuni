@@ -1,0 +1,4120 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BuildMaster Pro — Centrum Zarządzania Budową</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
+      --primary-dark: hsl(var(--accent-h) var(--accent-s) calc(var(--accent-l) - 10%));
+      --primary-light: hsl(var(--accent-h) 82% 90%);
+      --primary-lighter: hsl(var(--accent-h) 88% 96%);
+      --success: var(--green);
+      --success-light: var(--green-soft);
+      --error: var(--red);
+      --error-light: var(--red-soft);
+      --warning: var(--orange);
+      --warning-light: var(--orange-soft);
+      --info: hsl(var(--accent-h) 70% 60%);
+      --info-light: hsl(var(--accent-h) 80% 92%);
+      --bg: var(--surface);
+      --bg-secondary: hsl(var(--accent-h) 70% 96%);
+      --sidebar-bg: #0f172a;
+      --card-bg: var(--card);
+      --text-primary: var(--ink);
+      --text-secondary: var(--muted);
+      --text-tertiary: hsl(var(--accent-h) 20% 65%);
+      --border: var(--line);
+      --border-light: hsl(var(--accent-h) 55% 90%);
+      --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+      --shadow: 0 1px 3px 0 rgb(15 23 42 / 0.1), 0 1px 2px -1px rgb(15 23 42 / 0.08);
+      --shadow-md: 0 4px 10px -2px rgb(15 23 42 / 0.12);
+      --shadow-lg: 0 18px 35px -10px rgb(15 23 42 / 0.18);
+      --shadow-xl: 0 30px 60px -24px rgb(15 23 42 / 0.22);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --primary: hsl(var(--accent-h) 75% 70%);
+      --primary-dark: hsl(var(--accent-h) 70% 62%);
+      --primary-light: hsl(var(--accent-h) 60% 45%);
+      --primary-lighter: #1e293b;
+      --bg: #0f172a;
+      --bg-secondary: #1e293b;
+      --sidebar-bg: #020617;
+      --card-bg: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+      --border: #334155;
+      --border-light: #1e293b;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.6;
+      transition: var(--transition);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--text-tertiary);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Search Bar */
+    .search-bar {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 2px solid transparent;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--card-bg);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+      font-size: 18px;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+      border-right: 1px solid var(--border);
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .logo-text h1 {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    
+    .logo-text p {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .nav-menu {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      list-style: none;
+    }
+    
+    .nav-item {
+      margin-bottom: 4px;
+    }
+    
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-tertiary);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-item a:hover {
+      background: rgba(255,255,255,0.05);
+      color: #ffffff;
+    }
+    
+    .nav-item a.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .nav-icon {
+      font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-badge {
+      margin-left: 6px;
+      background: var(--error);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .house-hero-actions {
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .house-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      gap: 8px;
+    }
+
+    .house-tabs::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .house-tabs .page-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .house-tabs .page-tab .nav-badge {
+      margin-left: auto;
+    }
+
+    .module-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      padding-top: 24px;
+    }
+
+    .module-panels .tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Main Content */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+    }
+    
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .topbar-left .back-link {
+      font-size: 13px;
+    }
+    
+    .page-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      background: var(--bg);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition), color var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 18px;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Grid System */
+    .grid {
+      display: grid;
+      gap: 24px;
+    }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* Stats Cards */
+    .stat-card {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary);
+    }
+    
+    .stat-card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    
+    .stat-card-icon.primary {
+      background: linear-gradient(135deg, var(--primary-light), var(--primary-lighter));
+      color: var(--primary);
+    }
+    
+    .stat-card-icon.success {
+      background: linear-gradient(135deg, var(--success-light), #dcfce7);
+      color: var(--success);
+    }
+    
+    .stat-card-icon.warning {
+      background: linear-gradient(135deg, var(--warning-light), #fef3c7);
+      color: var(--warning);
+    }
+    
+    .stat-card-icon.error {
+      background: linear-gradient(135deg, var(--error-light), #fee2e2);
+      color: var(--error);
+    }
+    
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    /* Progress Bars */
+    .progress {
+      height: 10px;
+      background: var(--bg-secondary);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-top: 12px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--info));
+      border-radius: 100px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Enhanced Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    thead {
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--border);
+    }
+    
+    th {
+      padding: 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+
+    th.sortable {
+        cursor: pointer;
+    }
+     th.sortable:hover {
+        color: var(--text-primary);
+    }
+    
+    td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    
+    tbody tr {
+      transition: var(--transition);
+    }
+    
+    tbody tr:hover {
+      background: var(--bg-secondary);
+    }
+    
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .table-wrapper tfoot tr:last-child td {
+        border-bottom: none;
+        font-weight: 700;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      gap: 4px;
+    }
+    
+    .badge-primary {
+      background: var(--primary-lighter);
+      color: var(--primary);
+    }
+    
+    .badge-success {
+      background: var(--success-light);
+      color: var(--success);
+    }
+    
+    .badge-warning {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+    
+    .badge-error {
+      background: var(--error-light);
+      color: var(--error);
+    }
+    
+    .badge-info {
+      background: var(--info-light);
+      color: var(--info);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.2s;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modal-content.modal-lg {
+        max-width: 90vw;
+        max-height: 90vh;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--bg-secondary);
+      border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .form-label.required::after {
+      content: ' *';
+      color: var(--error);
+    }
+    
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: var(--transition);
+    }
+    
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: var(--card-bg);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtask {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+    }
+    .subtask input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border);
+    }
+     .subtask-list-container {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+     }
+     .subtask-list {
+      max-height: 150px;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    .subtask-entry {
+        display:flex; 
+        gap: 10px; 
+        margin-top: 10px;
+        border-top: 1px solid var(--border-light);
+        padding-top: 10px;
+    }
+
+    /* Gantt Chart */
+    #gantt-filters, #projects-filters {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .gantt-container {
+      position: relative;
+      overflow-x: auto;
+      min-height: 400px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    
+    .gantt-header {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .gantt-task-name {
+      width: 200px;
+      padding: 10px;
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .gantt-task-category {
+      width: 150px;
+      padding: 10px;
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    
+    .gantt-months {
+      flex: 1;
+      display: flex;
+    }
+    
+    .gantt-month {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border-right: 1px solid var(--border);
+      min-width: 90px;
+    }
+    
+    .gantt-body {
+      position: relative;
+    }
+    
+    .gantt-row {
+      display: flex;
+      border-bottom: 1px solid var(--border-light);
+      min-height: 50px;
+      align-items: center;
+    }
+    .gantt-row.completed {
+      opacity: 0.6;
+    }
+    
+    .gantt-row:hover {
+      background: var(--bg-secondary);
+    }
+    
+    .gantt-row.critical {
+      background: rgba(239, 68, 68, 0.05);
+    }
+    
+    .gantt-task-label {
+      width: 200px;
+      padding: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+    
+    .gantt-timeline {
+      flex: 1;
+      position: relative;
+      height: 50px;
+      display: flex;
+    }
+    
+    .gantt-month-column {
+      flex: 1;
+      border-right: 1px solid var(--border-light);
+      min-width: 90px;
+    }
+    
+    .gantt-bar-wrapper {
+      position: absolute;
+      height: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+    }
+    
+    .gantt-bar {
+      height: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .gantt-bar.critical {
+      background: linear-gradient(135deg, var(--error), var(--warning));
+    }
+
+    .gantt-bar.completed {
+        background: linear-gradient(135deg, var(--success), #16a34a);
+    }
+    
+    .gantt-bar-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      transition: width 0.3s;
+    }
+    
+    .gantt-bar:hover {
+      transform: scale(1.02);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .gantt-today-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--error);
+      z-index: 20;
+      pointer-events: none;
+    }
+    
+    .gantt-today-line::after {
+      content: 'Dziś';
+      position: absolute;
+      top: -20px;
+      left: -15px;
+      background: var(--error);
+      color: white;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Enhanced Budget Categories */
+    .budget-category-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .budget-category-card:hover {
+      transform: translateX(4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    
+    .budget-category-card::before {
+      content: '›';
+      position: absolute;
+      right: 20px;
+      top: 24px;
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--text-tertiary);
+      transition: transform 0.3s;
+    }
+    
+    .budget-category-card.expanded::before {
+        transform: rotate(90deg);
+    }
+    
+    .budget-category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    
+    .budget-category-name {
+      font-weight: 600;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+    
+    .budget-category-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .budget-category-amount {
+      text-align: right;
+    }
+    
+    .budget-spent {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .budget-total {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    .budget-progress {
+      height: 12px;
+      background: var(--bg-secondary);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .budget-progress-bar {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    
+    .budget-progress-bar.safe {
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    
+    .budget-progress-bar.warning {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    
+    .budget-progress-bar.danger {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+    
+    .budget-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .budget-percentage {
+      font-weight: 600;
+    }
+    .budget-category-expense-list {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-light);
+    }
+    .budget-category-card.expanded .budget-category-expense-list {
+        max-height: 500px;
+    }
+
+    /* Enhanced Project Cards */
+    #projects-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+    .project-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--info));
+      transform: scaleX(0);
+      transition: transform 0.3s;
+    }
+    
+    .project-card:hover::before {
+      transform: scaleX(1);
+    }
+    
+    .project-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .project-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      padding: 0;
+      border: none;
+    }
+    
+    .project-card-content {
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .project-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .project-card-rating {
+      display: flex;
+      gap: 2px;
+      color: var(--warning);
+      font-size: 16px;
+    }
+    
+    .project-card-image {
+      width: 100%;
+      height: 180px;
+      border-radius: 0;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: var(--primary);
+      overflow: hidden;
+      background: var(--bg-secondary);
+    }
+    .project-card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    .project-card:hover .project-card-image img {
+        transform: scale(1.05);
+    }
+
+    .project-card-details {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .project-card-description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+    
+    .project-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    
+    .project-card-tag {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    
+    .project-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    /* Enhanced Link Cards */
+    .link-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: var(--transition);
+        position: relative;
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 20px;
+        align-items: center;
+    }
+    
+    .link-card:hover {
+      transform: translateX(4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .link-image {
+        width: 120px;
+        height: 90px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--bg-secondary);
+    }
+    .link-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .link-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+    }
+    
+    .link-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    
+    .link-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--primary);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .link-title:hover {
+      color: var(--primary-dark);
+    }
+    
+    .link-rating {
+      display: flex;
+      gap: 2px;
+      color: var(--warning);
+      font-size: 14px;
+    }
+    
+    .link-url {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      word-break: break-all;
+    }
+    .link-url a {
+        color: inherit;
+        text-decoration: none;
+    }
+    .link-url a:hover {
+        text-decoration: underline;
+    }
+    
+    .link-description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    
+    .link-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .link-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: var(--primary-lighter);
+      color: var(--primary);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+
+    /* Enhanced Contractor Cards */
+    .contractor-row {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 20px;
+      align-items: center;
+      transition: var(--transition);
+    }
+    
+    .contractor-row:hover {
+      transform: translateX(4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    
+    .contractor-avatar {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--primary), var(--info));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+    }
+    
+    .contractor-info {
+      display: grid;
+      gap: 8px;
+    }
+    
+    .contractor-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .contractor-specialty {
+      font-size: 14px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    
+    .contractor-contact {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      flex-wrap: wrap;
+    }
+    
+    .contractor-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    
+    .contractor-rating {
+      display: flex;
+      gap: 2px;
+      color: var(--warning);
+      font-size: 16px;
+    }
+
+    /* Enhanced Notes */
+    .note-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    
+    .note-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    
+    .note-title {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-primary);
+    }
+    
+    .note-date {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .note-content {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 16px;
+      max-height: 120px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .note-content::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, var(--card-bg));
+      pointer-events: none;
+    }
+    
+    .note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    
+    .note-tag {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--info-light);
+      color: var(--info);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+    
+    .note-priority {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
+    }
+    
+    .note-priority.high {
+      background: var(--error);
+      animation: pulse 2s infinite;
+    }
+    
+    .note-priority.medium {
+      background: var(--warning);
+    }
+    
+    .note-priority.low {
+      background: var(--success);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+    }
+
+    /* Enhanced Weather */
+    .weather-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .weather-day {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .weather-day.today {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, var(--card-bg), var(--primary-lighter));
+    }
+    
+    .weather-day:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .weather-date {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .weather-day-name {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .weather-icon {
+      font-size: 48px;
+      margin: 16px 0;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+    
+    .weather-temp {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    
+    .weather-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    
+    .weather-details {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+    
+    .weather-work-info {
+      background: var(--info-light);
+      border: 1px solid var(--info);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 24px;
+    }
+    
+    .weather-work-title {
+      font-weight: 700;
+      color: var(--info);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .weather-work-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .weather-work-item {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      font-size: 14px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .weather-work-item:last-child {
+      border-bottom: none;
+    }
+    
+    .weather-work-item.good {
+      color: var(--success);
+    }
+    
+    .weather-work-item.bad {
+      color: var(--error);
+    }
+
+    /* Category Tree Enhanced */
+    .category-tree {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    
+    .category-item {
+      margin-bottom: 8px;
+    }
+    
+    .category-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 2px solid transparent;
+    }
+    
+    .category-header:hover {
+      background: var(--primary-lighter);
+      transform: translateX(4px);
+    }
+    
+    .category-header.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary-dark);
+    }
+    
+    .category-icon {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    
+    .category-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .category-count {
+      background: var(--primary);
+      color: white;
+      padding: 2px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    
+    .category-header.active .category-count {
+      background: white;
+      color: var(--primary);
+    }
+    
+    .subcategories {
+      margin-left: 20px;
+      padding-left: 12px;
+      margin-top: 8px;
+      border-left: 2px solid var(--border);
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 50;
+    }
+    
+    .quick-action-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: var(--shadow-xl);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .quick-action-btn:hover {
+      transform: scale(1.1) rotate(90deg);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-secondary);
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .empty-state-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .empty-state-desc {
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* Toast Notifications */
+    #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .toast {
+        background: var(--card-bg);
+        color: var(--text-primary);
+        padding: 16px 20px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: toastIn 0.3s forwards;
+        border-left: 4px solid;
+    }
+    .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--error); }
+    .toast.info { border-color: var(--info); }
+    
+    @keyframes toastIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast.fade-out {
+        animation: toastOut 0.3s forwards;
+    }
+    @keyframes toastOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+    
+    /* App Tooltip */
+    #app-tooltip {
+        position: fixed;
+        background: var(--sidebar-bg);
+        color: white;
+        padding: 10px 15px;
+        border-radius: var(--radius-sm);
+        z-index: 3000;
+        pointer-events: none;
+        font-size: 13px;
+        line-height: 1.6;
+        box-shadow: var(--shadow-lg);
+        max-width: 300px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    #app-tooltip.visible {
+        opacity: 1;
+    }
+    #app-tooltip .tooltip-notes {
+        white-space: pre-wrap;
+        max-height: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    #app-tooltip .tooltip-subtask {
+        font-weight: 600;
+    }
+
+    .draggable-item { cursor: grab; }
+    .draggable-item:active { cursor: grabbing; }
+    .dragging { opacity: 0.5; background: var(--primary-lighter); }
+
+
+    /* Utility Classes */
+    .hidden { display: none !important; }
+    .mb-4 { margin-bottom: 32px; }
+    .mt-2 { margin-top: 16px; }
+    .text-center { text-align: center; }
+    .text-secondary { color: var(--text-secondary); }
+    .mobile-only { display: none; }
+    #app-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 998;
+      display: none;
+      transition: opacity 0.3s;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        bottom: 0;
+        z-index: 999;
+        box-shadow: var(--shadow-xl);
+      }
+      
+      .sidebar.active {
+        left: 0;
+      }
+
+      #app-overlay.active {
+        display: block;
+      }
+      
+      .main-content {
+        padding: 20px;
+      }
+      
+      .grid-4,
+      .grid-3,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .topbar {
+        padding: 16px 20px;
+      }
+      
+      .page-title {
+        font-size: 20px;
+      }
+      
+      .quick-actions {
+        bottom: 16px;
+        right: 16px;
+      }
+      
+      .weather-container {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-only {
+        display: block;
+      }
+      .desktop-only {
+        display: none;
+      }
+      .modal-content.modal-lg {
+        max-width: 95vw;
+        max-height: 95vh;
+      }
+    }
+  </style>
+</head>
+<body class="module-shell">
+  <section class="module-hero">
+    <div class="wrap module-hero-inner">
+      <div class="module-hero-top">
+        <div>
+          <a href="index.html" class="back-link">← Powrót</a>
+          <div class="module-eyebrow">Dom i budowa</div>
+          <h1 class="module-title">BuildMaster Pro</h1>
+          <p class="module-subtitle">Monitoruj postęp projektu domu, kontroluj budżet i reaguj na zagrożenia w jednym miejscu.</p>
+        </div>
+        <div class="module-hero-actions house-hero-actions">
+          <button class="btn soft" type="button" onclick="exportData()">📥 Eksport</button>
+          <button class="btn soft" type="button" onclick="importData()">📤 Import</button>
+          <button class="btn soft" type="button" onclick="generateReport()">📋 Raport</button>
+          <button class="btn soft" type="button" onclick="openSettingsModal()">⚙️ Ustawienia</button>
+          <button class="btn ghost icon-btn" id="theme-toggle" type="button" onclick="toggleTheme()">🌙</button>
+        </div>
+      </div>
+      <div class="module-hero-stats">
+        <div class="module-hero-stat">
+          <div class="label">Postęp projektu</div>
+          <div class="value" id="hero-progress">0%</div>
+          <div class="note" id="hero-progress-note">Średnia ukończenia zadań</div>
+        </div>
+        <div class="module-hero-stat">
+          <div class="label">Wydatki</div>
+          <div class="value" id="hero-budget">0 zł</div>
+          <div class="note" id="hero-budget-note">z planowanego budżetu</div>
+        </div>
+        <div class="module-hero-stat">
+          <div class="label">Opóźnienia</div>
+          <div class="value" id="hero-overdue">0</div>
+          <div class="note" id="hero-overdue-note">Zadań po terminie</div>
+        </div>
+        <div class="module-hero-stat">
+          <div class="label">Do terminu</div>
+          <div class="value" id="hero-timeline">—</div>
+          <div class="note" id="hero-timeline-note">Brak planowanej daty zakończenia</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="module-content">
+    <div class="wrap">
+      <nav class="page-tabs house-tabs" id="nav-menu">
+        <button type="button" class="page-tab active" data-tab="dashboard"><span class="nav-icon">📊</span><span>Panel główny</span></button>
+        <button type="button" class="page-tab" data-tab="timeline"><span class="nav-icon">📅</span><span>Harmonogram</span></button>
+        <button type="button" class="page-tab" data-tab="budget"><span class="nav-icon">💰</span><span>Budżet</span></button>
+        <button type="button" class="page-tab" data-tab="tasks"><span class="nav-icon">✅</span><span>Zadania</span><span class="nav-badge hidden" id="tasks-badge">0</span></button>
+        <button type="button" class="page-tab" data-tab="projects"><span class="nav-icon">🏡</span><span>Projekty domów</span></button>
+        <button type="button" class="page-tab" data-tab="links"><span class="nav-icon">🔗</span><span>Linki i zasoby</span></button>
+        <button type="button" class="page-tab" data-tab="contractors"><span class="nav-icon">👷</span><span>Wykonawcy</span></button>
+        <button type="button" class="page-tab" data-tab="materials"><span class="nav-icon">🧱</span><span>Materiały</span></button>
+        <button type="button" class="page-tab" data-tab="weather"><span class="nav-icon">🌤️</span><span>Pogoda</span></button>
+        <button type="button" class="page-tab" data-tab="notes"><span class="nav-icon">📝</span><span>Notatki</span></button>
+      </nav>
+
+      <div id="main-content" class="module-panels">
+        <div id="dashboard" class="tab-panel">
+        <div class="grid grid-4 mb-4">
+          <div class="stat-card">
+            <div class="stat-card-icon primary">📊</div>
+            <div class="stat-label">Postęp Projektu</div>
+            <div class="stat-value" id="total-progress">0%</div>
+            <div class="progress">
+              <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon warning">💰</div>
+            <div class="stat-label">Wykorzystany Budżet</div>
+            <div class="stat-value" id="budget-used">0 zł</div>
+            <div class="text-secondary mt-2" id="budget-percent">0% z 0 zł</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon error">⚠️</div>
+            <div class="stat-label">Opóźnione Zadania</div>
+            <div class="stat-value" style="color: var(--error)" id="overdue-tasks">0</div>
+            <div class="text-secondary mt-2">Wymagają uwagi</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon success">📅</div>
+            <div class="stat-label">Dni do Zakończenia</div>
+            <div class="stat-value" id="days-remaining">0</div>
+            <div id="end-date-display" class="text-secondary mt-2"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📈 Analiza Wydatków</h3>
+            </div>
+            <div style="position: relative; height: 300px;">
+              <canvas id="expenses-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">🎯 Struktura Budżetu</h3>
+            </div>
+            <div style="position: relative; height: 300px;">
+              <canvas id="budget-pie-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📋 Ostatnie Aktywności</h3>
+          </div>
+          <div id="recent-activities"></div>
+        </div>
+      </div>
+
+      <!-- Timeline Tab -->
+      <div id="timeline" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">📅 Harmonogram Gantta</h3>
+              <p class="card-subtitle">Wizualizacja zadań w czasie ze ścieżką krytyczną</p>
+            </div>
+            <button class="btn btn-primary" onclick="openTaskModal()">➕ Nowe zadanie</button>
+          </div>
+          <div id="gantt-filters"></div>
+          <div id="gantt-chart" class="gantt-container"></div>
+        </div>
+      </div>
+
+      <!-- Budget Tab -->
+      <div id="budget" class="tab-panel hidden">
+        <div class="grid grid-3 mb-4">
+          <div class="stat-card">
+            <div class="stat-card-icon primary">💼</div>
+            <div class="stat-label">Całkowity Budżet</div>
+            <div class="stat-value" id="total-budget">0 zł</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon warning">📊</div>
+            <div class="stat-label">Wydano</div>
+            <div class="stat-value" style="color: var(--warning)" id="total-spent">0 zł</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon success">✨</div>
+            <div class="stat-label">Pozostało</div>
+            <div class="stat-value" style="color: var(--success)" id="budget-remaining">0 zł</div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title">📊 Podsumowanie budżetu</h3>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kategoria</th>
+                            <th>Wydane</th>
+                            <th>Zaplanowane</th>
+                            <th>Wykorzystanie</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-summary-tbody"></tbody>
+                    <tfoot id="budget-summary-tfoot"></tfoot>
+                </table>
+            </div>
+        </div>
+
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h3 class="card-title">📁 Budżet per Kategoria (Szczegóły)</h3>
+            <button class="btn" onclick="openCategoryModal()">⚙️ Zarządzaj</button>
+          </div>
+          <div id="budget-categories"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">💳 Historia Wydatków</h3>
+            <button class="btn btn-primary" onclick="openExpenseModal()">➕ Dodaj wydatek</button>
+          </div>
+          <div id="expense-filters" style="display: flex; gap: 16px; margin-bottom: 24px;">
+            <div class="search-bar" style="flex-grow: 1; margin-bottom: 0;">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="expense-search" placeholder="Szukaj wydatków...">
+            </div>
+             <select id="expense-sort" class="form-select" style="width: 200px;">
+                <option value="date-desc">Data: Najnowsze</option>
+                <option value="date-asc">Data: Najstarsze</option>
+                <option value="amount-desc">Kwota: Malejąco</option>
+                <option value="amount-asc">Kwota: Rosnąco</option>
+            </select>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="date">Data</th>
+                  <th>Opis</th>
+                  <th>Kategoria</th>
+                  <th class="sortable" data-sort="amount">Kwota</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Tab -->
+      <div id="tasks" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">✅ Lista Zadań</h3>
+            <div class="btn-group">
+                <button class="btn" onclick="openTaskCategoryModal()">⚙️ Zarządzaj kategoriami</button>
+                <button class="btn btn-primary" onclick="openTaskModal()">➕ Nowe zadanie</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Zadanie</th>
+                  <th>Kategoria</th>
+                  <th>Termin</th>
+                  <th>Status</th>
+                  <th>Postęp</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="tasks-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Tab -->
+      <div id="projects" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🏡 Projekty Domów</h3>
+            <button class="btn btn-primary" onclick="openProjectModal()">➕ Dodaj projekt</button>
+          </div>
+          <div id="projects-filters"></div>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="projects-search" placeholder="Szukaj projektów...">
+          </div>
+          <div id="projects-grid" class="grid grid-4"></div>
+        </div>
+      </div>
+
+      <!-- Links Tab -->
+      <div id="links" class="tab-panel hidden">
+        <div class="grid" style="grid-template-columns: 320px 1fr;">
+          <div class="category-tree">
+            <div class="card-header" style="padding: 0 0 16px 0;">
+              <h3 class="card-title">📁 Kategorie</h3>
+              <button class="btn" onclick="openLinkCategoryModal()">➕</button>
+            </div>
+            <div id="link-categories"></div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" id="links-category-title">🔗 Wszystkie Linki</h3>
+                <button class="btn btn-primary" onclick="openLinkModal()">➕ Dodaj link</button>
+              </div>
+              <div class="search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="links-search" placeholder="Szukaj linków...">
+              </div>
+              <div id="links-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contractors Tab -->
+      <div id="contractors" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">👷 Wykonawcy i Kontakty</h3>
+            <button class="btn btn-primary" onclick="openContractorModal()">➕ Dodaj kontakt</button>
+          </div>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="contractors-search" placeholder="Szukaj wykonawców...">
+          </div>
+          <div id="contractors-list"></div>
+        </div>
+      </div>
+
+      <!-- Materials Tab -->
+      <div id="materials" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🧱 Materiały Budowlane</h3>
+            <button class="btn btn-primary" onclick="openMaterialModal()">➕ Dodaj materiał</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nazwa</th>
+                  <th>Ilość</th>
+                  <th>Jednostka</th>
+                  <th>Cena jedn.</th>
+                  <th>Suma</th>
+                  <th>Status</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="materials-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weather Tab -->
+      <div id="weather" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">🌤️ Prognoza Pogody - Warszawa</h3>
+            <button class="btn" onclick="refreshWeather()">🔄 Odśwież</button>
+          </div>
+          <div id="weather-container" class="weather-container"></div>
+          <div id="weather-recommendations" class="weather-work-info"></div>
+        </div>
+      </div>
+
+      <!-- Notes Tab -->
+      <div id="notes" class="tab-panel hidden">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📝 Notatki</h3>
+            <button class="btn btn-primary" onclick="openNoteModal()">➕ Dodaj notatkę</button>
+          </div>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="notes-search" placeholder="Szukaj notatek...">
+          </div>
+          <div id="notes-list" class="grid grid-3"></div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <button class="quick-action-btn" onclick="openTaskModal()" title="Szybkie dodanie zadania">➕</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content" id="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Tytuł</h3>
+        <button class="btn btn-ghost btn-icon" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer">
+        <button class="btn" onclick="closeModal()">Anuluj</button>
+        <button class="btn btn-primary" id="save-modal-btn">Zapisz</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- App Tooltip -->
+  <div id="app-tooltip" class="hidden"></div>
+
+
+  <script>
+    // App State
+    const APP_KEY = 'buildmaster_pro_v11';
+    const safeParse = (raw, fallbackFactory) => {
+      const fallback = () => (typeof fallbackFactory === 'function' ? fallbackFactory() : fallbackFactory);
+      if (!raw) return fallback();
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : fallback();
+      } catch {
+        return fallback();
+      }
+    };
+    const deepClone = (value) => {
+      if (typeof structuredClone === 'function') {
+        try { return structuredClone(value); } catch (error) { /* ignore */ }
+      }
+      return JSON.parse(JSON.stringify(value));
+    };
+    let state = {};
+    const defaultState = {
+      theme: 'light',
+      project: {
+        name: 'Budowa Domu Jednorodzinnego',
+        budget: 500000,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString().split('T')[0],
+      },
+      categories: [
+        { id: 'cat1', name: 'Fundamenty', budget: 50000, icon: '🏗️', estimations: [] },
+        { id: 'cat2', name: 'Stan surowy', budget: 150000, icon: '🧱', estimations: [] },
+        { id: 'cat3', name: 'Dach', budget: 80000, icon: '🏠', estimations: [] },
+        { id: 'cat4', name: 'Instalacje', budget: 70000, icon: '⚡', estimations: [] },
+        { id: 'cat5', name: 'Wykończenia', budget: 100000, icon: '🎨', estimations: [] },
+        { id: 'cat6', name: 'Zagospodarowanie', budget: 50000, icon: '🌳', estimations: [] }
+      ],
+      taskCategories: [
+        { id: 'tc1', name: 'Etap 0: Przygotowanie działki'},
+        { id: 'tc2', name: 'Etap 1: Fundamenty'},
+        { id: 'tc3', name: 'Etap 2: Stan surowy otwarty'},
+      ],
+      expenses: [],
+      tasks: [],
+      projects: [],
+      projectsView: {
+        sortBy: 'rating',
+        sortOrder: 'desc',
+      },
+      links: [],
+      linkCategories: [
+        { id: 'lc1', name: 'Meble', icon: '🪑', subcategories: [
+          { id: 'lc1-1', name: 'Kuchnia' },
+          { id: 'lc1-2', name: 'Salon' },
+          { id: 'lc1-3', name: 'Sypialnia' }
+        ]},
+        { id: 'lc2', name: 'Instalacje', icon: '⚡', subcategories: [] },
+        { id: 'lc3', name: 'Ogrodzenia', icon: '🚧', subcategories: [] },
+        { id: 'lc4', name: 'Inspiracje', icon: '💡', subcategories: [] }
+      ],
+      contractors: [],
+      materials: [],
+      notes: [],
+      activities: [],
+      weather: null,
+      currentLinkCategory: null,
+      gantt: {
+        category: 'all',
+        viewStart: null,
+        viewEnd: null,
+      },
+      budgetView: {
+          searchQuery: '',
+          sortBy: 'date',
+          sortOrder: 'desc',
+      }
+    };
+
+    let charts = {};
+
+    // =================================================================
+    // INITIALIZATION & CORE
+    // =================================================================
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      loadState();
+      applyTheme();
+      setupEventListeners();
+      initCharts();
+      switchTab('dashboard');
+      loadWeather();
+      setupSearchHandlers();
+      setupTooltip();
+    }
+
+    // State Management
+    function loadState() {
+      const savedState = safeParse(localStorage.getItem(APP_KEY), () => null);
+      state = deepClone(defaultState);
+      if (savedState && typeof savedState === 'object') {
+        for (const key of Object.keys(savedState)) {
+          if (typeof savedState[key] !== 'undefined') {
+            state[key] = savedState[key];
+          }
+        }
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(APP_KEY, JSON.stringify(state));
+    }
+
+    function addActivity(type, description) {
+      state.activities.unshift({
+        id: generateId(),
+        type,
+        description,
+        date: new Date().toISOString()
+      });
+      if (state.activities.length > 20) {
+        state.activities = state.activities.slice(0, 20);
+      }
+      saveState();
+      renderRecentActivities();
+    }
+
+    // Theme
+    function applyTheme() {
+      document.documentElement.setAttribute('data-theme', state.theme);
+      document.getElementById('theme-toggle').textContent = state.theme === 'light' ? '🌙' : '☀️';
+    }
+
+    function toggleTheme() {
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+      applyTheme();
+      saveState();
+      if (charts.expenses) {
+        Object.values(charts).forEach(chart => chart.destroy());
+        initCharts();
+        updateDashboard();
+      }
+    }
+
+    // Navigation
+    function switchTab(tabName) {
+      document.querySelectorAll('#nav-menu [data-tab]').forEach(control => {
+        control.classList.toggle('active', control.dataset.tab === tabName);
+      });
+
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('hidden', panel.id !== tabName);
+      });
+
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+      }
+
+      const activeControl = document.querySelector(`#nav-menu [data-tab="${tabName}"]`);
+      if (activeControl) {
+        const iconEl = activeControl.querySelector('.nav-icon');
+        const labelEl = activeControl.querySelector('span:not(.nav-icon):not(.nav-badge)');
+        const pageIcon = document.getElementById('page-icon');
+        const pageName = document.getElementById('page-name');
+        if (pageIcon && iconEl) pageIcon.textContent = iconEl.textContent;
+        if (pageName && labelEl) pageName.textContent = labelEl.textContent;
+      }
+
+      const renderFunc = `render${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+      if (typeof window[renderFunc] === 'function') {
+        window[renderFunc]();
+      }
+    }
+
+    function setupEventListeners() {
+      const navMenu = document.getElementById('nav-menu');
+      if (navMenu) {
+        navMenu.addEventListener('click', e => {
+          const control = e.target.closest('[data-tab]');
+          if (control && control.dataset.tab) {
+            e.preventDefault();
+            switchTab(control.dataset.tab);
+          }
+        });
+      }
+    }
+
+    // =================================================================
+    // DASHBOARD & CHARTS
+    // =================================================================
+    function renderDashboard() {
+      updateDashboard();
+      renderRecentActivities();
+    }
+
+    function updateDashboard() {
+      const { tasks, expenses, project } = state;
+      
+      const completedTasksProgress = tasks.map(t => (t.progress || 0));
+      const totalProgress = tasks.length > 0 ? completedTasksProgress.reduce((a,b) => a + b, 0) / tasks.length : 0;
+      
+      const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const budgetPercent = project.budget > 0 ? (totalExpenses / project.budget * 100) : 0;
+
+      const overdueTasks = tasks.filter(t =>
+        t.status !== 'completed' && t.endDate && new Date(t.endDate) < new Date()
+      ).length;
+
+      const daysRemaining = project.endDate ? Math.max(0, Math.ceil(
+        (new Date(project.endDate) - new Date()) / (1000 * 60 * 60 * 24)
+      )) : 'N/A';
+
+      document.getElementById('total-progress').textContent = `${Math.round(totalProgress)}%`;
+      document.getElementById('progress-bar').style.width = `${totalProgress}%`;
+      document.getElementById('budget-used').textContent = formatCurrency(totalExpenses);
+      document.getElementById('budget-percent').textContent =
+        `${Math.round(budgetPercent)}% z ${formatCurrency(project.budget)}`;
+      document.getElementById('overdue-tasks').textContent = overdueTasks;
+      document.getElementById('days-remaining').textContent = daysRemaining;
+      document.getElementById('end-date-display').textContent =
+        project.endDate ? `Termin: ${formatDate(project.endDate)}` : 'Brak terminu';
+
+      const heroProgress = document.getElementById('hero-progress');
+      if (heroProgress) heroProgress.textContent = `${Math.round(totalProgress)}%`;
+      const heroProgressNote = document.getElementById('hero-progress-note');
+      if (heroProgressNote) {
+        heroProgressNote.textContent = tasks.length
+          ? `${tasks.length.toLocaleString('pl-PL')} aktywnych zadań`
+          : 'Brak zadań do śledzenia';
+      }
+      const heroBudget = document.getElementById('hero-budget');
+      if (heroBudget) heroBudget.textContent = formatCurrency(totalExpenses);
+      const heroBudgetNote = document.getElementById('hero-budget-note');
+      if (heroBudgetNote) {
+        heroBudgetNote.textContent = project.budget
+          ? `z planu ${formatCurrency(project.budget)}`
+          : 'Budżet nieustawiony';
+      }
+      const heroOverdue = document.getElementById('hero-overdue');
+      if (heroOverdue) heroOverdue.textContent = overdueTasks;
+      const heroOverdueNote = document.getElementById('hero-overdue-note');
+      if (heroOverdueNote) {
+        if (overdueTasks === 0) heroOverdueNote.textContent = 'Wszystko na czas';
+        else if (overdueTasks === 1) heroOverdueNote.textContent = 'zadanie wymaga uwagi';
+        else heroOverdueNote.textContent = 'zadań wymaga uwagi';
+      }
+      const heroTimeline = document.getElementById('hero-timeline');
+      if (heroTimeline) {
+        if (typeof daysRemaining === 'number') heroTimeline.textContent = `${daysRemaining} dni`;
+        else heroTimeline.textContent = '—';
+      }
+      const heroTimelineNote = document.getElementById('hero-timeline-note');
+      if (heroTimelineNote) {
+        heroTimelineNote.textContent = project.endDate
+          ? `Do ${formatDate(project.endDate)}`
+          : 'Brak planowanej daty zakończenia';
+      }
+
+      const taskBadge = document.getElementById('tasks-badge');
+      if (overdueTasks > 0) {
+        taskBadge.textContent = overdueTasks;
+        taskBadge.classList.remove('hidden');
+      } else {
+        taskBadge.classList.add('hidden');
+      }
+
+      updateCharts();
+    }
+
+    function renderRecentActivities() {
+      const container = document.getElementById('recent-activities');
+      if(state.activities.length === 0) {
+        container.innerHTML = '<p class="text-center text-secondary">Brak ostatnich aktywności</p>';
+        return;
+      }
+      container.innerHTML = state.activities.slice(0, 10).map(activity => {
+        const icon = {
+          task: '✅', expense: '💰', note: '📝', contractor: '👷', project: '🏡', material: '🧱', link: '🔗', settings: '⚙️'
+        }[activity.type] || '📌';
+        
+        return `
+          <div style="padding: 12px; border-bottom: 1px solid var(--border-light);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 20px;">${icon}</span>
+              <div style="flex: 1;">
+                <div style="font-weight: 500;">${activity.description}</div>
+                <div style="font-size: 12px; color: var(--text-tertiary);">
+                  ${new Date(activity.date).toLocaleString('pl-PL')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function initCharts() {
+      const isDark = state.theme === 'dark';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+      const textColor = isDark ? '#f1f5f9' : '#0f172a';
+
+      Chart.defaults.color = textColor;
+
+      const expCtx = document.getElementById('expenses-chart');
+      if (expCtx) {
+        charts.expenses = new Chart(expCtx, {
+          type: 'line', data: { labels: [], datasets: [] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: gridColor } },
+              y: { grid: { color: gridColor }, ticks: { callback: value => formatCurrency(value) } }
+            }
+          }
+        });
+      }
+      const pieCtx = document.getElementById('budget-pie-chart');
+      if (pieCtx) {
+        charts.budgetPie = new Chart(pieCtx, {
+          type: 'doughnut', data: { labels: [], datasets: [] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: { callbacks: { label: context => `${context.label}: ${formatCurrency(context.raw)}` } }
+            }
+          }
+        });
+      }
+    }
+
+    function updateCharts() {
+      if (charts.expenses) {
+        const monthlyExpenses = {};
+        state.expenses.forEach(exp => {
+          const month = new Date(exp.date).toLocaleDateString('pl-PL', { month: 'short', year: 'numeric' });
+          monthlyExpenses[month] = (monthlyExpenses[month] || 0) + exp.amount;
+        });
+        charts.expenses.data = {
+          labels: Object.keys(monthlyExpenses),
+          datasets: [{
+            label: 'Wydatki', data: Object.values(monthlyExpenses), borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.4, fill: true
+          }]
+        };
+        charts.expenses.update();
+      }
+      if (charts.budgetPie) {
+        const categoryExpenses = {};
+        state.categories.forEach(cat => {
+          const catExpenses = state.expenses.filter(exp => exp.categoryId === cat.id).reduce((sum, exp) => sum + exp.amount, 0);
+          if (catExpenses > 0) categoryExpenses[cat.name] = catExpenses;
+        });
+        charts.budgetPie.data = {
+          labels: Object.keys(categoryExpenses),
+          datasets: [{
+            data: Object.values(categoryExpenses),
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#ec4899', '#f97316']
+          }]
+        };
+        charts.budgetPie.update();
+      }
+    }
+
+    // =================================================================
+    // TIMELINE (GANTT)
+    // =================================================================
+     function renderTimeline() {
+        const container = document.getElementById('gantt-chart');
+        
+        setupGanttFilters();
+        
+        let tasksWithDates = state.tasks.filter(t => t.startDate && t.endDate);
+
+        // 1. Filter by category
+        if (state.gantt.category !== 'all') {
+            tasksWithDates = tasksWithDates.filter(t => t.categoryId === state.gantt.category);
+        }
+
+        if (tasksWithDates.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-title">Brak zadań w harmonogramie</div><div class="empty-state-desc">Dodaj zadania z datami, aby zobaczyć harmonogram Gantta, lub zmień filtry.</div></div>';
+            return;
+        }
+        
+        // 2. Determine date range from filters
+        const [startY, startM] = state.gantt.viewStart.split('-').map(Number);
+        const minDate = new Date(startY, startM - 1, 1);
+
+        const [endY, endM] = state.gantt.viewEnd.split('-').map(Number);
+        const maxDate = new Date(endY, endM, 0); // Last day of the selected month
+
+        // 3. Filter tasks that fall within the view range
+        tasksWithDates = tasksWithDates.filter(t => new Date(t.startDate) <= maxDate && new Date(t.endDate) >= minDate);
+        tasksWithDates.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+        
+        const months = [];
+        let currentDate = new Date(minDate);
+        while (currentDate <= maxDate) {
+            months.push({ date: new Date(currentDate), name: currentDate.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }) });
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+
+        let html = `<div class="gantt-header"><div class="gantt-task-name">Zadanie</div><div class="gantt-task-category">Kategoria</div><div class="gantt-months">${months.map(m => `<div class="gantt-month">${m.name}</div>`).join('')}</div></div><div class="gantt-body">`;
+      
+        const today = new Date();
+        if (today >= minDate && today < maxDate) {
+            const todayOffset = (today - minDate) / (1000 * 60 * 60 * 24);
+            const todayPercent = (todayOffset / totalDays) * 100;
+            const leftOffset = 200 + 150; // width of task name + category columns
+            html += `<div class="gantt-today-line" style="left: calc(${leftOffset}px + ${todayPercent}%);"></div>`;
+        }
+      
+        tasksWithDates.forEach(task => {
+            const taskCategory = state.taskCategories.find(c => c.id === task.categoryId);
+            const taskStart = new Date(task.startDate);
+            const taskEnd = new Date(task.endDate);
+            const startOffset = Math.max(0, (taskStart - minDate) / (1000 * 60 * 60 * 24));
+            const endOffset = Math.min(totalDays, (taskEnd - minDate) / (1000 * 60 * 60 * 24));
+            const duration = endOffset - startOffset;
+
+            const leftPercent = (startOffset / totalDays) * 100;
+            const widthPercent = (duration / totalDays) * 100;
+            const isCritical = task.isCritical;
+
+            html += `
+              <div class="gantt-row ${task.status === 'completed' ? 'completed' : ''} ${isCritical ? 'critical' : ''}">
+                <div class="gantt-task-label" title="${task.name}">${task.name} ${isCritical ? '🔥' : ''}</div>
+                <div class="gantt-task-category">${taskCategory ? taskCategory.name : '-'}</div>
+                <div class="gantt-timeline">
+                  ${months.map(() => '<div class="gantt-month-column"></div>').join('')}
+                  <div class="gantt-bar-wrapper" style="left: ${leftPercent}%; width: ${widthPercent}%;" data-tooltip="${task.id}">
+                    <div class="gantt-bar ${isCritical ? 'critical' : ''} ${task.status === 'completed' ? 'completed' : ''}" onclick="openTaskModal('${task.id}')">
+                      <div class="gantt-bar-progress" style="width: ${task.progress || 0}%"></div>
+                      <span style="position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${task.name}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function setupGanttFilters() {
+        const container = document.getElementById('gantt-filters');
+        
+        const categoryOptions = state.taskCategories.map(c => `<option value="${c.id}" ${state.gantt.category === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+        
+        const projectStart = new Date(state.project.startDate);
+        const projectEnd = new Date(state.project.endDate);
+        const dateOptions = [];
+        let d = new Date(projectStart.getFullYear(), projectStart.getMonth(), 1);
+        while(d <= projectEnd) {
+            const value = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+            dateOptions.push(`<option value="${value}">${d.toLocaleDateString('pl-PL', {month: 'long', year: 'numeric'})}</option>`);
+            d.setMonth(d.getMonth() + 1);
+        }
+
+        if (!state.gantt.viewStart) {
+            state.gantt.viewStart = projectStart.toISOString().slice(0,7);
+            const defaultEnd = new Date(projectStart);
+            defaultEnd.setMonth(defaultEnd.getMonth() + 11);
+            if (defaultEnd > projectEnd) {
+                state.gantt.viewEnd = projectEnd.toISOString().slice(0,7);
+            } else {
+                state.gantt.viewEnd = defaultEnd.toISOString().slice(0,7);
+            }
+        }
+
+        container.innerHTML = `
+            <label for="gantt-category-filter" class="form-label" style="margin-bottom: 0;">Kategoria</label>
+            <select id="gantt-category-filter" class="form-select" style="width: 200px;">
+                <option value="all">Wszystkie</option>
+                ${categoryOptions}
+            </select>
+            <label for="gantt-start-date-filter" class="form-label" style="margin-bottom: 0;">Od</label>
+            <select id="gantt-start-date-filter" class="form-select" style="width: 150px;">${dateOptions.join('')}</select>
+            <label for="gantt-end-date-filter" class="form-label" style="margin-bottom: 0;">Do</label>
+            <select id="gantt-end-date-filter" class="form-select" style="width: 150px;">${dateOptions.join('')}</select>
+        `;
+
+        const catFilter = document.getElementById('gantt-category-filter');
+        const startFilter = document.getElementById('gantt-start-date-filter');
+        const endFilter = document.getElementById('gantt-end-date-filter');
+        
+        catFilter.value = state.gantt.category;
+        startFilter.value = state.gantt.viewStart;
+        endFilter.value = state.gantt.viewEnd;
+
+        catFilter.onchange = () => { state.gantt.category = catFilter.value; saveState(); renderTimeline(); };
+        startFilter.onchange = () => { state.gantt.viewStart = startFilter.value; saveState(); renderTimeline(); };
+        endFilter.onchange = () => { state.gantt.viewEnd = endFilter.value; saveState(); renderTimeline(); };
+    }
+
+
+    // =================================================================
+    // DATA SECTIONS (RENDER & DELETE)
+    // =================================================================
+
+    function renderBudget() {
+        const { project } = state;
+        const totalExpenses = state.expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalBudget = state.categories.reduce((sum, c) => sum + c.budget, 0);
+        state.project.budget = totalBudget; // Update project budget from categories
+
+        document.getElementById('total-budget').textContent = formatCurrency(totalBudget);
+        document.getElementById('total-spent').textContent = formatCurrency(totalExpenses);
+        document.getElementById('budget-remaining').textContent = formatCurrency(totalBudget - totalExpenses);
+        
+        renderBudgetSummaryTable();
+        renderBudgetCategories();
+        renderExpensesTable();
+
+        document.getElementById('expense-search').onkeyup = (e) => {
+            state.budgetView.searchQuery = e.target.value;
+            renderExpensesTable();
+        };
+        document.getElementById('expense-sort').onchange = (e) => {
+            const [sortBy, sortOrder] = e.target.value.split('-');
+            state.budgetView.sortBy = sortBy;
+            state.budgetView.sortOrder = sortOrder;
+            renderExpensesTable();
+        };
+
+        document.querySelectorAll('.sortable').forEach(th => th.onclick = (e) => {
+            const sortBy = e.target.dataset.sort;
+            if (state.budgetView.sortBy === sortBy) {
+                state.budgetView.sortOrder = state.budgetView.sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                state.budgetView.sortBy = sortBy;
+                state.budgetView.sortOrder = 'desc';
+            }
+            renderExpensesTable();
+        });
+    }
+
+    function renderBudgetSummaryTable() {
+        const tbody = document.getElementById('budget-summary-tbody');
+        const tfoot = document.getElementById('budget-summary-tfoot');
+        let totalSpent = 0;
+        let totalPlanned = 0;
+
+        tbody.innerHTML = state.categories.map(category => {
+            const spent = state.expenses.filter(e => e.categoryId === category.id).reduce((s, e) => s + e.amount, 0);
+            const planned = category.budget;
+            const percentage = planned > 0 ? (spent / planned * 100) : 0;
+            totalSpent += spent;
+            totalPlanned += planned;
+
+            return `
+                <tr>
+                    <td><span style="display: flex; align-items: center; gap: 6px;">${category.icon || '📁'} ${category.name}</span></td>
+                    <td>${formatCurrency(spent)}</td>
+                    <td>${formatCurrency(planned)}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="progress" style="flex: 1; margin: 0; height: 8px;"><div class="progress-bar" style="width: ${Math.min(100, percentage)}%"></div></div>
+                            <span style="font-size: 12px; font-weight: 600; min-width: 40px;">${Math.round(percentage)}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const totalPercentage = totalPlanned > 0 ? (totalSpent / totalPlanned * 100) : 0;
+        tfoot.innerHTML = `
+            <tr>
+                <td><strong>Suma</strong></td>
+                <td><strong>${formatCurrency(totalSpent)}</strong></td>
+                <td><strong>${formatCurrency(totalPlanned)}</strong></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="progress" style="flex: 1; margin: 0; height: 8px;"><div class="progress-bar" style="width: ${Math.min(100, totalPercentage)}%"></div></div>
+                        <span style="font-size: 12px; font-weight: 600; min-width: 40px;">${Math.round(totalPercentage)}%</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    function renderBudgetCategories() {
+      const container = document.getElementById('budget-categories');
+      container.innerHTML = state.categories.map(category => {
+        const categoryExpenses = state.expenses.filter(exp => exp.categoryId === category.id).reduce((sum, exp) => sum + exp.amount, 0);
+        const percentage = category.budget > 0 ? (categoryExpenses / category.budget * 100) : 0;
+        const remaining = category.budget - categoryExpenses;
+        let progressClass = 'safe';
+        if (percentage > 90) progressClass = 'danger';
+        else if (percentage > 70) progressClass = 'warning';
+        return `
+          <div class="budget-category-card" onclick="this.classList.toggle('expanded')">
+            <div class="budget-category-header">
+              <div class="budget-category-name"><div class="budget-category-icon">${category.icon || '📁'}</div>
+                <div><div>${category.name}</div><div style="font-size: 12px; color: var(--text-secondary); font-weight: 400;">${state.expenses.filter(e => e.categoryId === category.id).length} transakcji</div></div>
+              </div>
+              <div class="budget-category-amount"><div class="budget-spent">${formatCurrency(categoryExpenses)}</div><div class="budget-total">z ${formatCurrency(category.budget)}</div></div>
+            </div>
+            <div class="budget-progress"><div class="budget-progress-bar ${progressClass}" style="width: ${Math.min(percentage, 100)}%"></div></div>
+            <div class="budget-details"><span class="budget-percentage">${Math.round(percentage)}% wykorzystane</span><span style="${remaining < 0 ? 'color: var(--error)' : ''}">${remaining < 0 ? 'Przekroczono o' : 'Pozostało'}: ${formatCurrency(Math.abs(remaining))}</span></div>
+            <div class="budget-category-expense-list">
+                ${renderCategoryExpenseSublist(category.id)}
+            </div>
+          </div>`;
+      }).join('') || '<p class="text-secondary text-center">Brak zdefiniowanych kategorii budżetowych.</p>';
+    }
+
+    function renderCategoryExpenseSublist(categoryId) {
+        const categoryExpenses = state.expenses.filter(exp => exp.categoryId === categoryId);
+        if(categoryExpenses.length === 0) return '<p class="text-secondary text-center" style="font-size: 13px;">Brak wydatków w tej kategorii.</p>';
+
+        return `
+            <table style="font-size: 13px;">
+                ${categoryExpenses.map(exp => `
+                    <tr style="background: transparent;">
+                        <td style="padding: 6px 0;">${exp.description}</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: 600;">${formatCurrency(exp.amount)}</td>
+                    </tr>
+                `).join('')}
+            </table>
+        `;
+    }
+
+    function renderExpensesTable() {
+      const tbody = document.getElementById('expenses-tbody');
+      const { searchQuery, sortBy, sortOrder } = state.budgetView;
+
+      let filteredExpenses = [...state.expenses];
+
+      // Filter
+      if (searchQuery) {
+          const lowerCaseQuery = searchQuery.toLowerCase();
+          filteredExpenses = filteredExpenses.filter(exp => {
+              const category = state.categories.find(c => c.id === exp.categoryId);
+              return exp.description.toLowerCase().includes(lowerCaseQuery) || category?.name.toLowerCase().includes(lowerCaseQuery)
+          });
+      }
+
+      // Sort
+      filteredExpenses.sort((a, b) => {
+          const valA = sortBy === 'date' ? new Date(a[sortBy]) : a[sortBy];
+          const valB = sortBy === 'date' ? new Date(b[sortBy]) : b[sortBy];
+          if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+          if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+      });
+
+      tbody.innerHTML = filteredExpenses.map(expense => {
+        const category = state.categories.find(c => c.id === expense.categoryId);
+        return `
+          <tr>
+            <td>${formatDate(expense.date)}</td><td>${expense.description}</td>
+            <td><span style="display: flex; align-items: center; gap: 6px;">${category ? `${category.icon || '📁'} ${category.name}` : '-'}</span></td>
+            <td><strong>${formatCurrency(expense.amount)}</strong></td>
+            <td><div class="btn-group"><button class="btn btn-ghost btn-icon" onclick="openExpenseModal('${expense.id}')" title="Edytuj">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteExpense('${expense.id}', event)" title="Usuń">🗑️</button></div></td>
+          </tr>`;
+      }).join('') || '<tr><td colspan="5" class="text-center text-secondary">Brak wydatków spełniających kryteria.</td></tr>';
+    }
+    function deleteExpense(expenseId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć ten wydatek?', () => {
+        state.expenses = state.expenses.filter(e => e.id !== expenseId);
+        saveState(); renderBudget(); updateDashboard(); showToast('Wydatek usunięty');
+      });
+    }
+
+    function renderTasks() {
+      const tbody = document.getElementById('tasks-tbody');
+      tbody.innerHTML = state.tasks.map(task => {
+        const category = state.taskCategories.find(c => c.id === task.categoryId);
+        const statusBadge = { completed: '<span class="badge badge-success">Ukończone</span>', 'in-progress': '<span class="badge badge-info">W trakcie</span>', pending: '<span class="badge badge-warning">Oczekujące</span>'}[task.status] || '';
+        
+        const subtasks = task.subtasks || [];
+        const completedSubtasks = subtasks.filter(st => st.completed).length;
+        const subtaskProgressText = subtasks.length > 0 ? `(${completedSubtasks}/${subtasks.length})` : '';
+
+        return `
+          <tr data-tooltip="${task.id}">
+            <td><strong>${task.name} ${task.isCritical ? '🔥' : ''}</strong><div class="text-secondary" style="font-size:12px;">${subtaskProgressText}</div></td>
+            <td>${category ? category.name : '-'}</td>
+            <td>${formatDate(task.endDate)}</td>
+            <td>${statusBadge}</td>
+            <td><div style="display: flex; align-items: center; gap: 8px;"><div class="progress" style="flex: 1; margin: 0;"><div class="progress-bar" style="width: ${task.progress || 0}%"></div></div><span style="font-size: 12px; font-weight: 600;">${task.progress || 0}%</span></div></td>
+            <td><div class="btn-group"><button class="btn btn-ghost btn-icon" onclick="openTaskModal('${task.id}')" title="Edytuj">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteTask('${task.id}', event)" title="Usuń">🗑️</button></div></td>
+          </tr>`;
+      }).join('') || '<tr><td colspan="6" class="text-center text-secondary">Brak zadań</td></tr>';
+    }
+    function deleteTask(taskId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć to zadanie?', () => {
+        state.tasks = state.tasks.filter(t => t.id !== taskId);
+        saveState(); renderTasks(); updateDashboard(); showToast('Zadanie usunięte');
+      });
+    }
+
+    function renderProjects() {
+        setupProjectFilters();
+        const container = document.getElementById('projects-grid');
+        const searchQuery = document.getElementById('projects-search').value;
+        const { sortBy, sortOrder } = state.projectsView;
+
+        let projects = [...state.projects];
+
+        if (searchQuery) {
+            projects = projects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description?.toLowerCase().includes(searchQuery.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+        }
+        
+        projects.sort((a, b) => {
+            const valA = a[sortBy] || 0;
+            const valB = b[sortBy] || 0;
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        if (projects.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-state-icon">🏡</div><div class="empty-state-title">Brak projektów</div><div class="empty-state-desc">Dodaj swój pierwszy projekt domu, aby go tutaj zobaczyć.</div><button class="btn btn-primary" onclick="openProjectModal()">➕ Dodaj projekt</button></div>`; return;
+        }
+
+        container.innerHTML = projects.map(project => {
+            const placeholderUrl = `https://placehold.co/400x300/e0e7ff/6366f1?text=${encodeURIComponent(project.name)}`;
+            return `
+            <div class="project-card">
+              <div class="project-card-image">
+                 <img src="${project.imageUrl || placeholderUrl}" alt="${project.name}" onerror="this.onerror=null;this.src='${placeholderUrl}';">
+              </div>
+              <div class="project-card-content">
+                <div class="project-card-header">
+                  <h4 class="project-card-title">${project.name}</h4>
+                  <div class="project-card-rating">${'⭐'.repeat(project.rating || 0)}${'☆'.repeat(5 - (project.rating || 0))}</div>
+                </div>
+                <div class="project-card-details">
+                   <span>Cena: <strong>${project.price > 0 ? formatCurrency(project.price) : 'N/A'}</strong></span>
+                   <span>Pow.: <strong>${project.area > 0 ? `${project.area} m²` : 'N/A'}</strong></span>
+                </div>
+                <p class="project-card-description">${project.description || 'Brak opisu'}</p>
+                <div class="project-card-tags">${(project.tags || []).map(tag => `<span class="project-card-tag">${tag}</span>`).join('')}</div>
+                <div class="project-card-footer">${project.url ? `<a href="${project.url}" target="_blank" class="btn">🔗 Otwórz</a>` : '<span></span>'}<div class="btn-group"><button class="btn btn-ghost btn-icon" onclick="openProjectModal('${project.id}')" title="Edytuj">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteProject('${project.id}', event)" title="Usuń">🗑️</button></div></div>
+              </div>
+            </div>`;
+        }).join('');
+    }
+
+    function setupProjectFilters() {
+        const container = document.getElementById('projects-filters');
+        const { sortBy, sortOrder } = state.projectsView;
+        const sortValue = `${sortBy}-${sortOrder}`;
+
+        container.innerHTML = `
+            <label for="project-sort" class="form-label" style="margin-bottom: 0;">Sortuj według</label>
+            <select id="project-sort" class="form-select" style="width: 250px;">
+                <option value="rating-desc" ${sortValue === 'rating-desc' ? 'selected' : ''}>Ocena: Malejąco</option>
+                <option value="rating-asc" ${sortValue === 'rating-asc' ? 'selected' : ''}>Ocena: Rosnąco</option>
+                <option value="price-desc" ${sortValue === 'price-desc' ? 'selected' : ''}>Cena: Malejąco</option>
+                <option value="price-asc" ${sortValue === 'price-asc' ? 'selected' : ''}>Cena: Rosnąco</option>
+                <option value="area-desc" ${sortValue === 'area-desc' ? 'selected' : ''}>Powierzchnia: Malejąco</option>
+                <option value="area-asc" ${sortValue === 'area-asc' ? 'selected' : ''}>Powierzchnia: Rosnąco</option>
+            </select>
+        `;
+
+        document.getElementById('project-sort').onchange = (e) => {
+            const [sortBy, sortOrder] = e.target.value.split('-');
+            state.projectsView.sortBy = sortBy;
+            state.projectsView.sortOrder = sortOrder;
+            saveState();
+            renderProjects();
+        };
+    }
+    
+    function deleteProject(projectId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć ten projekt?', () => {
+        state.projects = state.projects.filter(p => p.id !== projectId);
+        saveState(); renderProjects(); showToast('Projekt usunięty');
+      });
+    }
+
+    function renderLinks() { renderLinkCategories(); renderLinksList(); }
+    function renderLinkCategories() {
+      const container = document.getElementById('link-categories');
+      container.innerHTML = `
+        <div class="category-item"><div class="category-header ${!state.currentLinkCategory ? 'active' : ''}" onclick="filterLinksByCategory(null)"><span class="category-icon">📌</span><span class="category-name">Wszystkie</span><span class="category-count">${state.links.length}</span></div></div>
+      ` + state.linkCategories.map(cat => `
+        <div class="category-item">
+          <div class="category-header ${state.currentLinkCategory === cat.id ? 'active' : ''}" onclick="filterLinksByCategory('${cat.id}')"><span class="category-icon">${cat.icon}</span><span class="category-name">${cat.name}</span><span class="category-count">${state.links.filter(l => l.categoryId === cat.id).length}</span></div>
+          ${cat.subcategories.length > 0 ? `<div class="subcategories ${state.currentLinkCategory === cat.id || cat.subcategories.some(s => s.id === state.currentLinkCategory) ? '' : 'hidden'}" id="subcat-${cat.id}">${cat.subcategories.map(sub => `<div class="category-header ${state.currentLinkCategory === sub.id ? 'active' : ''}" onclick="filterLinksByCategory('${sub.id}')"><span class="category-name">└ ${sub.name}</span><span class="category-count">${state.links.filter(l => l.subcategoryId === sub.id).length}</span></div>`).join('')}</div>` : ''}
+        </div>`).join('');
+    }
+    function filterLinksByCategory(categoryId) {
+      state.currentLinkCategory = categoryId;
+      const titleEl = document.getElementById('links-category-title');
+      if (!categoryId) titleEl.textContent = '🔗 Wszystkie Linki';
+      else {
+        let found = false;
+        state.linkCategories.forEach(cat => {
+            if (cat.id === categoryId) { titleEl.textContent = `${cat.icon} ${cat.name}`; found = true; }
+            const sub = cat.subcategories.find(s => s.id === categoryId);
+            if (sub) { titleEl.textContent = `${cat.icon} ${cat.name} → ${sub.name}`; found = true; }
+        });
+        if(!found) titleEl.textContent = '🔗 Wszystkie Linki';
+      }
+      renderLinkCategories(); renderLinksList();
+    }
+    function renderLinksList(searchQuery = '') {
+      const container = document.getElementById('links-list');
+      let links = state.links;
+      if (state.currentLinkCategory) {
+          const isMainCategory = state.linkCategories.some(c => c.id === state.currentLinkCategory);
+          if (isMainCategory) {
+              links = links.filter(l => l.categoryId === state.currentLinkCategory);
+          } else {
+              links = links.filter(l => l.subcategoryId === state.currentLinkCategory);
+          }
+      }
+
+      if (searchQuery) links = links.filter(l => l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.description?.toLowerCase().includes(searchQuery.toLowerCase()) || l.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+      if (links.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔗</div><div class="empty-state-title">Brak linków</div><div class="empty-state-desc">Dodaj przydatne linki, aby je tutaj zobaczyć.</div></div>`; return;
+      }
+      container.innerHTML = links.map(link => {
+          const placeholderUrl = `https://placehold.co/120x90/e0e7ff/6366f1?text=${encodeURIComponent(link.name.substring(0, 10))}`;
+          return `
+          <div class="link-card">
+            <div class="link-image">
+                <img src="${link.imageUrl || placeholderUrl}" alt="${link.name}" onerror="this.onerror=null;this.src='${placeholderUrl}';">
+            </div>
+            <div class="link-content">
+              <div>
+                <div class="link-header">
+                    <h4 class="link-title">${link.name}</h4>
+                    <div class="link-rating">${'⭐'.repeat(link.rating || 0)}${'☆'.repeat(5 - (link.rating || 0))}</div>
+                </div>
+                <div class="link-url">
+                    <a href="${link.url}" target="_blank" rel="noopener noreferrer">🔗 Link do zasobu</a>
+                </div>
+                ${link.description ? `<div class="link-description">${link.description}</div>` : ''}
+                <div class="link-tags">${(link.tags || []).map(tag => `<span class="link-tag">${tag}</span>`).join('')}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-light);">
+                  <div>
+                    ${link.price > 0 ? `<strong style="font-size: 16px; color: var(--text-primary);">${formatCurrency(link.price)}</strong>` : ''}
+                  </div>
+                  <div class="btn-group">
+                    <button class="btn btn-ghost btn-icon" onclick="openLinkModal('${link.id}')" title="Edytuj">✏️</button>
+                    <button class="btn btn-ghost btn-icon" onclick="deleteLink('${link.id}', event)" title="Usuń">🗑️</button>
+                  </div>
+              </div>
+            </div>
+          </div>
+        `}).join('');
+    }
+    function deleteLink(linkId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć ten link?', () => {
+        state.links = state.links.filter(l => l.id !== linkId);
+        saveState(); renderLinks(); showToast('Link usunięty');
+      });
+    }
+
+    function renderContractors(searchQuery = '') {
+      const container = document.getElementById('contractors-list');
+      let contractors = state.contractors;
+      if (searchQuery) contractors = contractors.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.specialty?.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone?.includes(searchQuery) || c.email?.toLowerCase().includes(searchQuery.toLowerCase()));
+      if (contractors.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👷</div><div class="empty-state-title">Brak wykonawców</div><div class="empty-state-desc">Dodaj kontakty do swoich wykonawców.</div><button class="btn btn-primary" onclick="openContractorModal()">➕ Dodaj wykonawcę</button></div>`; return;
+      }
+      container.innerHTML = contractors.map(contractor => {
+        const initials = contractor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        return `
+          <div class="contractor-row">
+            <div class="contractor-avatar">${initials}</div>
+            <div class="contractor-info"><div class="contractor-name">${contractor.name}</div><div class="contractor-specialty">${contractor.specialty || 'Wykonawca'}</div><div class="contractor-contact">${contractor.phone ? `<span>📞 ${contractor.phone}</span>` : ''}${contractor.email ? `<span>✉️ ${contractor.email}</span>` : ''}</div></div>
+            <div class="contractor-actions"><div class="contractor-rating">${'⭐'.repeat(contractor.rating)}${'☆'.repeat(5 - contractor.rating)}</div><div class="btn-group"><button class="btn btn-ghost btn-icon" onclick="openContractorModal('${contractor.id}')" title="Edytuj">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteContractor('${contractor.id}', event)" title="Usuń">🗑️</button></div></div>
+          </div>`;
+      }).join('');
+    }
+    function deleteContractor(contractorId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć tego wykonawcę?', () => {
+        state.contractors = state.contractors.filter(c => c.id !== contractorId);
+        saveState(); renderContractors(); showToast('Wykonawca usunięty');
+      });
+    }
+
+    function renderMaterials() {
+      const tbody = document.getElementById('materials-tbody');
+      tbody.innerHTML = state.materials.map(material => {
+        const total = material.quantity * material.price;
+        const statusBadge = material.ordered ? '<span class="badge badge-success">Zamówiono</span>' : '<span class="badge badge-warning">Do zamówienia</span>';
+        return `
+          <tr>
+            <td><strong>${material.name}</strong></td><td>${material.quantity}</td><td>${material.unit}</td>
+            <td>${formatCurrency(material.price)}</td><td><strong>${formatCurrency(total)}</strong></td><td>${statusBadge}</td>
+            <td><div class="btn-group"><button class="btn btn-ghost btn-icon" onclick="openMaterialModal('${material.id}')" title="Edytuj">✏️</button><button class="btn btn-ghost btn-icon" onclick="deleteMaterial('${material.id}', event)" title="Usuń">🗑️</button></div></td>
+          </tr>`;
+      }).join('') || '<tr><td colspan="7" class="text-center text-secondary">Brak materiałów</td></tr>';
+    }
+    function deleteMaterial(materialId, event) {
+      if(event) event.stopPropagation();
+      showConfirm('Czy na pewno chcesz usunąć ten materiał?', () => {
+        state.materials = state.materials.filter(m => m.id !== materialId);
+        saveState(); renderMaterials(); showToast('Materiał usunięty');
+      });
+    }
+    
+    function renderNotes(searchQuery = '') {
+      const container = document.getElementById('notes-list');
+      let notes = state.notes;
+      if (searchQuery) notes = notes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()) || n.content?.toLowerCase().includes(searchQuery.toLowerCase()) || n.tags?.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+      notes.sort((a, b) => { const p = { high: 0, medium: 1, low: 2 }; if (a.priority !== b.priority) return (p[a.priority] || 2) - (p[b.priority] || 2); return new Date(b.date) - new Date(a.date); });
+      if (notes.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-state-icon">📝</div><div class="empty-state-title">Brak notatek</div><div class="empty-state-desc">Dodaj swoją pierwszą notatkę.</div><button class="btn btn-primary" onclick="openNoteModal()">➕ Dodaj notatkę</button></div>`; return;
+      }
+      container.innerHTML = notes.map(note => `
+        <div class="note-card" onclick="openNoteModal('${note.id}')">
+          ${note.priority ? `<div class="note-priority ${note.priority}"></div>` : ''}
+          <div class="note-header"><div class="note-title">${note.title}</div><div class="note-date"><span>📅</span>${formatDate(note.date)}</div></div>
+          <div class="note-content">${note.content}</div>
+          ${note.tags && note.tags.length > 0 ? `<div class="note-tags">${note.tags.map(tag => `<span class="note-tag">${tag}</span>`).join('')}</div>` : ''}
+        </div>`).join('');
+    }
+    function deleteNote(noteId) {
+      // Close the edit modal first, then show confirm
+      closeModal();
+      setTimeout(() => {
+        showConfirm('Czy na pewno chcesz usunąć tę notatkę?', () => {
+          state.notes = state.notes.filter(n => n.id !== noteId);
+          saveState(); renderNotes(); showToast('Notatka usunięta');
+        });
+      }, 200); // Timeout to prevent modal conflicts
+    }
+
+    // =================================================================
+    // MODALS & SAVING DATA
+    // =================================================================
+
+    // Task Modal
+    function openTaskModal(taskId = null) {
+      const task = taskId ? state.tasks.find(t => t.id === taskId) : { subtasks: [] };
+      const title = taskId ? 'Edytuj Zadanie' : 'Nowe Zadanie';
+      const categoryOptions = state.taskCategories.map(cat => `<option value="${cat.id}" ${task.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('');
+
+      const body = `
+        <div class="form-row">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="form-group"><label class="form-label required">Nazwa zadania</label><input type="text" class="form-input" id="task-name" value="${task.name || ''}"></div>
+                <div class="form-group"><label class="form-label">Kategoria</label><select class="form-select" id="task-category"><option value="">-- Brak --</option>${categoryOptions}</select></div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Data rozpoczęcia</label><input type="date" class="form-input" id="task-start" value="${task.startDate || ''}"></div>
+                    <div class="form-group"><label class="form-label">Data zakończenia</label><input type="date" class="form-input" id="task-end" value="${task.endDate || ''}"></div>
+                </div>
+                 <div class="form-row">
+                    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="task-status"><option value="pending" ${task.status === 'pending' || !task.status ? 'selected' : ''}>Oczekujące</option><option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>W trakcie</option><option value="completed" ${task.status === 'completed' ? 'selected' : ''}>Ukończone</option></select></div>
+                    <div class="form-group"><label class="form-label">Postęp (%)</label><input type="number" class="form-input" id="task-progress" min="0" max="100" value="${task.progress || 0}" ${task.subtasks && task.subtasks.length > 0 ? 'disabled' : ''}></div>
+                </div>
+                <div class="form-group form-checkbox"><input type="checkbox" id="task-critical" ${task.isCritical ? 'checked' : ''}><label for="task-critical">Zadanie na ścieżce krytycznej 🔥</label></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="form-group">
+                    <label class="form-label">Notatki do zadania</label>
+                    <textarea id="task-notes" class="form-textarea" style="min-height: 120px;">${task.notes || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Podzadania (Checklista)</label>
+                    <div class="subtask-list-container">
+                        <div id="subtask-list" class="subtask-list">${(task.subtasks || []).map(sub => renderSubtask(sub)).join('')}</div>
+                        <div class="subtask-entry">
+                            <input type="text" id="new-subtask-name" class="form-input" placeholder="Nazwa nowego podzadania...">
+                            <button class="btn btn-primary" onclick="addSubtask()">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+      openModal(title, body, () => saveTask(taskId), null, true);
+    }
+    function saveTask(taskId) {
+      const name = document.getElementById('task-name').value;
+      if (!name) { showToast('Nazwa zadania jest wymagana', 'error'); return; }
+      
+      const subtasks = [];
+      document.querySelectorAll('#subtask-list .subtask').forEach(el => {
+          subtasks.push({
+              id: el.dataset.id,
+              name: el.querySelector('input[type="text"]').value,
+              completed: el.querySelector('input[type="checkbox"]').checked
+          });
+      });
+
+      let progress = parseInt(document.getElementById('task-progress').value) || 0;
+      if (subtasks.length > 0) {
+          const completedCount = subtasks.filter(st => st.completed).length;
+          progress = Math.round((completedCount / subtasks.length) * 100);
+      }
+
+      const task = {
+        id: taskId || generateId(), name, subtasks, progress,
+        notes: document.getElementById('task-notes').value,
+        categoryId: document.getElementById('task-category').value,
+        startDate: document.getElementById('task-start').value,
+        endDate: document.getElementById('task-end').value,
+        status: document.getElementById('task-status').value,
+        isCritical: document.getElementById('task-critical').checked
+      };
+
+      if (taskId) state.tasks[state.tasks.findIndex(t => t.id === taskId)] = task;
+      else { state.tasks.push(task); addActivity('task', `Dodano zadanie: ${task.name}`); }
+      saveState(); closeModal(); renderTasks(); renderTimeline(); updateDashboard();
+    }
+    
+    // Subtask helpers
+    function renderSubtask(subtask) {
+        return `
+            <div class="subtask" data-id="${subtask.id}">
+                <input type="checkbox" ${subtask.completed ? 'checked' : ''} onchange="updateSubtaskProgress()">
+                <input type="text" class="form-input" value="${subtask.name}">
+                <button class="btn btn-ghost btn-icon" style="min-width: 40px;" onclick="this.parentElement.remove(); updateSubtaskProgress();">🗑️</button>
+            </div>`;
+    }
+    function addSubtask() {
+        const nameInput = document.getElementById('new-subtask-name');
+        if (!nameInput.value) return;
+        const newSubtask = { id: generateId(), name: nameInput.value, completed: false };
+        document.getElementById('subtask-list').insertAdjacentHTML('beforeend', renderSubtask(newSubtask));
+        nameInput.value = '';
+        nameInput.focus();
+        updateSubtaskProgress();
+    }
+    function updateSubtaskProgress() {
+        const subtasks = document.querySelectorAll('#subtask-list .subtask');
+        const progressInput = document.getElementById('task-progress');
+        if (subtasks.length > 0) {
+            const completedCount = Array.from(subtasks).filter(st => st.querySelector('input[type="checkbox"]').checked).length;
+            const progress = Math.round((completedCount / subtasks.length) * 100);
+            progressInput.value = progress;
+            progressInput.disabled = true;
+        } else {
+            progressInput.disabled = false;
+        }
+    }
+    
+    // Expense Modal
+    function openExpenseModal(expenseId = null) {
+      const expense = expenseId ? state.expenses.find(e => e.id === expenseId) : {};
+      const title = expenseId ? 'Edytuj Wydatek' : 'Nowy Wydatek';
+      const categoryOptions = state.categories.map(cat => `<option value="${cat.id}" ${expense.categoryId === cat.id ? 'selected' : ''}>${cat.icon || '📁'} ${cat.name}</option>`).join('');
+      const body = `
+        <div class="form-group"><label class="form-label required">Opis</label><input type="text" class="form-input" id="expense-description" value="${expense.description || ''}"></div>
+        <div class="form-row"><div class="form-group"><label class="form-label required">Kwota (PLN)</label><input type="number" class="form-input" id="expense-amount" value="${expense.amount || ''}" step="0.01"></div><div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="expense-date" value="${expense.date || new Date().toISOString().split('T')[0]}"></div></div>
+        <div class="form-group"><label class="form-label">Kategoria</label><select class="form-select" id="expense-category">${categoryOptions}</select></div>`;
+      openModal(title, body, () => saveExpense(expenseId));
+    }
+    function saveExpense(expenseId) {
+      const description = document.getElementById('expense-description').value;
+      const amount = parseFloat(document.getElementById('expense-amount').value);
+      if (!description || !amount) { showToast('Opis i kwota są wymagane', 'error'); return; }
+      const expense = {
+        id: expenseId || generateId(), description, amount,
+        date: document.getElementById('expense-date').value,
+        categoryId: document.getElementById('expense-category').value
+      };
+      if (expenseId) state.expenses[state.expenses.findIndex(e => e.id === expenseId)] = expense;
+      else { state.expenses.push(expense); addActivity('expense', `Dodano wydatek: ${expense.description} (${formatCurrency(expense.amount)})`); }
+      saveState(); closeModal(); renderBudget(); updateDashboard();
+    }
+
+    // Budget Category Modal
+    function openCategoryModal() {
+      const body = `
+        <div id="categories-list">${state.categories.map(cat => `
+            <div class="form-row draggable-item" draggable="true" data-id="${cat.id}" style="margin-bottom: 10px; align-items: center; grid-template-columns: auto auto 1fr auto;">
+              <span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span>
+              <input type="text" class="form-input" value="${cat.icon || '📁'}" data-field="icon" style="width: 60px;">
+              <input type="text" class="form-input" value="${cat.name}" data-field="name">
+              <div class="btn-group">
+                 <button class="btn" onclick="openCategoryEstimationsModal('${cat.id}')">Szacuj koszty</button>
+                 <button class="btn btn-ghost btn-icon" onclick="this.closest('.form-row').remove()">🗑️</button>
+              </div>
+            </div>`).join('')}
+        </div>
+        <button class="btn mt-2" onclick="addCategoryRow()">➕ Dodaj kategorię</button>`;
+      openModal('Zarządzanie Kategoriami Budżetu', body, saveCategories);
+      
+      // Add Drag and Drop listeners
+      const container = document.getElementById('categories-list');
+      container.addEventListener('dragstart', e => e.target.classList.add('dragging'));
+      container.addEventListener('dragend', e => e.target.classList.remove('dragging'));
+      container.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(container, e.clientY);
+        const draggable = document.querySelector('.dragging');
+        if(draggable) {
+            if (afterElement == null) container.appendChild(draggable);
+            else container.insertBefore(draggable, afterElement);
+        }
+      });
+    }
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    function addCategoryRow() {
+      const list = document.getElementById('categories-list');
+      const newId = generateId();
+      const row = document.createElement('div');
+      row.className = 'form-row draggable-item'; 
+      row.draggable = true;
+      row.dataset.id = newId;
+      row.style.cssText = 'margin-bottom: 10px; align-items: center; grid-template-columns: auto auto 1fr auto;';
+      row.innerHTML = `<span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span><input type="text" class="form-input" placeholder="Ikona" value="📁" data-field="icon" style="width: 60px;"><input type="text" class="form-input" placeholder="Nazwa kategorii" data-field="name"><div class="btn-group"><button class="btn" disabled>Szacuj koszty</button><button class="btn btn-ghost btn-icon" onclick="this.closest('.form-row').remove()">🗑️</button></div>`;
+      list.appendChild(row);
+    }
+    function saveCategories() {
+      const newCategories = [];
+      document.querySelectorAll('#categories-list .draggable-item').forEach(row => {
+        const nameInput = row.querySelector('input[data-field="name"]');
+        const id = row.dataset.id;
+        const name = nameInput.value;
+        const icon = row.querySelector('input[data-field="icon"]').value || '📁';
+        
+        if (name) {
+            const existingCategory = state.categories.find(c => c.id === id) || {budget: 0, estimations: []};
+            newCategories.push({ 
+                id, 
+                name, 
+                icon, 
+                budget: existingCategory.budget,
+                estimations: existingCategory.estimations
+            });
+        }
+      });
+      state.categories = newCategories;
+      saveState(); closeModal(); renderBudget();
+    }
+
+     // Budget Category Estimations Modal
+    function openCategoryEstimationsModal(categoryId) {
+        const category = state.categories.find(c => c.id === categoryId);
+        if (!category) return;
+        const estimations = category.estimations || [];
+
+        const body = `
+            <p class="card-subtitle" style="margin-top: -15px; margin-bottom: 20px;">Szacowane koszty dla kategorii: <strong>${category.name}</strong></p>
+            <div id="estimations-list">
+                ${estimations.map(est => `
+                    <div class="form-row" style="margin-bottom: 10px; align-items: center; grid-template-columns: 1fr 1fr auto;">
+                        <input type="text" class="form-input" placeholder="Opis" value="${est.name}" data-id="${est.id}" data-field="name">
+                        <input type="number" class="form-input" placeholder="Szacowana kwota" value="${est.amount}" data-id="${est.id}" data-field="amount">
+                        <button class="btn btn-ghost btn-icon" onclick="this.closest('.form-row').remove()">🗑️</button>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn mt-2" onclick="addEstimationRow()">➕ Dodaj pozycję</button>
+        `;
+        openModal(`Szacowanie: ${category.name}`, body, () => saveCategoryEstimations(categoryId));
+    }
+    function addEstimationRow() {
+        const list = document.getElementById('estimations-list');
+        const newId = generateId();
+        const row = document.createElement('div');
+        row.className = 'form-row'; row.style.marginBottom = '10px'; row.style.alignItems = 'center'; row.style.gridTemplateColumns = '1fr 1fr auto';
+        row.innerHTML = `
+            <input type="text" class="form-input" placeholder="Opis (np. Materiały)" data-id="${newId}" data-field="name">
+            <input type="number" class="form-input" placeholder="Szacowana kwota" data-id="${newId}" data-field="amount">
+            <button class="btn btn-ghost btn-icon" onclick="this.closest('.form-row').remove()">🗑️</button>`;
+        list.appendChild(row);
+    }
+    function saveCategoryEstimations(categoryId) {
+        const category = state.categories.find(c => c.id === categoryId);
+        if (!category) return;
+        
+        const newEstimations = [];
+        let totalBudget = 0;
+        document.querySelectorAll('#estimations-list .form-row').forEach(row => {
+            const nameInput = row.querySelector('input[data-field="name"]');
+            const amountInput = row.querySelector('input[data-field="amount"]');
+            const id = nameInput.dataset.id;
+            const name = nameInput.value;
+            const amount = parseFloat(amountInput.value) || 0;
+
+            if (name && amount > 0) {
+                newEstimations.push({ id, name, amount });
+                totalBudget += amount;
+            }
+        });
+        
+        category.estimations = newEstimations;
+        category.budget = totalBudget;
+        
+        saveState();
+        closeModal();
+        openCategoryModal(); // Re-open the main category modal to see the update
+        renderBudget();
+        updateDashboard();
+    }
+
+
+    // Task Category Modal
+    function openTaskCategoryModal() {
+        const body = `
+        <div id="task-categories-list">${state.taskCategories.map(cat => `
+            <div class="form-row" style="margin-bottom: 10px; align-items: center; grid-template-columns: 1fr auto;">
+              <input type="text" class="form-input" value="${cat.name}" data-id="${cat.id}" data-field="name">
+              <button class="btn btn-ghost btn-icon" onclick="this.parentElement.remove()">🗑️</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn mt-2" onclick="addTaskCategoryRow()">➕ Dodaj kategorię</button>`;
+        openModal('Zarządzanie Kategoriami Zadań', body, saveTaskCategories);
+    }
+    function addTaskCategoryRow() {
+        const list = document.getElementById('task-categories-list');
+        const newId = generateId();
+        const row = document.createElement('div');
+        row.className = 'form-row'; row.style.marginBottom = '10px'; row.style.alignItems = 'center'; row.style.gridTemplateColumns = '1fr auto';
+        row.innerHTML = `<input type="text" class="form-input" placeholder="Nazwa kategorii/etapu" data-id="${newId}" data-field="name"><button class="btn btn-ghost btn-icon" onclick="this.parentElement.remove()">🗑️</button>`;
+        list.appendChild(row);
+    }
+    function saveTaskCategories() {
+        const newCategories = [];
+        document.querySelectorAll('#task-categories-list input[data-field="name"]').forEach(input => {
+            const id = input.dataset.id;
+            const name = input.value;
+            if (name) newCategories.push({ id, name });
+        });
+        state.taskCategories = newCategories;
+        saveState();
+        closeModal();
+        renderTasks();
+    }
+
+
+    // Project Modal
+    function openProjectModal(projectId = null) {
+      const project = projectId ? state.projects.find(p => p.id === projectId) : {};
+      const title = projectId ? 'Edytuj Projekt' : 'Nowy Projekt Domu';
+      const body = `
+        <div class="form-group"><label class="form-label required">Nazwa projektu</label><input type="text" class="form-input" id="project-name" value="${project.name || ''}"></div>
+        <div class="form-group"><label class="form-label">Link do projektu (URL)</label><input type="url" class="form-input" id="project-url" value="${project.url || ''}"></div>
+        <div class="form-group"><label class="form-label">Link do grafiki (URL)</label><input type="url" class="form-input" id="project-imageUrl" value="${project.imageUrl || ''}"></div>
+        <div class="form-row">
+            <div class="form-group"><label class="form-label">Cena (PLN)</label><input type="number" class="form-input" id="project-price" step="1000" value="${project.price || ''}"></div>
+            <div class="form-group"><label class="form-label">Powierzchnia (m²)</label><input type="number" class="form-input" id="project-area" step="0.1" value="${project.area || ''}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Opis</label><textarea class="form-textarea" id="project-description">${project.description || ''}</textarea></div>
+        <div class="form-row">
+            <div class="form-group"><label class="form-label">Ocena (1-5)</label><input type="number" class="form-input" id="project-rating" min="1" max="5" value="${project.rating || 3}"></div>
+            <div class="form-group"><label class="form-label">Tagi (rozdzielone przecinkiem)</label><input type="text" class="form-input" id="project-tags" value="${(project.tags || []).join(', ')}"></div>
+        </div>
+      `;
+      openModal(title, body, () => saveProject(projectId));
+    }
+    function saveProject(projectId) {
+      const name = document.getElementById('project-name').value;
+      if (!name) { showToast('Nazwa projektu jest wymagana', 'error'); return; }
+      const project = {
+        id: projectId || generateId(),
+        name,
+        url: document.getElementById('project-url').value,
+        imageUrl: document.getElementById('project-imageUrl').value,
+        price: parseFloat(document.getElementById('project-price').value) || 0,
+        area: parseFloat(document.getElementById('project-area').value) || 0,
+        description: document.getElementById('project-description').value,
+        rating: parseInt(document.getElementById('project-rating').value) || 3,
+        tags: document.getElementById('project-tags').value.split(',').map(t => t.trim()).filter(t => t)
+      };
+      if (projectId) state.projects[state.projects.findIndex(p => p.id === projectId)] = project;
+      else { state.projects.push(project); addActivity('project', `Dodano projekt: ${project.name}`); }
+      saveState(); closeModal(); renderProjects();
+    }
+    
+    // Link Modal
+    function openLinkModal(linkId = null) {
+        const link = linkId ? state.links.find(l => l.id === linkId) : {};
+        const title = linkId ? 'Edytuj Link' : 'Nowy Link';
+        
+        let categoryOptions = state.linkCategories.map(cat => {
+            let options = `<option value="${cat.id}" ${link.categoryId === cat.id && !link.subcategoryId ? 'selected' : ''}>${cat.name}</option>`;
+            options += cat.subcategories.map(sub => `<option value="${sub.id}" ${link.subcategoryId === sub.id ? 'selected' : ''}>&nbsp;&nbsp;└ ${sub.name}</option>`).join('');
+            return options;
+        }).join('');
+        
+        const body = `
+            <div class="form-group"><label class="form-label required">Nazwa</label><input type="text" id="link-name" class="form-input" value="${link.name || ''}"></div>
+            <div class="form-group"><label class="form-label required">URL</label><input type="url" id="link-url" class="form-input" value="${link.url || ''}"></div>
+            <div class="form-group"><label class="form-label">Link do grafiki (URL)</label><input type="url" id="link-imageUrl" class="form-input" value="${link.imageUrl || ''}"></div>
+            <div class="form-group"><label class="form-label">Kategoria</label><select id="link-category" class="form-select"><option value="">-- Brak --</option>${categoryOptions}</select></div>
+            <div class="form-group"><label class="form-label">Opis</label><textarea id="link-description" class="form-textarea">${link.description || ''}</textarea></div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Cena (PLN)</label><input type="number" id="link-price" class="form-input" step="0.01" value="${link.price || ''}"></div>
+                <div class="form-group"><label class="form-label">Ocena (1-5)</label><input type="number" id="link-rating" class="form-input" min="1" max="5" value="${link.rating || 3}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Tagi (rozdzielone przecinkiem)</label><input type="text" id="link-tags" class="form-input" value="${(link.tags || []).join(', ')}"></div>
+        `;
+        openModal(title, body, () => saveLink(linkId));
+    }
+    function saveLink(linkId) {
+        const name = document.getElementById('link-name').value;
+        const url = document.getElementById('link-url').value;
+        if (!name || !url) { showToast('Nazwa i URL są wymagane', 'error'); return; }
+
+        const selectedId = document.getElementById('link-category').value;
+        let categoryId = null;
+        let subcategoryId = null;
+
+        if (selectedId) {
+            const isMainCategory = state.linkCategories.find(c => c.id === selectedId);
+            if (isMainCategory) {
+                categoryId = selectedId;
+            } else {
+                subcategoryId = selectedId;
+                state.linkCategories.forEach(cat => {
+                    if (cat.subcategories.some(sub => sub.id === subcategoryId)) {
+                        categoryId = cat.id;
+                    }
+                });
+            }
+        }
+
+        const link = {
+            id: linkId || generateId(), name, url, categoryId, subcategoryId,
+            imageUrl: document.getElementById('link-imageUrl').value,
+            description: document.getElementById('link-description').value,
+            price: parseFloat(document.getElementById('link-price').value) || 0,
+            rating: parseInt(document.getElementById('link-rating').value) || 3,
+            tags: document.getElementById('link-tags').value.split(',').map(t => t.trim()).filter(t => t)
+        };
+        
+        if (linkId) state.links[state.links.findIndex(l => l.id === linkId)] = link;
+        else { state.links.push(link); addActivity('link', `Dodano link: ${link.name}`); }
+        
+        saveState(); closeModal(); renderLinks();
+    }
+
+    function openLinkCategoryModal() {
+        let body = `<div id="link-categories-list">`;
+        state.linkCategories.forEach(cat => {
+            body += `
+                <div class="draggable-item" draggable="true" data-id="${cat.id}" data-type="category">
+                    <div class="form-row" style="margin-bottom: 10px; align-items: center; grid-template-columns: auto auto 1fr auto;">
+                         <span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span>
+                         <input type="text" class="form-input" value="${cat.icon}" data-field="icon" style="width: 60px;">
+                         <input type="text" class="form-input" value="${cat.name}" data-field="name">
+                         <div class="btn-group">
+                             <button class="btn btn-icon" onclick="addSubcategoryRow('${cat.id}')">➕</button>
+                             <button class="btn btn-ghost btn-icon" onclick="this.closest('.draggable-item').remove()">🗑️</button>
+                         </div>
+                    </div>
+                    <div class="subcategories" style="margin-left: 40px; padding-left: 20px; border-left: 2px solid var(--border);" data-parent-id="${cat.id}">
+                    ${(cat.subcategories || []).map(sub => `
+                        <div class="form-row draggable-item" draggable="true" data-id="${sub.id}" data-type="subcategory" style="margin-bottom: 10px; align-items: center; grid-template-columns: auto 1fr auto;">
+                             <span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span>
+                             <input type="text" class="form-input" value="${sub.name}" data-field="name">
+                             <button class="btn btn-ghost btn-icon" onclick="this.closest('.draggable-item').remove()">🗑️</button>
+                        </div>
+                    `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+        body += '</div><button class="btn mt-2" onclick="addLinkCategoryRow()">➕ Dodaj kategorię</button>';
+
+        openModal('Zarządzaj Kategoriami Linków', body, saveLinkCategories);
+
+        const container = document.getElementById('link-categories-list');
+        makeListDraggable(container);
+        container.querySelectorAll('.subcategories').forEach(subContainer => makeListDraggable(subContainer));
+    }
+    function makeListDraggable(container) {
+        container.addEventListener('dragstart', e => { if (e.target.classList.contains('draggable-item')) e.target.classList.add('dragging'); });
+        container.addEventListener('dragend', e => { if (e.target.classList.contains('draggable-item')) e.target.classList.remove('dragging'); });
+        container.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(container, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable && (draggable.dataset.type === afterElement?.dataset.type || !afterElement)) {
+                if (afterElement == null) container.appendChild(draggable);
+                else container.insertBefore(draggable, afterElement);
+            }
+        });
+    }
+
+    function addLinkCategoryRow() {
+        const list = document.getElementById('link-categories-list');
+        const newId = generateId();
+        const row = document.createElement('div');
+        row.className = 'draggable-item'; row.draggable = true; row.dataset.id = newId; row.dataset.type = 'category';
+        row.innerHTML = `
+            <div class="form-row" style="margin-bottom: 10px; align-items: center; grid-template-columns: auto auto 1fr auto;">
+                <span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span>
+                <input type="text" class="form-input" placeholder="Ikona" value="📁" data-field="icon" style="width: 60px;">
+                <input type="text" class="form-input" placeholder="Nowa kategoria" data-field="name">
+                <div class="btn-group">
+                    <button class="btn btn-icon" onclick="addSubcategoryRow('${newId}')">➕</button>
+                    <button class="btn btn-ghost btn-icon" onclick="this.closest('.draggable-item').remove()">🗑️</button>
+                </div>
+            </div>
+            <div class="subcategories" style="margin-left: 40px; padding-left: 20px; border-left: 2px solid var(--border);" data-parent-id="${newId}"></div>
+        `;
+        list.appendChild(row);
+    }
+    function addSubcategoryRow(parentId) {
+        const sublist = document.querySelector(`.subcategories[data-parent-id="${parentId}"]`);
+        const newId = generateId();
+        const row = document.createElement('div');
+        row.className = 'form-row draggable-item'; row.draggable = true; row.dataset.id = newId; row.dataset.type = 'subcategory';
+        row.style.cssText = 'margin-bottom: 10px; align-items: center; grid-template-columns: auto 1fr auto;';
+        row.innerHTML = `
+            <span class="drag-handle" style="cursor: grab; padding-right: 10px;">☰</span>
+            <input type="text" class="form-input" placeholder="Nowa podkategoria" data-field="name">
+            <button class="btn btn-ghost btn-icon" onclick="this.closest('.draggable-item').remove()">🗑️</button>`;
+        sublist.appendChild(row);
+    }
+    function saveLinkCategories() {
+        const newCategories = [];
+        document.querySelectorAll('#link-categories-list > .draggable-item').forEach(catRow => {
+            const catNameInput = catRow.querySelector('input[data-field="name"]');
+            const catId = catRow.dataset.id;
+            const catName = catNameInput.value;
+            const catIcon = catRow.querySelector('input[data-field="icon"]').value;
+            
+            if (catName) {
+                const newSubcategories = [];
+                catRow.querySelectorAll('.subcategories .draggable-item').forEach(subRow => {
+                    const subNameInput = subRow.querySelector('input[data-field="name"]');
+                    const subId = subRow.dataset.id;
+                    const subName = subNameInput.value;
+                    if (subName) {
+                        newSubcategories.push({ id: subId, name: subName });
+                    }
+                });
+                newCategories.push({ id: catId, name: catName, icon: catIcon, subcategories: newSubcategories });
+            }
+        });
+        state.linkCategories = newCategories;
+        saveState();
+        closeModal();
+        renderLinks();
+    }
+    
+
+    // Contractor Modal
+    function openContractorModal(contractorId = null) {
+        const contractor = contractorId ? state.contractors.find(c => c.id === contractorId) : {};
+        const title = contractorId ? 'Edytuj Wykonawcę' : 'Nowy Wykonawca';
+        const body = `
+            <div class="form-group"><label class="form-label required">Nazwa</label><input type="text" id="contractor-name" class="form-input" value="${contractor.name || ''}"></div>
+            <div class="form-group"><label class="form-label">Specjalizacja</label><input type="text" id="contractor-specialty" class="form-input" value="${contractor.specialty || ''}"></div>
+            <div class="form-row"><div class="form-group"><label class="form-label">Telefon</label><input type="tel" id="contractor-phone" class="form-input" value="${contractor.phone || ''}"></div><div class="form-group"><label class="form-label">Email</label><input type="email" id="contractor-email" class="form-input" value="${contractor.email || ''}"></div></div>
+            <div class="form-group"><label class="form-label">Ocena (1-5)</label><input type="number" id="contractor-rating" class="form-input" min="1" max="5" value="${contractor.rating || 3}"></div>`;
+        openModal(title, body, () => saveContractor(contractorId));
+    }
+    function saveContractor(contractorId) {
+        const name = document.getElementById('contractor-name').value;
+        if (!name) { showToast('Nazwa wykonawcy jest wymagana', 'error'); return; }
+        const contractor = {
+            id: contractorId || generateId(), name,
+            specialty: document.getElementById('contractor-specialty').value,
+            phone: document.getElementById('contractor-phone').value,
+            email: document.getElementById('contractor-email').value,
+            rating: parseInt(document.getElementById('contractor-rating').value) || 3
+        };
+        if (contractorId) state.contractors[state.contractors.findIndex(c => c.id === contractorId)] = contractor;
+        else { state.contractors.push(contractor); addActivity('contractor', `Dodano wykonawcę: ${contractor.name}`); }
+        saveState(); closeModal(); renderContractors();
+    }
+
+    // Material Modal
+    function openMaterialModal(materialId = null) {
+        const material = materialId ? state.materials.find(m => m.id === materialId) : {};
+        const title = materialId ? 'Edytuj Materiał' : 'Nowy Materiał';
+        const body = `
+            <div class="form-group"><label class="form-label required">Nazwa</label><input type="text" id="material-name" class="form-input" value="${material.name || ''}"></div>
+            <div class="form-row"><div class="form-group"><label class="form-label">Ilość</label><input type="number" id="material-quantity" class="form-input" value="${material.quantity || 1}"></div><div class="form-group"><label class="form-label">Jednostka</label><input type="text" id="material-unit" class="form-input" value="${material.unit || 'szt.'}"></div></div>
+            <div class="form-group"><label class="form-label">Cena jedn.</label><input type="number" id="material-price" class="form-input" step="0.01" value="${material.price || 0}"></div>
+            <div class="form-group"><label class="form-label">Status</label><select id="material-ordered" class="form-select"><option value="false" ${!material.ordered ? 'selected' : ''}>Do zamówienia</option><option value="true" ${material.ordered ? 'selected' : ''}>Zamówiono</option></select></div>`;
+        openModal(title, body, () => saveMaterial(materialId));
+    }
+    function saveMaterial(materialId) {
+        const name = document.getElementById('material-name').value;
+        if (!name) { showToast('Nazwa materiału jest wymagana', 'error'); return; }
+        const material = {
+            id: materialId || generateId(), name,
+            quantity: parseFloat(document.getElementById('material-quantity').value) || 0,
+            unit: document.getElementById('material-unit').value,
+            price: parseFloat(document.getElementById('material-price').value) || 0,
+            ordered: document.getElementById('material-ordered').value === 'true'
+        };
+        if (materialId) state.materials[state.materials.findIndex(m => m.id === materialId)] = material;
+        else { state.materials.push(material); addActivity('material', `Dodano materiał: ${material.name}`); }
+        saveState(); closeModal(); renderMaterials();
+    }
+
+    // Note Modal
+    function openNoteModal(noteId = null) {
+        const note = noteId ? state.notes.find(n => n.id === noteId) : {};
+        const title = noteId ? 'Edytuj Notatkę' : 'Nowa Notatka';
+        const body = `
+            <div class="form-group"><label class="form-label required">Tytuł</label><input type="text" id="note-title" class="form-input" value="${note.title || ''}"></div>
+            <div class="form-group"><label class="form-label">Treść</label><textarea id="note-content" class="form-textarea" rows="6">${note.content || ''}</textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Priorytet</label><select id="note-priority" class="form-select"><option value="low" ${note.priority === 'low' ? 'selected' : ''}>Niski</option><option value="medium" ${note.priority === 'medium' || !note.priority ? 'selected' : ''}>Średni</option><option value="high" ${note.priority === 'high' ? 'selected' : ''}>Wysoki</option></select></div>
+              <div class="form-group"><label class="form-label">Tagi</label><input type="text" id="note-tags" class="form-input" value="${(note.tags || []).join(', ')}"></div>
+            </div>`;
+        const footer = `<button class="btn" onclick="closeModal()">Anuluj</button>
+                        ${noteId ? `<button class="btn btn-danger" onclick="deleteNote('${noteId}')">Usuń</button>` : ''}
+                        <button class="btn btn-primary" id="save-modal-btn">Zapisz</button>`;
+        openModal(title, body, () => saveNote(noteId), footer);
+    }
+    function saveNote(noteId) {
+        const title = document.getElementById('note-title').value;
+        if (!title) { showToast('Tytuł notatki jest wymagany', 'error'); return; }
+        const note = {
+            id: noteId || generateId(), title,
+            content: document.getElementById('note-content').value,
+            priority: document.getElementById('note-priority').value,
+            tags: document.getElementById('note-tags').value.split(',').map(t => t.trim()).filter(t => t),
+            date: noteId ? state.notes.find(n => n.id === noteId).date : new Date().toISOString()
+        };
+        if (noteId) state.notes[state.notes.findIndex(n => n.id === noteId)] = note;
+        else { state.notes.push(note); addActivity('note', `Dodano notatkę: ${note.title}`); }
+        saveState(); closeModal(); renderNotes();
+    }
+    
+    // Settings Modal
+    function openSettingsModal() {
+        const { project } = state;
+        const title = 'Ustawienia Projektu';
+        const body = `
+            <div class="form-group"><label class="form-label required">Nazwa projektu</label><input type="text" class="form-input" id="settings-name" value="${project.name}"></div>
+            <div class="form-group"><label class="form-label">Całkowity budżet (PLN)</label><input type="number" class="form-input" id="settings-budget" value="${project.budget}" step="1000" disabled><small class="text-secondary">Budżet jest sumą szacowanych kosztów poszczególnych kategorii.</small></div>
+            <div class="form-row"><div class="form-group"><label class="form-label">Data rozpoczęcia</label><input type="date" class="form-input" id="settings-start" value="${project.startDate}"></div><div class="form-group"><label class="form-label">Data zakończenia</label><input type="date" class="form-input" id="settings-end" value="${project.endDate}"></div></div>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);"/>
+            <div class="form-group"><h4 style="margin-bottom: 16px;">Strefa zagrożenia</h4><button class="btn btn-danger" id="reset-data-btn">💣 Zresetuj wszystkie dane</button><p class="text-secondary" style="font-size: 12px; margin-top: 8px;">Uwaga: Ta akcja jest nieodwracalna i usunie wszystkie dane projektu.</p></div>`;
+        openModal(title, body, saveSettings);
+        document.getElementById('reset-data-btn').addEventListener('click', resetAllData);
+    }
+    function saveSettings() {
+        const name = document.getElementById('settings-name').value;
+        if (!name) { showToast('Nazwa projektu jest wymagana', 'error'); return; }
+        state.project.name = name;
+        state.project.startDate = document.getElementById('settings-start').value;
+        state.project.endDate = document.getElementById('settings-end').value;
+
+        addActivity('settings', `Zaktualizowano ustawienia projektu`);
+        saveState(); closeModal(); updateDashboard();
+    }
+    function resetAllData() {
+        showConfirm('Czy NA PEWNO chcesz usunąć WSZYSTKIE dane? Tej akcji nie można cofnąć.', () => {
+            localStorage.removeItem(APP_KEY);
+            state = { ...defaultState };
+            location.reload();
+        });
+    }
+
+    // =================================================================
+    // WEATHER
+    // =================================================================
+    function renderWeather() {
+      const container = document.getElementById('weather-container'), recommendationsContainer = document.getElementById('weather-recommendations');
+      if (!state.weather || state.weather.length === 0) { container.innerHTML = '<p class="text-center text-secondary">Ładowanie prognozy pogody...</p>'; loadWeather(); return; }
+      const today = new Date();
+      container.innerHTML = state.weather.map((day, index) => {
+        const dayDate = new Date(today); dayDate.setDate(today.getDate() + index);
+        return `<div class="weather-day ${index === 0 ? 'today' : ''}"><div class="weather-date">${dayDate.getDate()}.${(dayDate.getMonth() + 1).toString().padStart(2, '0')}</div><div class="weather-day-name">${day.dayName}</div><div class="weather-icon">${day.icon}</div><div class="weather-temp">${day.temp}°C</div><div class="weather-desc">${day.description}</div><div class="weather-details"><span>💧 ${day.rain}%</span><span>💨 ${day.wind} km/h</span></div></div>`;
+      }).join('');
+      const recommendations = generateWeatherRecommendations(state.weather);
+      recommendationsContainer.innerHTML = `<div class="weather-work-title"><span>🔨</span><span>Rekomendacje prac budowlanych</span></div><ul class="weather-work-list">${recommendations.map(rec => `<li class="weather-work-item ${rec.type}"><span>${rec.icon}</span><span>${rec.text}</span></li>`).join('')}</ul>`;
+    }
+    function loadWeather() {
+      const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+      const today = new Date();
+      state.weather = Array.from({ length: 7 }, (_, i) => {
+        const dayName = days[(today.getDay() + i) % 7];
+        const temp = Math.round(18 + Math.sin(i) * 5 + Math.random() * 4 - 2);
+        const rain = Math.min(100, Math.max(0, Math.round(Math.pow(Math.random(), 2) * 100)));
+        const wind = Math.round(5 + Math.random() * 20);
+        let icon = '☀️', description = 'Słonecznie';
+        if (rain > 70) { icon = '🌧️'; description = 'Deszczowo'; }
+        else if (rain > 30) { icon = '🌦️'; description = 'Przelotne opady'; }
+        else if (temp < 20) { icon = '☁️'; description = 'Pochmurno'; }
+        else if (temp < 22) { icon = '⛅'; description = 'Częściowe zachmurzenie'; }
+        return { dayName, icon, temp, description, rain, wind };
+      });
+      saveState(); renderWeather();
+    }
+    function generateWeatherRecommendations(weather) {
+      const rec = [];
+      const goodDays = weather.slice(0,3).filter(d => d.rain < 20 && d.wind < 20);
+      if (goodDays.length > 0) rec.push({type: 'good', icon: '✅', text: `${goodDays.length} dni z dobrą pogodą - idealne na prace zewnętrzne.`});
+      const rainyDays = weather.slice(0,3).filter(d => d.rain > 50);
+      if (rainyDays.length > 0) rec.push({type: 'bad', icon: '⚠️', text: `${rainyDays.length} dni deszczowe - skup się na pracach wewnętrznych.`});
+      if (weather[0].temp > 20 && weather[0].rain < 10) rec.push({type: 'good', icon: '🎨', text: 'Dziś: Idealne warunki do malowania i lakierowania.'});
+      return rec;
+    }
+    function refreshWeather() { loadWeather(); showToast('Pogoda zaktualizowana'); }
+
+    // =================================================================
+    // UTILITIES
+    // =================================================================
+    function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+    function formatCurrency(amount) { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(amount || 0); }
+    function formatDate(dateString) { if (!dateString) return '-'; return new Date(dateString).toLocaleDateString('pl-PL'); }
+    
+    function setupSearchHandlers() {
+        document.getElementById('projects-search').addEventListener('keyup', () => renderProjects());
+        document.getElementById('links-search').addEventListener('keyup', e => renderLinksList(e.target.value));
+        document.getElementById('contractors-search').addEventListener('keyup', e => renderContractors(e.target.value));
+        document.getElementById('notes-search').addEventListener('keyup', e => renderNotes(e.target.value));
+    }
+
+    // Data Management
+    function exportData() {
+        const dataStr = JSON.stringify(state, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `buildmaster_backup_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        showToast('Dane zostały wyeksportowane.');
+    }
+    function importData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    showConfirm('Czy na pewno chcesz nadpisać obecne dane zaimportowanym plikiem?', () => {
+                        state = importedState;
+                        saveState();
+                        showToast('Dane pomyślnie zaimportowano!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    });
+                } catch (err) {
+                    showToast('Błąd podczas importu pliku. Upewnij się, że plik jest poprawny.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+    function generateReport() {
+        // This is a simplified report generator
+        const { project, tasks, expenses, categories } = state;
+        const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+        
+        let reportHTML = `
+            <html><head><title>Raport Projektu: ${project.name}</title>
+            <style>body{font-family: sans-serif; padding: 20px;} table{width: 100%; border-collapse: collapse;} th, td{border: 1px solid #ddd; padding: 8px; text-align: left;}</style>
+            </head><body>
+            <h1>Raport Projektu: ${project.name}</h1>
+            <p><strong>Data wygenerowania:</strong> ${new Date().toLocaleString('pl-PL')}</p>
+            <h2>Podsumowanie finansowe</h2>
+            <p><strong>Budżet:</strong> ${formatCurrency(project.budget)}</p>
+            <p><strong>Wydatki:</strong> ${formatCurrency(totalSpent)}</p>
+            <p><strong>Pozostało:</strong> ${formatCurrency(project.budget - totalSpent)}</p>
+            <h2>Zadania (${tasks.filter(t=>t.status==='completed').length}/${tasks.length} ukończonych)</h2>
+            <table><thead><tr><th>Zadanie</th><th>Status</th><th>Termin</th></tr></thead><tbody>
+            ${tasks.map(t => `<tr><td>${t.name}</td><td>${t.status}</td><td>${formatDate(t.endDate)}</td></tr>`).join('')}
+            </tbody></table>
+            <h2>Wydatki per kategoria</h2>
+            <table><thead><tr><th>Kategoria</th><th>Wydano</th><th>Budżet</th></tr></thead><tbody>
+            ${categories.map(c => {
+                const spent = expenses.filter(e => e.categoryId === c.id).reduce((s, e) => s + e.amount, 0);
+                return `<tr><td>${c.name}</td><td>${formatCurrency(spent)}</td><td>${formatCurrency(c.budget)}</td></tr>`
+            }).join('')}
+            </tbody></table>
+            </body></html>`;
+
+        const reportWindow = window.open('', '_blank');
+        reportWindow.document.write(reportHTML);
+        reportWindow.document.close();
+        reportWindow.print();
+    }
+
+    // Modal System
+    function openModal(title, body, onSave, footer = null, isLarge = false) {
+      const modalContent = document.getElementById('modal-content');
+      modalContent.classList.toggle('modal-lg', isLarge);
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = body;
+      const modalFooter = document.getElementById('modal-footer');
+      if (footer) {
+        modalFooter.innerHTML = footer;
+      } else {
+        modalFooter.innerHTML = `<button class="btn" onclick="closeModal()">Anuluj</button><button class="btn btn-primary" id="save-modal-btn">Zapisz</button>`;
+      }
+      
+      const saveBtn = document.getElementById('save-modal-btn');
+      if (saveBtn && onSave) {
+        saveBtn.onclick = onSave;
+      }
+
+      document.getElementById('modal').classList.add('active');
+    }
+    function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${{success: '✅', error: '❌', info: 'ℹ️'}[type] || 'ℹ️'}</span> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('fade-out');
+        toast.addEventListener('animationend', () => toast.remove());
+      }, 3000);
+    }
+    
+    // Custom Confirm Modal
+    function showConfirm(message, onConfirm) {
+        const title = 'Potwierdzenie';
+        const body = `<p>${message}</p>`;
+        const footer = `
+            <button class="btn" onclick="closeModal()">Anuluj</button>
+            <button class="btn btn-danger" id="confirm-btn">Potwierdź</button>`;
+        openModal(title, body, null, footer);
+        document.getElementById('confirm-btn').onclick = () => {
+            onConfirm();
+            closeModal();
+        };
+    }
+
+    // Tooltip System
+    function setupTooltip() {
+        document.body.addEventListener('mouseover', e => {
+            if (e.target.closest('[data-tooltip]')) {
+                const target = e.target.closest('[data-tooltip]');
+                const taskId = target.dataset.tooltip;
+                showTaskTooltip(e, taskId);
+            }
+        });
+        document.body.addEventListener('mouseout', e => {
+             if (e.target.closest('[data-tooltip]')) {
+                hideTaskTooltip();
+            }
+        });
+    }
+
+    function showTaskTooltip(event, taskId) {
+        const task = state.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const nextSubtask = (task.subtasks || []).find(st => !st.completed);
+        let content = '';
+
+        if (task.notes) {
+            content += `<div class="tooltip-notes">${task.notes}</div>`;
+        }
+        if (nextSubtask) {
+            content += `<div class="tooltip-subtask">Następny krok: ${nextSubtask.name}</div>`;
+        } else if ((task.subtasks || []).length > 0 && task.status !== 'completed') {
+             content += `<div class="tooltip-subtask">Wszystkie podzadania ukończone!</div>`;
+        } else if ((task.subtasks || []).length === 0 && !task.notes) {
+            return; // Don't show empty tooltip
+        }
+
+
+        const tooltip = document.getElementById('app-tooltip');
+        tooltip.innerHTML = content;
+        tooltip.classList.remove('hidden');
+        tooltip.classList.add('visible');
+        
+        const rect = event.target.getBoundingClientRect();
+        tooltip.style.left = `${event.pageX + 15}px`;
+        tooltip.style.top = `${event.pageY + 15}px`;
+    }
+
+    function hideTaskTooltip() {
+        const tooltip = document.getElementById('app-tooltip');
+        tooltip.classList.remove('visible');
+    }
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="pl" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LifeOS — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    :root {
+      --gradient-primary: radial-gradient(1200px 400px at 20% -10%, hsl(var(--accent-h) 80% 92%) 0%, transparent 55%),
+                          radial-gradient(1000px 500px at 80% -20%, hsl(280 70% 95%) 0%, transparent 50%);
+      --ring: 2px solid hsl(var(--accent-h) var(--accent-s) 60%);
+    }
+
+    .grid { gap: 18px; }
+    .g-main { grid-template-columns: 2fr 1fr; align-items: start; }
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .modules-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .card { animation: fadeInUp .4s ease-out; }
+
+    @keyframes slideInRight { from{opacity:0; transform:translateX(12px)} to{opacity:1; transform:translateX(0)} }
+
+    @media(max-width:1200px){ .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media(max-width:900px){ .g-main{ grid-template-columns: 1fr; } }
+
+    .tile{
+      cursor:pointer; display:flex; flex-direction:column; gap:10px; border-radius:16px; border:1px solid var(--line);
+      background: var(--card); padding:16px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      text-decoration:none; color: var(--ink); position:relative; overflow:hidden;
+    }
+    .tile::before{
+      content:''; position:absolute; inset:0 0 auto 0; height:3px; background: var(--accent); opacity:.18; transform: scaleX(0);
+      transform-origin:left; transition: transform .2s ease;
+    }
+    .tile:hover{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color:hsl(var(--accent-h) 30% 70%) }
+    .tile:hover::before{ transform: scaleX(1) }
+
+    /* === New KPI Tiles === */
+    .kpi-tile-large {
+        display: flex; flex-direction: column; gap: 8px;
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: 16px; padding: 16px; text-decoration: none; color: var(--ink);
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        height: 100%;
+    }
+    .kpi-tile-large:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: hsl(var(--accent-h) 30% 70%);
+    }
+    .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+    .kpi-main-value { font-size: 24px; font-weight: 800; line-height: 1.1; }
+    .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .kpi-detail-line { position: relative; padding-left: 12px; }
+    .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); font-weight:700; }
+    .kpi-progress-container { margin-top: auto; padding-top: 8px; }
+    .value-ok { color: var(--green); }
+    .value-warn { color: var(--orange); }
+    .value-bad { color: var(--red); }
+
+    /* === Hero === */
+    .hero-header{
+      margin:-32px -20px 24px -20px; padding: 28px 20px; color: var(--ink); position:relative; overflow:hidden;
+      background: var(--gradient-primary);
+      border-bottom: 1px solid var(--line);
+    }
+    .hero-content{
+        position:relative; z-index:1; max-width:1280px; margin:0 auto;
+        width: 100%;
+    }
+    .greeting-text{ font-size: clamp(20px, 4vw, 28px); font-weight:800; margin:0 0 6px 0; animation: fadeInUp .5s ease-out }
+    .date-text{ opacity:.9; font-size: 13px; margin:0 0 10px 0; animation: fadeInUp .5s ease-out .1s both }
+    .dynamic-message{ font-style: italic; opacity:.85; font-size:12px; animation: fadeInUp .5s ease-out .2s both }
+
+    .quick-actions{ position:absolute; top:20px; right:20px; display:flex; gap:10px; animation: slideInRight .5s ease-out .2s both; }
+    .quick-action{
+      width:42px; height:42px; background: hsl(0 0% 100% / .6);
+      border:1px solid hsl(0 0% 100% / .7); border-radius:10px; display:flex; align-items:center; justify-content:center;
+      color:#111; text-decoration:none; font-size:16px; transition: transform .15s ease, background .2s ease; backdrop-filter: blur(8px);
+    }
+    .quick-action:hover{ transform: scale(1.07) }
+
+    /* === Lists & feeds === */
+    .activity-feed{ max-height: 300px; overflow-y:auto; padding-right:6px }
+    .activity-item{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); animation:fadeInUp .35s ease-out }
+    .activity-item:last-child{ border-bottom:none }
+
+    /* === Upcoming tasks === */
+    .priorities-card{ display:flex; flex-direction:column; background: var(--card); flex-grow: 1; }
+    .upcoming-header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px }
+    #upcoming-tasks-list{ overflow:auto; padding-right:6px; flex-grow: 1; }
+    .task-group-header {
+      font-size: 9px; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px 4px; font-weight: 600; letter-spacing:0.5px;
+    }
+    .task-group-header:first-of-type { margin-top: 0; }
+    .upcoming-task-item{
+      display:flex; align-items:center; gap:12px; padding:10px 12px; margin:4px 0;
+      background: var(--surface); border-radius:12px; border:1px solid var(--line); transition: background .2s ease, transform .2s ease;
+    }
+    .upcoming-task-item:hover{ transform: translateX(3px); background: hsl(var(--accent-h) 60% 96% / .5) }
+    .task-title{ font-weight: 600; color: var(--ink) }
+    .task-due-date{
+      font-size:10px; font-weight:700; text-align:right; margin-left:auto; white-space:nowrap; background: var(--accent-weak);
+      color: hsl(var(--accent-h) 30% 25%); padding:4px 8px; border-radius: 8px; border:1px solid hsl(var(--accent-h) 45% 85% / .8)
+    }
+    .prio-pill{ width:10px; height:10px; border-radius:50%; flex-shrink:0; border:2px solid #fff; box-shadow: 0 0 0 2px var(--line) }
+    .prio-pill.high{ background:#ff6b6b } .prio-pill.medium{ background:#ffd93d } .prio-pill.low{ background:#6bcf7f }
+
+    /* === Weather === */
+    .weather-main { display: flex; align-items: center; gap: 14px; }
+    .weather-icon { font-size: 42px; line-height: 1; }
+    .weather-temp { font-size: 36px; font-weight: 800; line-height: 1; margin: 0; }
+    .weather-desc { opacity: .95; font-weight: 600; }
+    .weather-sub { display:flex; gap:12px; align-items:center; font-size:10px; color:var(--muted); margin-top: 8px; }
+    .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .forecast-day { background: var(--surface); padding: 10px; border-radius: 10px; text-align: center; font-size: 11px; border: 1px solid var(--line); }
+    .forecast-day .forecast-icon { font-size: 24px; margin: 4px 0; }
+    .forecast-day .forecast-temp { font-weight: 700; font-size: 14px; }
+    .forecast-day .tiny { font-size: 9px; }
+
+    /* === Notification === */
+    .notification{
+      position:fixed; top:16px; right:16px; padding:14px 16px; background: var(--card); border-left:4px solid var(--green);
+      border-radius:12px; box-shadow: var(--shadow-lg); z-index:1000; transform: translateX(400px);
+      transition: transform .25s ease; max-width: 320px; color: var(--ink); border:1px solid var(--line);
+    }
+    .notification.show{ transform: translateX(0) }
+    .notification.error{ border-left-color: var(--red) }
+    .notification.warning{ border-left-color: var(--orange) }
+
+    /* === Modal === */
+    .modal-overlay{
+      position:fixed; inset:0; background: rgba(15,23,42,.6); display:flex; justify-content:center; align-items:center; z-index:1000;
+      backdrop-filter: blur(8px); opacity:0; pointer-events:none; transition: opacity .2s ease-out;
+    }
+    .modal-overlay.visible{ opacity:1; pointer-events: all }
+    .modal-card{ background: var(--card); padding: 26px; border-radius: 16px; box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
+      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line) }
+    .modal-overlay.visible .modal-card{ transform: scale(1) }
+    #modal-text{ font-size: 13px; margin:0 0 18px 0; color: var(--ink); line-height:1.6 }
+    .modal-actions{ margin-top:16px; display:flex; justify-content:center; gap:10px }
+
+    /* === Loading === */
+    .loading::after{
+      content:''; position:absolute; inset:0; background: rgba(255,255,255,.75); border-radius: inherit;
+    }
+    .loading::before{
+      content:''; position:absolute; top:50%; left:50%; width:22px; height:22px; border:3px solid #e2e8f0; border-top-color: var(--accent);
+      border-radius:50%; animation: spin 1s linear infinite; transform: translate(-50%,-50%);
+    }
+    @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg) } }
+
+    @media (max-width: 768px){
+      .hero-header{ padding: 24px; margin:-28px -20px 20px -20px }
+      .quick-actions{ position: static; margin-top: 12px; justify-content: center }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero-header">
+      <div class="hero-content">
+        <div class="quick-actions">
+          <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
+          <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
+        </div>
+        <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
+        <p id="current-date" class="date-text"></p>
+        <p id="dynamic-message" class="dynamic-message"></p>
+      </div>
+    </header>
+
+    <div class="grid g-main">
+      <div style="display: grid; gap: 14px; align-content: start;">
+        <div class="card">
+          <h3 class="title">📊 Kluczowe wskaźniki</h3>
+          <div class="grid g-2 kpi-grid">
+            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+            <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
+            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+            <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
+            <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
+          <div id="weekly-activities-list" class="activity-feed"></div>
+        </div>
+        
+        <div class="card">
+          <h3 class="title">🗂️ Moduły</h3>
+          <div class="grid modules-grid" style="margin-top: 14px;">
+            <a class="tile" href="budget.html">
+              <div class="pill">💰 Budżet</div>
+              <div style="font-weight: 600;">Finanse</div>
+              <div class="tiny muted">Zarządzaj wydatkami</div>
+            </a>
+            <a class="tile" href="fuel.html">
+              <div class="pill">⛽ Paliwo</div>
+              <div style="font-weight: 600;">Rozliczenia</div>
+              <div class="tiny muted">Tankowania i faktury</div>
+            </a>
+            <a class="tile" href="tasks.html">
+              <div class="pill">✅ Zadania</div>
+              <div style="font-weight: 600;">Organizacja</div>
+              <div class="tiny muted">Listy i kalendarz</div>
+            </a>
+            <a class="tile" href="trainings.html">
+              <div class="pill">💪 Treningi</div>
+              <div style="font-weight: 600;">Cele</div>
+              <div class="tiny muted">Plany i progres</div>
+            </a>
+            <a class="tile" href="house.html">
+                <div class="pill">🏗️ Budowa</div>
+                <div style="font-weight: 600;">Projekt</div>
+                <div class="tiny muted">Kontroluj budowę</div>
+            </a>
+            <a class="tile" href="loan.html">
+                <div class="pill">🏦 Kredyt</div>
+                <div style="font-weight: 600;">Spłata</div>
+                <div class="tiny muted">Monitoruj postępy</div>
+            </a>
+          </div>
+          <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
+          <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
+          <div class="grid g-2" style="gap: 10px;">
+            <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
+            <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
+            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
+          </div>
+          <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="card weather-widget" id="weather-widget" aria-live="polite">
+          <!-- Weather content will be dynamically inserted here -->
+        </div>
+        <div class="card priorities-card" id="priorities-card">
+          <div class="upcoming-header">
+            <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
+            <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+          </div>
+          <div id="upcoming-tasks-list"></div>
+          <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-text">
+    <div class="modal-card">
+      <p id="modal-text"></p>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <div id="notification" class="notification"></div>
+
+<script>
+/* === STORAGE KEYS === */
+const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
+const FUEL_STORAGE_KEY = 'lifeos_fuel_v1';
+const TASKS_STORAGE_KEY = 'lifeos_tasks_pro_v2';
+const TRAININGS_STORAGE_KEY_MODERN = 'lifeos_trainings_month_v1';
+const TRAININGS_STORAGE_KEY_LEGACY = 'lifeos_trainings_v1';
+const TRAININGS_STORAGE_KEYS = [TRAININGS_STORAGE_KEY_MODERN, TRAININGS_STORAGE_KEY_LEGACY];
+const HOUSE_STORAGE_KEY = 'buildmaster_pro_v11';
+const LOAN_STORAGE_KEY = 'lifeos_loan_v1';
+const SETTINGS_STORAGE_KEY = 'lifeos_settings_v1';
+const BACKUP_TIMESTAMP_KEY = 'lifeos_last_backup';
+
+const TRAINING_GOALS = {
+  gym: { target: 3, unit: 'sesje', name: 'Siłownia', icon: '🏋️' },
+  running: { target: 5, unit: 'km', name: 'Bieganie', icon: '🏃' },
+  reading: { target: 100, unit: 'stron', name: 'Czytanie', icon: '📚' },
+};
+
+/* === UTIL === */
+function fmt(n, c = 'PLN') {
+  try {
+    const numValue = Number(n || 0);
+    const parts = numValue.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
+    return `${parts.join(',')}\u00A0${c}`;
+  } catch { return `${Number(n || 0).toFixed(2)}\u00A0${c}`; }
+}
+function safeParse(raw, fallback = null){
+  if(!raw) return fallback;
+  try { return JSON.parse(raw); } catch { return fallback; }
+}
+function num(s) {
+  if(typeof s === 'number') return s;
+  if(!s) return 0;
+  const raw = String(s).replace(/\s|\u00A0/g, '');
+  let normalized = raw.replace(',', '.');
+  const n = Number(normalized.replace(/[^0-9.\-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+function monthKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function parseDate(dateString){ if(!dateString) return null; const p = dateString.split('-').map(Number); return new Date(Date.UTC(p[0], p[1]-1, p[2])); }
+function parseLocalDate(dateString){ if(!dateString) return null; const p = dateString.split('-').map(Number); if(p.some(v=>!Number.isFinite(v))) return null; return new Date(p[0], p[1]-1, p[2]); }
+function getWeekNumber(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7)); const yStart=new Date(Date.UTC(d.getUTCFullYear(),0,1)); return [d.getUTCFullYear(), Math.ceil((((d - yStart)/86400000)+1)/7)] }
+function getISOWeekStart(year, week){ const simple = new Date(Date.UTC(year,0,4)); simple.setUTCDate(simple.getUTCDate() + (week-1)*7); const day = simple.getUTCDay(); const diff = (day === 0 ? -6 : 1) - day; simple.setUTCDate(simple.getUTCDate()+diff); return new Date(simple.getFullYear(), simple.getMonth(), simple.getDate()); }
+function formatShortDate(date){ if(!(date instanceof Date)) return ''; const time = date.getTime(); if(Number.isNaN(time)) return ''; return date.toLocaleDateString('pl-PL',{ day:'2-digit', month:'2-digit' }); }
+function formatGoalValue(type, value){ const numValue = Number(value || 0); if(type === 'gym') return Math.max(0, Math.round(numValue)); const rounded = Math.round(numValue * 10) / 10; return Math.abs(rounded % 1) < 0.1 ? Math.round(rounded) : rounded.toFixed(1); }
+
+function normalizeFuelTransaction(tx){ if(!tx || !tx.date) return null; const normalized = { ...tx }; const rawAmount = num(tx.amount ?? tx.value); let type = (tx.type || '').toLowerCase(); if(type !== 'invoice' && type !== 'advance'){ type = rawAmount >= 0 ? 'advance' : 'invoice'; }
+  normalized.type = type;
+  normalized.amount = type === 'invoice' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+  const litersSource = tx.liters ?? tx.details?.liters ?? tx.volume;
+  const litersValue = num(litersSource);
+  normalized.liters = type === 'invoice' && litersValue > 0 ? litersValue : null;
+  if(!normalized.ref && tx.reference) normalized.ref = tx.reference;
+  return normalized;
+}
+
+function getFuelData(){ const parsed = safeParse(localStorage.getItem(FUEL_STORAGE_KEY), {}); const rawList = Array.isArray(parsed?.transactions) ? parsed.transactions : []; const normalized = rawList.map(normalizeFuelTransaction).filter(Boolean).sort((a,b)=> (b.date||'').localeCompare(a.date||'')); const invoices = normalized.filter(tx=> tx.type === 'invoice'); const advances = normalized.filter(tx=> tx.type === 'advance'); return { transactions: normalized, invoices, advances };
+}
+
+function getTrainingStore(){ for(const key of TRAININGS_STORAGE_KEYS){ const raw = localStorage.getItem(key); if(!raw) continue; const parsed = safeParse(raw, null); if(parsed && typeof parsed === 'object'){ if(parsed.activities && typeof parsed.activities === 'object'){ return { type: 'modern', data: parsed }; }
+      return { type: 'legacy', data: parsed };
+    }
+  }
+  return { type: 'none', data: null };
+}
+
+function computeModernTrainingWeekStats(state, isoYear, isoWeek){ const weekStart = getISOWeekStart(isoYear, isoWeek); const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); const totals = Object.fromEntries(Object.keys(TRAINING_GOALS).map(k=>[k,0])); const activities = state?.activities && typeof state.activities === 'object' ? state.activities : {};
+  Object.entries(activities).forEach(([dateStr, list])=>{
+    const day = parseLocalDate(dateStr);
+    if(!day) return;
+    day.setHours(0,0,0,0);
+    if(day < weekStart || day > weekEnd) return;
+    if(!Array.isArray(list)) return;
+    list.forEach(activity=>{
+      if(!activity || !TRAINING_GOALS[activity.type] || !activity.completed) return;
+      if(activity.type === 'gym'){ totals.gym += 1; return; }
+      const logged = Number(activity.loggedValue);
+      const planned = Number(activity.plannedValue);
+      const value = Number.isFinite(logged) && logged > 0 ? logged : (Number.isFinite(planned) ? planned : 0);
+      totals[activity.type] += value;
+    });
+  });
+  const goalPercents = {};
+  Object.entries(TRAINING_GOALS).forEach(([type, def])=>{
+    const progress = Number(totals[type] || 0);
+    const percent = def.target > 0 ? Math.min(100, Math.round((progress / def.target) * 100)) : 0;
+    goalPercents[type] = { progress, percent, target: def.target };
+  });
+  const average = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.percent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
+  return { goalPercents, average, range: { start: weekStart, end: weekEnd } };
+}
+
+function computeModernCompletedWeeks(state, isoYear, isoWeek){ let completed = 0; for(let w = 1; w < isoWeek; w += 1){ const stats = computeModernTrainingWeekStats(state, isoYear, w); const allMet = Object.values(stats.goalPercents || {}).every(info => Number(info.percent || 0) >= 100); if(allMet) completed += 1; }
+  return completed;
+}
+
+function computeLegacyTrainingWeekStats(data, isoYear, isoWeek){ const weekStart = getISOWeekStart(isoYear, isoWeek); const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); const weekData = data?.[isoYear]?.[isoWeek] || {}; const progress = weekData.progress || {}; const goalPercents = {};
+  Object.entries(TRAINING_GOALS).forEach(([type, def])=>{
+    const value = Number(progress[type] || 0);
+    const percent = def.target > 0 ? Math.min(100, Math.round((value / def.target) * 100)) : 0;
+    goalPercents[type] = { progress: value, percent, target: def.target };
+  });
+  const average = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.percent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
+  const completedWeeks = Object.keys(data?.[isoYear] || {}).filter(wn => Number(wn) < isoWeek && data[isoYear][wn]?.isComplete).length;
+  const totalWeeks = Math.max(0, isoWeek - 1);
+  return { goalPercents, average, range: { start: weekStart, end: weekEnd }, completedWeeks, totalWeeks };
+}
+
+function getTrainingSummary(){ const now = new Date(); const [isoYear, isoWeek] = getWeekNumber(now); const totalWeeks = Math.max(0, isoWeek - 1); const store = getTrainingStore(); if(store.type === 'modern'){ const stats = computeModernTrainingWeekStats(store.data, isoYear, isoWeek); return { ...stats, completedWeeks: computeModernCompletedWeeks(store.data, isoYear, isoWeek), totalWeeks: totalWeeks };
+  }
+  if(store.type === 'legacy'){ const legacyStats = computeLegacyTrainingWeekStats(store.data, isoYear, isoWeek); if(typeof legacyStats.totalWeeks !== 'number') legacyStats.totalWeeks = totalWeeks; if(typeof legacyStats.completedWeeks !== 'number') legacyStats.completedWeeks = 0; return legacyStats; }
+  return { goalPercents: null, average: 0, range: null, completedWeeks: 0, totalWeeks };
+}
+
+function renderDetailLines(lines){ if(!Array.isArray(lines) || !lines.length) return '<div class="kpi-detail-line">Brak danych.</div>'; return lines.map(line => `<div class="kpi-detail-line">${line}</div>`).join(''); }
+
+/* === NOTIFICATION === */
+function showNotification(message, type='success'){
+  const n = document.getElementById('notification');
+  n.textContent = message;
+  n.className = `notification ${type} show`;
+  setTimeout(()=> n.classList.remove('show'), 3200);
+}
+
+/* === HEADER TEXT === */
+function renderGreetingAndDate(){
+  const now = new Date();
+  const hour = now.getHours();
+  const dayOfWeek = now.getDay();
+  let greeting = "Dzień dobry!", emoji = "🌅";
+  if(hour < 6){ greeting="Dobrej nocy!"; emoji="🌙" }
+  else if(hour < 12){ greeting="Dzień dobry!"; emoji="🌅" }
+  else if(hour < 18){ greeting="Dzień dobry!"; emoji="☀️" }
+  else { greeting="Dobry wieczór!"; emoji="🌆" }
+  document.getElementById('greeting').innerHTML = `${emoji} ${greeting}`;
+  document.getElementById('current-date').textContent =
+    `Dzisiaj jest ${now.toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+  let msg = "";
+  if(isWeekday){
+    if(hour < 9) msg = "🍵 Dzień się dopiero zaczyna. Czas na kawę i planowanie!";
+    else if(hour < 12) msg = "💪 Poranne godziny to najlepszy czas na produktywność!";
+    else if(hour < 17){
+      const endWork = new Date(); endWork.setHours(17,0,0,0);
+      const diffMs = endWork - now;
+      if (diffMs > 0){
+        const h = Math.floor(diffMs/3600000), m = Math.floor((diffMs%3600000)/60000);
+        msg = `⏰ Do końca pracy zostało ${h}h ${m}m. Dasz radę!`;
+      } else msg = "🎉 Praca na dziś skończona. Czas na odpoczynek!";
+    } else msg = "🌟 Wieczór to idealny czas na podsumowania i planowanie jutra!";
+  } else msg = "🎨 Miłego weekendu! Czas naładować baterie i robić to co lubisz!";
+  document.getElementById('dynamic-message').textContent = msg;
+}
+
+/* === UPCOMING TASKS === */
+function renderUpcomingTasks(){
+  const listEl = document.getElementById('upcoming-tasks-list');
+  const tasksRaw = localStorage.getItem(TASKS_STORAGE_KEY);
+  const tasksState = safeParse(tasksRaw, { tasks: [] });
+  if(!tasksState || !Array.isArray(tasksState.tasks) || tasksState.tasks.length === 0){
+    listEl.innerHTML = `<div class="tiny muted" style="padding: 14px;">Brak zadań.</div>`;
+    document.getElementById('priorities-summary').textContent = 'Brak zadań';
+    return;
+  }
+  const today = new Date(); today.setUTCHours(0,0,0,0);
+  
+  const overdue = tasksState.tasks.filter(t => t.status !== 'done' && t.dueDate && parseDate(t.dueDate) < today).sort((a,b) => parseDate(a.dueDate)-parseDate(b.dueDate));
+  const todayTasks = tasksState.tasks.filter(t => t.status !== 'done' && t.dueDate && parseDate(t.dueDate).getTime() === today.getTime());
+  const tomorrowTasks = tasksState.tasks.filter(t => t.status !== 'done' && t.dueDate && parseDate(t.dueDate).getTime() === new Date(today.getTime()+86400000).getTime());
+  
+  document.getElementById('priorities-summary').textContent = `Zaległe: ${overdue.length} | Dziś: ${todayTasks.length}`;
+  
+  if(overdue.length === 0 && todayTasks.length === 0 && tomorrowTasks.length === 0){
+    listEl.innerHTML = `<div style="text-align:center; padding: 26px 0; opacity: .9;"><div style="font-size: 36px; margin-bottom: 8px;">🎉</div><p class="tiny muted">Brak zadań priorytetowych!</p></div>`;
+    return;
+  }
+  
+  let html = '';
+  const createTaskHtml = (task) => {
+      const dueDate = parseDate(task.dueDate);
+      const diffDays = Math.round((dueDate - today) / 86400000);
+      let dueText = '';
+      if (diffDays < 0) dueText = `${Math.abs(diffDays)} dni temu`;
+      else if (diffDays === 0) dueText = 'dziś';
+      else if (diffDays === 1) dueText = 'jutro';
+
+      return `<div class="upcoming-task-item">
+        <div class="prio-pill ${task.priority}"></div>
+        <div class="task-title">${task.title}</div>
+        <div class="task-due-date">${dueText}</div>
+      </div>`;
+  };
+
+  if (overdue.length > 0) {
+    html += `<h5 class="task-group-header">Zaległe</h5>`;
+    html += overdue.map(createTaskHtml).join('');
+  }
+  if (todayTasks.length > 0) {
+    html += `<h5 class="task-group-header">Na dziś</h5>`;
+    html += todayTasks.map(createTaskHtml).join('');
+  }
+  if (tomorrowTasks.length > 0) {
+    html += `<h5 class="task-group-header">Na jutro</h5>`;
+    html += tomorrowTasks.map(createTaskHtml).join('');
+  }
+  
+  listEl.innerHTML = html;
+}
+
+/* === WEEKLY ACTIVITIES === */
+function renderWeeklyActivities(){
+  const listEl = document.getElementById('weekly-activities-list');
+  const summary = getTrainingSummary();
+  const goalPercents = summary.goalPercents || {};
+  listEl.innerHTML = Object.entries(TRAINING_GOALS).map(([type, meta], index)=>{
+    const info = goalPercents[type] || { progress: 0, percent: 0, target: meta.target };
+    const current = formatGoalValue(type, info.progress || 0);
+    const pct = Math.max(0, Math.min(100, Number(info.percent) || 0));
+    return `<div class="activity-item" style="animation-delay:${index * 0.05}s;">
+      <div style="font-size:20px;width:32px;text-align:center">${meta.icon}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;display:flex;justify-content:space-between"><span>${meta.name}</span><span class="tiny muted">${current} / ${meta.target} ${meta.unit}</span></div>
+        <div class="progress" style="height:6px;margin-top:6px"><i style="width:${pct}%"></i></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* === WEATHER (From Settings) === */
+function renderWeatherWidget() {
+  const widget = document.getElementById('weather-widget');
+  const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
+  const locationQuery = settings.weatherLocation || 'Warszawa';
+
+  widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; font-size: 13px;">Ładowanie pogody dla: ${locationQuery}...</div>`;
+
+  fetch(`https://wttr.in/${encodeURIComponent(locationQuery)}?format=j1`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data || !data.current_condition || !data.weather) {
+          widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Brak danych pogodowych dla: ${locationQuery}.</div>`;
+          return;
+        }
+        const current = data.current_condition[0];
+        const forecastDays = data.weather.slice(1, 3);
+
+        const weatherCodeMap = { '113': '☀️', '116': '⛅️', '119': '☁️', '122': '🌥️', '143': '🌫️', '176': '🌦️', '179': '🌨️', '182': '🌨️', '185': '🌨️', '200': '⛈️', '227': '❄️', '230': ' Blizzard', '248': '🌫️', '260': '🌫️', '263': '🌦️', '266': '🌦️', '281': '🌧️', '284': '🌧️', '293': '🌧️', '296': '🌧️', '299': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️', '311': '🌧️', '314': '🌧️', '317': '🌨️', '320': '🌨️', '323': '❄️', '326': '❄️', '329': '❄️', '332': '❄️', '335': '❄️', '338': '❄️', '350': '🌨️', '353': '🌦️', '356': '🌧️', '359': '🌧️', '362': '🌨️', '365': '🌨️', '368': '❄️', '371': '❄️', '374': '🌨️', '377': '🌨️', '386': '⛈️', '389': '⛈️', '392': '⛈️', '395': '❄️', };
+        const getWeatherEmoji = (code) => weatherCodeMap[code] || ' ';
+
+        const locationName = data.nearest_area[0].areaName[0].value;
+        const feelsLike = current.FeelsLikeC ? `odczuwalna ${current.FeelsLikeC}°` : '';
+        const wind = current.windspeedKmph ? `wiatr ${current.windspeedKmph} km/h` : '';
+
+        const todayHTML = `
+          <div class="weather-main">
+              <div class="weather-icon">${getWeatherEmoji(current.weatherCode)}</div>
+              <div>
+                  <div class="weather-temp">${current.temp_C}°</div>
+                  <div class="weather-desc">${current.weatherDesc[0].value}</div>
+              </div>
+          </div>
+          <div class="weather-sub">
+              <div class="tiny">${locationName}</div>
+              <div class="tiny">${[feelsLike, wind].filter(Boolean).join(' • ')}</div>
+          </div>
+        `;
+
+        const forecastHTML = forecastDays.map((day, index) => {
+          const date = new Date();
+          date.setDate(date.getDate() + index + 1);
+          const dayName = date.toLocaleDateString('pl-PL', { weekday: 'short' });
+          const dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+          return `
+            <div class="forecast-day">
+              <div>${dayNameCapitalized}</div>
+              <div class="forecast-icon">${getWeatherEmoji(day.hourly[4].weatherCode)}</div>
+              <div class="forecast-temp">${day.avgtempC}°C</div>
+              <div class="tiny muted">${day.maxtempC}° / ${day.mintempC}°</div>
+            </div>
+          `;
+        }).join('');
+
+        widget.innerHTML = `
+          <h4 class="title" style="margin-bottom: 12px;">🌤️ Pogoda</h4>
+          ${todayHTML}
+          <div class="forecast-grid">${forecastHTML}</div>
+        `;
+    })
+    .catch(() => {
+      widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Błąd pobierania pogody dla: ${locationQuery}.</div>`;
+    });
+}
+
+/* === KPIs === */
+function renderKPIs(){
+    const kpiElements = {
+        budget: document.getElementById('kpi-budget'),
+        fuel: document.getElementById('kpi-fuel'),
+        tasks: document.getElementById('kpi-tasks'),
+        progress: document.getElementById('kpi-progress'),
+        house: document.getElementById('kpi-house'),
+        loan: document.getElementById('kpi-loan'),
+    };
+    Object.values(kpiElements).forEach(el => el.classList.add('loading'));
+    setTimeout(() => {
+        Object.values(kpiElements).forEach(el => el.classList.remove('loading'));
+        renderKPIData();
+    }, 400);
+}
+
+function renderKPIData(){
+  const kpiElements = {
+      budget: document.getElementById('kpi-budget'),
+      fuel: document.getElementById('kpi-fuel'),
+      tasks: document.getElementById('kpi-tasks'),
+      progress: document.getElementById('kpi-progress'),
+      house: document.getElementById('kpi-house'),
+      loan: document.getElementById('kpi-loan'),
+  };
+
+  // --- Budget KPI ---
+  const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
+  if(budgetRaw){
+    const parsedBudget = safeParse(budgetRaw, null);
+    const bState = parsedBudget?.modules?.budget || parsedBudget?.budget || parsedBudget;
+    const ym = monthKey();
+    if(bState && bState.monthly && bState.monthly[ym]){
+      const m = bState.monthly[ym];
+      const incomes = Array.isArray(m.incomes) ? m.incomes : [];
+      const fixed = Array.isArray(m.fixed) ? m.fixed : [];
+      const incSum = incomes.reduce((s,x)=> s+num(x.amount),0);
+      const fixSum = fixed.reduce((s,x)=> s+num(x.amount),0);
+      const daysInMonth = new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate();
+      const currentDay = new Date().getDate();
+
+      const dailyBudget = Math.max(0, (incSum - fixSum)/daysInMonth);
+      const budgetForToday = dailyBudget * currentDay;
+
+      const catsById = Object.fromEntries((Array.isArray(bState?.categories)?bState.categories:[]).map(c=>[c.id,c]));
+      const txs = Array.isArray(bState?.transactions) ? bState.transactions : [];
+      const spentUntilToday = txs.filter(t=> String(t.date||'').startsWith(ym) && new Date(t.date).getDate()<=currentDay).reduce((sum,t)=>{
+        if(t.splits?.length){ return sum + t.splits.reduce((ss,sp)=>{ const cat=catsById[sp.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving') && cat.id!=='c_fixed') ? ss+Math.abs(num(sp.amount)) : ss },0) }
+        const cat=catsById[t.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving') && cat.id!=='c_fixed') ? sum+Math.abs(num(t.amount)) : sum
+      },0);
+
+      const buffer = budgetForToday - spentUntilToday;
+      const bufferClass = buffer > budgetForToday * 0.2 ? 'value-ok' : buffer >= 0 ? 'value-warn' : 'value-bad';
+
+      const totalSpentMonth = txs.filter(t=> String(t.date||'').startsWith(ym)).reduce((sum,t)=>{
+        if(t.splits?.length){ return sum + t.splits.reduce((ss,sp)=>{ const cat=catsById[sp.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving')) ? ss+Math.abs(num(sp.amount)) : ss },0) }
+        const cat=catsById[t.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving')) ? sum+Math.abs(num(t.amount)) : sum
+      },0);
+      const monthlyBudget = incSum;
+      const spentPct = monthlyBudget > 0 ? (totalSpentMonth / monthlyBudget) * 100 : 0;
+
+      const detailLines = [
+        `Dzisiejszy limit: ${fmt(dailyBudget)} • wydano ${fmt(spentUntilToday)} z ${fmt(budgetForToday)}.`,
+        `Plan miesięczny: ${fmt(monthlyBudget)} (wykorzystano ${Math.round(spentPct)}%).`
+      ];
+
+      kpiElements.budget.innerHTML = `
+        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
+        <div class="kpi-main-value ${bufferClass}">${fmt(buffer, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
+        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
+        <div class="kpi-progress-container">
+          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Budżet miesięczny</span><span>${Math.round(spentPct)}%</span>
+          </div>
+          <div class="progress"><i style="width:${spentPct}%"></i></div>
+        </div>`;
+    } else {
+      kpiElements.budget.innerHTML = `
+        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
+        <div class="kpi-main-value">—</div>
+        <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>
+        <div class="kpi-progress-container"></div>`;
+    }
+  } else {
+    kpiElements.budget.innerHTML = `<div class="kpi-header"><span>💰</span><h4>Budżet</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+
+  // --- Fuel KPI ---
+  const fuelData = getFuelData();
+  if(fuelData.transactions.length){
+    const balance = fuelData.transactions.reduce((sum, tx)=> sum + tx.amount, 0);
+    const balanceClass = balance >= 0 ? 'value-ok' : 'value-bad';
+    const lastInvoice = fuelData.invoices[0];
+    const detailLines = [];
+    if(lastInvoice){
+      const days = lastInvoice.date ? Math.floor((new Date() - new Date(lastInvoice.date))/86400000) : null;
+      const amount = Math.abs(Number(lastInvoice.amount) || 0);
+      const liters = typeof lastInvoice.liters === 'number' ? lastInvoice.liters : num(lastInvoice.liters);
+      detailLines.push(`Ostatnie tankowanie ${days === null ? '' : `${days} dni temu `}za ${fmt(amount)}.`);
+      if(liters && liters > 0){
+        const pricePerLiter = amount / liters;
+        detailLines.push(`${liters.toFixed(1)} L @ ${fmt(pricePerLiter, 'PLN/L')}`);
+      }
+    } else {
+      detailLines.push('Brak zarejestrowanych tankowań.');
+    }
+    const lastYearStart = new Date();
+    lastYearStart.setHours(0,0,0,0);
+    lastYearStart.setMonth(lastYearStart.getMonth() - 12);
+    const invoicesLastYear = fuelData.invoices.filter(tx => {
+      const txDate = parseDate(tx.date);
+      return txDate ? txDate >= lastYearStart : false;
+    });
+    const totalCost = invoicesLastYear.reduce((sum, tx)=> sum + Math.abs(Number(tx.amount) || 0), 0);
+    const totalLiters = invoicesLastYear.reduce((sum, tx)=> sum + (Number(tx.liters) || 0), 0);
+    if(totalLiters > 0){
+      detailLines.push(`Średnia cena (12M): ${fmt(totalCost / totalLiters, 'PLN/L')} (${invoicesLastYear.length} fakt.)`);
+    } else if(invoicesLastYear.length === 0 && fuelData.invoices.length > 0){
+      detailLines.push(`Brak faktur z ostatnich 12 mies. • Łącznie ${fuelData.invoices.length}`);
+    } else {
+      detailLines.push(`${fuelData.invoices.length} faktur • ${fuelData.advances.length} zaliczek`);
+    }
+    kpiElements.fuel.innerHTML = `
+      <div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div>
+      <div class="kpi-main-value ${balanceClass}">${fmt(balance, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
+      <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+  } else {
+    kpiElements.fuel.innerHTML = `<div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+
+  // --- Tasks KPI ---
+  const tasksRaw = localStorage.getItem(TASKS_STORAGE_KEY);
+  if(tasksRaw){
+    const t = safeParse(tasksRaw, { tasks: [] });
+    const today = new Date(); today.setUTCHours(0,0,0,0);
+    const activeTasks = Array.isArray(t?.tasks) ? t.tasks.filter(x=> x.status!=='done') : [];
+    const overdue = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate) < today).length;
+    const forToday = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate).getTime() === today.getTime()).length;
+    const activeCount = activeTasks.length;
+    const activeClass = activeCount > 15 ? 'value-bad' : activeCount > 5 ? 'value-warn' : 'value-ok';
+
+    const now = new Date();
+    const start = new Date(now); start.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1)); start.setHours(0,0,0,0);
+    const end = new Date(start); end.setDate(start.getDate()+6); end.setHours(23,59,59,999);
+    const weekly = t.tasks.filter(x=> x.dueDate && new Date(x.dueDate)>=start && new Date(x.dueDate)<=end);
+    const done = weekly.filter(x=> x.status==='done').length;
+    const planned = weekly.length;
+    const progress = planned>0 ? (done/planned)*100 : 0;
+    const detailLines = [
+      `Zaległe: ${overdue} • Na dziś: ${forToday}.`,
+      planned > 0 ? `Postęp tygodnia: ${done}/${planned} (${Math.round(progress)}%).` : 'Brak zadań zaplanowanych na ten tydzień.'
+    ];
+
+    kpiElements.tasks.innerHTML = `
+      <div class="kpi-header"><span>✅</span><h4>Zadania</h4></div>
+      <div class="kpi-main-value ${activeClass}">${activeCount}</div>
+      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
+      <div class="kpi-progress-container">
+        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>Ukończono w tym tyg.</span><span>${done}/${planned}</span>
+        </div>
+        <div class="progress"><i style="width:${progress}%"></i></div>
+      </div>`;
+  } else {
+    kpiElements.tasks.innerHTML = `<div class="kpi-header"><span>✅</span><h4>Zadania</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+
+  // --- Progress KPI ---
+  const trainingSummary = getTrainingSummary();
+  if(trainingSummary.goalPercents){
+    const avg = Number(trainingSummary.average || 0);
+    const avgClass = avg > 80 ? 'value-ok' : avg > 40 ? 'value-warn' : 'value-bad';
+    const totalWeeks = typeof trainingSummary.totalWeeks === 'number' ? trainingSummary.totalWeeks : Math.max(0, getWeekNumber(new Date())[1] - 1);
+    const completedWeeks = trainingSummary.completedWeeks || 0;
+    const detailLines = [];
+    if(trainingSummary.range){
+      detailLines.push(`Zakres: ${formatShortDate(trainingSummary.range.start)} – ${formatShortDate(trainingSummary.range.end)}.`);
+    }
+    Object.entries(TRAINING_GOALS).forEach(([type, def])=>{
+      const info = trainingSummary.goalPercents?.[type] || { progress: 0, target: def.target };
+      detailLines.push(`${def.name}: ${formatGoalValue(type, info.progress || 0)} / ${def.target} ${def.unit}`);
+    });
+    detailLines.push(`W pełni zrealizowane tygodnie: ${completedWeeks}/${totalWeeks}.`);
+
+    kpiElements.progress.innerHTML = `
+      <div class="kpi-header"><span>💪</span><h4>Progres</h4></div>
+      <div class="kpi-main-value ${avgClass}">${Math.round(avg)}<span class="tiny muted" style="margin-left: 4px;">%</span></div>
+      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
+      <div class="kpi-progress-container">
+          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Postęp w tym tyg.</span>
+          </div>
+          <div class="progress"><i style="width:${Math.min(100, Math.max(0, avg))}%"></i></div>
+      </div>`;
+  } else {
+    kpiElements.progress.innerHTML = `<div class="kpi-header"><span>💪</span><h4>Progres</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+
+  // --- House KPI ---
+  const houseRaw = localStorage.getItem(HOUSE_STORAGE_KEY);
+  if(houseRaw){
+    const hState = safeParse(houseRaw, {});
+    const tasks = Array.isArray(hState?.tasks) ? hState.tasks : [];
+    const expenses = Array.isArray(hState?.expenses) ? hState.expenses : [];
+    const completedTasksProgress = tasks.map(t => Number(t.progress || 0));
+    const totalProgress = tasks.length > 0 ? completedTasksProgress.reduce((a,b) => a + b, 0) / tasks.length : 0;
+    const totalExpenses = expenses.reduce((sum, e) => sum + num(e.amount), 0);
+
+    const detailLines = [
+      `${tasks.length} zadań • ${expenses.length} wydatków.`,
+      `Średni postęp zadań: ${tasks.length ? totalProgress.toFixed(0) : 0}%`
+    ];
+    kpiElements.house.innerHTML = `
+      <div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div>
+      <div class="kpi-main-value">${fmt(totalExpenses)}</div>
+      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
+      <div class="kpi-progress-container">
+        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span>Całkowity postęp prac</span><span>${totalProgress.toFixed(0)}%</span>
+        </div>
+        <div class="progress"><i style="width:${totalProgress}%"></i></div>
+      </div>`;
+  } else {
+    kpiElements.house.innerHTML = `<div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+
+  // --- Loan KPI ---
+  const loanRaw = localStorage.getItem(LOAN_STORAGE_KEY);
+  if(loanRaw){
+    const lState = safeParse(loanRaw, {});
+    if (lState && lState.loanDetails) {
+      const loanDetails = lState.loanDetails;
+      const payments = Array.isArray(lState.payments) ? lState.payments : [];
+      const totalOverpayments = payments.reduce((sum, p) => sum + (p.overpayment || 0), 0);
+      const totalCapitalPaid = payments.reduce((sum, p) => sum + p.capital, 0) + totalOverpayments;
+      const capitalRemaining = loanDetails.totalCapital - totalCapitalPaid;
+      const progress = (totalCapitalPaid / loanDetails.totalCapital) * 100;
+
+      const detailLines = [
+        `Spłacono kapitału: ${fmt(totalCapitalPaid)}.`,
+        `Nadpłaty: ${fmt(totalOverpayments)}.`
+      ];
+      kpiElements.loan.innerHTML = `
+        <div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div>
+        <div class="kpi-main-value">${fmt(capitalRemaining, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
+        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
+        <div class="kpi-progress-container">
+          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Postęp spłaty</span><span>${progress.toFixed(1)}%</span>
+          </div>
+          <div class="progress"><i style="width:${progress}%"></i></div>
+        </div>`;
+    } else {
+       kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak skonfigurowanego kredytu.'])}</div>`;
+    }
+  } else {
+    kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+  }
+}
+
+/* === MISC === */
+function refreshDashboard(){
+  showNotification('Odświeżanie dashboard...', 'info');
+  setTimeout(()=>{ renderAll(); showNotification('Dashboard odświeżony!','success') }, 600);
+}
+function showModal(html, buttons){
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalText = document.getElementById('modal-text');
+    modalText.innerHTML = html;
+    
+    const actions = document.getElementById('modal-actions');
+    actions.innerHTML='';
+
+    if (buttons && buttons.length > 0) {
+        buttons.forEach(cfg=>{
+            const b = document.createElement('button');
+            b.textContent = cfg.text;
+            b.className = cfg.class || 'btn';
+            b.onclick = () => {
+                if (cfg.onClick) cfg.onClick();
+                if (!cfg.noClose) modalOverlay.classList.remove('visible');
+            };
+            actions.appendChild(b);
+        });
+    } else {
+        // Fallback for old calls without buttons array
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Zamknij';
+        closeBtn.className = 'btn';
+        closeBtn.onclick = () => modalOverlay.classList.remove('visible');
+        actions.appendChild(closeBtn);
+    }
+    modalOverlay.classList.add('visible');
+}
+
+function openSettingsModal(){
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
+    const weatherLocation = settings.weatherLocation || 'Warszawa';
+    const buttons = [
+        { text: 'Anuluj' },
+        { text: 'Zapisz', class: 'btn primary', onClick: saveSettings }
+    ];
+    showModal(`
+        <h3 style="margin-top:0; text-align: left;">Ustawienia</h3>
+        <div style="text-align:left; font-size: 13px;">
+            <label for="weather-location" style="font-weight:600; margin-bottom: 6px; display:block;">Lokalizacja dla pogody</label>
+            <input type="text" id="weather-location" value="${weatherLocation}" style="width:100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px;" placeholder="np. Paryż">
+            <p class="tiny muted" style="margin-top: 6px;">Wpisz miasto, dla którego chcesz widzieć prognozę pogody.</p>
+        </div>
+    `, buttons);
+}
+
+function saveSettings() {
+    const location = document.getElementById('weather-location').value;
+    if (!location) {
+        showNotification('Lokalizacja nie może być pusta.', 'error');
+        return;
+    }
+    const settings = { weatherLocation: location };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    showNotification('Ustawienia zapisane!', 'success');
+    renderWeatherWidget();
+}
+
+/* === BACKUP === */
+function renderBackupStatus(){
+  const statusEl = document.getElementById('backup-status');
+  const ts = localStorage.getItem(BACKUP_TIMESTAMP_KEY);
+  if(ts){
+    const last = new Date(parseInt(ts));
+    const diffDays = Math.floor((new Date()-last)/86400000);
+    statusEl.textContent = diffDays === 0 ? '✅ Ostatni backup: dziś.' : `📅 Ostatni backup: ${diffDays} dni temu.`;
+    statusEl.style.color = diffDays>7 ? 'var(--orange)' : 'var(--muted)';
+  } else {
+    statusEl.textContent = '❌ Nie wykonano jeszcze żadnego backupu.';
+    statusEl.style.color = 'var(--red)';
+  }
+}
+const exportBtn = document.getElementById('export-all-btn');
+const importBtn = document.getElementById('import-all-btn');
+const importInput = document.getElementById('import-file-input');
+exportBtn.onclick = ()=>{
+  const trainingRaw = TRAININGS_STORAGE_KEYS.map(key => localStorage.getItem(key)).find(Boolean);
+  const trainingData = trainingRaw ? safeParse(trainingRaw, null) : null;
+  const allData = {
+    budget: JSON.parse(localStorage.getItem(BUDGET_STORAGE_KEY) || 'null'),
+    fuel: JSON.parse(localStorage.getItem(FUEL_STORAGE_KEY) || 'null'),
+    tasks_pro: JSON.parse(localStorage.getItem(TASKS_STORAGE_KEY) || 'null'),
+    trainings: trainingData,
+    house: JSON.parse(localStorage.getItem(HOUSE_STORAGE_KEY) || 'null'),
+    loan: JSON.parse(localStorage.getItem(LOAN_STORAGE_KEY) || 'null'),
+    settings: JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || 'null'),
+  };
+  const blob = new Blob([JSON.stringify(allData, null, 2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `lifeos_backup_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  URL.revokeObjectURL(a.href);
+  localStorage.setItem(BACKUP_TIMESTAMP_KEY, Date.now().toString());
+  renderBackupStatus(); showNotification('Backup został pomyślnie zapisany!','success');
+};
+importBtn.onclick = ()=> importInput.click();
+importInput.onchange = (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(data.budget) localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(data.budget));
+      if(data.fuel) localStorage.setItem(FUEL_STORAGE_KEY, JSON.stringify(data.fuel));
+      if(data.tasks_pro) localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(data.tasks_pro));
+      if(data.trainings){
+        localStorage.setItem(TRAININGS_STORAGE_KEY_MODERN, JSON.stringify(data.trainings));
+        localStorage.removeItem(TRAININGS_STORAGE_KEY_LEGACY);
+      }
+      if(data.house) localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(data.house));
+      if(data.loan) localStorage.setItem(LOAN_STORAGE_KEY, JSON.stringify(data.loan));
+      if(data.settings) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data.settings));
+      showNotification('Dane zostały pomyślnie zaimportowane!','success');
+      setTimeout(renderAll, 300);
+    } catch { showNotification('Błąd importu. Sprawdź plik.','error') }
+  };
+  reader.readAsText(file);
+  importInput.value='';
+};
+
+/* === BOOT === */
+function renderAll(){
+  renderGreetingAndDate();
+  renderWeatherWidget();
+  renderKPIs();
+  renderUpcomingTasks();
+  renderWeeklyActivities();
+  renderBackupStatus();
+  document.querySelectorAll('.card').forEach((c,i)=> c.style.animationDelay = `${i*0.06}s`);
+}
+window.addEventListener('load', renderAll);
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ document.querySelectorAll('.modal-overlay.visible').forEach(m=> m.classList.remove('visible')) }
+});
+document.querySelectorAll('.modal-overlay').forEach(modal=>{
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.classList.remove('visible') })
+});
+setInterval(renderGreetingAndDate, 5*60*1000);
+setInterval(renderWeatherWidget, 30*60*1000);
+</script>
+</body>
+</html>
