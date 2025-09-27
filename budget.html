@@ -93,6 +93,108 @@
       gap: 10px;
     }
 
+    .recent-calendar-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .recent-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .recent-day {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 120px;
+    }
+
+    .recent-day-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .recent-day-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .recent-day-total {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .recent-entries {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .recent-entry {
+      border-radius: 10px;
+      border: 1px dashed var(--line);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    .recent-entry-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .recent-entry-amount {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .recent-entry-note {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .recent-entry.top-spend {
+      border-style: solid;
+      border-color: rgba(248, 113, 113, 0.4);
+      background: rgba(248, 113, 113, 0.16);
+    }
+
+    .recent-entry.top-spend .recent-entry-line {
+      color: #b91c1c;
+    }
+
+    .recent-empty {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    @media (max-width: 1100px) {
+      .recent-calendar {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+    }
+
     .heatmap-strip {
       display: flex;
       flex-wrap: wrap;
@@ -429,7 +531,18 @@
         </div>
       </div>
 
-      <div id="var-table-dashboard-slot" style="margin-top:16px">
+      <div class="card recent-calendar-card" style="margin-top:16px">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+          <div>
+            <div class="title">Ostatnie 7 dni — wydatki</div>
+            <p class="muted tiny">Największe wydatki z ostatnich dni, posegregowane malejąco. Top 5 oznaczone na czerwono.</p>
+          </div>
+          <div class="chip" style="margin:0" id="recent-seven-total">Łącznie: —</div>
+        </div>
+        <div id="recent-spending-calendar" class="recent-calendar"></div>
+      </div>
+
+      <div id="var-table-dashboard-slot" style="display:none">
         <div id="var-transactions-card" class="card">
           <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
             <div>
@@ -1662,7 +1775,9 @@
       box.className='heat-day'; box.style.background=bg; box.title=`${String(d).padStart(2,'0')}: ${fmt(val, state.currency)}`; box.textContent=String(d);
       cal.appendChild(box);
     }
-    
+
+    renderRecentSpendingTiles();
+
     // --- Forecast & Buffer Section (NEW) ---
     const daysLeft = getDaysRemaining(ym);
     const totalVariableBudget = incSum - fixSum;
@@ -1701,6 +1816,103 @@
         return `${integerPart}\u00A0${state.currency || 'PLN'}`;
     } catch {
         return `${Math.round(Number(v || 0))}\u00A0${state.currency || 'PLN'}`;
+    }
+  }
+
+  function renderRecentSpendingTiles(){
+    const container=document.getElementById('recent-spending-calendar');
+    if(!container) return;
+    container.innerHTML='';
+    const totalChip=document.getElementById('recent-seven-total');
+    const today=new Date();
+    today.setHours(0,0,0,0);
+    const dayKeyFromDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dayDates=[];
+    for(let offset=6; offset>=0; offset--){
+      const d=new Date(today);
+      d.setDate(today.getDate()-offset);
+      dayDates.push(d);
+    }
+    const months=[...new Set(dayDates.map(d=>monthKey(d)))];
+    let allEntries=[];
+    for(const ym of months){
+      allEntries=allEntries.concat(entriesForMonth(ym));
+    }
+    const cb=catsById();
+    const startKey=dayKeyFromDate(dayDates[0]);
+    const endKey=dayKeyFromDate(dayDates[dayDates.length-1]);
+    const filteredBase=[];
+    for(const entry of allEntries){
+      if(entry.date<startKey || entry.date>endKey) continue;
+      const cat=cb[entry.categoryId];
+      if(!cat || cat.type!=='expense' || cat.id==='c_fixed') continue;
+      const amount=Math.abs(entry.amount);
+      if(amount<=0) continue;
+      filteredBase.push({entry, amount, cat});
+    }
+    const filtered=filteredBase.map((item, idx)=>({...item, idx}));
+    const totalAmount=filtered.reduce((sum,item)=>sum+item.amount,0);
+    if(totalChip){
+      totalChip.textContent=filtered.length?`Łącznie: ${fmt(totalAmount, state.currency)}`:'Łącznie: —';
+    }
+    const topIdx=new Set(filtered.slice().sort((a,b)=>b.amount-a.amount).slice(0,5).map(item=>item.idx));
+    const grouped=new Map();
+    for(const item of filtered){
+      if(!grouped.has(item.entry.date)) grouped.set(item.entry.date, []);
+      grouped.get(item.entry.date).push(item);
+    }
+    const weekdayFmt=new Intl.DateTimeFormat('pl-PL',{weekday:'short'});
+    const dateFmt=new Intl.DateTimeFormat('pl-PL',{day:'2-digit',month:'2-digit'});
+    for(const dateObj of dayDates){
+      const key=dayKeyFromDate(dateObj);
+      const tile=document.createElement('div');
+      tile.className='recent-day';
+      const header=document.createElement('div');
+      header.className='recent-day-header';
+      const label=document.createElement('div');
+      label.className='recent-day-label';
+      label.textContent=`${weekdayFmt.format(dateObj)} ${dateFmt.format(dateObj)}`;
+      const total=document.createElement('div');
+      total.className='recent-day-total';
+      const dayItems=(grouped.get(key)||[]).sort((a,b)=>b.amount-a.amount);
+      const dayTotal=dayItems.reduce((sum,item)=>sum+item.amount,0);
+      total.textContent=dayItems.length?fmt(dayTotal, state.currency):'—';
+      header.append(label,total);
+      tile.appendChild(header);
+      const list=document.createElement('div');
+      list.className='recent-entries';
+      if(dayItems.length===0){
+        const empty=document.createElement('div');
+        empty.className='recent-empty';
+        empty.textContent='Brak wydatków';
+        list.appendChild(empty);
+      }else{
+        for(const item of dayItems){
+          const row=document.createElement('div');
+          row.className='recent-entry';
+          if(topIdx.has(item.idx)) row.classList.add('top-spend');
+          const line=document.createElement('div');
+          line.className='recent-entry-line';
+          const labelEl=document.createElement('span');
+          labelEl.className='recent-entry-label';
+          const catLabel=[item.cat?.emoji||'', item.cat?.name||'Wydatek'].filter(Boolean).join(' ');
+          labelEl.textContent=catLabel||'Wydatek';
+          const amountEl=document.createElement('span');
+          amountEl.className='recent-entry-amount';
+          amountEl.textContent=fmt(item.amount, state.currency);
+          line.append(labelEl, amountEl);
+          row.appendChild(line);
+          if(item.entry.note){
+            const note=document.createElement('div');
+            note.className='recent-entry-note';
+            note.textContent=item.entry.note;
+            row.appendChild(note);
+          }
+          list.appendChild(row);
+        }
+      }
+      tile.appendChild(list);
+      container.appendChild(tile);
     }
   }
 
