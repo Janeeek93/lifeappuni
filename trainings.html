@@ -121,6 +121,29 @@
   gap: 16px;
 }
 
+.plan-overview {
+  align-items: flex-start;
+}
+
+.focus-card--compact {
+  gap: 14px;
+}
+
+.focus-card--compact .focus-columns {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.focus-card--compact .detail-actions {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.focus-card--compact .detail-actions .btn {
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
 .focus-header {
   display: flex;
   justify-content: space-between;
@@ -311,6 +334,17 @@
   height: 24px;
 }
 
+.metric-visual--compact {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+
+.metric-visual--compact .icon {
+  width: 20px;
+  height: 20px;
+}
+
 .metric-card--visual[data-activity-type="gym"] .metric-visual {
   background: rgba(91, 33, 182, 0.12);
   color: var(--gym-color);
@@ -336,6 +370,59 @@
   color: var(--muted);
 }
 
+.kpi-value--sm {
+  font-size: 18px;
+}
+
+.kpi-progress-card {
+  align-items: stretch;
+}
+
+.kpi-progress-card > span {
+  align-self: flex-start;
+}
+
+.kpi-progress-card > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kpi-next-activity {
+  gap: 12px;
+  align-items: center;
+}
+
+.kpi-next-activity .kpi-value--sm {
+  margin-top: 2px;
+}
+
+.kpi-goal-progress-list {
+  margin-top: 4px;
+  max-height: 170px;
+  overflow: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpi-goal-progress-list .goal-progress-item {
+  gap: 6px;
+}
+
+.kpi-goal-progress-list .goal-progress-label strong {
+  font-size: 12px;
+}
+
+.kpi-goal-progress-list .goal-progress-value {
+  font-size: 10px;
+}
+
+.kpi-goal-progress-list .goal-progress-bar {
+  height: 8px;
+}
+
 
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .card-header p { margin-top: 4px; }
@@ -358,6 +445,17 @@
   display: flex;
   justify-content: center;
   padding-bottom: 4px;
+}
+
+.calendar-card--compact {
+  display: flex;
+  flex-direction: column;
+  max-height: 520px;
+}
+
+.calendar-card--compact .calendar-grid {
+  flex: 1;
+  overflow: auto;
 }
 
 .calendar-grid {
@@ -631,6 +729,7 @@
   .top-grid { grid-template-columns: 1fr; }
   .focus-columns { grid-template-columns: 1fr; }
   .bottom-grid { grid-template-columns: 1fr; }
+  .plan-overview { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -689,118 +788,77 @@
 
       <div class="content">
         <main class="page-content content-main stack">
-          <section class="card focus-card">
-            <div class="focus-header">
-              <div class="focus-title">
-                <span class="tiny muted">Plan na dziś</span>
-            <h3 id="selected-day-title">--</h3>
-          </div>
-          <div class="focus-meta">
-            <span class="month-chip" id="selected-day-chip">--</span>
-            <button id="toggle-vacation-btn" class="btn ghost small"><i data-lucide="plane" class="icon"></i>Urlop</button>
-          </div>
-        </div>
-        <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
-        <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
-        <div class="focus-columns">
-          <div class="focus-column">
-            <div class="detail-block">
-              <div class="detail-block-header">
-                <span>Plan treningowy</span>
-              </div>
-              <div id="day-plan-list" class="detail-list"></div>
-              <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
-            </div>
-            <div class="detail-block">
-              <div class="detail-block-header">
-                <span>Aktywności dodatkowe</span>
-              </div>
-              <div id="day-extra-list" class="detail-list"></div>
-              <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
-            </div>
-          </div>
-            <div class="focus-column">
-            <div class="planning-banner" id="planning-banner" aria-live="polite">
-              <div class="planning-banner-info">
-                <i data-lucide="mouse-pointer" class="icon"></i>
-                <div>
-                  <strong id="planning-banner-title">Tryb planowania</strong>
-                  <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+          <div class="grid-2 plan-overview">
+            <section class="card focus-card focus-card--compact">
+              <div class="focus-header">
+                <div class="focus-title">
+                  <span class="tiny muted">Plan na dziś</span>
+                  <h3 id="selected-day-title">--</h3>
+                </div>
+                <div class="focus-meta">
+                  <span class="month-chip" id="selected-day-chip">--</span>
+                  <button id="toggle-vacation-btn" class="btn ghost small"><i data-lucide="plane" class="icon"></i>Urlop</button>
                 </div>
               </div>
-              <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
-            </div>
-          </div>
-        </div>
-        <div class="detail-actions">
-          <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
-          <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
-          <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
-        </div>
-      </section>
-          <div class="insight-bubble" id="metric-next-activity-card" data-activity-type="none">
-            <div class="focus-meta">
-              <div class="metric-visual" id="metric-next-activity-visual"><i data-lucide="calendar" class="icon"></i></div>
-              <div>
-                <strong class="tiny" style="display:block;">Najbliższa aktywność</strong>
-                <span class="tiny muted" id="metric-next-activity-date">Brak terminu</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <section class="card">
-              <div class="card-header">
-                <div>
-                  <h3>Postęp tygodniowy</h3>
-                  <p class="muted tiny">Cele na bieżący tydzień</p>
+              <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
+              <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
+              <div class="focus-columns">
+                <div class="focus-column">
+                  <div class="detail-block">
+                    <div class="detail-block-header">
+                      <span>Plan treningowy</span>
+                    </div>
+                    <div id="day-plan-list" class="detail-list"></div>
+                    <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
+                  </div>
+                  <div class="detail-block">
+                    <div class="detail-block-header">
+                      <span>Aktywności dodatkowe</span>
+                    </div>
+                    <div id="day-extra-list" class="detail-list"></div>
+                    <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
+                  </div>
+                </div>
+                <div class="focus-column">
+                  <div class="planning-banner" id="planning-banner" aria-live="polite">
+                    <div class="planning-banner-info">
+                      <i data-lucide="mouse-pointer" class="icon"></i>
+                      <div>
+                        <strong id="planning-banner-title">Tryb planowania</strong>
+                        <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+                      </div>
+                    </div>
+                    <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
+                  </div>
                 </div>
               </div>
-              <div id="goal-progress-list" class="goal-progress-list"></div>
+              <div class="detail-actions">
+                <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
+                <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
+                <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
+              </div>
             </section>
 
-            <section class="card">
+            <section class="card calendar-card calendar-card--compact">
               <div class="card-header">
                 <div>
-                  <h3>Tygodnie w roku</h3>
-                  <p class="muted tiny">Śledzenie realizacji planu</p>
+                  <h3>Dziennik aktywności</h3>
+                  <p class="muted tiny">Pełny miesiąc w jednym widoku</p>
+                </div>
+                <div class="calendar-legend">
+                  <span class="legend-tag gym">Siłownia</span>
+                  <span class="legend-tag running">Bieganie</span>
+                  <span class="legend-tag reading">Czytanie</span>
+                  <span class="legend-tag extra">Dodatkowe</span>
+                  <span class="legend-tag vacation">Urlop</span>
                 </div>
               </div>
-              <div style="display:flex;align-items:center;gap:18px;">
-                <div class="metric-donut">
-                  <svg viewBox="0 0 36 36" aria-hidden="true">
-                    <circle class="donut-bg" cx="18" cy="18" r="16"></circle>
-                    <circle class="donut-value" id="metric-weekly-complete-circle" cx="18" cy="18" r="16"></circle>
-                  </svg>
-                  <span id="metric-weekly-complete-percent">0%</span>
-                </div>
-                <div class="metric-text">
-                  <span class="metric-label">Tempo realizacji</span>
-                  <span class="metric-sub">Aktualizacja w czasie rzeczywistym</span>
-                </div>
+              <div class="calendar-weekdays">
+                <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Niedz</span>
               </div>
+              <div id="calendar-grid" class="calendar-grid"></div>
             </section>
           </div>
-
-          <section class="card calendar-card">
-            <div class="card-header">
-              <div>
-                <h3>Dziennik aktywności</h3>
-                <p class="muted tiny">Pełny miesiąc w jednym widoku</p>
-              </div>
-              <div class="calendar-legend">
-                <span class="legend-tag gym">Siłownia</span>
-                <span class="legend-tag running">Bieganie</span>
-                <span class="legend-tag reading">Czytanie</span>
-                <span class="legend-tag extra">Dodatkowe</span>
-                <span class="legend-tag vacation">Urlop</span>
-              </div>
-            </div>
-            <div class="calendar-weekdays">
-              <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Niedz</span>
-            </div>
-            <div id="calendar-grid" class="calendar-grid"></div>
-          </section>
 
           <section class="card heatmap-card">
             <div class="card-header">
@@ -839,7 +897,6 @@
             <div>
               <div class="kpi-label">Tygodnie zaliczone</div>
               <div class="kpi-value" id="metric-weekly-complete-count">0/0</div>
-              <div class="tiny muted" id="metric-weekly-complete-sub" style="margin-top:4px;"></div>
             </div>
           </div>
           <div class="kpi-compact">
@@ -854,6 +911,23 @@
             <div>
               <div class="kpi-label">Akcje wykonane</div>
               <div class="kpi-value" id="metric-plan-completion">0/0</div>
+            </div>
+          </div>
+          <div class="kpi-compact metric-card--visual kpi-next-activity" id="metric-next-activity-card" data-activity-type="none">
+            <span class="metric-visual metric-visual--compact" id="metric-next-activity-visual"><i data-lucide="calendar" class="icon"></i></span>
+            <div>
+              <div class="kpi-label">Najbliższa aktywność</div>
+              <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
+              <div class="tiny muted">Zaplanuj kolejny ruch</div>
+            </div>
+          </div>
+          <div class="kpi-compact kpi-progress-card">
+            <span class="kpi-emoji">📈</span>
+            <div>
+              <div class="kpi-label">Postęp tygodniowy</div>
+              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
+              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
+              <div id="goal-progress-list" class="goal-progress-list kpi-goal-progress-list"></div>
             </div>
           </div>
         </aside>
