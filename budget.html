@@ -314,7 +314,7 @@
   </style>
 </head>
 <body data-page="budget">
-  <div class="app-shell">
+  <div class="layout">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
       <nav class="sidebar-nav">
@@ -333,14 +333,19 @@
       </div>
     </aside>
 
-    <div class="app-main">
+    <div class="main">
       <header class="topbar">
-        <div class="topbar-info">
-          <p class="topbar-eyebrow">Finanse</p>
-          <h1 class="topbar-title">Budżet</h1>
-          <p class="topbar-subtitle">Wersja lokalna</p>
+        <div class="row" style="align-items:center;justify-content:space-between;gap:16px">
+          <div>
+            <p class="topbar-eyebrow">Finanse</p>
+            <h1 class="topbar-title">Budżet</h1>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <span class="badge">💾 Dane lokalne</span>
+            <span class="badge">📈 Analiza offline</span>
+          </div>
         </div>
-        <div class="topbar-actions">
+        <div class="topbar-actions" style="gap:16px">
           <div class="toolbar budget-month-nav">
             <button class="btn soft" id="prevMonthBtn" title="Poprzedni miesiąc">←</button>
             <span class="pill" id="workingMonth">YYYY-MM</span>
@@ -354,46 +359,8 @@
         </div>
       </header>
 
-      <section class="module-hero">
-        <div class="wrap module-hero-inner">
-          <div class="module-hero-top">
-            <div>
-              <div class="module-eyebrow">Budżet</div>
-              <h1 class="module-title">Mój Budżet</h1>
-              <p class="module-subtitle">Wersja lokalna</p>
-            </div>
-            <div class="module-hero-actions">
-              <span class="badge">💾 Dane lokalne</span>
-              <span class="badge">📈 Analiza offline</span>
-            </div>
-          </div>
-          <div class="module-hero-stats">
-            <div class="module-hero-stat">
-              <div class="label">Zostało do wydania</div>
-              <div class="big-number" id="dash-remaining">0</div>
-              <div class="note muted">na wydatki zmienne</div>
-            </div>
-            <div class="module-hero-stat">
-              <div class="label">Dzienny limit</div>
-              <div class="big-number" id="dash-daily-budget">0</div>
-              <div class="note" id="dash-daily-trend">—</div>
-            </div>
-            <div class="module-hero-stat">
-              <div class="label">Wydano dzisiaj</div>
-              <div class="big-number" id="dash-today-spent">0</div>
-              <div class="note" id="dash-today-vs-budget">—</div>
-            </div>
-            <div class="module-hero-stat">
-              <div class="label">Średnia dzienna</div>
-              <div class="big-number" id="dash-avg-daily">0</div>
-              <div class="note" id="dash-avg-trend">—</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <main class="page-content">
-        <div class="wrap stack">
+      <div class="content">
+        <main class="page-content content-main stack">
     <div class="tabs budget-tabs" style="margin-top:12px">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="overview">Przegląd</button>
@@ -410,7 +377,7 @@
     <!-- Dashboard -->
     <section id="tab-dashboard" class="card" style="margin-top:12px">
       <h3 class="title">Dashboard finansowy</h3>
-      <div class="grid g-2" style="margin-top:12px">
+      <div class="grid-2" style="margin-top:12px">
         <div class="card">
           <div class="title">Wydatki dzień po dniu</div>
           <div class="chart-box"><canvas id="dailyLine"></canvas></div>
@@ -422,19 +389,44 @@
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px">
-        <div class="title">Wydatki dzienne — heatmap</div>
-        <div class="muted" style="margin-bottom:8px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
-        <div id="daily-spending-calendar" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-        <div class="heat-legend" style="margin-top:6px">
-          <span class="heat-day" style="background:#dcfce7"> </span> w normie
-          <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
-          <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
+      <div class="grid-2" style="margin-top:16px">
+        <div class="card">
+          <div class="title">Wydatki dzienne — heatmap</div>
+          <div class="muted" style="margin-bottom:8px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
+          <div id="daily-spending-calendar" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          <div class="heat-legend" style="margin-top:6px">
+            <span class="heat-day" style="background:#dcfce7"> </span> w normie
+            <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
+            <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
+          </div>
+        </div>
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
+            <div>
+              <div class="title">Transakcje w miesiącu</div>
+              <p class="muted tiny">Monitoruj wszystkie wydatki zmienne w aktywnym okresie.</p>
+            </div>
+            <div class="chip" style="margin:0">
+              Suma: <b id="var-sum">0</b>
+            </div>
+          </div>
+          <div class="row" style="margin:12px 0;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="tiny" style="display:flex;flex-direction:column;gap:6px">
+              Filtr kategorii
+              <select id="var-filter-cat"><option value="">Wszystkie kategorie</option></select>
+            </label>
+          </div>
+          <div class="table-wrapper" style="max-height:320px;overflow:auto">
+            <table>
+              <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
+              <tbody id="var-rows"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <!-- NEW: Forecast and Buffer Banners -->
-      <div class="grid g-2" style="margin-top:12px">
+      <div class="grid-2" style="margin-top:12px">
         <div class="banner" style="background: #f0fdf4; border-color: #dcfce7;">
           <b>🔮 Prognozowane oszczędności</b>
           <div class="big-number" id="forecast-content" style="font-size: 24px; margin-top: 4px;">0</div>
@@ -605,15 +597,7 @@
         <button class="btn" type="submit">Dodaj wydatek</button>
       </form>
       
-      <div class="row" style="margin-bottom:8px">
-        <div class="muted">Suma wydatków zmiennych: <b id="var-sum">0</b></div>
-        <select id="var-filter-cat"><option value="">Wszystkie kategorie</option></select>
-      </div>
-
-      <table>
-        <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
-        <tbody id="var-rows"></tbody>
-      </table>
+      <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz w panelu „Dashboard finansowy”.</div>
     </section>
 
     <!-- Categories -->
@@ -1101,8 +1085,42 @@
         </div>
       </div>
     </section>
-  </div>
-      </main>
+        </main>
+        <aside class="right-rail">
+          <div class="kpi-compact">
+            <div class="kpi-emoji">💸</div>
+            <div>
+              <div class="kpi-label">Pozostały budżet</div>
+              <div class="kpi-value" id="dash-remaining">0</div>
+              <div class="muted tiny">na wydatki zmienne</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📉</div>
+            <div>
+              <div class="kpi-label">Limit dzienny</div>
+              <div class="kpi-value" id="dash-daily-budget">0</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📅</div>
+            <div>
+              <div class="kpi-label">Wydane dziś</div>
+              <div class="kpi-value" id="dash-today-spent">0</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📊</div>
+            <div>
+              <div class="kpi-label">Średnia dzienna</div>
+              <div class="kpi-value" id="dash-avg-daily">0</div>
+            </div>
+          </div>
+          <div class="insight-bubble">📉 Trend limitu: <span id="dash-daily-trend">—</span></div>
+          <div class="insight-bubble">📅 Status dnia: <span id="dash-today-vs-budget">—</span></div>
+          <div class="insight-bubble">📊 Średnia vs plan: <span id="dash-avg-trend">—</span></div>
+        </aside>
+      </div>
     </div>
   </div>
 
