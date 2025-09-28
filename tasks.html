@@ -175,7 +175,7 @@
   </style>
 </head>
 <body data-page="tasks">
-  <div class="app-shell">
+  <div class="layout">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
       <nav class="sidebar-nav">
@@ -194,20 +194,20 @@
       </div>
     </aside>
 
-    <div class="app-main">
+    <div class="main">
       <header class="topbar">
-        <div class="topbar-info">
-          <p class="topbar-eyebrow">Organizacja</p>
-          <h1 class="topbar-title">Zadania Pro</h1>
-          <p class="topbar-subtitle">Zarządzaj wszystkimi obowiązkami w jednym miejscu i miej kontrolę nad priorytetami.</p>
+        <div>
+          <h1 class="topbar-title">Zadania</h1>
         </div>
-        <div class="topbar-actions">
-          <button id="clear-all-btn" class="btn danger">Wyczyść wszystko</button>
+        <div class="topbar-actions" style="gap:8px">
+          <a class="btn primary" href="#task-form-card">➕ Dodaj</a>
+          <button class="btn" id="tasks-import-btn" type="button">⬆️ Import</button>
+          <button class="btn" id="tasks-export-btn" type="button">⬇️ Eksport</button>
         </div>
       </header>
 
-      <main class="page-content">
-        <div class="wrap stack">
+      <div class="content">
+        <main class="page-content stack">
     <section class="card insights-card" aria-live="polite">
       <div class="insights-header">
         <div>
@@ -219,7 +219,7 @@
       <p class="muted tiny" id="insights-empty" style="margin-top:12px; display:none;">Dodaj pierwsze zadanie, aby zobaczyć proponowane działania.</p>
     </section>
 
-    <div class="card" style="margin-top:16px;">
+    <div class="card" id="task-form-card" style="margin-top:12px;">
       <h3 class="title" id="form-title" style="margin-bottom: 16px;">Nowe zadanie</h3>
       <input type="hidden" id="task-id">
       <div class="grid" style="grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
@@ -259,17 +259,18 @@
     </div>
 
     <div id="tab-content-list" class="card">
-        <div class="row" style="gap: 8px; padding-bottom: 12px;">
-            <div class="row" style="gap: 8px; flex-grow: 1;">
+        <div class="grid-2" style="gap:12px; align-items:flex-start; margin-bottom:12px;">
+            <div class="row" style="gap: 8px; flex-wrap: wrap;">
               <select id="category-filter" style="width:auto;"></select>
               <select id="date-filter" style="width:auto;"></select>
               <select id="task-priority-filter" style="width:auto;"></select>
-              <input type="text" id="tag-filter" placeholder="Filtruj po tagach..." style="width: 150px; flex-grow: 1;">
+              <input type="text" id="tag-filter" placeholder="Filtruj po tagach..." style="min-width:180px; flex:1 1 160px;">
             </div>
-            <div class="row" style="gap: 8px;">
+            <div class="row" style="gap: 8px; justify-content:flex-end; flex-wrap: wrap;">
               <select id="sort-by" style="width:auto;"></select>
               <button id="sort-direction" class="btn" style="padding: 10px;">↑</button>
               <label style="display:flex; align-items:center; gap: 6px; font-size: 11px; white-space: nowrap;"><input type="checkbox" id="hide-completed-filter" checked style="width: 16px; height: 16px;"> Ukryj wykonane</label>
+              <button id="clear-all-btn" class="btn danger" style="white-space: nowrap;">Wyczyść wszystko</button>
             </div>
         </div>
         <table class="task-table">
@@ -342,7 +343,44 @@
         </div>
         </div>
       </main>
+      <aside class="right-rail">
+        <div class="kpi-compact">
+          <div class="kpi-emoji">📌</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Wszystkie zadania</div>
+            <div class="kpi-value" id="kpi-total-tasks">0</div>
+            <div class="muted tiny" id="kpi-total-note">—</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">✅</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Ukończone</div>
+            <div class="kpi-value" id="kpi-completed-tasks">0</div>
+            <div class="muted tiny" id="kpi-completed-note">—</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">⏱</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Przeterminowane</div>
+            <div class="kpi-value" id="kpi-overdue-tasks">0</div>
+            <div class="muted tiny" id="kpi-overdue-note">Brak zaległości</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">📅</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Nadchodzące</div>
+            <div class="kpi-value" id="kpi-upcoming-tasks">0</div>
+            <div class="muted tiny" id="kpi-upcoming-note">—</div>
+          </div>
+        </div>
+        <div class="insight-bubble" id="tasks-progress-bubble">Postęp tygodnia: —</div>
+        <div class="insight-bubble" id="tasks-focus-bubble">Najbliższe kroki: —</div>
+      </aside>
     </div>
+  </div>
   </div>
 
 <div id="modal-overlay" class="modal-overlay" style="display: none;">
@@ -436,11 +474,22 @@ const statsRangeControl = getEl('stats-range-control');
 const statsCategoryControl = getEl('stats-category-control');
 const insightsGrid = getEl('insights-grid');
 const insightsEmpty = getEl('insights-empty');
+const kpiTotalTasksEl = getEl('kpi-total-tasks');
+const kpiCompletedTasksEl = getEl('kpi-completed-tasks');
+const kpiOverdueTasksEl = getEl('kpi-overdue-tasks');
+const kpiUpcomingTasksEl = getEl('kpi-upcoming-tasks');
+const kpiTotalNoteEl = getEl('kpi-total-note');
+const kpiCompletedNoteEl = getEl('kpi-completed-note');
+const kpiOverdueNoteEl = getEl('kpi-overdue-note');
+const kpiUpcomingNoteEl = getEl('kpi-upcoming-note');
+const tasksProgressBubble = getEl('tasks-progress-bubble');
+const tasksFocusBubble = getEl('tasks-focus-bubble');
 
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // --- GŁÓWNE FUNKCJE ---
 function render() {
+    renderKpis();
     renderInsights();
     renderTaskList();
     const activeTabEl = document.querySelector('.tab.active');
@@ -461,6 +510,102 @@ function describeRelativeDate(target, base) {
     const label = pluralize(Math.abs(diffDays), ['dzień', 'dni', 'dni']);
     if (diffDays > 1) return `za ${diffDays} ${label}`;
     return `${Math.abs(diffDays)} ${label} temu`;
+}
+
+function renderKpis() {
+    if (!kpiTotalTasksEl) return;
+    const tasks = state.tasks;
+    const total = tasks.length;
+    const completed = tasks.filter(task => task.status === 'done');
+    const active = tasks.filter(task => task.status !== 'done');
+    const completionRate = total ? Math.round((completed.length / total) * 100) : 0;
+
+    kpiTotalTasksEl.textContent = total;
+    if (kpiTotalNoteEl) {
+        kpiTotalNoteEl.textContent = total
+            ? `${active.length} aktywnych • ${completed.length} ukończonych`
+            : 'Brak zadań w bazie';
+    }
+
+    if (kpiCompletedTasksEl) kpiCompletedTasksEl.textContent = completed.length;
+    if (kpiCompletedNoteEl) {
+        kpiCompletedNoteEl.textContent = total ? `${completionRate}% realizacji` : 'Dodaj zadania';
+    }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const horizon = new Date(today);
+    horizon.setUTCDate(horizon.getUTCDate() + 7);
+
+    const activeWithDue = active
+        .filter(task => task.dueDate)
+        .map(task => ({ task, due: parseDate(task.dueDate) }))
+        .filter(entry => entry.due && !Number.isNaN(entry.due.getTime()));
+
+    const overdueEntries = activeWithDue.filter(entry => entry.due < today);
+    const overdueSorted = [...overdueEntries].sort((a, b) => a.due - b.due);
+    if (kpiOverdueTasksEl) kpiOverdueTasksEl.textContent = overdueEntries.length;
+    if (kpiOverdueNoteEl) {
+        if (overdueSorted.length) {
+            const oldest = overdueSorted[0];
+            const relative = describeRelativeDate(oldest.due, today);
+            kpiOverdueNoteEl.textContent = `${formatDateShort(oldest.due)} • ${relative}`;
+        } else {
+            kpiOverdueNoteEl.textContent = 'Brak zaległości';
+        }
+    }
+
+    const upcomingEntries = activeWithDue
+        .filter(entry => entry.due >= today && entry.due <= horizon)
+        .sort((a, b) => {
+            const diff = a.due - b.due;
+            if (diff !== 0) return diff;
+            return priorityWeight(a.task.priority) - priorityWeight(b.task.priority);
+        });
+    if (kpiUpcomingTasksEl) kpiUpcomingTasksEl.textContent = upcomingEntries.length;
+    if (kpiUpcomingNoteEl) {
+        if (upcomingEntries.length) {
+            const { task, due } = upcomingEntries[0];
+            const relative = describeRelativeDate(due, today);
+            const priorityLabel = { high: 'wysoki', medium: 'średni', low: 'niski' }[task.priority] || 'średni';
+            kpiUpcomingNoteEl.textContent = `${task.title} • ${formatDateShort(due)} (${relative}, ${priorityLabel})`;
+        } else {
+            kpiUpcomingNoteEl.textContent = 'Dodaj terminy na tydzień';
+        }
+    }
+
+    const lastSevenStart = new Date(today);
+    lastSevenStart.setUTCDate(lastSevenStart.getUTCDate() - 6);
+    const completedRecent = completed.filter(task => {
+        if (!task.dueDate) return false;
+        const due = parseDate(task.dueDate);
+        return due && due >= lastSevenStart && due <= today;
+    }).length;
+    const plannedWeek = upcomingEntries.length;
+    const denominator = completedRecent + plannedWeek;
+    const progressRate = denominator ? Math.round((completedRecent / denominator) * 100) : 0;
+    if (tasksProgressBubble) {
+        tasksProgressBubble.textContent = denominator
+            ? `Postęp tygodnia: ${progressRate}% (✓ ${completedRecent} / ${denominator})`
+            : 'Postęp tygodnia: Brak zaplanowanych zadań — dodaj priorytety.';
+    }
+
+    if (tasksFocusBubble) {
+        if (overdueSorted.length) {
+            const { task, due } = overdueSorted[0];
+            const relative = describeRelativeDate(due, today);
+            tasksFocusBubble.textContent = `Najbliższe kroki: nadrób „${task.title}” (termin ${formatDateShort(due)}, ${relative}).`;
+        } else if (upcomingEntries.length) {
+            const { task, due } = upcomingEntries[0];
+            const relative = describeRelativeDate(due, today);
+            const priorityLabel = { high: 'wysoki', medium: 'średni', low: 'niski' }[task.priority] || 'średni';
+            tasksFocusBubble.textContent = `Najbliższe kroki: „${task.title}” (${priorityLabel}) — ${relative}.`;
+        } else if (active.length) {
+            tasksFocusBubble.textContent = 'Najbliższe kroki: przypisz terminy otwartym zadaniom.';
+        } else {
+            tasksFocusBubble.textContent = 'Najbliższe kroki: dodaj nowe zadania.';
+        }
+    }
 }
 
 function priorityWeight(priority) {
