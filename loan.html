@@ -229,6 +229,31 @@
       display: flex;
     }
 
+    .loan-chart-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .loan-chart-toggle {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .loan-chart-toggle:hover,
+    .loan-chart-toggle:focus {
+      background: var(--card);
+      color: var(--ink);
+      outline: none;
+    }
+
     .loan-chart-grid {
       display: grid;
       grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
@@ -514,8 +539,8 @@
                     <button class="loan-tab-btn" data-chart="share">Udziały w czasie</button>
                     <button class="loan-tab-btn" data-chart="cumulative">Kumulacja spłat</button>
                     <button class="loan-tab-btn" data-chart="balance">Saldo kredytu</button>
-                    <button class="loan-tab-btn" data-chart="overpay">Nadpłaty</button>
                     <button class="loan-tab-btn" data-chart="rate">Trend oprocentowania</button>
+                    <button class="loan-tab-btn" data-chart="change">Zmiana raty</button>
                   </div>
                   <div id="loan-chart-placeholder" class="loan-chart-placeholder">
                     Dodaj raty, aby zobaczyć analizy spłaty kredytu.
@@ -532,16 +557,25 @@
                       </div>
                     </div>
                     <div class="loan-tab-panel" data-chart="line">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="line">Pokaż dane</button>
+                      </div>
                       <div class="loan-chart-area" style="min-height:320px;">
                         <canvas id="monthly-line-chart"></canvas>
                       </div>
                     </div>
                     <div class="loan-tab-panel" data-chart="share">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="share">Pokaż dane</button>
+                      </div>
                       <div class="loan-chart-area" style="min-height:320px;">
                         <canvas id="share-area-chart"></canvas>
                       </div>
                     </div>
                     <div class="loan-tab-panel" data-chart="cumulative">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="cumulative">Pokaż dane</button>
+                      </div>
                       <div class="loan-chart-area" style="min-height:320px;">
                         <canvas id="cumulative-chart"></canvas>
                       </div>
@@ -551,14 +585,17 @@
                         <canvas id="balance-chart"></canvas>
                       </div>
                     </div>
-                    <div class="loan-tab-panel" data-chart="overpay">
-                      <div class="loan-chart-area" style="min-height:320px;">
-                        <canvas id="overpayment-chart"></canvas>
-                      </div>
-                    </div>
                     <div class="loan-tab-panel" data-chart="rate">
                       <div class="loan-chart-area" style="min-height:320px;">
                         <canvas id="rate-trend-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="change">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="change">Pokaż dane</button>
+                      </div>
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="payment-change-chart"></canvas>
                       </div>
                     </div>
                   </div>
@@ -665,6 +702,12 @@ const defaultState = {
 let state = {};
 let charts = {};
 let chartDataCache = null;
+const chartLabelState = {
+  line: false,
+  share: false,
+  cumulative: false,
+  change: false
+};
 
 function $(selector) { return document.querySelector(selector); }
 function $$(selector) { return document.querySelectorAll(selector); }
@@ -680,8 +723,14 @@ function saveState() {
 }
 
 function fmt(n) {
-  try { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(n || 0); } 
+  try { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(n || 0); }
   catch { return `${(n || 0).toFixed(2)} PLN`; }
+}
+
+function formatRateValue(value) {
+  const numeric = Number.parseFloat(value || 0);
+  if (Number.isNaN(numeric)) return 0;
+  return Number(numeric.toFixed(2));
 }
 
 /* === Modal Logic === */
@@ -1022,7 +1071,7 @@ function getRateForDate(paymentDate, history) {
             break;
         }
     }
-    return currentRate;
+    return formatRateValue(currentRate);
 }
 
 function getNextPaymentMonth(payments, loanDetails) {
@@ -1202,7 +1251,7 @@ function renderCharts() {
   });
 
   const rateHistory = loanDetails.interestRateHistory || [];
-  const interestRateData = payments.map(p => getRateForDate(p.date, rateHistory));
+  const interestRateData = payments.map(p => formatRateValue(getRateForDate(p.date, rateHistory)));
   const totalCapitalAmount = Number(loanDetails.totalCapital || 0);
   let runningBalance = totalCapitalAmount;
   const remainingBalances = payments.map((p, index) => {
@@ -1214,11 +1263,30 @@ function renderCharts() {
   const rateHistoryLabels = sortedRateHistory.length
     ? sortedRateHistory.map(entry => new Date(`${entry.date}-02`).toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }))
     : paymentLabels;
-  const rateHistoryValues = sortedRateHistory.length
-    ? sortedRateHistory.map(entry => Number(entry.rate || 0))
-    : interestRateData.map(rate => Number(rate || 0));
+  const rateHistoryValuesRaw = sortedRateHistory.length
+    ? sortedRateHistory.map(entry => entry.rate)
+    : interestRateData;
+  const rateHistoryValues = rateHistoryValuesRaw.map(rate => formatRateValue(rate));
+  const rateHistoryDiffs = rateHistoryValues.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = rateHistoryValues[index - 1];
+    const diff = value - previous;
+    return formatRateValue(diff);
+  });
   const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
   const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
+
+  const paymentChangeValues = totalSeries.map((value, index) => {
+    if (index === 0) return 0;
+    return value - totalSeries[index - 1];
+  });
+
+  const paymentChangePercentages = totalSeries.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = totalSeries[index - 1];
+    if (!previous) return 0;
+    return Number(((value - previous) / previous * 100).toFixed(2));
+  });
 
   chartDataCache = {
     labels: paymentLabels,
@@ -1235,6 +1303,9 @@ function renderCharts() {
     remainingBalances,
     rateHistoryLabels,
     rateHistoryValues,
+    rateHistoryDiffs,
+    paymentChangeValues,
+    paymentChangePercentages,
     totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
   };
 
@@ -1276,6 +1347,7 @@ function renderChartForPanel(panelType) {
     basePrincipalSeries,
     overpaymentSeries,
     interestSeries,
+    totalSeries,
     interestRateData,
     totals,
     sharePrincipal,
@@ -1284,7 +1356,10 @@ function renderChartForPanel(panelType) {
     cumulativeInterest,
     remainingBalances,
     rateHistoryLabels,
-    rateHistoryValues
+    rateHistoryValues,
+    rateHistoryDiffs,
+    paymentChangeValues,
+    paymentChangePercentages
   } = chartDataCache;
 
   if (panelType === 'mix') {
@@ -1303,11 +1378,30 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2 },
-              { label: 'Kapitał', data: principalSeries, backgroundColor: palette.green, borderRadius: 4, order: 2 },
-              { label: 'Odsetki', data: interestSeries, backgroundColor: palette.orange, borderRadius: 4, order: 3 }
+              { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2, datalabels: { display: false } },
+              { label: 'Kapitał', data: principalSeries, backgroundColor: palette.green, borderRadius: 4, order: 2, datalabels: { display: false } },
+              {
+                label: 'Odsetki',
+                data: interestSeries,
+                backgroundColor: palette.orange,
+                borderRadius: 4,
+                order: 3,
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  color: palette.ink,
+                  font: { weight: 700, size: 11 },
+                  formatter: (value, context) => {
+                    const index = context.dataIndex;
+                    const principalValue = context.chart.data.datasets[1].data[index] || 0;
+                    const total = (value || 0) + principalValue;
+                    return total ? fmt(total) : '';
+                  }
+                }
+              }
             ]
           },
+          plugins: [ChartDataLabels],
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1404,6 +1498,7 @@ function renderChartForPanel(panelType) {
         charts.monthlyLine.data.labels = labels;
         charts.monthlyLine.data.datasets[0].data = principalSeries;
         charts.monthlyLine.data.datasets[1].data = interestSeries;
+        charts.monthlyLine.options.plugins.datalabels.display = chartLabelState.line;
         charts.monthlyLine.update();
       } else {
         charts.monthlyLine = new Chart(lineCtx, {
@@ -1415,6 +1510,7 @@ function renderChartForPanel(panelType) {
               { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.orange }
             ]
           },
+          plugins: [ChartDataLabels],
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1424,6 +1520,14 @@ function renderChartForPanel(panelType) {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
                 }
+              },
+              datalabels: {
+                display: chartLabelState.line,
+                align: (context) => (context.datasetIndex === 0 ? 'top' : 'bottom'),
+                anchor: (context) => (context.datasetIndex === 0 ? 'end' : 'start'),
+                color: (context) => context.dataset.borderColor || palette.ink,
+                font: { weight: 600, size: 10 },
+                formatter: (value) => fmt(value)
               }
             },
             scales: {
@@ -1438,7 +1542,6 @@ function renderChartForPanel(panelType) {
       setTimeout(() => charts.monthlyLine && charts.monthlyLine.resize(), 30);
     }
   }
-
   if (panelType === 'share') {
     const shareCanvas = $('#share-area-chart');
     if (shareCanvas) {
@@ -1447,6 +1550,7 @@ function renderChartForPanel(panelType) {
         charts.shareArea.data.labels = labels;
         charts.shareArea.data.datasets[0].data = sharePrincipal;
         charts.shareArea.data.datasets[1].data = shareInterest;
+        charts.shareArea.options.plugins.datalabels.display = chartLabelState.share;
         charts.shareArea.update();
       } else {
         charts.shareArea = new Chart(shareCtx, {
@@ -1458,6 +1562,7 @@ function renderChartForPanel(panelType) {
               { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: '-1', tension: 0.25, pointRadius: 0, stack: 'shares' }
             ]
           },
+          plugins: [ChartDataLabels],
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1467,6 +1572,14 @@ function renderChartForPanel(panelType) {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
                 }
+              },
+              datalabels: {
+                display: chartLabelState.share,
+                align: (context) => (context.datasetIndex === 0 ? 'top' : 'bottom'),
+                anchor: (context) => (context.datasetIndex === 0 ? 'end' : 'start'),
+                color: (context) => context.dataset.borderColor || palette.ink,
+                font: { weight: 600, size: 10 },
+                formatter: (value) => `${Number(value).toFixed(1)}%`
               }
             },
             scales: {
@@ -1487,7 +1600,6 @@ function renderChartForPanel(panelType) {
       setTimeout(() => charts.shareArea && charts.shareArea.resize(), 30);
     }
   }
-
   if (panelType === 'cumulative') {
     const cumulativeCanvas = $('#cumulative-chart');
     if (cumulativeCanvas) {
@@ -1497,6 +1609,7 @@ function renderChartForPanel(panelType) {
         charts.cumulative.data.datasets[0].data = cumulativePrincipal;
         charts.cumulative.data.datasets[1].data = cumulativeInterest;
         charts.cumulative.data.datasets[2].data = cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]);
+        charts.cumulative.options.plugins.datalabels.display = chartLabelState.cumulative;
         charts.cumulative.update();
       } else {
         charts.cumulative = new Chart(cumulativeCtx, {
@@ -1509,6 +1622,7 @@ function renderChartForPanel(panelType) {
               { label: 'Łącznie', data: cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]), borderColor: palette.blue, backgroundColor: palette.blueSoft, fill: false, borderDash: [6, 4], tension: 0.25, pointRadius: 0 }
             ]
           },
+          plugins: [ChartDataLabels],
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -1519,6 +1633,14 @@ function renderChartForPanel(panelType) {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
                 }
+              },
+              datalabels: {
+                display: chartLabelState.cumulative,
+                align: (context) => (context.datasetIndex === 1 ? 'bottom' : 'top'),
+                anchor: (context) => (context.datasetIndex === 1 ? 'start' : 'end'),
+                color: (context) => context.dataset.borderColor || palette.ink,
+                font: { weight: 600, size: 10 },
+                formatter: (value) => fmt(value)
               }
             },
             scales: {
@@ -1533,7 +1655,6 @@ function renderChartForPanel(panelType) {
       setTimeout(() => charts.cumulative && charts.cumulative.resize(), 30);
     }
   }
-
   if (panelType === 'balance') {
     const balanceCanvas = $('#balance-chart');
     if (balanceCanvas) {
@@ -1596,23 +1717,47 @@ function renderChartForPanel(panelType) {
     }
   }
 
-  if (panelType === 'overpay') {
-    const overpaymentCanvas = $('#overpayment-chart');
-    if (overpaymentCanvas) {
-      const overpaymentCtx = overpaymentCanvas.getContext('2d');
-      if (charts.overpayment) {
-        charts.overpayment.data.labels = labels;
-        charts.overpayment.data.datasets[0].data = basePrincipalSeries;
-        charts.overpayment.data.datasets[1].data = overpaymentSeries;
-        charts.overpayment.update();
+  if (panelType === 'change') {
+    const changeCanvas = $('#payment-change-chart');
+    if (changeCanvas) {
+      const changeCtx = changeCanvas.getContext('2d');
+      const barColors = paymentChangeValues.map(value => {
+        if (value < 0) return palette.green;
+        if (value > 0) return palette.orange;
+        return palette.line;
+      });
+      if (charts.paymentChange) {
+        charts.paymentChange.data.labels = labels;
+        charts.paymentChange.data.datasets[0].data = paymentChangeValues;
+        charts.paymentChange.data.datasets[0].backgroundColor = barColors;
+        charts.paymentChange.data.datasets[1].data = paymentChangePercentages;
+        charts.paymentChange.options.plugins.datalabels.display = chartLabelState.change;
+        charts.paymentChange.update();
       } else {
-        charts.overpayment = new Chart(overpaymentCtx, {
+        charts.paymentChange = new Chart(changeCtx, {
           type: 'bar',
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał planowy', data: basePrincipalSeries, backgroundColor: palette.green, borderRadius: 4, stack: 'stacked' },
-              { label: 'Nadpłata', data: overpaymentSeries, backgroundColor: palette.blue, borderRadius: 4, stack: 'stacked' }
+              {
+                type: 'bar',
+                label: 'Zmiana kwotowa',
+                data: paymentChangeValues,
+                backgroundColor: barColors,
+                borderRadius: 4,
+                yAxisID: 'yValue'
+              },
+              {
+                type: 'line',
+                label: 'Zmiana %',
+                data: paymentChangePercentages,
+                borderColor: palette.blue,
+                backgroundColor: palette.blueSoft,
+                fill: false,
+                tension: 0.25,
+                pointRadius: 3,
+                yAxisID: 'yPercent'
+              }
             ]
           },
           plugins: [ChartDataLabels],
@@ -1621,23 +1766,61 @@ function renderChartForPanel(panelType) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             scales: {
-              x: { stacked: true, grid: { display: false } },
-              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') } }
+              x: { grid: { display: false } },
+              yValue: {
+                type: 'linear',
+                position: 'left',
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+              },
+              yPercent: {
+                type: 'linear',
+                position: 'right',
+                grid: { display: false },
+                ticks: {
+                  callback: (value) => `${value}%`
+                }
+              }
             },
             plugins: {
               legend: { position: 'bottom' },
               tooltip: {
                 callbacks: {
-                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                  label: (context) => {
+                    if (context.dataset.type === 'line') {
+                      const numeric = Number(context.raw || 0);
+                      const sign = numeric > 0 ? '+' : '';
+                      return `${context.dataset.label}: ${sign}${numeric.toFixed(2)}%`;
+                    }
+                    return `${context.dataset.label}: ${fmt(context.raw)}`;
+                  }
                 }
               },
               datalabels: {
-                color: palette.ink,
-                anchor: 'end',
-                align: 'top',
+                display: chartLabelState.change,
+                align: (context) => {
+                  if (context.dataset.type === 'line') return 'bottom';
+                  return Number(context.raw || 0) >= 0 ? 'top' : 'bottom';
+                },
+                anchor: (context) => {
+                  if (context.dataset.type === 'line') return 'start';
+                  return Number(context.raw || 0) >= 0 ? 'end' : 'start';
+                },
+                color: (context) => {
+                  if (context.dataset.type === 'line') return palette.blue;
+                  const numeric = Number(context.raw || 0);
+                  if (numeric < 0) return palette.green;
+                  if (numeric > 0) return palette.orange;
+                  return palette.ink;
+                },
                 font: { weight: 600, size: 10 },
                 formatter: (value, context) => {
-                  if (context.dataset.label !== 'Nadpłata' || !value) return '';
+                  if (context.dataset.type === 'line') {
+                    const numeric = Number(value || 0);
+                    if (!numeric) return '0.00%';
+                    const sign = numeric > 0 ? '+' : '';
+                    return `${sign}${numeric.toFixed(2)}%`;
+                  }
                   return fmt(value);
                 }
               }
@@ -1645,7 +1828,7 @@ function renderChartForPanel(panelType) {
           }
         });
       }
-      setTimeout(() => charts.overpayment && charts.overpayment.resize(), 30);
+      setTimeout(() => charts.paymentChange && charts.paymentChange.resize(), 30);
     }
   }
 
@@ -1656,6 +1839,29 @@ function renderChartForPanel(panelType) {
       if (charts.rateTrend) {
         charts.rateTrend.data.labels = rateHistoryLabels;
         charts.rateTrend.data.datasets[0].data = rateHistoryValues;
+        charts.rateTrend.options.plugins.tooltip.callbacks.label = (context) => {
+          const value = Number(context.raw || 0);
+          const diff = rateHistoryDiffs[context.dataIndex] || 0;
+          const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
+          if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
+            return base;
+          }
+          const sign = diff > 0 ? '+' : '';
+          return `${base} (${sign}${diff.toFixed(2)} pp)`;
+        };
+        charts.rateTrend.options.plugins.datalabels.formatter = (value, context) => {
+          const idx = context.dataIndex;
+          const numeric = Number(value || 0);
+          if (idx === 0) {
+            return `${numeric.toFixed(2)}%`;
+          }
+          const diff = rateHistoryDiffs[idx] || 0;
+          if (Math.abs(diff) < 0.01) {
+            return '';
+          }
+          const sign = diff > 0 ? '+' : '';
+          return `${sign}${diff.toFixed(2)} pp`;
+        };
         charts.rateTrend.update();
       } else {
         charts.rateTrend = new Chart(rateCtx, {
@@ -1684,7 +1890,16 @@ function renderChartForPanel(panelType) {
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  label: (context) => `${context.dataset.label}: ${Number(context.raw || 0).toFixed(2)}%`
+                  label: (context) => {
+                    const value = Number(context.raw || 0);
+                    const diff = rateHistoryDiffs[context.dataIndex] || 0;
+                    const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
+                    if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
+                      return base;
+                    }
+                    const sign = diff > 0 ? '+' : '';
+                    return `${base} (${sign}${diff.toFixed(2)} pp)`;
+                  }
                 }
               },
               datalabels: {
@@ -1693,8 +1908,17 @@ function renderChartForPanel(panelType) {
                 color: palette.orange,
                 font: { weight: 700, size: 11 },
                 formatter: (value, context) => {
-                  const dataset = context.dataset.data || [];
-                  return context.dataIndex === dataset.length - 1 ? `${Number(value || 0).toFixed(2)}%` : '';
+                  const idx = context.dataIndex;
+                  const numeric = Number(value || 0);
+                  if (idx === 0) {
+                    return `${numeric.toFixed(2)}%`;
+                  }
+                  const diff = rateHistoryDiffs[idx] || 0;
+                  if (Math.abs(diff) < 0.01) {
+                    return '';
+                  }
+                  const sign = diff > 0 ? '+' : '';
+                  return `${sign}${diff.toFixed(2)} pp`;
                 }
               }
             },
@@ -1710,6 +1934,29 @@ function renderChartForPanel(panelType) {
       setTimeout(() => charts.rateTrend && charts.rateTrend.resize(), 30);
     }
   }
+}
+
+function updateChartToggleLabels() {
+  document.querySelectorAll('.loan-chart-toggle').forEach(button => {
+    const target = button.dataset.chartToggle;
+    if (!target) return;
+    button.textContent = chartLabelState[target] ? 'Ukryj dane' : 'Pokaż dane';
+  });
+}
+
+function setupLoanChartToggles() {
+  document.querySelectorAll('.loan-chart-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.chartToggle;
+      if (!target) return;
+      chartLabelState[target] = !chartLabelState[target];
+      updateChartToggleLabels();
+      const activePanel = document.querySelector('.loan-tab-panel.active');
+      const activeType = activePanel ? activePanel.dataset.chart : 'mix';
+      renderChartForPanel(activeType);
+    });
+  });
+  updateChartToggleLabels();
 }
 
 function setupLoanChartTabs() {
@@ -1731,6 +1978,7 @@ function init() {
   loadState();
   render();
   setupLoanChartTabs();
+  setupLoanChartToggles();
   $('#setup-loan-btn').addEventListener('click', openSetupModal);
   $('#settings-btn').addEventListener('click', openSetupModal);
   $('#add-payment-btn').addEventListener('click', () => openPaymentModal(null));
