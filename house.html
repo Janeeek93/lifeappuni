@@ -133,91 +133,6 @@
       font-size: 18px;
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 280px;
-      background: var(--sidebar-bg);
-      display: flex;
-      flex-direction: column;
-      transition: var(--transition);
-      border-right: 1px solid var(--border);
-      z-index: 100;
-      flex-shrink: 0;
-    }
-    
-    .sidebar-header {
-      padding: 24px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary), var(--info));
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      box-shadow: var(--shadow-lg);
-    }
-    
-    .logo-text h1 {
-      font-size: 20px;
-      font-weight: 900;
-      color: #ffffff;
-      letter-spacing: -0.5px;
-    }
-    
-    .logo-text p {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      margin-top: 2px;
-    }
-
-    .nav-menu {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      list-style: none;
-    }
-    
-    .nav-item {
-      margin-bottom: 4px;
-    }
-    
-    .nav-item a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 14px;
-      color: var(--text-tertiary);
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .nav-item a:hover {
-      background: rgba(255,255,255,0.05);
-      color: #ffffff;
-    }
-    
-    .nav-item a.active {
-      background: var(--primary);
-      color: #ffffff;
-      box-shadow: var(--shadow-md);
-    }
-    
     .nav-icon {
       font-size: 16px;
       line-height: 1;
@@ -274,11 +189,6 @@
       display: flex;
       flex-direction: column;
       gap: 24px;
-    }
-
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     /* Main Content */
@@ -1879,7 +1789,7 @@
     }
 
     @media (max-width: 768px) {
-      .sidebar {
+      .app-sidebar {
         position: fixed;
         left: -280px;
         top: 0;
@@ -1887,8 +1797,8 @@
         z-index: 999;
         box-shadow: var(--shadow-xl);
       }
-      
-      .sidebar.active {
+
+      .app-sidebar.active {
         left: 0;
       }
 
@@ -1942,19 +1852,18 @@
 </head>
 <body data-page="house">
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Główna nawigacja">
-      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
-      <nav class="sidebar-nav">
-        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
-        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
-        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
-        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
-        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
-        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
-        <a class="nav-link active" href="house.html" aria-current="page"><span class="icon">🏠</span><span>Budowa</span></a>
-        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+    <aside class="app-sidebar" aria-label="Główna nawigacja">
+      <div class="app-sidebar__brand"><span class="app-sidebar__brand-emoji" aria-hidden="true">🧭</span><span>LifeOS</span></div>
+      <nav class="app-sidebar__nav">
+        <a class="app-sidebar__link" data-page="dashboard" href="index.html"><span class="app-sidebar__icon" aria-hidden="true">📊</span><span class="app-sidebar__label">Dashboard</span></a>
+        <a class="app-sidebar__link" data-page="budget" href="budget.html"><span class="app-sidebar__icon" aria-hidden="true">💰</span><span class="app-sidebar__label">Budżet</span></a>
+        <a class="app-sidebar__link" data-page="fuel" href="fuel.html"><span class="app-sidebar__icon" aria-hidden="true">⛽</span><span class="app-sidebar__label">Paliwo</span></a>
+        <a class="app-sidebar__link" data-page="trainings" href="trainings.html"><span class="app-sidebar__icon" aria-hidden="true">💪</span><span class="app-sidebar__label">Treningi</span></a>
+        <a class="app-sidebar__link" data-page="loan" href="loan.html"><span class="app-sidebar__icon" aria-hidden="true">🏦</span><span class="app-sidebar__label">Kredyt</span></a>
+        <a class="app-sidebar__link" data-page="tasks" href="tasks.html"><span class="app-sidebar__icon" aria-hidden="true">✅</span><span class="app-sidebar__label">Zadania</span></a>
+        <a class="app-sidebar__link" data-page="house" href="house.html"><span class="app-sidebar__icon" aria-hidden="true">🏠</span><span class="app-sidebar__label">Budowa</span></a>
       </nav>
-      <div class="sidebar-footer">
+      <div class="app-sidebar__footer">
         <strong>Twój cyfrowy dom</strong>
         Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
@@ -2359,6 +2268,14 @@
 
 
   <script>
+    (function setActiveSidebarLink() {
+      const currentPage = document.body.dataset.page;
+      if (!currentPage) return;
+      document.querySelectorAll('.app-sidebar__link').forEach((link) => {
+        link.toggleAttribute('aria-current', link.dataset.page === currentPage);
+      });
+    })();
+
     // App State
     const APP_KEY = 'buildmaster_pro_v11';
     const safeParse = (raw, fallbackFactory) => {

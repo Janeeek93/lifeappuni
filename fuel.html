@@ -87,26 +87,25 @@
   </style>
 </head>
 <body data-page="fuel">
-  <div class="layout">
-    <aside class="sidebar" aria-label="Główna nawigacja">
-      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
-      <nav class="sidebar-nav">
-        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
-        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
-        <a class="nav-link active" href="fuel.html" aria-current="page"><span class="icon">⛽</span><span>Paliwo</span></a>
-        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
-        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
-        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
-        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
-        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+  <div class="app-shell">
+    <aside class="app-sidebar" aria-label="Główna nawigacja">
+      <div class="app-sidebar__brand"><span class="app-sidebar__brand-emoji" aria-hidden="true">🧭</span><span>LifeOS</span></div>
+      <nav class="app-sidebar__nav">
+        <a class="app-sidebar__link" data-page="dashboard" href="index.html"><span class="app-sidebar__icon" aria-hidden="true">📊</span><span class="app-sidebar__label">Dashboard</span></a>
+        <a class="app-sidebar__link" data-page="budget" href="budget.html"><span class="app-sidebar__icon" aria-hidden="true">💰</span><span class="app-sidebar__label">Budżet</span></a>
+        <a class="app-sidebar__link" data-page="fuel" href="fuel.html"><span class="app-sidebar__icon" aria-hidden="true">⛽</span><span class="app-sidebar__label">Paliwo</span></a>
+        <a class="app-sidebar__link" data-page="trainings" href="trainings.html"><span class="app-sidebar__icon" aria-hidden="true">💪</span><span class="app-sidebar__label">Treningi</span></a>
+        <a class="app-sidebar__link" data-page="loan" href="loan.html"><span class="app-sidebar__icon" aria-hidden="true">🏦</span><span class="app-sidebar__label">Kredyt</span></a>
+        <a class="app-sidebar__link" data-page="tasks" href="tasks.html"><span class="app-sidebar__icon" aria-hidden="true">✅</span><span class="app-sidebar__label">Zadania</span></a>
+        <a class="app-sidebar__link" data-page="house" href="house.html"><span class="app-sidebar__icon" aria-hidden="true">🏠</span><span class="app-sidebar__label">Budowa</span></a>
       </nav>
-      <div class="sidebar-footer">
+      <div class="app-sidebar__footer">
         <strong>Twój cyfrowy dom</strong>
         Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
     </aside>
 
-    <div class="main">
+    <div class="app-main">
       <header class="topbar">
         <div class="topbar-info">
           <p class="topbar-eyebrow">Finanse</p>
@@ -279,6 +278,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+(function setActiveSidebarLink() {
+  const currentPage = document.body.dataset.page;
+  if (!currentPage) return;
+  document.querySelectorAll('.app-sidebar__link').forEach((link) => {
+    link.toggleAttribute('aria-current', link.dataset.page === currentPage);
+  });
+})();
+
 const FUEL_STORAGE_KEY = 'lifeos_fuel_v1';
 const KPI_STORAGE_KEY = 'lifeos_kpis_v1';
 
