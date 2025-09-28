@@ -162,7 +162,7 @@
   </style>
 </head>
 <body data-page="dashboard">
-  <div class="app-shell">
+  <div class="layout">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
       <nav class="sidebar-nav">
@@ -181,104 +181,104 @@
       </div>
     </aside>
 
-    <div class="app-main">
-      <header class="topbar hero-header">
-        <div class="hero-content">
-          <div class="hero-copy">
-            <p class="topbar-eyebrow">Twój dzień w skrócie</p>
-            <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-            <p id="current-date" class="date-text"></p>
-            <p id="dynamic-message" class="dynamic-message"></p>
+    <div class="main">
+      <header class="topbar">
+        <div class="stack" style="gap:6px;">
+          <p class="topbar-eyebrow">Twój dzień w skrócie</p>
+          <h1 class="topbar-title">Dashboard</h1>
+          <div class="tiny muted" style="display:flex; flex-direction:column; gap:2px;">
+            <span id="greeting">Dzień dobry!</span>
+            <span id="current-date"></span>
           </div>
-          <div class="quick-actions">
-            <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-            <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-          </div>
+          <p id="dynamic-message" class="tiny"></p>
+        </div>
+        <div class="topbar-actions" role="toolbar" aria-label="Akcje dashboardu">
+          <button class="btn ghost" type="button" title="Odśwież" onclick="refreshDashboard()">↻ Odśwież</button>
+          <button class="btn ghost" type="button" title="Ustawienia" onclick="openSettingsModal()">⚙️ Ustawienia</button>
         </div>
       </header>
 
-      <main class="page-content">
-        <div class="wrap">
-          <div class="page-columns">
-            <section class="stack tight">
-              <div class="card">
-                <h3 class="title">📊 Kluczowe wskaźniki</h3>
-                <div class="grid g-2 kpi-grid">
-                  <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-                  <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-                  <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-                  <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-                  <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-                  <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
-                </div>
-              </div>
-
-              <div class="card">
-                <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
-                <div id="weekly-activities-list" class="activity-feed"></div>
-              </div>
-
-              <div class="card">
-                <h3 class="title">🗂️ Moduły</h3>
-                <div class="grid modules-grid" style="margin-top: 14px;">
-                  <a class="tile" href="budget.html">
-                    <div class="pill">💰 Budżet</div>
-                    <div style="font-weight: 600;">Finanse</div>
-                    <div class="tiny muted">Zarządzaj wydatkami</div>
-                  </a>
-                  <a class="tile" href="fuel.html">
-                    <div class="pill">⛽ Paliwo</div>
-                    <div style="font-weight: 600;">Rozliczenia</div>
-                    <div class="tiny muted">Tankowania i faktury</div>
-                  </a>
-                  <a class="tile" href="tasks.html">
-                    <div class="pill">✅ Zadania</div>
-                    <div style="font-weight: 600;">Organizacja</div>
-                    <div class="tiny muted">Listy i kalendarz</div>
-                  </a>
-                  <a class="tile" href="trainings.html">
-                    <div class="pill">💪 Treningi</div>
-                    <div style="font-weight: 600;">Cele</div>
-                    <div class="tiny muted">Plany i progres</div>
-                  </a>
-                  <a class="tile" href="house.html">
-                    <div class="pill">🏗️ Budowa</div>
-                    <div style="font-weight: 600;">Projekt</div>
-                    <div class="tiny muted">Kontroluj budowę</div>
-                  </a>
-                  <a class="tile" href="loan.html">
-                    <div class="pill">🏦 Kredyt</div>
-                    <div style="font-weight: 600;">Spłata</div>
-                    <div class="tiny muted">Monitoruj postępy</div>
-                  </a>
-                </div>
-                <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
-                <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
-                <div class="grid g-2" style="gap: 10px;">
-                  <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
-                  <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
-                  <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-                </div>
-                <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
-              </div>
+      <div class="content">
+        <main class="page-content content-main stack">
+          <div class="grid-2" style="align-items: start;">
+            <section class="card stack">
+              <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
+              <div id="weekly-activities-list" class="activity-feed"></div>
             </section>
-
-            <aside class="stack tight">
-              <div class="card weather-widget" id="weather-widget" aria-live="polite">
-                <!-- Weather content will be dynamically inserted here -->
+            <section class="card priorities-card" id="priorities-card">
+              <div class="upcoming-header">
+                <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
+                <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
               </div>
-              <div class="card priorities-card" id="priorities-card">
-                <div class="upcoming-header">
-                  <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
-                  <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
-                </div>
-                <div id="upcoming-tasks-list"></div>
-                <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
-              </div>
-            </aside>
+              <div id="upcoming-tasks-list"></div>
+              <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+            </section>
+            <section class="card stack">
+              <h3 class="title">💸 Wydatki dzienne</h3>
+              <div id="budget-daily-feed" class="stack" style="gap:8px;"></div>
+            </section>
           </div>
-        </div>
-      </main>
+
+          <section class="card">
+            <h3 class="title">🗂️ Moduły</h3>
+            <div class="grid modules-grid" style="margin-top: 14px;">
+              <a class="tile" href="budget.html">
+                <div class="pill">💰 Budżet</div>
+                <div style="font-weight: 600;">Finanse</div>
+                <div class="tiny muted">Zarządzaj wydatkami</div>
+              </a>
+              <a class="tile" href="fuel.html">
+                <div class="pill">⛽ Paliwo</div>
+                <div style="font-weight: 600;">Rozliczenia</div>
+                <div class="tiny muted">Tankowania i faktury</div>
+              </a>
+              <a class="tile" href="tasks.html">
+                <div class="pill">✅ Zadania</div>
+                <div style="font-weight: 600;">Organizacja</div>
+                <div class="tiny muted">Listy i kalendarz</div>
+              </a>
+              <a class="tile" href="trainings.html">
+                <div class="pill">💪 Treningi</div>
+                <div style="font-weight: 600;">Cele</div>
+                <div class="tiny muted">Plany i progres</div>
+              </a>
+              <a class="tile" href="house.html">
+                <div class="pill">🏗️ Budowa</div>
+                <div style="font-weight: 600;">Projekt</div>
+                <div class="tiny muted">Kontroluj budowę</div>
+              </a>
+              <a class="tile" href="loan.html">
+                <div class="pill">🏦 Kredyt</div>
+                <div style="font-weight: 600;">Spłata</div>
+                <div class="tiny muted">Monitoruj postępy</div>
+              </a>
+            </div>
+          </section>
+
+          <section class="card">
+            <h3 class="title">💾 Zarządzanie Danymi</h3>
+            <div class="grid g-2" style="gap: 10px;">
+              <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
+              <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
+              <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
+            </div>
+            <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
+          </section>
+        </main>
+
+        <aside class="right-rail">
+          <div class="insight-bubble">
+            📌 Dane ze wszystkich modułów odświeżaj regularnie, aby mieć pełny obraz sytuacji.
+          </div>
+          <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+          <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+          <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
+          <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+          <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
+          <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+          <div class="card weather-widget" id="weather-widget" aria-live="polite"></div>
+        </aside>
+      </div>
     </div>
   </div>
 
@@ -613,6 +613,10 @@ function renderKPIData(){
       house: document.getElementById('kpi-house'),
       loan: document.getElementById('kpi-loan'),
   };
+  const budgetFeed = document.getElementById('budget-daily-feed');
+  if(budgetFeed){
+    budgetFeed.innerHTML = '<p class="tiny muted">Ładowanie danych budżetu...</p>';
+  }
 
   // --- Budget KPI ---
   const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
@@ -627,25 +631,40 @@ function renderKPIData(){
       const incSum = incomes.reduce((s,x)=> s+num(x.amount),0);
       const fixSum = fixed.reduce((s,x)=> s+num(x.amount),0);
       const daysInMonth = new Date(ym.split('-')[0], ym.split('-')[1], 0).getDate();
-      const currentDay = new Date().getDate();
+      const today = new Date();
+      const currentDay = today.getDate();
+      const todayStr = today.toISOString().slice(0,10);
 
       const dailyBudget = Math.max(0, (incSum - fixSum)/daysInMonth);
       const budgetForToday = dailyBudget * currentDay;
 
       const catsById = Object.fromEntries((Array.isArray(bState?.categories)?bState.categories:[]).map(c=>[c.id,c]));
       const txs = Array.isArray(bState?.transactions) ? bState.transactions : [];
-      const spentUntilToday = txs.filter(t=> String(t.date||'').startsWith(ym) && new Date(t.date).getDate()<=currentDay).reduce((sum,t)=>{
-        if(t.splits?.length){ return sum + t.splits.reduce((ss,sp)=>{ const cat=catsById[sp.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving') && cat.id!=='c_fixed') ? ss+Math.abs(num(sp.amount)) : ss },0) }
-        const cat=catsById[t.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving') && cat.id!=='c_fixed') ? sum+Math.abs(num(t.amount)) : sum
-      },0);
+      const expenseAmount = (tx) => {
+        if(!tx) return 0;
+        if(Array.isArray(tx.splits) && tx.splits.length){
+          return tx.splits.reduce((acc, sp)=>{
+            const cat = catsById[sp.categoryId];
+            return (cat && (cat.type==='expense' || cat.type==='saving') && cat.id!=='c_fixed') ? acc + Math.abs(num(sp.amount)) : acc;
+          },0);
+        }
+        const cat = catsById[tx.categoryId];
+        return (cat && (cat.type==='expense' || cat.type==='saving') && cat.id!=='c_fixed') ? Math.abs(num(tx.amount)) : 0;
+      };
+
+      const spentUntilToday = txs
+        .filter(t=> String(t.date||'').startsWith(ym) && new Date(t.date).getDate()<=currentDay)
+        .reduce((sum,t)=> sum + expenseAmount(t),0);
 
       const buffer = budgetForToday - spentUntilToday;
       const bufferClass = buffer > budgetForToday * 0.2 ? 'value-ok' : buffer >= 0 ? 'value-warn' : 'value-bad';
 
-      const totalSpentMonth = txs.filter(t=> String(t.date||'').startsWith(ym)).reduce((sum,t)=>{
-        if(t.splits?.length){ return sum + t.splits.reduce((ss,sp)=>{ const cat=catsById[sp.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving')) ? ss+Math.abs(num(sp.amount)) : ss },0) }
-        const cat=catsById[t.categoryId]; return (cat && (cat.type==='expense'||cat.type==='saving')) ? sum+Math.abs(num(t.amount)) : sum
-      },0);
+      const totalSpentMonth = txs
+        .filter(t=> String(t.date||'').startsWith(ym))
+        .reduce((sum,t)=> sum + expenseAmount(t),0);
+      const todaySpent = txs
+        .filter(t=> String(t.date||'') === todayStr)
+        .reduce((sum,t)=> sum + expenseAmount(t),0);
       const monthlyBudget = incSum;
       const spentPct = monthlyBudget > 0 ? (totalSpentMonth / monthlyBudget) * 100 : 0;
 
@@ -664,15 +683,33 @@ function renderKPIData(){
           </div>
           <div class="progress"><i style="width:${spentPct}%"></i></div>
         </div>`;
+      if(budgetFeed){
+        const statusText = buffer >= 0 ? 'Jesteś w limicie dziennym.' : 'Limit dzienny przekroczony.';
+        const statusClass = buffer >= 0 ? 'value-ok' : 'value-bad';
+        budgetFeed.innerHTML = `
+          <div class="tiny muted">Dzień ${currentDay} z ${daysInMonth}</div>
+          <div class="kpi-value ${bufferClass}" style="font-size:20px;">${fmt(buffer)}</div>
+          <div class="tiny muted">Bufor na dziś</div>
+          <div class="tiny">Wydano dziś: <strong>${fmt(todaySpent)}</strong> z ${fmt(dailyBudget)}.</div>
+          <div class="tiny muted">Miesiąc: ${fmt(totalSpentMonth)} / ${fmt(monthlyBudget)} (${Math.round(spentPct)}%).</div>
+          <div class="tiny ${statusClass}" style="margin-top:4px;">${statusText}</div>
+        `;
+      }
     } else {
       kpiElements.budget.innerHTML = `
         <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
         <div class="kpi-main-value">—</div>
         <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>
         <div class="kpi-progress-container"></div>`;
+      if(budgetFeed){
+        budgetFeed.innerHTML = '<p class="tiny muted">Brak danych na ten miesiąc.</p>';
+      }
     }
   } else {
     kpiElements.budget.innerHTML = `<div class="kpi-header"><span>💰</span><h4>Budżet</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    if(budgetFeed){
+      budgetFeed.innerHTML = '<p class="tiny muted">Dodaj transakcje, aby zobaczyć dzienny przegląd.</p>';
+    }
   }
 
   // --- Fuel KPI ---
