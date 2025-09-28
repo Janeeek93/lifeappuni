@@ -203,6 +203,12 @@
             </a>
           </li>
           <li class="sidebar__item">
+            <a class="sidebar__link" href="inventory.html" data-page="inventory">
+              <span class="sidebar__icon">📦</span>
+              <span class="sidebar__label">Magazyn</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
             <a class="sidebar__link" href="fuel.html" data-page="fuel">
               <span class="sidebar__icon">⛽</span>
               <span class="sidebar__label">Paliwo</span>
@@ -271,6 +277,7 @@
                     <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
                     <div class="grid kpi-grid">
                         <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
                         <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
                         <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
                         <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
@@ -606,6 +613,7 @@ function renderWeatherWidget() {
 function renderKPIs(){
     const kpiElements = {
         budget: document.getElementById('kpi-budget'),
+        inventory: document.getElementById('kpi-inventory'),
         fuel: document.getElementById('kpi-fuel'),
         tasks: document.getElementById('kpi-tasks'),
         progress: document.getElementById('kpi-progress'),
@@ -622,6 +630,7 @@ function renderKPIs(){
 function renderKPIData(){
   const kpiElements = {
       budget: document.getElementById('kpi-budget'),
+      inventory: document.getElementById('kpi-inventory'),
       fuel: document.getElementById('kpi-fuel'),
       tasks: document.getElementById('kpi-tasks'),
       progress: document.getElementById('kpi-progress'),
@@ -629,11 +638,69 @@ function renderKPIData(){
       loan: document.getElementById('kpi-loan'),
   };
 
+  const budgetRawGlobal = localStorage.getItem(BUDGET_STORAGE_KEY);
+  const parsedBudgetGlobal = budgetRawGlobal ? safeParse(budgetRawGlobal, null) : null;
+  const budgetModuleGlobal = parsedBudgetGlobal?.modules?.budget || parsedBudgetGlobal?.budget || parsedBudgetGlobal;
+
+  // --- Inventory KPI ---
+  if(kpiElements.inventory){
+    if(budgetModuleGlobal){
+      const inventoryState = budgetModuleGlobal?.inventory;
+      if(inventoryState){
+        const items = Array.isArray(inventoryState.items) ? inventoryState.items : [];
+        const sold = Array.isArray(inventoryState.sold) ? inventoryState.sold : [];
+        const currency = typeof parsedBudgetGlobal?.currency === 'string' && parsedBudgetGlobal.currency ? parsedBudgetGlobal.currency : 'PLN';
+        const stockCost = items.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
+        const plannedValue = items.reduce((sum, item) => {
+          const plan = num(item?.planPricePln ?? item?.planPrice);
+          return Number.isFinite(plan) && plan > 0 ? sum + plan : sum;
+        }, 0);
+        const plannedCount = items.reduce((count, item) => {
+          const plan = num(item?.planPricePln ?? item?.planPrice);
+          return Number.isFinite(plan) && plan > 0 ? count + 1 : count;
+        }, 0);
+        const soldRevenue = sold.reduce((sum, item) => sum + num(item?.salePricePln ?? item?.salePrice), 0);
+        const soldPnl = sold.reduce((sum, item) => sum + num(item?.pnlPln), 0);
+        const soldPurchase = sold.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
+        const roi = soldPurchase > 0 ? ((soldRevenue / soldPurchase) - 1) * 100 : null;
+        const today = new Date();
+        const ageValues = items.map(item => {
+          const date = parseDate(item?.purchaseDate);
+          if(!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+          const diff = today - date;
+          const days = diff / 86400000;
+          return Number.isFinite(days) && days >= 0 ? days : null;
+        }).filter(value => value !== null);
+        const avgAge = ageValues.length ? ageValues.reduce((sum, value) => sum + value, 0) / ageValues.length : null;
+
+        const avgAgeText = avgAge !== null ? `${Math.round(avgAge)} dni` : '—';
+        const planText = plannedValue > 0 ? fmt(plannedValue, currency) : '—';
+        const planLine = plannedCount > 0 ? `Plan sprzedaży: ${planText} (${plannedCount} poz.).` : 'Plan sprzedaży: —.';
+        const soldLine = sold.length > 0
+          ? `Sprzedane: ${sold.length} szt. • Przychód ${fmt(soldRevenue, currency)} • PnL ${fmt(soldPnl, currency)}${roi !== null ? ` (${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%)` : ''}.`
+          : 'Sprzedane: 0 szt.';
+        const detailLines = [
+          `Koszt zakupu: ${fmt(stockCost, currency)} • Śr. czas: ${avgAgeText}.`,
+          planLine,
+          soldLine,
+        ];
+
+        kpiElements.inventory.innerHTML = `
+          <div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div>
+          <div class="kpi-main-value">${items.length} szt.</div>
+          <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+      } else {
+        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+      }
+    } else {
+      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    }
+  }
+
   // --- Budget KPI ---
-  const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
-  if(budgetRaw){
-    const parsedBudget = safeParse(budgetRaw, null);
-    const bState = parsedBudget?.modules?.budget || parsedBudget?.budget || parsedBudget;
+  if(budgetModuleGlobal){
+    const parsedBudget = parsedBudgetGlobal;
+    const bState = budgetModuleGlobal;
     const ym = monthKey();
     if(bState && bState.monthly && bState.monthly[ym]){
       const m = bState.monthly[ym];
