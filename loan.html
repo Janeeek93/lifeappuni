@@ -182,6 +182,53 @@
       gap: 18px;
     }
 
+    .loan-analytics-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loan-tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .loan-tab-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .loan-tab-btn.active {
+      background: var(--ink);
+      color: var(--card);
+      border-color: transparent;
+    }
+
+    .loan-tab-panels {
+      position: relative;
+      min-height: 320px;
+    }
+
+    .loan-tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .loan-tab-panel.active {
+      display: flex;
+    }
+
     .loan-chart-grid {
       display: grid;
       grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
@@ -199,6 +246,19 @@
     @media (max-width: 1200px) {
       .loan-chart-grid { grid-template-columns: 1fr; }
       .loan-donut-area { min-height: 240px; }
+    }
+
+    .loan-chart-placeholder {
+      display: none;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 32px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
     }
 
     .loan-table-card {
@@ -442,17 +502,47 @@
                 </div>
               </section>
 
-              <section class="card loan-charts-card">
+              <section class="card loan-charts-card" id="loan-analytics-card">
                 <div class="section-heading">
-                  <h2 class="title">Kapitał i odsetki</h2>
-                  <span class="tiny muted">Śledź jak zmienia się struktura każdej raty</span>
+                  <h2 class="title">Hub analityczny</h2>
+                  <span class="tiny muted">Przełącz zakładki, aby porównać strukturę rat i postępy spłaty</span>
                 </div>
-                <div class="loan-chart-grid">
-                  <div class="loan-chart-area">
-                    <canvas id="capital-chart"></canvas>
+                <div class="loan-analytics-hub">
+                  <div class="loan-tab-nav" id="loan-tab-nav">
+                    <button class="loan-tab-btn active" data-chart="mix">Struktura raty</button>
+                    <button class="loan-tab-btn" data-chart="line">Kapitał vs odsetki</button>
+                    <button class="loan-tab-btn" data-chart="share">Udziały w czasie</button>
+                    <button class="loan-tab-btn" data-chart="cumulative">Kumulacja spłat</button>
                   </div>
-                  <div class="loan-donut-area">
-                    <canvas id="structure-chart"></canvas>
+                  <div id="loan-chart-placeholder" class="loan-chart-placeholder">
+                    Dodaj raty, aby zobaczyć analizy spłaty kredytu.
+                  </div>
+                  <div class="loan-tab-panels" id="loan-tab-panels">
+                    <div class="loan-tab-panel active" data-chart="mix">
+                      <div class="loan-chart-grid">
+                        <div class="loan-chart-area">
+                          <canvas id="capital-chart"></canvas>
+                        </div>
+                        <div class="loan-donut-area">
+                          <canvas id="structure-chart"></canvas>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="line">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="monthly-line-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="share">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="share-area-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="cumulative">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="cumulative-chart"></canvas>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -556,6 +646,7 @@ const defaultState = {
 
 let state = {};
 let charts = {};
+let chartDataCache = null;
 
 function $(selector) { return document.querySelector(selector); }
 function $$(selector) { return document.querySelectorAll(selector); }
@@ -1035,84 +1126,371 @@ function renderRateHistory(loanDetails, nextPaymentMonth) {
 }
 
 function renderCharts() {
-  const capitalCtx = $('#capital-chart').getContext('2d');
-  const structureCtx = $('#structure-chart').getContext('2d');
-  if (charts.capital) charts.capital.destroy();
-  if (charts.structure) charts.structure.destroy();
+  const placeholder = $('#loan-chart-placeholder');
+  const panels = $('#loan-tab-panels');
+  const tabNav = $('#loan-tab-nav');
+  const payments = state.payments || [];
+  const loanDetails = state.loanDetails || { interestRateHistory: [] };
+  const hasPayments = payments.length > 0;
+
+  if (placeholder) {
+    placeholder.style.display = hasPayments ? 'none' : 'flex';
+  }
+  if (panels) {
+    panels.style.display = hasPayments ? 'block' : 'none';
+  }
+  if (tabNav) {
+    tabNav.style.display = hasPayments ? 'flex' : 'none';
+  }
+
+  if (!hasPayments) {
+    destroyAllLoanCharts();
+    chartDataCache = null;
+    return;
+  }
 
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted').trim();
 
-  const { payments, loanDetails } = state;
-  const paymentLabels = payments.map(p => new Date(p.date+'-02').toLocaleDateString('pl-PL', {month:'short', year:'2-digit'}));
-  
-  const interestRateData = payments.map(p => getRateForDate(p.date, loanDetails.interestRateHistory));
+  const paymentLabels = payments.map(p => new Date(p.date + '-02').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }));
+  const principalSeries = payments.map(p => p.capital + (p.overpayment || 0));
+  const interestSeries = payments.map(p => p.interest);
+  const totalSeries = principalSeries.map((value, index) => value + interestSeries[index]);
+  const cumulativePrincipal = [];
+  const cumulativeInterest = [];
+  let principalRunning = 0;
+  let interestRunning = 0;
+  principalSeries.forEach((value, index) => {
+    principalRunning += value;
+    interestRunning += interestSeries[index];
+    cumulativePrincipal.push(principalRunning);
+    cumulativeInterest.push(interestRunning);
+  });
 
-  const greenColor = getComputedStyle(document.body).getPropertyValue('--green').trim();
-  const orangeColor = getComputedStyle(document.body).getPropertyValue('--orange').trim();
-  const blueColor = getComputedStyle(document.body).getPropertyValue('--blue').trim();
-
-  charts.capital = new Chart(capitalCtx, {
-    type: 'bar',
-    data: {
-      labels: paymentLabels,
-      datasets: [
-        { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: blueColor, yAxisID: 'yRate', tension: 0.1, pointRadius: 3, pointBackgroundColor: blueColor },
-        { label: 'Kapitał', data: payments.map(p => p.capital + (p.overpayment || 0)), backgroundColor: greenColor, borderRadius: 4, order: 2 },
-        { label: 'Odsetki', data: payments.map(p => p.interest), backgroundColor: orangeColor, borderRadius: 4, order: 3 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: getComputedStyle(document.body).getPropertyValue('--line').trim() }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/,'') } },
-        yRate: { type: 'linear', position: 'right', grid: { display: false }, ticks: { callback: (value) => `${value}%` } }
-      },
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.dataset.type === 'line' ? context.raw+'%' : fmt(context.raw)}` } }
-      }
+  const sharePrincipal = [];
+  const shareInterest = [];
+  totalSeries.forEach((total, index) => {
+    if (total > 0) {
+      const principalShare = Number(((principalSeries[index] / total) * 100).toFixed(1));
+      const interestShare = Math.max(0, Number((100 - principalShare).toFixed(1)));
+      sharePrincipal.push(principalShare);
+      shareInterest.push(interestShare);
+    } else {
+      sharePrincipal.push(0);
+      shareInterest.push(0);
     }
   });
 
-  const totalCapitalPaid = payments.reduce((sum, p) => sum + p.capital + (p.overpayment || 0), 0);
-  const totalInterestPaid = payments.reduce((sum, p) => sum + p.interest, 0);
-  const totalPaid = totalCapitalPaid + totalInterestPaid;
+  const rateHistory = loanDetails.interestRateHistory || [];
+  const interestRateData = payments.map(p => getRateForDate(p.date, rateHistory));
+  const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
+  const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
 
-  charts.structure = new Chart(structureCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Spłacony kapitał', 'Zapłacone odsetki'],
-      datasets: [{ data: [totalCapitalPaid, totalInterestPaid], backgroundColor: [greenColor, orangeColor], borderColor: getComputedStyle(document.body).getPropertyValue('--card').trim(), borderWidth: 5, hoverOffset: 8 }]
-    },
-    plugins: [ChartDataLabels, doughnutCenterText],
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        datalabels: {
-          formatter: (value, ctx) => {
-            if (totalPaid === 0) return '0%';
-            const percentage = ((value / totalPaid) * 100).toFixed(1) + '%';
-            return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+  chartDataCache = {
+    labels: paymentLabels,
+    principalSeries,
+    interestSeries,
+    totalSeries,
+    cumulativePrincipal,
+    cumulativeInterest,
+    sharePrincipal,
+    shareInterest,
+    interestRateData,
+    totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
+  };
+
+  const activePanel = document.querySelector('.loan-tab-panel.active');
+  const activeChart = activePanel ? activePanel.dataset.chart : 'mix';
+  renderChartForPanel(activeChart);
+}
+
+function destroyAllLoanCharts() {
+  Object.keys(charts).forEach(key => {
+    if (charts[key]) {
+      charts[key].destroy();
+      delete charts[key];
+    }
+  });
+}
+
+function getLoanPalette() {
+  const styles = getComputedStyle(document.body);
+  return {
+    green: styles.getPropertyValue('--green').trim(),
+    greenSoft: styles.getPropertyValue('--green-soft').trim(),
+    orange: styles.getPropertyValue('--orange').trim(),
+    orangeSoft: styles.getPropertyValue('--orange-soft').trim(),
+    blue: styles.getPropertyValue('--blue').trim(),
+    blueSoft: styles.getPropertyValue('--blue-soft').trim(),
+    line: styles.getPropertyValue('--line').trim(),
+    card: styles.getPropertyValue('--card').trim(),
+    ink: styles.getPropertyValue('--ink').trim()
+  };
+}
+
+function renderChartForPanel(panelType) {
+  if (!chartDataCache) return;
+  const palette = getLoanPalette();
+  const { labels, principalSeries, interestSeries, interestRateData, totals, sharePrincipal, shareInterest, cumulativePrincipal, cumulativeInterest } = chartDataCache;
+
+  if (panelType === 'mix') {
+    const capitalCanvas = $('#capital-chart');
+    if (capitalCanvas) {
+      const capitalCtx = capitalCanvas.getContext('2d');
+      if (charts.capital) {
+        charts.capital.data.labels = labels;
+        charts.capital.data.datasets[0].data = interestRateData;
+        charts.capital.data.datasets[1].data = principalSeries;
+        charts.capital.data.datasets[2].data = interestSeries;
+        charts.capital.update();
+      } else {
+        charts.capital = new Chart(capitalCtx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2 },
+              { label: 'Kapitał', data: principalSeries, backgroundColor: palette.green, borderRadius: 4, order: 2 },
+              { label: 'Odsetki', data: interestSeries, backgroundColor: palette.orange, borderRadius: 4, order: 3 }
+            ]
           },
-          color: '#fff',
-          font: { weight: 'bold', size: 12 },
-        },
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                const percentage = totalPaid > 0 ? ((value / totalPaid) * 100).toFixed(2) : 0;
-                return `${label}: ${fmt(value)} (${percentage}%)`;
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') } },
+              yRate: { type: 'linear', position: 'right', grid: { display: false }, ticks: { callback: (value) => `${value}%` } }
+            },
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    if (context.dataset.type === 'line') {
+                      return `${context.dataset.label}: ${context.raw}%`;
+                    }
+                    return `${context.dataset.label}: ${fmt(context.raw)}`;
+                  }
+                }
+              }
             }
           }
-        },
+        });
       }
+      setTimeout(() => charts.capital && charts.capital.resize(), 30);
     }
+
+    const structureCanvas = $('#structure-chart');
+    if (structureCanvas) {
+      const structureCtx = structureCanvas.getContext('2d');
+      const totalPaid = totals.principal + totals.interest;
+      if (charts.structure) {
+        charts.structure.data.datasets[0].data = [totals.principal, totals.interest];
+        charts.structure.options.plugins.datalabels.formatter = (value, ctx) => {
+          const sum = totals.principal + totals.interest;
+          if (sum === 0) return '0%';
+          const percentage = ((value / sum) * 100).toFixed(1) + '%';
+          return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+        };
+        charts.structure.options.plugins.tooltip.callbacks.label = (context) => {
+          const label = context.label || '';
+          const value = context.raw || 0;
+          const sum = totals.principal + totals.interest;
+          const percentage = sum > 0 ? ((value / sum) * 100).toFixed(2) : 0;
+          return `${label}: ${fmt(value)} (${percentage}%)`;
+        };
+        charts.structure.update();
+      } else {
+        charts.structure = new Chart(structureCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Spłacony kapitał', 'Zapłacone odsetki'],
+            datasets: [{ data: [totals.principal, totals.interest], backgroundColor: [palette.green, palette.orange], borderColor: palette.card, borderWidth: 5, hoverOffset: 8 }]
+          },
+          plugins: [ChartDataLabels, doughnutCenterText],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              datalabels: {
+                formatter: (value, ctx) => {
+                  if (totalPaid === 0) return '0%';
+                  const percentage = ((value / totalPaid) * 100).toFixed(1) + '%';
+                  return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+                },
+                color: '#fff',
+                font: { weight: 'bold', size: 12 }
+              },
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const percentage = totalPaid > 0 ? ((value / totalPaid) * 100).toFixed(2) : 0;
+                    return `${label}: ${fmt(value)} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.structure && charts.structure.resize(), 30);
+    }
+  }
+
+  if (panelType === 'line') {
+    const lineCanvas = $('#monthly-line-chart');
+    if (lineCanvas) {
+      const lineCtx = lineCanvas.getContext('2d');
+      if (charts.monthlyLine) {
+        charts.monthlyLine.data.labels = labels;
+        charts.monthlyLine.data.datasets[0].data = principalSeries;
+        charts.monthlyLine.data.datasets[1].data = interestSeries;
+        charts.monthlyLine.update();
+      } else {
+        charts.monthlyLine = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.green },
+              { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.orange }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.monthlyLine && charts.monthlyLine.resize(), 30);
+    }
+  }
+
+  if (panelType === 'share') {
+    const shareCanvas = $('#share-area-chart');
+    if (shareCanvas) {
+      const shareCtx = shareCanvas.getContext('2d');
+      if (charts.shareArea) {
+        charts.shareArea.data.labels = labels;
+        charts.shareArea.data.datasets[0].data = sharePrincipal;
+        charts.shareArea.data.datasets[1].data = shareInterest;
+        charts.shareArea.update();
+      } else {
+        charts.shareArea = new Chart(shareCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: 'origin', tension: 0.25, pointRadius: 0, stack: 'shares' },
+              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: '-1', tension: 0.25, pointRadius: 0, stack: 'shares' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: palette.line, drawOnChartArea: false }
+              },
+              y: {
+                stacked: true,
+                min: 0,
+                max: 100,
+                ticks: { callback: (value) => `${value}%` },
+                grid: { color: palette.line }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.shareArea && charts.shareArea.resize(), 30);
+    }
+  }
+
+  if (panelType === 'cumulative') {
+    const cumulativeCanvas = $('#cumulative-chart');
+    if (cumulativeCanvas) {
+      const cumulativeCtx = cumulativeCanvas.getContext('2d');
+      if (charts.cumulative) {
+        charts.cumulative.data.labels = labels;
+        charts.cumulative.data.datasets[0].data = cumulativePrincipal;
+        charts.cumulative.data.datasets[1].data = cumulativeInterest;
+        charts.cumulative.data.datasets[2].data = cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]);
+        charts.cumulative.update();
+      } else {
+        charts.cumulative = new Chart(cumulativeCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał skumulowany', data: cumulativePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 0 },
+              { label: 'Odsetki skumulowane', data: cumulativeInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 0 },
+              { label: 'Łącznie', data: cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]), borderColor: palette.blue, backgroundColor: palette.blueSoft, fill: false, borderDash: [6, 4], tension: 0.25, pointRadius: 0 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.cumulative && charts.cumulative.resize(), 30);
+    }
+  }
+}
+
+function setupLoanChartTabs() {
+  document.querySelectorAll('.loan-tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.chart;
+      if (button.classList.contains('active')) {
+        return;
+      }
+      document.querySelectorAll('.loan-tab-btn').forEach(btn => btn.classList.toggle('active', btn === button));
+      document.querySelectorAll('.loan-tab-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.chart === target));
+      renderChartForPanel(target);
+    });
   });
 }
 
@@ -1120,6 +1498,7 @@ function renderCharts() {
 function init() {
   loadState();
   render();
+  setupLoanChartTabs();
   $('#setup-loan-btn').addEventListener('click', openSetupModal);
   $('#settings-btn').addEventListener('click', openSetupModal);
   $('#add-payment-btn').addEventListener('click', () => openPaymentModal(null));
