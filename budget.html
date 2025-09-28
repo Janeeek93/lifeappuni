@@ -690,20 +690,6 @@
         </div>
       </div>
 
-      <!-- NEW: Forecast and Buffer Banners -->
-      <div class="grid-2" style="margin-top:12px">
-        <div class="banner" style="background: #f0fdf4; border-color: #dcfce7;">
-          <b>🔮 Prognozowane oszczędności</b>
-          <div class="big-number" id="forecast-content" style="font-size: 24px; margin-top: 4px;">0</div>
-          <div class="hint">Ile zostanie z budżetu na wydatki zmienne przy obecnym tempie.</div>
-        </div>
-        <div id="buffer-banner" class="banner" style="background: #f0f9ff; border-color: #e0f2fe;">
-          <b>💰 Zapas/dług na dziś</b>
-          <div class="big-number" id="buffer-content" style="font-size: 24px; margin-top: 4px;">0</div>
-          <div class="hint">Różnica między planem a wydatkami do dziś.</div>
-        </div>
-      </div>
-
       <div class="quick-actions" style="margin-top:12px">
         <div class="row">
           <div class="title">Szybkie akcje</div>
@@ -1354,38 +1340,54 @@
     </section>
         </main>
         <aside class="right-rail">
-          <div class="kpi-compact">
-            <div class="kpi-emoji">💸</div>
+          <div class="kpi-compact" id="forecast-kpi">
+            <span class="kpi-emoji">🔮</span>
             <div class="kpi-body">
-              <div class="kpi-label">Pozostały budżet</div>
-              <div class="kpi-value" id="dash-remaining">0</div>
-              <div class="muted tiny">na wydatki zmienne</div>
+              <span class="kpi-label">Prognozowane oszczędności</span>
+              <span class="kpi-value" id="forecast-content">0</span>
+              <span class="tiny muted" id="forecast-note">Przy obecnym tempie wydatków</span>
+            </div>
+          </div>
+          <div class="kpi-compact" id="buffer-kpi">
+            <span class="kpi-emoji">💰</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Zapas/dług na dziś</span>
+              <span class="kpi-value" id="buffer-content">0</span>
+              <span class="tiny muted" id="buffer-note">Plan vs wydatki do dziś</span>
             </div>
           </div>
           <div class="kpi-compact">
-            <div class="kpi-emoji">📉</div>
+            <span class="kpi-emoji">💸</span>
             <div class="kpi-body">
-              <div class="kpi-label">Limit dzienny</div>
-              <div class="kpi-value" id="dash-daily-budget">0</div>
+              <span class="kpi-label">Pozostały budżet</span>
+              <span class="kpi-value" id="dash-remaining">0</span>
+              <span class="tiny muted">Na wydatki zmienne</span>
             </div>
           </div>
           <div class="kpi-compact">
-            <div class="kpi-emoji">📅</div>
+            <span class="kpi-emoji">📉</span>
             <div class="kpi-body">
-              <div class="kpi-label">Wydane dziś</div>
-              <div class="kpi-value" id="dash-today-spent">0</div>
+              <span class="kpi-label">Limit dzienny</span>
+              <span class="kpi-value" id="dash-daily-budget">0</span>
+              <span class="tiny muted">Trend: <span id="dash-daily-trend">—</span></span>
             </div>
           </div>
           <div class="kpi-compact">
-            <div class="kpi-emoji">📊</div>
+            <span class="kpi-emoji">📅</span>
             <div class="kpi-body">
-              <div class="kpi-label">Średnia dzienna</div>
-              <div class="kpi-value" id="dash-avg-daily">0</div>
+              <span class="kpi-label">Wydane dziś</span>
+              <span class="kpi-value" id="dash-today-spent">0</span>
+              <span class="tiny muted">Status: <span id="dash-today-vs-budget">—</span></span>
             </div>
           </div>
-          <div class="insight-bubble">📉 Trend limitu: <span id="dash-daily-trend">—</span></div>
-          <div class="insight-bubble">📅 Status dnia: <span id="dash-today-vs-budget">—</span></div>
-          <div class="insight-bubble">📊 Średnia vs plan: <span id="dash-avg-trend">—</span></div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📊</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Średnia dzienna</span>
+              <span class="kpi-value" id="dash-avg-daily">0</span>
+              <span class="tiny muted">Porównanie: <span id="dash-avg-trend">—</span></span>
+            </div>
+          </div>
         </aside>
       </div>
     </div>
@@ -1922,13 +1924,18 @@
     const forecastedSavings = totalVariableBudget - projectedTotalVariableOutflow;
     
     const forecastEl = document.getElementById('forecast-content');
+    const forecastNote = document.getElementById('forecast-note');
     forecastEl.textContent = fmt(forecastedSavings, state.currency);
-    forecastEl.className = 'big-number ' + (forecastedSavings >= 0 ? 'ok' : 'bad');
+    forecastEl.classList.remove('ok', 'bad');
+    forecastEl.classList.add(forecastedSavings >= 0 ? 'ok' : 'bad');
+    forecastNote.textContent = forecastedSavings >= 0
+      ? 'Możliwa nadwyżka przy obecnym tempie'
+      : 'Ryzyko przekroczenia budżetu zmiennego';
 
-    const bufferBanner = document.getElementById('buffer-banner');
     const bufferEl = document.getElementById('buffer-content');
+    const bufferNote = document.getElementById('buffer-note');
+    bufferEl.classList.remove('ok', 'bad');
     if (ym === monthKey() && daysElapsed > 0 && daysElapsed <= days) {
-      bufferBanner.style.display = 'block';
       const dayOfMonth = new Date().getDate();
       const allowedToSpendUntilToday = dailyBudget * dayOfMonth;
       const spentUntilToday = Object.entries(daily)
@@ -1936,10 +1943,11 @@
         .reduce((sum, [, amount]) => sum + amount, 0);
       const buffer = allowedToSpendUntilToday - spentUntilToday;
       bufferEl.textContent = fmt(buffer, state.currency);
-      bufferEl.className = 'big-number ' + (buffer >= 0 ? 'ok' : 'bad');
-      bufferBanner.title = `Plan do dziś: ${fmt(allowedToSpendUntilToday)}, Wydano do dziś: ${fmt(spentUntilToday)}`;
+      bufferEl.classList.add(buffer >= 0 ? 'ok' : 'bad');
+      bufferNote.textContent = `Plan: ${fmt(allowedToSpendUntilToday, state.currency)} | Wydano: ${fmt(spentUntilToday, state.currency)}`;
     } else {
-      bufferBanner.style.display = 'none';
+      bufferEl.textContent = '—';
+      bufferNote.textContent = 'Dostępne tylko dla bieżącego miesiąca';
     }
     
     renderDashboardCharts(ym, dailyBudget, avgDaily);

@@ -477,9 +477,11 @@
 #save-status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .kpi-progress-card {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
+}
+
+.kpi-progress-card .kpi-body {
+  gap: 8px;
 }
 .goal-progress-item {
   display: flex;
@@ -675,32 +677,34 @@
         <aside class="right-rail">
           <div class="kpi-compact kpi-progress-card">
             <span class="kpi-emoji">📈</span>
-            <div>
-              <div class="kpi-label">Postęp tygodniowy</div>
-              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
-              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
+            <div class="kpi-body">
+              <span class="kpi-label">Postęp tygodniowy</span>
+              <span class="kpi-value" id="metric-weekly-complete-percent">0%</span>
+              <span class="tiny muted" id="metric-weekly-complete-sub"></span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">📆</span>
-            <div>
-              <div class="kpi-label">Tygodnie zaliczone</div>
-              <div class="kpi-value" id="metric-weekly-complete-count">0/0</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Tygodnie zaliczone</span>
+              <span class="kpi-value" id="metric-weekly-complete-count">0/0</span>
+              <span class="tiny muted" id="metric-weekly-count-note">Brak danych rocznych</span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">🧍</span>
-            <div>
-              <div class="kpi-label">Dni aktywne</div>
-              <div class="kpi-value" id="metric-active-days">0/0</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Dni aktywne</span>
+              <span class="kpi-value" id="metric-active-days">0/0</span>
+              <span class="tiny muted" id="metric-active-days-note">Brak danych</span>
             </div>
           </div>
           <div class="kpi-compact metric-card--visual kpi-next-activity" id="metric-next-activity-card" data-activity-type="none">
             <span class="kpi-emoji">🎯</span>
-            <div>
-              <div class="kpi-label">Najbliższa aktywność</div>
-              <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
-              <div class="tiny muted">Zaplanuj kolejny ruch</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Najbliższa aktywność</span>
+              <span class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</span>
+              <span class="tiny muted" id="metric-next-activity-note">Zaplanuj kolejny ruch</span>
             </div>
           </div>
           <div id="goal-progress-list" class="goal-progress-grid"></div>
@@ -1274,21 +1278,36 @@ function renderHeader(monthStats, weekStats, yearStats) {
   document.getElementById('metric-weekly-complete-percent').textContent = `${weekStats.averageGoalPercent}%`;
   document.getElementById('metric-weekly-complete-sub').innerHTML = `<span class="metric-subline">Cele tygodniowe</span><span class="metric-subline">${weeklyRange}</span>`;
   document.getElementById('metric-active-days').textContent = `${monthStats.activeDays}/${monthStats.totalDays}`;
-
-  if (yearStats) {
-    const el = document.getElementById('metric-weekly-complete-count');
-    el.innerHTML = `${yearStats.completedWeeks}/${yearStats.totalWeeks} <span class="tiny muted" style="margin-left: 4px;">(${yearStats.percent}%)</span>`;
+  const activeDaysNote = document.getElementById('metric-active-days-note');
+  if (monthStats.totalDays) {
+    const activePercent = Math.round((monthStats.activeDays / monthStats.totalDays) * 100);
+    activeDaysNote.textContent = `${activePercent}% dni z aktywnością`;
+  } else {
+    activeDaysNote.textContent = 'Brak danych dla miesiąca';
   }
-  
+
+  const weeksCountEl = document.getElementById('metric-weekly-complete-count');
+  const weeksCountNote = document.getElementById('metric-weekly-count-note');
+  if (yearStats) {
+    weeksCountEl.textContent = `${yearStats.completedWeeks}/${yearStats.totalWeeks}`;
+    weeksCountNote.textContent = `${yearStats.percent}% tygodni roku ukończonych`;
+  } else {
+    weeksCountEl.textContent = '0/0';
+    weeksCountNote.textContent = 'Brak danych rocznych';
+  }
+
   const nextCard = document.getElementById('metric-next-activity-card');
   const nextDate = document.getElementById('metric-next-activity-date');
   const nextEmoji = nextCard.querySelector('.kpi-emoji');
+  const nextNote = document.getElementById('metric-next-activity-note');
   if (monthStats.nextActivity) {
       nextDate.textContent = monthStats.nextActivity.relative || 'Najbliższe dni';
       nextEmoji.textContent = ACTIVITY_EMOJIS[monthStats.nextActivity.type] || '🎯';
+      nextNote.textContent = 'Najbliższy termin w kalendarzu';
   } else {
       nextDate.textContent = 'Brak terminu';
       nextEmoji.textContent = '🗓️';
+      nextNote.textContent = 'Zaplanuj kolejny ruch';
   }
 }
 
