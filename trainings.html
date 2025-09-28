@@ -608,7 +608,7 @@
   align-self: flex-start;
 }
 
-.kpi-progress-card > div {
+.kpi-progress-card > .kpi-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1259,7 +1259,7 @@
         <aside class="right-rail">
           <div class="kpi-compact kpi-progress-card">
             <span class="kpi-emoji">📈</span>
-            <div>
+            <div class="kpi-body">
               <div class="kpi-label">Postęp tygodniowy</div>
               <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
               <div class="tiny muted" id="metric-weekly-complete-sub"></div>
@@ -1268,28 +1268,28 @@
           <div id="goal-progress-list" class="goal-progress-grid"></div>
           <div class="kpi-compact">
             <span class="kpi-emoji">📆</span>
-            <div>
+            <div class="kpi-body">
               <div class="kpi-label">Tygodnie zaliczone</div>
               <div class="kpi-value" id="metric-weekly-complete-count">0/0</div>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">🧍</span>
-            <div>
+            <div class="kpi-body">
               <div class="kpi-label">Dni aktywne</div>
               <div class="kpi-value" id="metric-active-days">0/0</div>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">✅</span>
-            <div>
+            <div class="kpi-body">
               <div class="kpi-label">Akcje wykonane</div>
               <div class="kpi-value" id="metric-plan-completion">0/0</div>
             </div>
           </div>
           <div class="kpi-compact metric-card--visual kpi-next-activity" id="metric-next-activity-card" data-activity-type="none">
             <span class="metric-visual metric-visual--compact" id="metric-next-activity-visual"><i data-lucide="calendar" class="icon"></i></span>
-            <div>
+            <div class="kpi-body">
               <div class="kpi-label">Najbliższa aktywność</div>
               <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
               <div class="tiny muted">Zaplanuj kolejny ruch</div>
@@ -2420,7 +2420,7 @@ function renderGoalProgress(goalPercents) {
     const targetValue = Number((info && info.target) || def.target || 0).toLocaleString('pl-PL');
     item.innerHTML = `
       <span class="kpi-emoji">${emojiMap[type] || '🏅'}</span>
-      <div class="goal-progress-body">
+      <div class="goal-progress-body kpi-body">
         <div class="kpi-label">${def.label}</div>
         <div class="kpi-value">${info.percent}%</div>
         <div class="tiny muted">${progressValue} / ${targetValue} ${def.unit}</div>
