@@ -782,7 +782,55 @@ function fmt(n) {
 }
 
 function fmtPlain(n) {
-  return fmt(n).replace(/\s*zł/i, '').trim();
+  try {
+    const value = Number(n || 0);
+    const formatter = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatter.format(value).replace(/\u00a0/g, ' ');
+  } catch {
+    return Number(n || 0).toFixed(2);
+  }
+}
+
+function formatThousands(value, fractionDigits = 1) {
+  const formatter = new Intl.NumberFormat('pl-PL', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+  return formatter.format(value).replace(/\u00a0/g, ' ');
+}
+
+function fmtChartValue(n) {
+  try {
+    const value = Number(n || 0);
+    if (!Number.isFinite(value)) return '0 zł';
+    if (Math.abs(value) >= 1000) {
+      return `${formatThousands(value / 1000, 1)} k zł`;
+    }
+    return fmt(value);
+  } catch {
+    const numeric = Number(n || 0);
+    if (Math.abs(numeric) >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} k zł`;
+    }
+    return fmt(numeric);
+  }
+}
+
+function fmtChartTick(n) {
+  try {
+    const value = Number(n || 0);
+    if (!Number.isFinite(value)) return '0 zł';
+    if (Math.abs(value) >= 1000) {
+      return `${formatThousands(value / 1000, 1)} k zł`;
+    }
+    return `${fmtPlain(value)} zł`;
+  } catch {
+    const numeric = Number(n || 0);
+    if (Math.abs(numeric) >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} k zł`;
+    }
+    return `${Number(numeric || 0).toFixed(2)} zł`;
+  }
 }
 
 function formatRateValue(value) {
@@ -1470,7 +1518,7 @@ function renderChartForPanel(panelType) {
                     const index = context.dataIndex;
                     const principalValue = context.chart.data.datasets[1].data[index] || 0;
                     const total = (value || 0) + principalValue;
-                    return total ? fmt(total) : '';
+                    return total ? fmtChartValue(total) : '';
                   }
                 }
               },
@@ -1483,7 +1531,7 @@ function renderChartForPanel(panelType) {
             maintainAspectRatio: false,
             scales: {
               x: { stacked: true, grid: { display: false } },
-              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmtPlain(value) } },
+              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmtChartTick(value) } },
               yRate: { type: 'linear', position: 'right', grid: { display: false }, min: yRateMin, max: yRateMax, ticks: { callback: (value) => `${value}%` } }
             },
             plugins: {
@@ -1494,7 +1542,7 @@ function renderChartForPanel(panelType) {
                     if (context.dataset.yAxisID === 'yRate') {
                       return `${context.dataset.label}: ${context.raw}%`;
                     }
-                    return `${context.dataset.label}: ${fmt(context.raw)}`;
+                    return `${context.dataset.label}: ${fmtChartValue(context.raw)}`;
                   }
                 }
               }
@@ -1522,7 +1570,7 @@ function renderChartForPanel(panelType) {
           const value = context.raw || 0;
           const sum = totals.principal + totals.interest;
           const percentage = sum > 0 ? ((value / sum) * 100).toFixed(2) : 0;
-          return `${label}: ${fmt(value)} (${percentage}%)`;
+          return `${label}: ${fmtChartValue(value)} (${percentage}%)`;
         };
         charts.structure.update();
       } else {
@@ -1554,7 +1602,7 @@ function renderChartForPanel(panelType) {
                     const label = context.label || '';
                     const value = context.raw || 0;
                     const percentage = totalPaid > 0 ? ((value / totalPaid) * 100).toFixed(2) : 0;
-                    return `${label}: ${fmt(value)} (${percentage}%)`;
+                    return `${label}: ${fmtChartValue(value)} (${percentage}%)`;
                   }
                 }
               }
@@ -1594,7 +1642,7 @@ function renderChartForPanel(panelType) {
               legend: { position: 'bottom' },
               tooltip: {
                 callbacks: {
-                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                  label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
                 }
               },
               datalabels: {
@@ -1603,13 +1651,13 @@ function renderChartForPanel(panelType) {
                 anchor: (context) => (context.datasetIndex === 0 ? 'end' : 'start'),
                 color: (context) => context.dataset.borderColor || palette.ink,
                 font: { weight: 600, size: 10 },
-                formatter: (value) => fmt(value)
+                formatter: (value) => fmtChartValue(value)
               }
             },
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmtPlain(value) }
+                ticks: { callback: (value) => fmtChartTick(value) }
               }
             }
           }
@@ -1634,7 +1682,9 @@ function renderChartForPanel(panelType) {
         const element = meta.data[dataIndex];
         const target = datasetIndex === 0 ? 10 : 80;
         const targetPixel = yScale.getPixelForValue(target);
-        return targetPixel - element.y;
+        const baseOffset = targetPixel - element.y;
+        const separation = datasetIndex === 0 ? -14 : 14;
+        return baseOffset + separation;
       };
       const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
       if (charts.shareArea) {
@@ -1644,6 +1694,11 @@ function renderChartForPanel(panelType) {
         charts.shareArea.options.plugins.datalabels.display = (ctx) => chartLabelState.share && !ctx.dataset.hidden;
         charts.shareArea.options.plugins.datalabels.offset = shareLabelOffset;
         charts.shareArea.options.plugins.datalabels.color = shareLabelColor;
+        charts.shareArea.options.plugins.datalabels.align = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.anchor = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        charts.shareArea.options.plugins.datalabels.borderRadius = 6;
+        charts.shareArea.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
         charts.shareArea.options.plugins.datalabels.formatter = shareLabelFormatter;
         charts.shareArea.update();
       } else {
@@ -1669,10 +1724,13 @@ function renderChartForPanel(panelType) {
               },
               datalabels: {
                 display: (ctx) => chartLabelState.share && !ctx.dataset.hidden,
-                align: 'center',
-                anchor: 'center',
+                align: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
+                anchor: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
                 clip: false,
                 offset: shareLabelOffset,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 6,
+                padding: { top: 2, bottom: 2, left: 6, right: 6 },
                 color: shareLabelColor,
                 font: { weight: 600, size: 10 },
                 formatter: shareLabelFormatter
@@ -1706,6 +1764,19 @@ function renderChartForPanel(panelType) {
         charts.cumulative.data.datasets[1].data = cumulativeInterest;
         charts.cumulative.data.datasets[2].data = cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]);
         charts.cumulative.options.plugins.datalabels.display = chartLabelState.cumulative;
+        charts.cumulative.options.plugins.datalabels.align = (context) => {
+          if (context.datasetIndex === 2) return 'end';
+          return context.datasetIndex === 1 ? 'bottom' : 'top';
+        };
+        charts.cumulative.options.plugins.datalabels.anchor = (context) => {
+          if (context.datasetIndex === 2) return 'end';
+          return context.datasetIndex === 1 ? 'start' : 'end';
+        };
+        charts.cumulative.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        charts.cumulative.options.plugins.datalabels.borderRadius = 6;
+        charts.cumulative.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
+        charts.cumulative.options.plugins.datalabels.clamp = true;
+        charts.cumulative.options.plugins.datalabels.formatter = (value) => fmtChartValue(value);
         charts.cumulative.update();
       } else {
         charts.cumulative = new Chart(cumulativeCtx, {
@@ -1727,22 +1798,32 @@ function renderChartForPanel(panelType) {
               legend: { position: 'bottom' },
               tooltip: {
                 callbacks: {
-                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                  label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
                 }
               },
               datalabels: {
                 display: chartLabelState.cumulative,
-                align: (context) => (context.datasetIndex === 1 ? 'bottom' : 'top'),
-                anchor: (context) => (context.datasetIndex === 1 ? 'start' : 'end'),
+                align: (context) => {
+                  if (context.datasetIndex === 2) return 'end';
+                  return context.datasetIndex === 1 ? 'bottom' : 'top';
+                },
+                anchor: (context) => {
+                  if (context.datasetIndex === 2) return 'end';
+                  return context.datasetIndex === 1 ? 'start' : 'end';
+                },
                 color: (context) => context.dataset.borderColor || palette.ink,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 6,
+                padding: { top: 2, bottom: 2, left: 6, right: 6 },
                 font: { weight: 600, size: 10 },
-                formatter: (value) => fmt(value)
+                clamp: true,
+                formatter: (value) => fmtChartValue(value)
               }
             },
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmtPlain(value) }
+                ticks: { callback: (value) => fmtChartTick(value) }
               }
             }
           }
@@ -1786,7 +1867,7 @@ function renderChartForPanel(panelType) {
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  label: (context) => `Saldo: ${fmt(context.raw)}`
+                  label: (context) => `Saldo: ${fmtChartValue(context.raw)}`
                 }
               },
               datalabels: {
@@ -1796,14 +1877,14 @@ function renderChartForPanel(panelType) {
                 font: { weight: 700, size: 11 },
                 formatter: (value, context) => {
                   const dataset = context.dataset.data || [];
-                  return context.dataIndex === dataset.length - 1 ? fmt(value) : '';
+                  return context.dataIndex === dataset.length - 1 ? fmtChartValue(value) : '';
                 }
               }
             },
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmtPlain(value) }
+                ticks: { callback: (value) => fmtChartTick(value) }
               }
             }
           }
@@ -1887,7 +1968,7 @@ function renderChartForPanel(panelType) {
                 position: 'left',
                 display: showValue,
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmtPlain(value) }
+                ticks: { callback: (value) => fmtChartTick(value) }
               },
               yPercent: {
                 type: 'linear',
@@ -1909,7 +1990,7 @@ function renderChartForPanel(panelType) {
                       const sign = numeric > 0 ? '+' : '';
                       return `${context.dataset.label}: ${sign}${numeric.toFixed(2)}%`;
                     }
-                    return `${context.dataset.label}: ${fmt(context.raw)}`;
+                    return `${context.dataset.label}: ${fmtChartValue(context.raw)}`;
                   }
                 }
               },
@@ -1938,7 +2019,7 @@ function renderChartForPanel(panelType) {
                     const sign = numeric > 0 ? '+' : '';
                     return `${sign}${numeric.toFixed(2)}%`;
                   }
-                  return fmt(value);
+                  return fmtChartValue(value);
                 }
               }
             }
