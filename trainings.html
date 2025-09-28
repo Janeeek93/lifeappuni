@@ -40,13 +40,6 @@
   gap: 24px;
 }
 
-.module-title-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
 .month-switcher {
   display: flex;
   align-items: center;
@@ -91,35 +84,6 @@
   box-shadow: var(--shadow-sm);
   border-color: hsl(var(--accent-h) 45% 75%);
 }
-
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.page-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.title-block { display: flex; flex-direction: column; gap: 6px; }
-.title-block .back-link { align-self: flex-start; }
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.title-row h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.3px; }
-
-.page-header-actions { display: flex; gap: 10px; align-items: center; }
 
 .btn.icon-btn {
   width: 40px;
@@ -513,9 +477,11 @@
 #save-status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .kpi-progress-card {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
+}
+
+.kpi-progress-card .kpi-body {
+  gap: 8px;
 }
 .goal-progress-item {
   display: flex;
@@ -571,38 +537,78 @@
 <body data-page="trainings">
   <div class="layout">
     <aside class="sidebar" aria-label="Główna nawigacja">
-      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
-      <nav class="sidebar-nav">
-        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
-        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
-        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
-        <a class="nav-link active" href="trainings.html" aria-current="page"><span class="icon">💪</span><span>Treningi</span></a>
-        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
-        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
-        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
-        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      <div class="sidebar__header">
+        <span class="sidebar__emoji">🧭</span>
+        <span class="sidebar__brand">LifeOS</span>
+      </div>
+      <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+        <ul class="sidebar__list">
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="index.html" data-page="dashboard">
+              <span class="sidebar__icon">📊</span>
+              <span class="sidebar__label">Dashboard</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="budget.html" data-page="budget">
+              <span class="sidebar__icon">💰</span>
+              <span class="sidebar__label">Budżet</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="fuel.html" data-page="fuel">
+              <span class="sidebar__icon">⛽</span>
+              <span class="sidebar__label">Paliwo</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="trainings.html" data-page="trainings">
+              <span class="sidebar__icon">💪</span>
+              <span class="sidebar__label">Treningi</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="loan.html" data-page="loan">
+              <span class="sidebar__icon">🏦</span>
+              <span class="sidebar__label">Kredyt</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="tasks.html" data-page="tasks">
+              <span class="sidebar__icon">✅</span>
+              <span class="sidebar__label">Zadania</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="house.html" data-page="house">
+              <span class="sidebar__icon">🏠</span>
+              <span class="sidebar__label">Budowa</span>
+            </a>
+          </li>
+        </ul>
       </nav>
-      <div class="sidebar-footer">
+      <div class="sidebar__footer">
         <strong>Twój cyfrowy dom</strong>
         Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
     </aside>
 
     <div class="main">
-      <header class="topbar">
-        <div>
-          <p class="topbar-eyebrow">Program treningowy</p>
-          <div class="module-title-row">
-            <h1 class="topbar-title">Treningi</h1>
-            <span class="chip" id="header-month-chip">--</span>
-          </div>
+      <header class="page-header" role="banner">
+        <div class="page-header__top">
+          <span class="page-overline">Program treningowy</span>
+          <h1 class="page-title">
+            <span class="page-title__icon">💪</span>
+            <span class="page-title__text">Treningi</span>
+          </h1>
         </div>
-        <div class="topbar-actions month-switcher">
+        <div class="page-header__actions month-switcher" aria-label="Akcje strony">
           <button id="prev-month-btn" class="btn ghost icon-btn" aria-label="Poprzedni miesiąc"><i data-lucide="chevron-left" class="icon"></i></button>
           <div class="month-labels">
             <span class="month-label" id="current-month-label">--</span>
             <span class="tiny muted" id="current-month-range">--</span>
           </div>
+          <span class="chip" id="header-month-chip">--</span>
           <button id="next-month-btn" class="btn ghost icon-btn" aria-label="Następny miesiąc"><i data-lucide="chevron-right" class="icon"></i></button>
           <button id="today-month-btn" class="btn soft"><i data-lucide="calendar" class="icon"></i>Dzisiaj</button>
         </div>
@@ -671,32 +677,34 @@
         <aside class="right-rail">
           <div class="kpi-compact kpi-progress-card">
             <span class="kpi-emoji">📈</span>
-            <div>
-              <div class="kpi-label">Postęp tygodniowy</div>
-              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
-              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
+            <div class="kpi-body">
+              <span class="kpi-label">Postęp tygodniowy</span>
+              <span class="kpi-value" id="metric-weekly-complete-percent">0%</span>
+              <span class="tiny muted" id="metric-weekly-complete-sub"></span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">📆</span>
-            <div>
-              <div class="kpi-label">Tygodnie zaliczone</div>
-              <div class="kpi-value" id="metric-weekly-complete-count">0/0</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Tygodnie zaliczone</span>
+              <span class="kpi-value" id="metric-weekly-complete-count">0/0</span>
+              <span class="tiny muted" id="metric-weekly-count-note">Brak danych rocznych</span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">🧍</span>
-            <div>
-              <div class="kpi-label">Dni aktywne</div>
-              <div class="kpi-value" id="metric-active-days">0/0</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Dni aktywne</span>
+              <span class="kpi-value" id="metric-active-days">0/0</span>
+              <span class="tiny muted" id="metric-active-days-note">Brak danych</span>
             </div>
           </div>
           <div class="kpi-compact metric-card--visual kpi-next-activity" id="metric-next-activity-card" data-activity-type="none">
             <span class="kpi-emoji">🎯</span>
-            <div>
-              <div class="kpi-label">Najbliższa aktywność</div>
-              <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
-              <div class="tiny muted">Zaplanuj kolejny ruch</div>
+            <div class="kpi-body">
+              <span class="kpi-label">Najbliższa aktywność</span>
+              <span class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</span>
+              <span class="tiny muted" id="metric-next-activity-note">Zaplanuj kolejny ruch</span>
             </div>
           </div>
           <div id="goal-progress-list" class="goal-progress-grid"></div>
@@ -716,6 +724,21 @@
 </div>
 <div id="save-status">Zapisano zmiany</div>
 
+<script>
+  (function activateSidebarLink() {
+    const currentPage = document.body.dataset.page;
+    if (!currentPage) return;
+    document.querySelectorAll('.sidebar__link[data-page]').forEach((link) => {
+      if (link.dataset.page === currentPage) {
+        link.classList.add('sidebar__link--active');
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.classList.remove('sidebar__link--active');
+        link.removeAttribute('aria-current');
+      }
+    });
+  })();
+</script>
 <script>
 const STORAGE_KEY = 'lifeos_trainings_month_v1';
 const LEGACY_STORAGE_KEY = 'lifeos_trainings_v1';
@@ -1255,21 +1278,36 @@ function renderHeader(monthStats, weekStats, yearStats) {
   document.getElementById('metric-weekly-complete-percent').textContent = `${weekStats.averageGoalPercent}%`;
   document.getElementById('metric-weekly-complete-sub').innerHTML = `<span class="metric-subline">Cele tygodniowe</span><span class="metric-subline">${weeklyRange}</span>`;
   document.getElementById('metric-active-days').textContent = `${monthStats.activeDays}/${monthStats.totalDays}`;
-
-  if (yearStats) {
-    const el = document.getElementById('metric-weekly-complete-count');
-    el.innerHTML = `${yearStats.completedWeeks}/${yearStats.totalWeeks} <span class="tiny muted" style="margin-left: 4px;">(${yearStats.percent}%)</span>`;
+  const activeDaysNote = document.getElementById('metric-active-days-note');
+  if (monthStats.totalDays) {
+    const activePercent = Math.round((monthStats.activeDays / monthStats.totalDays) * 100);
+    activeDaysNote.textContent = `${activePercent}% dni z aktywnością`;
+  } else {
+    activeDaysNote.textContent = 'Brak danych dla miesiąca';
   }
-  
+
+  const weeksCountEl = document.getElementById('metric-weekly-complete-count');
+  const weeksCountNote = document.getElementById('metric-weekly-count-note');
+  if (yearStats) {
+    weeksCountEl.textContent = `${yearStats.completedWeeks}/${yearStats.totalWeeks}`;
+    weeksCountNote.textContent = `${yearStats.percent}% tygodni roku ukończonych`;
+  } else {
+    weeksCountEl.textContent = '0/0';
+    weeksCountNote.textContent = 'Brak danych rocznych';
+  }
+
   const nextCard = document.getElementById('metric-next-activity-card');
   const nextDate = document.getElementById('metric-next-activity-date');
   const nextEmoji = nextCard.querySelector('.kpi-emoji');
+  const nextNote = document.getElementById('metric-next-activity-note');
   if (monthStats.nextActivity) {
       nextDate.textContent = monthStats.nextActivity.relative || 'Najbliższe dni';
       nextEmoji.textContent = ACTIVITY_EMOJIS[monthStats.nextActivity.type] || '🎯';
+      nextNote.textContent = 'Najbliższy termin w kalendarzu';
   } else {
       nextDate.textContent = 'Brak terminu';
       nextEmoji.textContent = '🗓️';
+      nextNote.textContent = 'Zaplanuj kolejny ruch';
   }
 }
 
