@@ -133,91 +133,6 @@
       font-size: 18px;
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 280px;
-      background: var(--sidebar-bg);
-      display: flex;
-      flex-direction: column;
-      transition: var(--transition);
-      border-right: 1px solid var(--border);
-      z-index: 100;
-      flex-shrink: 0;
-    }
-    
-    .sidebar-header {
-      padding: 24px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--primary), var(--info));
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      box-shadow: var(--shadow-lg);
-    }
-    
-    .logo-text h1 {
-      font-size: 20px;
-      font-weight: 900;
-      color: #ffffff;
-      letter-spacing: -0.5px;
-    }
-    
-    .logo-text p {
-      font-size: 12px;
-      color: var(--text-tertiary);
-      margin-top: 2px;
-    }
-
-    .nav-menu {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      list-style: none;
-    }
-    
-    .nav-item {
-      margin-bottom: 4px;
-    }
-    
-    .nav-item a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 14px;
-      color: var(--text-tertiary);
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .nav-item a:hover {
-      background: rgba(255,255,255,0.05);
-      color: #ffffff;
-    }
-    
-    .nav-item a.active {
-      background: var(--primary);
-      color: #ffffff;
-      box-shadow: var(--shadow-md);
-    }
-    
     .nav-icon {
       font-size: 16px;
       line-height: 1;
@@ -289,7 +204,7 @@
       overflow: hidden;
     }
 
-    .topbar {
+    .page-header {
       background: var(--card-bg);
       border-bottom: 1px solid var(--border);
       padding: 16px 32px;
@@ -298,18 +213,8 @@
       justify-content: space-between;
       min-height: 72px;
     }
-    
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
 
-    .topbar-left .back-link {
-      font-size: 13px;
-    }
-    
-    .page-title {
+    .page-header .page-title {
       font-size: 24px;
       font-weight: 800;
       color: var(--text-primary);
@@ -318,7 +223,7 @@
       gap: 12px;
     }
 
-    .topbar-right {
+    .page-header__actions {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -1910,7 +1815,7 @@
         grid-template-columns: 1fr;
       }
       
-      .topbar {
+      .page-header {
         padding: 16px 20px;
       }
       
@@ -1943,31 +1848,73 @@
 <body data-page="house">
   <div class="app-shell">
     <aside class="sidebar" aria-label="Główna nawigacja">
-      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
-      <nav class="sidebar-nav">
-        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
-        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
-        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
-        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
-        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
-        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
-        <a class="nav-link active" href="house.html" aria-current="page"><span class="icon">🏠</span><span>Budowa</span></a>
-        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      <div class="sidebar__header">
+        <span class="sidebar__emoji">🧭</span>
+        <span class="sidebar__brand">LifeOS</span>
+      </div>
+      <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+        <ul class="sidebar__list">
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="index.html" data-page="dashboard">
+              <span class="sidebar__icon">📊</span>
+              <span class="sidebar__label">Dashboard</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="budget.html" data-page="budget">
+              <span class="sidebar__icon">💰</span>
+              <span class="sidebar__label">Budżet</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="fuel.html" data-page="fuel">
+              <span class="sidebar__icon">⛽</span>
+              <span class="sidebar__label">Paliwo</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="trainings.html" data-page="trainings">
+              <span class="sidebar__icon">💪</span>
+              <span class="sidebar__label">Treningi</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="loan.html" data-page="loan">
+              <span class="sidebar__icon">🏦</span>
+              <span class="sidebar__label">Kredyt</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="tasks.html" data-page="tasks">
+              <span class="sidebar__icon">✅</span>
+              <span class="sidebar__label">Zadania</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="house.html" data-page="house">
+              <span class="sidebar__icon">🏠</span>
+              <span class="sidebar__label">Budowa</span>
+            </a>
+          </li>
+        </ul>
       </nav>
-      <div class="sidebar-footer">
+      <div class="sidebar__footer">
         <strong>Twój cyfrowy dom</strong>
         Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
     </aside>
 
     <div class="app-main">
-      <header class="topbar">
-        <div class="topbar-info">
-          <p class="topbar-eyebrow">Dom i budowa</p>
-          <h1 class="topbar-title">BuildMaster Pro</h1>
-          <p class="topbar-subtitle">Monitoruj postęp projektu domu, kontroluj budżet i reaguj na zagrożenia w jednym miejscu.</p>
+      <header class="page-header" role="banner">
+        <div class="page-header__top">
+          <span class="page-overline">Dom i budowa</span>
+          <h1 class="page-title">
+            <span class="page-title__icon">🏠</span>
+            <span class="page-title__text">BuildMaster Pro</span>
+          </h1>
+          <p class="page-subtitle">Monitoruj postęp projektu domu, kontroluj budżet i reaguj na zagrożenia w jednym miejscu.</p>
         </div>
-        <div class="topbar-actions house-hero-actions">
+        <div class="page-header__actions house-hero-actions" aria-label="Akcje strony">
           <button class="btn soft" type="button" onclick="exportData()">📥 Eksport</button>
           <button class="btn soft" type="button" onclick="importData()">📤 Import</button>
           <button class="btn soft" type="button" onclick="generateReport()">📋 Raport</button>
@@ -2358,6 +2305,21 @@
   <div id="app-tooltip" class="hidden"></div>
 
 
+  <script>
+    (function activateSidebarLink() {
+      const currentPage = document.body.dataset.page;
+      if (!currentPage) return;
+      document.querySelectorAll('.sidebar__link[data-page]').forEach((link) => {
+        if (link.dataset.page === currentPage) {
+          link.classList.add('sidebar__link--active');
+          link.setAttribute('aria-current', 'page');
+        } else {
+          link.classList.remove('sidebar__link--active');
+          link.removeAttribute('aria-current');
+        }
+      });
+    })();
+  </script>
   <script>
     // App State
     const APP_KEY = 'buildmaster_pro_v11';
