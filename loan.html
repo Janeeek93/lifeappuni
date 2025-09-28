@@ -513,6 +513,9 @@
                     <button class="loan-tab-btn" data-chart="line">Kapitał vs odsetki</button>
                     <button class="loan-tab-btn" data-chart="share">Udziały w czasie</button>
                     <button class="loan-tab-btn" data-chart="cumulative">Kumulacja spłat</button>
+                    <button class="loan-tab-btn" data-chart="balance">Saldo kredytu</button>
+                    <button class="loan-tab-btn" data-chart="overpay">Nadpłaty</button>
+                    <button class="loan-tab-btn" data-chart="rate">Trend oprocentowania</button>
                   </div>
                   <div id="loan-chart-placeholder" class="loan-chart-placeholder">
                     Dodaj raty, aby zobaczyć analizy spłaty kredytu.
@@ -541,6 +544,21 @@
                     <div class="loan-tab-panel" data-chart="cumulative">
                       <div class="loan-chart-area" style="min-height:320px;">
                         <canvas id="cumulative-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="balance">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="balance-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="overpay">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="overpayment-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="rate">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="rate-trend-chart"></canvas>
                       </div>
                     </div>
                   </div>
@@ -1153,7 +1171,9 @@ function renderCharts() {
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted').trim();
 
   const paymentLabels = payments.map(p => new Date(p.date + '-02').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }));
-  const principalSeries = payments.map(p => p.capital + (p.overpayment || 0));
+  const basePrincipalSeries = payments.map(p => p.capital);
+  const overpaymentSeries = payments.map(p => p.overpayment || 0);
+  const principalSeries = payments.map((p, index) => basePrincipalSeries[index] + overpaymentSeries[index]);
   const interestSeries = payments.map(p => p.interest);
   const totalSeries = principalSeries.map((value, index) => value + interestSeries[index]);
   const cumulativePrincipal = [];
@@ -1183,12 +1203,28 @@ function renderCharts() {
 
   const rateHistory = loanDetails.interestRateHistory || [];
   const interestRateData = payments.map(p => getRateForDate(p.date, rateHistory));
+  const totalCapitalAmount = Number(loanDetails.totalCapital || 0);
+  let runningBalance = totalCapitalAmount;
+  const remainingBalances = payments.map((p, index) => {
+    runningBalance -= principalSeries[index];
+    return Math.max(runningBalance, 0);
+  });
+
+  const sortedRateHistory = [...rateHistory].sort((a, b) => a.date.localeCompare(b.date));
+  const rateHistoryLabels = sortedRateHistory.length
+    ? sortedRateHistory.map(entry => new Date(`${entry.date}-02`).toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }))
+    : paymentLabels;
+  const rateHistoryValues = sortedRateHistory.length
+    ? sortedRateHistory.map(entry => Number(entry.rate || 0))
+    : interestRateData.map(rate => Number(rate || 0));
   const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
   const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
 
   chartDataCache = {
     labels: paymentLabels,
     principalSeries,
+    basePrincipalSeries,
+    overpaymentSeries,
     interestSeries,
     totalSeries,
     cumulativePrincipal,
@@ -1196,6 +1232,9 @@ function renderCharts() {
     sharePrincipal,
     shareInterest,
     interestRateData,
+    remainingBalances,
+    rateHistoryLabels,
+    rateHistoryValues,
     totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
   };
 
@@ -1231,7 +1270,22 @@ function getLoanPalette() {
 function renderChartForPanel(panelType) {
   if (!chartDataCache) return;
   const palette = getLoanPalette();
-  const { labels, principalSeries, interestSeries, interestRateData, totals, sharePrincipal, shareInterest, cumulativePrincipal, cumulativeInterest } = chartDataCache;
+  const {
+    labels,
+    principalSeries,
+    basePrincipalSeries,
+    overpaymentSeries,
+    interestSeries,
+    interestRateData,
+    totals,
+    sharePrincipal,
+    shareInterest,
+    cumulativePrincipal,
+    cumulativeInterest,
+    remainingBalances,
+    rateHistoryLabels,
+    rateHistoryValues
+  } = chartDataCache;
 
   if (panelType === 'mix') {
     const capitalCanvas = $('#capital-chart');
@@ -1458,6 +1512,7 @@ function renderChartForPanel(panelType) {
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
               legend: { position: 'bottom' },
               tooltip: {
@@ -1476,6 +1531,183 @@ function renderChartForPanel(panelType) {
         });
       }
       setTimeout(() => charts.cumulative && charts.cumulative.resize(), 30);
+    }
+  }
+
+  if (panelType === 'balance') {
+    const balanceCanvas = $('#balance-chart');
+    if (balanceCanvas) {
+      const balanceCtx = balanceCanvas.getContext('2d');
+      if (charts.balance) {
+        charts.balance.data.labels = labels;
+        charts.balance.data.datasets[0].data = remainingBalances;
+        charts.balance.update();
+      } else {
+        charts.balance = new Chart(balanceCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Saldo po spłacie',
+                data: remainingBalances,
+                borderColor: palette.blue,
+                backgroundColor: palette.blueSoft,
+                fill: 'start',
+                tension: 0.25,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `Saldo: ${fmt(context.raw)}`
+                }
+              },
+              datalabels: {
+                align: 'top',
+                anchor: 'end',
+                color: palette.ink,
+                font: { weight: 700, size: 11 },
+                formatter: (value, context) => {
+                  const dataset = context.dataset.data || [];
+                  return context.dataIndex === dataset.length - 1 ? fmt(value) : '';
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.balance && charts.balance.resize(), 30);
+    }
+  }
+
+  if (panelType === 'overpay') {
+    const overpaymentCanvas = $('#overpayment-chart');
+    if (overpaymentCanvas) {
+      const overpaymentCtx = overpaymentCanvas.getContext('2d');
+      if (charts.overpayment) {
+        charts.overpayment.data.labels = labels;
+        charts.overpayment.data.datasets[0].data = basePrincipalSeries;
+        charts.overpayment.data.datasets[1].data = overpaymentSeries;
+        charts.overpayment.update();
+      } else {
+        charts.overpayment = new Chart(overpaymentCtx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał planowy', data: basePrincipalSeries, backgroundColor: palette.green, borderRadius: 4, stack: 'stacked' },
+              { label: 'Nadpłata', data: overpaymentSeries, backgroundColor: palette.blue, borderRadius: 4, stack: 'stacked' }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') } }
+            },
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${fmt(context.raw)}`
+                }
+              },
+              datalabels: {
+                color: palette.ink,
+                anchor: 'end',
+                align: 'top',
+                font: { weight: 600, size: 10 },
+                formatter: (value, context) => {
+                  if (context.dataset.label !== 'Nadpłata' || !value) return '';
+                  return fmt(value);
+                }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.overpayment && charts.overpayment.resize(), 30);
+    }
+  }
+
+  if (panelType === 'rate') {
+    const rateCanvas = $('#rate-trend-chart');
+    if (rateCanvas) {
+      const rateCtx = rateCanvas.getContext('2d');
+      if (charts.rateTrend) {
+        charts.rateTrend.data.labels = rateHistoryLabels;
+        charts.rateTrend.data.datasets[0].data = rateHistoryValues;
+        charts.rateTrend.update();
+      } else {
+        charts.rateTrend = new Chart(rateCtx, {
+          type: 'line',
+          data: {
+            labels: rateHistoryLabels,
+            datasets: [
+              {
+                label: 'Oprocentowanie',
+                data: rateHistoryValues,
+                borderColor: palette.orange,
+                backgroundColor: palette.orangeSoft,
+                fill: 'start',
+                tension: 0.25,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${Number(context.raw || 0).toFixed(2)}%`
+                }
+              },
+              datalabels: {
+                align: 'top',
+                anchor: 'end',
+                color: palette.orange,
+                font: { weight: 700, size: 11 },
+                formatter: (value, context) => {
+                  const dataset = context.dataset.data || [];
+                  return context.dataIndex === dataset.length - 1 ? `${Number(value || 0).toFixed(2)}%` : '';
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => `${value}%` }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.rateTrend && charts.rateTrend.resize(), 30);
     }
   }
 }
