@@ -208,50 +208,51 @@
 
       <div class="content">
         <main class="page-content stack">
-    <section class="card insights-card" aria-live="polite">
-      <div class="insights-header">
-        <div>
-          <h2 class="title" style="margin-bottom:4px;">Szybkie wnioski</h2>
-          <p class="muted tiny">Inteligentne podpowiedzi pomagają zaplanować kolejny krok.</p>
-        </div>
-      </div>
-      <div class="insights-grid" id="insights-grid" role="list"></div>
-      <p class="muted tiny" id="insights-empty" style="margin-top:12px; display:none;">Dodaj pierwsze zadanie, aby zobaczyć proponowane działania.</p>
-    </section>
-
-    <div class="card" id="task-form-card" style="margin-top:12px;">
-      <h3 class="title" id="form-title" style="margin-bottom: 16px;">Nowe zadanie</h3>
-      <input type="hidden" id="task-id">
-      <div class="grid" style="grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tytuł zadania</label><input type="text" id="task-title" placeholder="Np. Przygotować raport kwartalny"></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Notatki</label><textarea id="task-notes" placeholder="Szczegóły, linki, wymagania..."></textarea></div>
-      </div>
-      <div class="grid g-3">
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Kategoria</label>
-          <div id="task-category-selector" class="segmented-control">
-              <div class="segment active" data-value="work">Praca</div>
-              <div class="segment" data-value="private">Prywatne</div>
+        <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; align-items:flex-start; margin-top:12px;">
+          <div class="card" id="task-form-card">
+            <h3 class="title" id="form-title" style="margin-bottom: 16px;">Nowe zadanie</h3>
+            <input type="hidden" id="task-id">
+            <div class="grid" style="grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tytuł zadania</label><input type="text" id="task-title" placeholder="Np. Przygotować raport kwartalny"></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Notatki</label><textarea id="task-notes" placeholder="Szczegóły, linki, wymagania..."></textarea></div>
+            </div>
+            <div class="grid g-3">
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Kategoria</label>
+                <div id="task-category-selector" class="segmented-control">
+                    <div class="segment active" data-value="work">Praca</div>
+                    <div class="segment" data-value="private">Prywatne</div>
+                </div>
+              </div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Priorytet</label><select id="task-priority"><option value="low">Niski</option><option value="medium">Średni</option><option value="high">Wysoki</option></select></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Termin</label><input type="date" id="task-due-date"></div>
+              <div style="grid-column: 1 / -1;"><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tagi (oddzielone przecinkiem)</label><input type="text" id="task-tags" placeholder="np. praca, pilne, projekt-x"></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Powtarzalność</label><select id="task-recurrence"><option value="none">Nigdy</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
+              <div style="grid-column: 2 / -1;">
+                   <label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Podzadania</label>
+                   <div style="display:flex; gap: 8px;">
+                       <input type="text" id="subtask-input" placeholder="Dodaj krok do wykonania...">
+                       <button id="add-subtask-btn" class="btn" style="white-space:nowrap;">Dodaj</button>
+                   </div>
+                   <ul id="subtask-list-form" style="list-style:none; padding: 0; margin: 8px 0 0 0; display:flex; flex-direction:column; gap: 4px;"></ul>
+              </div>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content:flex-end; margin-top: 16px;">
+               <button id="cancel-edit-btn" class="btn" style="display:none;">Anuluj</button>
+               <button id="add-task-btn" class="btn primary"><span id="add-task-btn-text">Dodaj zadanie</span></button>
+            </div>
           </div>
+          <section class="card insights-card" aria-live="polite">
+            <div class="insights-header">
+              <div>
+                <h2 class="title" style="margin-bottom:4px;">Szybkie wnioski</h2>
+                <p class="muted tiny">Inteligentne podpowiedzi pomagają zaplanować kolejny krok.</p>
+              </div>
+            </div>
+            <div class="insights-grid" id="insights-grid" role="list" style="display:flex; flex-direction:column; gap:12px;"></div>
+            <p class="muted tiny" id="insights-empty" style="margin-top:12px; display:none;">Dodaj pierwsze zadanie, aby zobaczyć proponowane działania.</p>
+          </section>
         </div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Priorytet</label><select id="task-priority"><option value="low">Niski</option><option value="medium">Średni</option><option value="high">Wysoki</option></select></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Termin</label><input type="date" id="task-due-date"></div>
-        <div style="grid-column: 1 / -1;"><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tagi (oddzielone przecinkiem)</label><input type="text" id="task-tags" placeholder="np. praca, pilne, projekt-x"></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Powtarzalność</label><select id="task-recurrence"><option value="none">Nigdy</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
-        <div style="grid-column: 2 / -1;">
-             <label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Podzadania</label>
-             <div style="display:flex; gap: 8px;">
-                 <input type="text" id="subtask-input" placeholder="Dodaj krok do wykonania...">
-                 <button id="add-subtask-btn" class="btn" style="white-space:nowrap;">Dodaj</button>
-             </div>
-             <ul id="subtask-list-form" style="list-style:none; padding: 0; margin: 8px 0 0 0; display:flex; flex-direction:column; gap: 4px;"></ul>
-        </div>
-      </div>
-       <div style="display:flex; gap: 8px; justify-content:flex-end; margin-top: 16px;">
-          <button id="cancel-edit-btn" class="btn" style="display:none;">Anuluj</button>
-          <button id="add-task-btn" class="btn primary"><span id="add-task-btn-text">Dodaj zadanie</span></button>
-       </div>
-    </div>
-    
+
     <div class="tabs" style="margin-top: 24px;">
         <div class="tab active" data-tab="list">Lista Zadań</div>
         <div class="tab" data-tab="calendar">Kalendarz</div>
