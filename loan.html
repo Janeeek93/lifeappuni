@@ -232,8 +232,13 @@
     .loan-chart-actions {
       display: flex;
       justify-content: flex-end;
+      align-items: center;
       margin-bottom: 8px;
       gap: 8px;
+    }
+
+    .loan-chart-actions.with-switch {
+      justify-content: space-between;
     }
 
     .loan-chart-toggle {
@@ -245,6 +250,39 @@
       color: var(--ink);
       cursor: pointer;
       transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .loan-chart-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .loan-chart-mode-btn {
+      border: none;
+      background: transparent;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .loan-chart-mode-btn.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
+
+    .loan-chart-mode-btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
     }
 
     .loan-chart-toggle:hover,
@@ -591,7 +629,11 @@
                       </div>
                     </div>
                     <div class="loan-tab-panel" data-chart="change">
-                      <div class="loan-chart-actions">
+                      <div class="loan-chart-actions with-switch">
+                        <div class="loan-chart-switch" role="group" aria-label="Tryb zmian raty">
+                          <button class="loan-chart-mode-btn active" type="button" data-change-mode="value">Kwotowo</button>
+                          <button class="loan-chart-mode-btn" type="button" data-change-mode="percent">Procentowo</button>
+                        </div>
                         <button class="loan-chart-toggle" type="button" data-chart-toggle="change">Pokaż dane</button>
                       </div>
                       <div class="loan-chart-area" style="min-height:320px;">
@@ -709,6 +751,8 @@ const chartLabelState = {
   change: false
 };
 
+let paymentChangeMode = 'value';
+
 function $(selector) { return document.querySelector(selector); }
 function $$(selector) { return document.querySelectorAll(selector); }
 
@@ -723,8 +767,22 @@ function saveState() {
 }
 
 function fmt(n) {
-  try { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(n || 0); }
-  catch { return `${(n || 0).toFixed(2)} PLN`; }
+  try {
+    const value = Number(n || 0);
+    const formatter = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = formatter.format(value).replace(/\u00a0/g, ' ');
+    if (Math.abs(value) < 10000) {
+      const compact = formatted.replace(/\s(?=\d)/g, '');
+      return `${compact} zł`;
+    }
+    return `${formatted} zł`;
+  } catch {
+    return `${(n || 0).toFixed(2)} zł`;
+  }
+}
+
+function fmtPlain(n) {
+  return fmt(n).replace(/\s*zł/i, '').trim();
 }
 
 function formatRateValue(value) {
@@ -1259,14 +1317,8 @@ function renderCharts() {
     return Math.max(runningBalance, 0);
   });
 
-  const sortedRateHistory = [...rateHistory].sort((a, b) => a.date.localeCompare(b.date));
-  const rateHistoryLabels = sortedRateHistory.length
-    ? sortedRateHistory.map(entry => new Date(`${entry.date}-02`).toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }))
-    : paymentLabels;
-  const rateHistoryValuesRaw = sortedRateHistory.length
-    ? sortedRateHistory.map(entry => entry.rate)
-    : interestRateData;
-  const rateHistoryValues = rateHistoryValuesRaw.map(rate => formatRateValue(rate));
+  const rateHistoryLabels = paymentLabels;
+  const rateHistoryValues = interestRateData;
   const rateHistoryDiffs = rateHistoryValues.map((value, index) => {
     if (index === 0) return 0;
     const previous = rateHistoryValues[index - 1];
@@ -1275,6 +1327,9 @@ function renderCharts() {
   });
   const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
   const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
+  const averageInstallment = totalSeries.length
+    ? Number((totalSeries.reduce((sum, value) => sum + value, 0) / totalSeries.length).toFixed(2))
+    : 0;
 
   const paymentChangeValues = totalSeries.map((value, index) => {
     if (index === 0) return 0;
@@ -1306,6 +1361,7 @@ function renderCharts() {
     rateHistoryDiffs,
     paymentChangeValues,
     paymentChangePercentages,
+    averageInstallment,
     totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
   };
 
@@ -1359,18 +1415,37 @@ function renderChartForPanel(panelType) {
     rateHistoryValues,
     rateHistoryDiffs,
     paymentChangeValues,
-    paymentChangePercentages
+    paymentChangePercentages,
+    averageInstallment
   } = chartDataCache;
 
   if (panelType === 'mix') {
     const capitalCanvas = $('#capital-chart');
     if (capitalCanvas) {
       const capitalCtx = capitalCanvas.getContext('2d');
+      const minRateValue = interestRateData.length ? Math.min(...interestRateData) : 0;
+      const maxRateValue = interestRateData.length ? Math.max(...interestRateData) : 0;
+      const ratePadding = 0.4;
+      const suggestedRateMin = Number.isFinite(minRateValue) ? Math.min(minRateValue - ratePadding, 4) : 0;
+      const yRateMin = Math.max(0, Number.isFinite(suggestedRateMin) ? suggestedRateMin : 0);
+      const yRateMax = Number.isFinite(maxRateValue) ? maxRateValue + ratePadding : undefined;
       if (charts.capital) {
         charts.capital.data.labels = labels;
-        charts.capital.data.datasets[0].data = interestRateData;
-        charts.capital.data.datasets[1].data = principalSeries;
-        charts.capital.data.datasets[2].data = interestSeries;
+        const rateDataset = charts.capital.data.datasets.find(ds => ds.label === 'Oprocentowanie');
+        const principalDataset = charts.capital.data.datasets.find(ds => ds.label === 'Kapitał');
+        const interestDataset = charts.capital.data.datasets.find(ds => ds.label === 'Odsetki');
+        const averageDataset = charts.capital.data.datasets.find(ds => ds.label === 'Średnia rata');
+        if (rateDataset) rateDataset.data = interestRateData;
+        if (principalDataset) principalDataset.data = principalSeries;
+        if (interestDataset) interestDataset.data = interestSeries;
+        if (averageDataset) {
+          averageDataset.data = labels.map(() => averageInstallment);
+          averageDataset.hidden = !averageInstallment;
+        }
+        if (charts.capital.options?.scales?.yRate) {
+          charts.capital.options.scales.yRate.min = yRateMin;
+          charts.capital.options.scales.yRate.max = yRateMax;
+        }
         charts.capital.update();
       } else {
         charts.capital = new Chart(capitalCtx, {
@@ -1398,7 +1473,8 @@ function renderChartForPanel(panelType) {
                     return total ? fmt(total) : '';
                   }
                 }
-              }
+              },
+              { type: 'line', label: 'Średnia rata', data: labels.map(() => averageInstallment), borderColor: palette.ink, borderDash: [6, 4], borderWidth: 1.5, yAxisID: 'y', pointRadius: 0, tension: 0, datalabels: { display: false }, hidden: !averageInstallment }
             ]
           },
           plugins: [ChartDataLabels],
@@ -1407,15 +1483,15 @@ function renderChartForPanel(panelType) {
             maintainAspectRatio: false,
             scales: {
               x: { stacked: true, grid: { display: false } },
-              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') } },
-              yRate: { type: 'linear', position: 'right', grid: { display: false }, ticks: { callback: (value) => `${value}%` } }
+              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmtPlain(value) } },
+              yRate: { type: 'linear', position: 'right', grid: { display: false }, min: yRateMin, max: yRateMax, ticks: { callback: (value) => `${value}%` } }
             },
             plugins: {
-              legend: { position: 'bottom' },
+              legend: { position: 'bottom', labels: { usePointStyle: true } },
               tooltip: {
                 callbacks: {
                   label: (context) => {
-                    if (context.dataset.type === 'line') {
+                    if (context.dataset.yAxisID === 'yRate') {
                       return `${context.dataset.label}: ${context.raw}%`;
                     }
                     return `${context.dataset.label}: ${fmt(context.raw)}`;
@@ -1533,7 +1609,7 @@ function renderChartForPanel(panelType) {
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+                ticks: { callback: (value) => fmtPlain(value) }
               }
             }
           }
@@ -1546,11 +1622,29 @@ function renderChartForPanel(panelType) {
     const shareCanvas = $('#share-area-chart');
     if (shareCanvas) {
       const shareCtx = shareCanvas.getContext('2d');
+      const shareLabelFormatter = (value) => `${Number(value).toFixed(1)}%`;
+      const shareLabelOffset = (context) => {
+        const chart = context.chart;
+        const datasetIndex = context.datasetIndex;
+        const dataIndex = context.dataIndex;
+        const yScale = chart.scales.y;
+        if (!yScale) return 0;
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || !meta.data || !meta.data[dataIndex]) return 0;
+        const element = meta.data[dataIndex];
+        const target = datasetIndex === 0 ? 10 : 80;
+        const targetPixel = yScale.getPixelForValue(target);
+        return targetPixel - element.y;
+      };
+      const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
       if (charts.shareArea) {
         charts.shareArea.data.labels = labels;
         charts.shareArea.data.datasets[0].data = sharePrincipal;
         charts.shareArea.data.datasets[1].data = shareInterest;
-        charts.shareArea.options.plugins.datalabels.display = chartLabelState.share;
+        charts.shareArea.options.plugins.datalabels.display = (ctx) => chartLabelState.share && !ctx.dataset.hidden;
+        charts.shareArea.options.plugins.datalabels.offset = shareLabelOffset;
+        charts.shareArea.options.plugins.datalabels.color = shareLabelColor;
+        charts.shareArea.options.plugins.datalabels.formatter = shareLabelFormatter;
         charts.shareArea.update();
       } else {
         charts.shareArea = new Chart(shareCtx, {
@@ -1567,19 +1661,21 @@ function renderChartForPanel(panelType) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom' },
+              legend: { position: 'bottom', labels: { usePointStyle: true } },
               tooltip: {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
                 }
               },
               datalabels: {
-                display: chartLabelState.share,
-                align: (context) => (context.datasetIndex === 0 ? 'top' : 'bottom'),
-                anchor: (context) => (context.datasetIndex === 0 ? 'end' : 'start'),
-                color: (context) => context.dataset.borderColor || palette.ink,
+                display: (ctx) => chartLabelState.share && !ctx.dataset.hidden,
+                align: 'center',
+                anchor: 'center',
+                clip: false,
+                offset: shareLabelOffset,
+                color: shareLabelColor,
                 font: { weight: 600, size: 10 },
-                formatter: (value) => `${Number(value).toFixed(1)}%`
+                formatter: shareLabelFormatter
               }
             },
             scales: {
@@ -1646,7 +1742,7 @@ function renderChartForPanel(panelType) {
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+                ticks: { callback: (value) => fmtPlain(value) }
               }
             }
           }
@@ -1707,7 +1803,7 @@ function renderChartForPanel(panelType) {
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+                ticks: { callback: (value) => fmtPlain(value) }
               }
             }
           }
@@ -1720,18 +1816,35 @@ function renderChartForPanel(panelType) {
   if (panelType === 'change') {
     const changeCanvas = $('#payment-change-chart');
     if (changeCanvas) {
+      updateChangeModeButtons();
       const changeCtx = changeCanvas.getContext('2d');
       const barColors = paymentChangeValues.map(value => {
         if (value < 0) return palette.green;
         if (value > 0) return palette.orange;
         return palette.line;
       });
+      const showValue = paymentChangeMode === 'value';
+      const showPercent = paymentChangeMode === 'percent';
       if (charts.paymentChange) {
         charts.paymentChange.data.labels = labels;
-        charts.paymentChange.data.datasets[0].data = paymentChangeValues;
-        charts.paymentChange.data.datasets[0].backgroundColor = barColors;
-        charts.paymentChange.data.datasets[1].data = paymentChangePercentages;
-        charts.paymentChange.options.plugins.datalabels.display = chartLabelState.change;
+        const valueDataset = charts.paymentChange.data.datasets.find(ds => ds.label === 'Zmiana kwotowa');
+        const percentDataset = charts.paymentChange.data.datasets.find(ds => ds.label === 'Zmiana %');
+        if (valueDataset) {
+          valueDataset.data = paymentChangeValues;
+          valueDataset.backgroundColor = barColors;
+          valueDataset.hidden = !showValue;
+        }
+        if (percentDataset) {
+          percentDataset.data = paymentChangePercentages;
+          percentDataset.hidden = !showPercent;
+        }
+        if (charts.paymentChange.options?.scales?.yValue) {
+          charts.paymentChange.options.scales.yValue.display = showValue;
+        }
+        if (charts.paymentChange.options?.scales?.yPercent) {
+          charts.paymentChange.options.scales.yPercent.display = showPercent;
+        }
+        charts.paymentChange.options.plugins.datalabels.display = (ctx) => chartLabelState.change && !ctx.dataset.hidden;
         charts.paymentChange.update();
       } else {
         charts.paymentChange = new Chart(changeCtx, {
@@ -1745,7 +1858,8 @@ function renderChartForPanel(panelType) {
                 data: paymentChangeValues,
                 backgroundColor: barColors,
                 borderRadius: 4,
-                yAxisID: 'yValue'
+                yAxisID: 'yValue',
+                hidden: !showValue
               },
               {
                 type: 'line',
@@ -1756,7 +1870,8 @@ function renderChartForPanel(panelType) {
                 fill: false,
                 tension: 0.25,
                 pointRadius: 3,
-                yAxisID: 'yPercent'
+                yAxisID: 'yPercent',
+                hidden: !showPercent
               }
             ]
           },
@@ -1770,12 +1885,14 @@ function renderChartForPanel(panelType) {
               yValue: {
                 type: 'linear',
                 position: 'left',
+                display: showValue,
                 grid: { color: palette.line },
-                ticks: { callback: (value) => fmt(value).replace(/\sPLN/, '') }
+                ticks: { callback: (value) => fmtPlain(value) }
               },
               yPercent: {
                 type: 'linear',
                 position: 'right',
+                display: showPercent,
                 grid: { display: false },
                 ticks: {
                   callback: (value) => `${value}%`
@@ -1797,7 +1914,7 @@ function renderChartForPanel(panelType) {
                 }
               },
               datalabels: {
-                display: chartLabelState.change,
+                display: (ctx) => chartLabelState.change && !ctx.dataset.hidden,
                 align: (context) => {
                   if (context.dataset.type === 'line') return 'bottom';
                   return Number(context.raw || 0) >= 0 ? 'top' : 'bottom';
@@ -1836,15 +1953,35 @@ function renderChartForPanel(panelType) {
     const rateCanvas = $('#rate-trend-chart');
     if (rateCanvas) {
       const rateCtx = rateCanvas.getContext('2d');
+      const minRateValue = rateHistoryValues.length ? Math.min(...rateHistoryValues) : 0;
+      const maxRateValue = rateHistoryValues.length ? Math.max(...rateHistoryValues) : 0;
+      const ratePadding = 0.25;
+      const yRateMin = Math.max(0, Math.min(minRateValue - ratePadding, 4));
+      const yRateMax = maxRateValue + ratePadding;
+      const pointColor = (index) => {
+        const diff = rateHistoryDiffs[index] || 0;
+        if (diff > 0.01) return palette.orange;
+        if (diff < -0.01) return palette.green;
+        return palette.line;
+      };
+      const pointRadius = (index) => (Math.abs(rateHistoryDiffs[index] || 0) >= 0.01 ? 4 : 2);
       if (charts.rateTrend) {
         charts.rateTrend.data.labels = rateHistoryLabels;
         charts.rateTrend.data.datasets[0].data = rateHistoryValues;
+        charts.rateTrend.data.datasets[0].pointBackgroundColor = (ctx) => pointColor(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointBorderColor = (ctx) => pointColor(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointRadius = (ctx) => pointRadius(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointHoverRadius = (ctx) => Math.max(5, pointRadius(ctx.dataIndex) + 1);
+        charts.rateTrend.data.datasets[0].segment = {
+          borderDash: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? [4, 4] : undefined),
+          borderColor: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? palette.line : palette.orange)
+        };
         charts.rateTrend.options.plugins.tooltip.callbacks.label = (context) => {
           const value = Number(context.raw || 0);
           const diff = rateHistoryDiffs[context.dataIndex] || 0;
           const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
           if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
-            return base;
+            return `${base} (bez zmian)`;
           }
           const sign = diff > 0 ? '+' : '';
           return `${base} (${sign}${diff.toFixed(2)} pp)`;
@@ -1862,6 +1999,10 @@ function renderChartForPanel(panelType) {
           const sign = diff > 0 ? '+' : '';
           return `${sign}${diff.toFixed(2)} pp`;
         };
+        if (charts.rateTrend.options?.scales?.y) {
+          charts.rateTrend.options.scales.y.min = yRateMin;
+          charts.rateTrend.options.scales.y.max = yRateMax;
+        }
         charts.rateTrend.update();
       } else {
         charts.rateTrend = new Chart(rateCtx, {
@@ -1876,8 +2017,14 @@ function renderChartForPanel(panelType) {
                 backgroundColor: palette.orangeSoft,
                 fill: 'start',
                 tension: 0.25,
-                pointRadius: 4,
-                pointHoverRadius: 6
+                pointRadius: (ctx) => pointRadius(ctx.dataIndex),
+                pointHoverRadius: (ctx) => Math.max(5, pointRadius(ctx.dataIndex) + 1),
+                pointBackgroundColor: (ctx) => pointColor(ctx.dataIndex),
+                pointBorderColor: (ctx) => pointColor(ctx.dataIndex),
+                segment: {
+                  borderDash: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? [4, 4] : undefined),
+                  borderColor: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? palette.line : palette.orange)
+                }
               }
             ]
           },
@@ -1895,7 +2042,7 @@ function renderChartForPanel(panelType) {
                     const diff = rateHistoryDiffs[context.dataIndex] || 0;
                     const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
                     if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
-                      return base;
+                      return `${base} (bez zmian)`;
                     }
                     const sign = diff > 0 ? '+' : '';
                     return `${base} (${sign}${diff.toFixed(2)} pp)`;
@@ -1925,7 +2072,9 @@ function renderChartForPanel(panelType) {
             scales: {
               y: {
                 grid: { color: palette.line },
-                ticks: { callback: (value) => `${value}%` }
+                ticks: { callback: (value) => `${value}%` },
+                min: yRateMin,
+                max: yRateMax
               }
             }
           }
@@ -1959,6 +2108,29 @@ function setupLoanChartToggles() {
   updateChartToggleLabels();
 }
 
+function updateChangeModeButtons() {
+  document.querySelectorAll('.loan-chart-mode-btn').forEach(button => {
+    const mode = button.dataset.changeMode;
+    button.classList.toggle('active', mode === paymentChangeMode);
+  });
+}
+
+function setupChangeModeSwitch() {
+  document.querySelectorAll('.loan-chart-mode-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.changeMode;
+      if (!mode || mode === paymentChangeMode) return;
+      paymentChangeMode = mode;
+      updateChangeModeButtons();
+      const activePanel = document.querySelector('.loan-tab-panel.active');
+      if (activePanel && activePanel.dataset.chart === 'change') {
+        renderChartForPanel('change');
+      }
+    });
+  });
+  updateChangeModeButtons();
+}
+
 function setupLoanChartTabs() {
   document.querySelectorAll('.loan-tab-btn').forEach(button => {
     button.addEventListener('click', () => {
@@ -1979,6 +2151,7 @@ function init() {
   render();
   setupLoanChartTabs();
   setupLoanChartToggles();
+  setupChangeModeSwitch();
   $('#setup-loan-btn').addEventListener('click', openSetupModal);
   $('#settings-btn').addEventListener('click', openSetupModal);
   $('#add-payment-btn').addEventListener('click', () => openPaymentModal(null));
