@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS – Trainings</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,29 +16,28 @@
   --primary-soft: var(--accent-weak);
   --primary-border: hsl(var(--accent-h) 55% 80% / 0.7);
   --success: var(--green);
-  --success-soft: var(--green-soft);
-  --success-border: hsl(152 62% 80% / 0.65);
+  --success-soft: #f0fdf4;
+  --success-border: #bbf7d0;
   --warning: var(--orange);
   --danger: var(--red);
+  --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
   --shadow-sm: 0 12px 30px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 28px 60px rgba(15, 23, 42, 0.12);
   --transition: all .2s ease;
-  --gym-color: hsl(var(--accent-h) 65% 42%);
+  --gym-color: hsl(265, 65%, 48%);
   --run-color: var(--green);
   --read-color: var(--accent);
   --extra-color: #0ea5e9;
-  --day-empty: #fff1f2;
-  --day-empty-border: rgba(248, 113, 113, 0.5);
-  --day-planned: #fff7ed;
-  --day-planned-border: rgba(251, 191, 36, 0.45);
-  --day-completed: var(--green-soft);
-  --day-completed-border: rgba(34, 197, 94, 0.45);
+  --vacation-color: #64748b;
 }
 
 .page-content {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
 .module-title-row {
@@ -93,82 +92,6 @@
   border-color: hsl(var(--accent-h) 45% 75%);
 }
 
-.top-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(520px, 2fr);
-  gap: 20px;
-  align-items: stretch;
-}
-
-.metrics-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.metrics-header h3 { font-size: 16px; font-weight: 700; }
-.metrics-header p { margin-top: 4px; }
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-}
-
-.focus-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.focus-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.focus-title h3 { font-size: 20px; font-weight: 700; }
-
-.focus-meta {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.focus-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  align-items: start;
-}
-
-.focus-column {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.vacation-note {
-  display: none;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  background: rgba(148, 163, 184, 0.16);
-  border-radius: 12px;
-  padding: 8px 12px;
-}
-
-.focus-goals {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: rgba(37, 99, 235, 0.06);
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 16px;
-  padding: 14px 16px;
-}
-
 .page-header {
   display: flex;
   flex-direction: column;
@@ -213,135 +136,40 @@
 
 .month-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--primary-soft); color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
 
-.metrics-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.metric-card {
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 16px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: linear-gradient(160deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.05));
-}
-
-.metric-text {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.metric-card--donut,
-.metric-card--visual {
-  flex-direction: row;
-  align-items: center;
-  gap: 14px;
-}
-
-.metric-card--donut .metric-text,
-.metric-card--visual .metric-text {
-  flex: 1;
-}
-
-.metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 600; }
-.metric-value { font-size: 22px; font-weight: 700; }
-.metric-sub { font-size: 11px; color: var(--muted); display: block; }
-.metric-sub--stacked { display: flex; flex-direction: column; gap: 2px; }
-.metric-subline { display: block; }
-
-.metric-donut {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-}
-
-.metric-donut svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.metric-donut circle {
-  fill: none;
-  stroke-width: 3.6;
-}
-
-.metric-donut .donut-bg {
-  stroke: rgba(148, 163, 184, 0.28);
-}
-
-.metric-donut .donut-value {
-  stroke: var(--primary);
-  stroke-linecap: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  transition: stroke-dashoffset 0.4s ease;
-}
-
-.metric-donut span {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.metric-visual {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(37, 99, 235, 0.12);
-  color: var(--primary);
-  flex-shrink: 0;
-  transition: var(--transition);
-}
-
-.metric-visual .icon {
-  width: 24px;
-  height: 24px;
-}
-
-.metric-card--visual[data-activity-type="gym"] .metric-visual {
-  background: rgba(91, 33, 182, 0.12);
-  color: var(--gym-color);
-}
-
-.metric-card--visual[data-activity-type="running"] .metric-visual {
-  background: rgba(4, 120, 87, 0.12);
-  color: var(--run-color);
-}
-
-.metric-card--visual[data-activity-type="reading"] .metric-visual {
-  background: rgba(29, 78, 216, 0.12);
-  color: var(--read-color);
-}
-
-.metric-card--visual[data-activity-type="extra"] .metric-visual {
-  background: rgba(14, 165, 233, 0.14);
-  color: var(--extra-color);
-}
-
-.metric-card--visual[data-activity-type="none"] .metric-visual {
-  background: rgba(148, 163, 184, 0.18);
-  color: var(--muted);
-}
-
-
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .card-header p { margin-top: 4px; }
 
 .muted { color: var(--muted); }
 .tiny { font-size: 11px; letter-spacing: 0.02em; }
+
+
+/* New Activity Hub Styles */
+.activity-hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 20px;
+  align-items: flex-start;
+  min-height: 520px;
+}
+
+.calendar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 4px;
+}
+
+.calendar-header h3 { font-size: 16px; font-weight: 700; }
+.calendar-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.calendar-legend span { display: inline-flex; align-items: center; gap: 6px; font-weight: 500;}
 
 .calendar-weekdays {
   display: grid;
@@ -352,211 +180,271 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
-}
-
-.calendar-weekdays span {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 4px;
+  padding: 0 4px;
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
+  grid-auto-rows: minmax(80px, 1fr);
+  flex: 1;
 }
 
 .calendar-day {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  padding: 10px 12px;
-  min-height: 104px;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 8px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
 }
 
 .calendar-day:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
-.calendar-day--other-month { opacity: 0.55; }
-.calendar-day--selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12); }
-.calendar-day--today { border-color: var(--success); }
-.calendar-day--empty { background: var(--day-empty); border-color: var(--day-empty-border); }
-.calendar-day--planned { background: var(--day-planned); border-color: var(--day-planned-border); }
-.calendar-day--completed { background: var(--day-completed); border-color: var(--day-completed-border); }
-.calendar-day--vacation {
-  background: #f1f5f9;
-  border-color: rgba(148, 163, 184, 0.4);
-  color: var(--muted);
+.calendar-day.is-other-month { opacity: 0.5; background: transparent; border-color: transparent; }
+.calendar-day.is-other-month:hover { opacity: 1; background: var(--surface); border-color: var(--primary); }
+.calendar-day.is-selected { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.calendar-day.is-today .calendar-date-number { border-color: var(--success); color: var(--success); }
+.calendar-day.is-vacation { 
+  background-color: #f8fafc; 
+  border-color: #e2e8f0;
+  background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(100, 116, 139, 0.07) 4px, rgba(100, 116, 139, 0.07) 8px);
 }
-.calendar-day--drag-over {
-  outline: 2px dashed var(--primary);
-  outline-offset: 3px;
-}
+.calendar-day.is-planned { background: var(--warning-soft); border-color: var(--warning-border); }
+.calendar-day.is-completed { background: var(--success-soft); border-color: var(--success-border); }
+.calendar-day.is-missed { background: var(--danger-soft); border-color: var(--danger-border); }
+.calendar-day.is-drag-over { outline: 2px dashed var(--primary); outline-offset: 3px; background: var(--primary-soft); }
+.calendar-grid.is-planning .calendar-day:not(.is-other-month) { cursor: crosshair; }
 
-.calendar-day-header { display: flex; justify-content: space-between; align-items: center; }
-.calendar-date-number { font-weight: 700; font-size: 14px; }
-.calendar-day-badges { display: flex; gap: 6px; align-items: center; }
-.calendar-badge {
-  background: #fff;
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 10px;
+.calendar-date-number {
   font-weight: 600;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  border: 1px solid transparent;
+  display: inline-block;
+  padding: 2px;
+  border-radius: 6px;
 }
 
-.calendar-day-tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 32px; }
-.activity-tag {
-  display: inline-flex;
-  align-items: center;
+.calendar-day-emojis {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  min-height: 28px;
+  font-size: 20px;
+}
+.activity-emoji {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+.activity-emoji.completed {
+  opacity: 0.4;
+}
+.activity-emoji[draggable="true"] {
+    cursor: grab;
+}
+.activity-emoji.is-dragging {
+    opacity: 0.2;
+    transform: scale(1.5);
+}
+
+.calendar-day-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.completion-badge {
+  font-size: 9px;
+  font-weight: 700;
   padding: 2px 6px;
   border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background: rgba(148, 163, 184, 0.18);
-  color: var(--ink);
-  border: 1px solid transparent;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #fff;
+  background-color: var(--muted);
+  opacity: 0;
+  transition: var(--transition);
 }
-.activity-tag[draggable="true"] { cursor: grab; }
-.activity-tag.dragging { opacity: 0.6; cursor: grabbing; }
-.activity-tag.gym { background: rgba(91, 33, 182, 0.12); color: var(--gym-color); border-color: rgba(91, 33, 182, 0.16); }
-.activity-tag.running { background: rgba(4, 120, 87, 0.12); color: var(--run-color); border-color: rgba(4, 120, 87, 0.18); }
-.activity-tag.reading { background: rgba(29, 78, 216, 0.12); color: var(--read-color); border-color: rgba(29, 78, 216, 0.18); }
-.activity-tag.extra { background: rgba(14, 165, 233, 0.12); color: var(--extra-color); border-color: rgba(14, 165, 233, 0.18); }
-.activity-tag.vacation { background: rgba(148, 163, 184, 0.22); color: var(--muted); border-color: rgba(148, 163, 184, 0.32); font-weight: 700; }
-.activity-tag.more { background: rgba(148, 163, 184, 0.14); color: var(--muted); border-style: dashed; }
-
-.calendar-day-footer { margin-top: auto; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
-.calendar-footer-label { font-weight: 600; color: var(--muted); }
-.calendar-day--empty .calendar-footer-label { color: var(--danger); }
-.calendar-day--planned .calendar-footer-label { color: var(--warning); }
-.calendar-day--completed .calendar-footer-label { color: var(--success); }
-
-.calendar-legend { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
-.calendar-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  background: rgba(148, 163, 184, 0.16);
-  color: var(--muted);
+.calendar-day:hover .completion-badge,
+.calendar-day.is-selected .completion-badge {
+  opacity: 1;
 }
-.legend-tag.gym { background: rgba(91, 33, 182, 0.12); color: var(--gym-color); }
-.legend-tag.running { background: rgba(4, 120, 87, 0.12); color: var(--run-color); }
-.legend-tag.reading { background: rgba(29, 78, 216, 0.12); color: var(--read-color); }
-.legend-tag.extra { background: rgba(14, 165, 233, 0.12); color: var(--extra-color); }
-.legend-tag.vacation { background: rgba(148, 163, 184, 0.22); color: var(--muted); }
+.completion-badge.is-done { background-color: var(--success); }
+.completion-badge.in-progress { background-color: var(--warning); }
 
-.planning-banner {
+
+/* Day Detail Panel Styles */
+.day-detail {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  background: rgba(37, 99, 235, 0.05);
-  border: 1px dashed rgba(37, 99, 235, 0.25);
-  border-radius: 14px;
-  padding: 12px 14px;
+  gap: 16px;
+  height: 100%;
+  min-height: 520px;
 }
 
-.planning-banner.active {
-  border-style: solid;
-  background: rgba(37, 99, 235, 0.1);
+.day-detail-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  height: 100%;
+  color: var(--muted);
+}
+.day-detail-placeholder .icon { width: 40px; height: 40px; color: rgba(148, 163, 184, 0.4); }
+
+.day-detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.day-detail-title h3 { font-size: 18px; font-weight: 700; }
+.day-detail-title p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.day-detail-meta { display: flex; gap: 8px; }
+.day-detail-meta .btn { padding: 8px; font-size: 11px; }
+
+.day-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+.vacation-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.vacation-note .icon { width: 18px; height: 18px; color: var(--vacation-color); }
+
+.detail-block { display: flex; flex-direction: column; gap: 10px; }
+.detail-block-header { 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600; 
+  font-size: 11px; 
+  text-transform: uppercase; 
+  letter-spacing: 0.08em; 
+  color: var(--muted); 
+  padding: 0 4px; 
+}
+.detail-list { display: flex; flex-direction: column; gap: 8px; }
+.quick-add-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-add-btn {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.quick-add-btn:hover {
+  background: #fff;
+  border-color: var(--primary);
+  color: var(--primary);
   box-shadow: var(--shadow-sm);
 }
-.planning-banner:not(.active) #stop-planning-btn { display: none; }
-.planning-banner-info { display: flex; align-items: flex-start; gap: 10px; }
-.planning-banner-info strong { display: block; font-size: 12px; font-weight: 700; color: var(--ink); }
-.planning-banner-info span { display: block; font-size: 11px; color: var(--muted); }
-.planning-banner .icon { color: var(--primary); }
 
-.btn.small { padding: 6px 12px; font-size: 11px; border-radius: 10px; }
 
-.calendar-card--planning { border-color: var(--primary); box-shadow: var(--shadow-sm); }
-.calendar-grid.is-planning .calendar-day { cursor: crosshair; }
-
-.empty-state {
-  font-size: 12px;
-  color: var(--muted);
-  text-align: center;
-  padding: 18px 12px;
-  border-radius: 12px;
-  background: rgba(248, 250, 252, 0.7);
-  border: 1px dashed rgba(148, 163, 184, 0.4);
-}
-.day-detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.detail-block { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-.detail-block-header { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.detail-list { display: flex; flex-direction: column; gap: 10px; }
 .detail-item {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  background: rgba(248, 250, 252, 0.8);
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
   transition: var(--transition);
 }
 .detail-item[draggable="true"] { cursor: grab; }
-.detail-item.dragging { opacity: 0.6; cursor: grabbing; }
+.detail-item.is-dragging { opacity: 0.4; cursor: grabbing; background: var(--primary-soft); }
 .detail-item:hover { border-color: var(--primary-border); box-shadow: var(--shadow-sm); background: #fff; }
-.detail-item.completed { background: var(--success-soft); border-color: var(--success-border); }
-.detail-info { display: flex; gap: 12px; }
-.detail-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 14px; }
-.detail-icon.gym { background: rgba(91, 33, 182, 0.2); color: var(--gym-color); }
-.detail-icon.running { background: rgba(4, 120, 87, 0.18); color: var(--run-color); }
-.detail-icon.reading { background: rgba(29, 78, 216, 0.18); color: var(--read-color); }
-.detail-icon.extra { background: rgba(14, 165, 233, 0.18); color: var(--extra-color); }
+.detail-item.is-completed { background: var(--success-soft); border-color: var(--success-border); }
+.detail-item.is-completed .detail-title { text-decoration: line-through; color: var(--muted); }
+
+.detail-info { display: flex; align-items: center; gap: 10px; }
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.detail-icon .icon { width: 18px; height: 18px; }
+.detail-icon.gym { background: rgba(167, 139, 250, 0.2); color: var(--gym-color); }
+.detail-icon.running { background: rgba(110, 231, 183, 0.3); color: var(--run-color); }
+.detail-icon.reading { background: rgba(147, 197, 253, 0.3); color: var(--read-color); }
+.detail-icon.extra { background: rgba(103, 232, 249, 0.3); color: var(--extra-color); }
+.detail-text { display: flex; flex-direction: column; gap: 2px; }
 .detail-title { font-weight: 600; font-size: 13px; }
 .detail-meta { font-size: 11px; color: var(--muted); }
-.detail-actions-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.detail-actions-inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 .action-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.4);
   background: #fff;
   color: var(--ink);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 6px 10px;
   cursor: pointer;
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-
+.action-btn .icon { width: 14px; height: 14px; }
 .action-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .action-btn.success { background: var(--success); color: #fff; border-color: var(--success); }
-.action-btn.danger { border-color: rgba(220, 38, 38, 0.3); color: var(--danger); background: #fff5f5; }
+.action-btn.danger { background: #fff5f5; color: var(--danger); border-color: transparent; }
 .action-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
-.detail-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.day-detail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; padding-top: 12px; }
+.day-detail-actions .btn { font-size: 12.5px; }
 
-.goal-progress-list { display: flex; flex-direction: column; gap: 14px; }
-.goal-progress-item { display: flex; flex-direction: column; gap: 8px; }
-.goal-progress-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.goal-progress-label strong { font-size: 13px; }
-.goal-progress-value { font-size: 11px; font-weight: 600; color: var(--muted); }
-.goal-progress-bar { width: 100%; height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
-.goal-progress-bar span { display: block; height: 100%; border-radius: 999px; transition: width .3s ease; }
+.planning-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+.planning-banner.is-active { display: flex; }
+.planning-banner-info { display: flex; align-items: center; gap: 8px; }
+.planning-banner-info strong { display: block; font-size: 12px; font-weight: 700; color: var(--primary); }
+.planning-banner-info span { display: block; font-size: 11px; color: var(--muted); }
+.planning-banner .icon { color: var(--primary); }
+.btn.small { padding: 6px 12px; font-size: 11px; border-radius: 10px; }
+
 
 .heatmap-card { display: flex; flex-direction: column; gap: 16px; }
-.heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 8px; flex-wrap: nowrap; }
-.heatmap-week { display: grid; grid-template-rows: repeat(7, 11px) auto; gap: 3px; align-items: center; }
-.heatmap-cell { width: 11px; height: 11px; border-radius: 3px; background: #e2e8f0; }
+.heatmap { display: flex; gap: 4px; overflow-x: auto; padding: 4px; justify-content: center; }
+.heatmap-week { display: grid; grid-template-rows: repeat(7, 14px) auto; gap: 4px; align-items: center; }
+.heatmap-cell { width: 14px; height: 14px; border-radius: 4px; background: #e2e8f0; }
 .heatmap-cell[data-level="0"] { background: #e2e8f0; }
 .heatmap-cell[data-level="1"] { background: #b7f3d0; }
 .heatmap-cell[data-level="2"] { background: #6ee7b7; }
@@ -571,6 +459,7 @@
 .heatmap-legend-scale span[data-level="2"] { background: #6ee7b7; }
 .heatmap-legend-scale span[data-level="3"] { background: #34d399; }
 .heatmap-legend-scale span[data-level="4"] { background: #059669; }
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -583,9 +472,7 @@
   transition: opacity .2s ease;
   z-index: 100;
 }
-
 .modal-overlay.visible { opacity: 1; pointer-events: all; }
-
 .modal-card {
   background: #fff;
   padding: 28px;
@@ -597,7 +484,6 @@
   flex-direction: column;
   gap: 16px;
 }
-
 .modal-card h3 { font-size: 18px; font-weight: 700; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal-card input, .modal-card textarea, .modal-card select { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-family: inherit; font-size: 13px; }
@@ -624,43 +510,94 @@
   font-size: 12px;
   z-index: 120;
 }
-
 #save-status.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-@media (max-width: 1080px) {
-  .top-grid { grid-template-columns: 1fr; }
-  .focus-columns { grid-template-columns: 1fr; }
-  .bottom-grid { grid-template-columns: 1fr; }
+.kpi-progress-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.goal-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.goal-progress-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.goal-progress-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: right;
+  flex-shrink: 0;
+}
+.kpi-progress-bar {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.kpi-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s ease;
 }
 
+@media (max-width: 1080px) {
+  .activity-hub { grid-template-columns: 1fr; }
+  .day-detail, .day-detail-placeholder { min-height: 380px; }
+}
 @media (max-width: 720px) {
   .wrap { padding: 24px 18px 40px; }
   .page-header-top { flex-direction: column; align-items: flex-start; }
   .page-header-actions { width: 100%; }
   .page-header-actions .btn { flex: 1; justify-content: center; }
-  .metrics-grid { grid-template-columns: 1fr; }
-  .focus-meta { flex-direction: column; align-items: flex-start; }
-  .detail-actions { flex-direction: column; }
-  .bottom-grid { grid-template-columns: 1fr; }
   .calendar-weekdays { display: none; }
-  .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); grid-auto-rows: 70px; }
 }
   </style>
 </head>
-<body class="module-shell">
-  <section class="module-hero">
-    <div class="wrap module-hero-inner">
-      <div class="module-hero-top">
-        <div class="module-title-group">
-          <a href="./index.html" class="back-link">← Powrót</a>
-          <div class="module-eyebrow">Program treningowy</div>
+<body data-page="trainings">
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link active" href="trainings.html" aria-current="page"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <p class="topbar-eyebrow">Program treningowy</p>
           <div class="module-title-row">
-            <h1 class="module-title">Panel treningów</h1>
+            <h1 class="topbar-title">Treningi</h1>
             <span class="chip" id="header-month-chip">--</span>
           </div>
-          <p class="module-subtitle">Zarządzaj planem aktywności, dniami urlopu i monitoruj realizację celów.</p>
         </div>
-        <div class="module-hero-actions month-switcher">
+        <div class="topbar-actions month-switcher">
           <button id="prev-month-btn" class="btn ghost icon-btn" aria-label="Poprzedni miesiąc"><i data-lucide="chevron-left" class="icon"></i></button>
           <div class="month-labels">
             <span class="month-label" id="current-month-label">--</span>
@@ -669,189 +606,104 @@
           <button id="next-month-btn" class="btn ghost icon-btn" aria-label="Następny miesiąc"><i data-lucide="chevron-right" class="icon"></i></button>
           <button id="today-month-btn" class="btn soft"><i data-lucide="calendar" class="icon"></i>Dzisiaj</button>
         </div>
-      </div>
-      <div class="module-hero-stats">
-        <div class="module-hero-stat">
-          <div class="label">Realizacja celów</div>
-          <div class="value" id="hero-goal-progress">0%</div>
-          <div class="note" id="hero-goal-progress-note">Cele tygodniowe — --</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Zaliczone tygodnie</div>
-          <div class="value" id="hero-weekly-complete-count">0/0</div>
-          <div class="note" id="hero-weekly-complete-note">0%</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Aktywne dni</div>
-          <div class="value" id="hero-active-days">0/0</div>
-          <div class="note" id="hero-active-days-note">W tym miesiącu</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <main class="module-content">
-    <div class="wrap page-content">
-    <div class="top-grid">
-      <section class="card metrics-card">
-        <div class="metrics-header">
-          <h3>Wskaźniki</h3>
-          <p class="muted tiny">Szybki podgląd Twojego miesiąca</p>
-        </div>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-text">
-              <span class="metric-label">Realizacja celów</span>
-              <span class="metric-value" id="metric-goal-progress">0%</span>
-              <div class="metric-sub metric-sub--stacked" id="metric-goal-progress-sub">
-                <span class="metric-subline">Cele tygodniowe</span>
-                <span class="metric-subline">--</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card metric-card--donut">
-            <div class="metric-donut">
-              <svg viewBox="0 0 36 36" aria-hidden="true">
-                <circle class="donut-bg" cx="18" cy="18" r="16"></circle>
-                <circle class="donut-value" id="metric-weekly-complete-circle" cx="18" cy="18" r="16"></circle>
-              </svg>
-              <span id="metric-weekly-complete-percent">0%</span>
-            </div>
-            <div class="metric-text">
-              <span class="metric-label">Zaliczone tygodnie</span>
-              <span class="metric-value" id="metric-weekly-complete-count">0/0</span>
-              <div class="metric-sub metric-sub--stacked" id="metric-weekly-complete-sub">
-                <span class="metric-subline">Rok --</span>
-                <span class="metric-subline">--</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-text">
-              <span class="metric-label">Zamknięte działania</span>
-              <span class="metric-value" id="metric-plan-completion">0/0</span>
-              <span class="metric-sub">Ukończone vs zaplanowane</span>
-            </div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-text">
-              <span class="metric-label">Aktywne dni</span>
-              <span class="metric-value" id="metric-active-days">0/0</span>
-              <span class="metric-sub">Dni z planem w miesiącu</span>
-            </div>
-          </div>
-          <div class="metric-card metric-card--visual" id="metric-next-activity-card" data-activity-type="none">
-            <div class="metric-visual" id="metric-next-activity-visual"><i data-lucide="calendar" class="icon"></i></div>
-            <div class="metric-text">
-              <span class="metric-label">Najbliższa aktywność</span>
-              <div class="metric-sub metric-sub--stacked">
-                <span class="metric-subline" id="metric-next-activity-date">Brak terminu</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card focus-card">
-        <div class="focus-header">
-          <div class="focus-title">
-            <span class="tiny muted">Plan na dziś</span>
-            <h3 id="selected-day-title">--</h3>
-          </div>
-          <div class="focus-meta">
-            <span class="month-chip" id="selected-day-chip">--</span>
-            <button id="toggle-vacation-btn" class="btn ghost small"><i data-lucide="plane" class="icon"></i>Urlop</button>
-          </div>
-        </div>
-        <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
-        <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
-        <div class="focus-columns">
-          <div class="focus-column">
-            <div class="detail-block">
-              <div class="detail-block-header">
-                <span>Plan treningowy</span>
-              </div>
-              <div id="day-plan-list" class="detail-list"></div>
-              <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
-            </div>
-            <div class="detail-block">
-              <div class="detail-block-header">
-                <span>Aktywności dodatkowe</span>
-              </div>
-              <div id="day-extra-list" class="detail-list"></div>
-              <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
-            </div>
-          </div>
-          <div class="focus-column">
-            <div class="planning-banner" id="planning-banner" aria-live="polite">
-              <div class="planning-banner-info">
-                <i data-lucide="mouse-pointer" class="icon"></i>
-                <div>
-                  <strong id="planning-banner-title">Tryb planowania</strong>
-                  <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+      <div class="content">
+        <main class="page-content content-main stack">
+          <!-- New Activity Hub Layout -->
+          <div class="card activity-hub">
+            <div class="calendar-wrapper">
+              <div class="calendar-header">
+                <h3>Dziennik aktywności</h3>
+                <div class="calendar-legend">
+                  <span title="Trening siłowy">🏋️ Siłownia</span>
+                  <span title="Bieganie">🏃 Bieganie</span>
+                  <span title="Czytanie">📚 Czytanie</span>
+                  <span title="Aktywność dodatkowa">✨ Dodatkowe</span>
+                  <span title="Urlop">🌴 Urlop</span>
                 </div>
               </div>
-              <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
-            </div>
-            <div class="focus-goals">
-              <div class="detail-block-header">
-                <span>Postęp tygodnia</span>
+              <div class="calendar-weekdays">
+                <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Niedz</span>
               </div>
-              <div id="goal-progress-list" class="goal-progress-list"></div>
+              <div id="calendar-grid" class="calendar-grid"></div>
+              <div class="planning-banner" id="planning-banner" aria-live="polite">
+                <div class="planning-banner-info">
+                  <i data-lucide="mouse-pointer-click" class="icon"></i>
+                  <div>
+                    <strong id="planning-banner-title">Tryb planowania</strong>
+                    <span id="planning-banner-meta">Klikaj dni, by dodać ten trening.</span>
+                  </div>
+                </div>
+                <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
+              </div>
+            </div>
+
+            <div id="day-detail-container">
+              <!-- This will be populated by JS -->
             </div>
           </div>
-        </div>
-        <div class="detail-actions">
-          <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
-          <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
-          <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
-        </div>
-      </section>
+          <!-- End of Activity Hub -->
+
+          <section class="card heatmap-card">
+            <div class="card-header">
+              <div>
+                <h3>Historia aktywności</h3>
+                <p class="muted tiny">Podsumowanie ukończonych zadań w ciągu roku</p>
+              </div>
+              <span class="month-chip" id="heatmap-year-label">--</span>
+            </div>
+            <div id="heatmap" class="heatmap"></div>
+            <div class="heatmap-legend">
+              <span>Brak</span>
+              <div class="heatmap-legend-scale">
+                <span data-level="0"></span>
+                <span data-level="1"></span>
+                <span data-level="2"></span>
+                <span data-level="3"></span>
+                <span data-level="4"></span>
+              </div>
+              <span>Intensywnie</span>
+            </div>
+          </section>
+        </main>
+
+        <aside class="right-rail">
+          <div class="kpi-compact kpi-progress-card">
+            <span class="kpi-emoji">📈</span>
+            <div>
+              <div class="kpi-label">Postęp tygodniowy</div>
+              <div class="kpi-value" id="metric-weekly-complete-percent">0%</div>
+              <div class="tiny muted" id="metric-weekly-complete-sub"></div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📆</span>
+            <div>
+              <div class="kpi-label">Tygodnie zaliczone</div>
+              <div class="kpi-value" id="metric-weekly-complete-count">0/0</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">🧍</span>
+            <div>
+              <div class="kpi-label">Dni aktywne</div>
+              <div class="kpi-value" id="metric-active-days">0/0</div>
+            </div>
+          </div>
+          <div class="kpi-compact metric-card--visual kpi-next-activity" id="metric-next-activity-card" data-activity-type="none">
+            <span class="kpi-emoji">🎯</span>
+            <div>
+              <div class="kpi-label">Najbliższa aktywność</div>
+              <div class="kpi-value kpi-value--sm" id="metric-next-activity-date">Brak terminu</div>
+              <div class="tiny muted">Zaplanuj kolejny ruch</div>
+            </div>
+          </div>
+          <div id="goal-progress-list" class="goal-progress-grid"></div>
+        </aside>
+      </div>
     </div>
-
-    <section class="card calendar-card">
-      <div class="card-header">
-        <div>
-          <h3>Harmonogram miesięczny</h3>
-          <p class="muted tiny">Pełny miesiąc w jednym widoku</p>
-        </div>
-        <div class="calendar-legend">
-          <span class="legend-tag gym">Siłownia</span>
-          <span class="legend-tag running">Bieganie</span>
-          <span class="legend-tag reading">Czytanie</span>
-          <span class="legend-tag extra">Dodatkowe</span>
-          <span class="legend-tag vacation">Urlop</span>
-        </div>
-      </div>
-      <div class="calendar-weekdays">
-        <span>Pon</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Niedz</span>
-      </div>
-      <div id="calendar-grid" class="calendar-grid"></div>
-    </section>
-
-    <section class="card heatmap-card">
-      <div class="card-header">
-        <div>
-          <h3>Historia aktywności</h3>
-          <p class="muted tiny">Podsumowanie ukończonych zadań w ciągu roku</p>
-        </div>
-        <span class="month-chip" id="heatmap-year-label">--</span>
-      </div>
-      <div id="heatmap" class="heatmap"></div>
-      <div class="heatmap-legend">
-        <span>Brak</span>
-        <div class="heatmap-legend-scale">
-          <span data-level="0"></span>
-          <span data-level="1"></span>
-          <span data-level="2"></span>
-          <span data-level="3"></span>
-          <span data-level="4"></span>
-        </div>
-        <span>Intensywnie</span>
-      </div>
-    </section>
   </div>
-  </main>
 
 <div id="modal-overlay" class="modal-overlay">
   <div class="modal-card">
@@ -868,10 +720,17 @@
 const STORAGE_KEY = 'lifeos_trainings_month_v1';
 const LEGACY_STORAGE_KEY = 'lifeos_trainings_v1';
 const MIGRATION_FLAG_KEY = 'lifeos_trainings_migrated_to_month_v1';
+const ACTIVITY_EMOJIS = {
+    gym: '🏋️',
+    running: '🏃',
+    reading: '📚',
+    extra: '✨',
+    vacation: '🌴'
+};
 const GOAL_DEFINITIONS = {
-  gym: { target: 3, unit: 'sesje', label: 'Trening siłowy', icon: 'dumbbell', color: 'var(--gym-color)' },
-  running: { target: 5, unit: 'km', label: 'Bieganie', icon: 'activity', color: 'var(--run-color)' },
-  reading: { target: 100, unit: 'stron', label: 'Czytanie', icon: 'book-open', color: 'var(--read-color)' }
+  gym: { target: 3, unit: 'sesje', label: 'Trening siłowy', icon: 'dumbbell', color: 'var(--gym-color)', emoji: ACTIVITY_EMOJIS.gym },
+  running: { target: 5, unit: 'km', label: 'Bieganie', icon: 'activity', color: 'var(--run-color)', emoji: ACTIVITY_EMOJIS.running },
+  reading: { target: 100, unit: 'stron', label: 'Czytanie', icon: 'book-open', color: 'var(--read-color)', emoji: ACTIVITY_EMOJIS.reading }
 };
 const EXTRA_ACTIVITY_CATEGORIES = [
   { value: 'training', label: 'Trening / ruch' },
@@ -884,12 +743,8 @@ const EXTRA_CATEGORY_LABELS = EXTRA_ACTIVITY_CATEGORIES.reduce((acc, item) => {
   acc[item.value] = item.label;
   return acc;
 }, {});
-const ACTIVITY_TAG_SHORT = { gym: 'Siła', running: 'Bieg', reading: 'Czyt.' };
-const ACTIVITY_UNIT_SHORT = { running: 'km', reading: 'str.' };
-const MAX_CALENDAR_TAGS = 4;
-const DEFAULT_PLANNING_META = 'Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DONUT_CIRCUMFERENCE = 2 * Math.PI * 16;
 
 const safeParse = (raw, fallbackFactory) => {
   const fallback = () => (typeof fallbackFactory === 'function' ? fallbackFactory() : fallbackFactory);
@@ -902,7 +757,7 @@ const safeParse = (raw, fallbackFactory) => {
   }
 };
 
-let state = { activities: {}, extras: {}, vacations: {} };
+let state = { activities: {}, extras: {}, vacations: {}, predefinedExtras: [] };
 let currentMonth = startOfMonth(new Date());
 let selectedDate = toYYYYMMDD(new Date());
 let planningMode = null;
@@ -933,7 +788,7 @@ function formatRange(start, end) {
 }
 
 function formatDateWithDay(date) {
-  return date.toLocaleDateString('pl-PL', { weekday: 'short', day: '2-digit', month: 'short' });
+  return date.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: 'long' });
 }
 
 function formatPlanningSummary(type, plannedValue) {
@@ -944,24 +799,6 @@ function formatPlanningSummary(type, plannedValue) {
   if (!Number.isFinite(numeric) || numeric <= 0) return def.label;
   const valueLabel = `${numeric.toLocaleString('pl-PL')} ${def.unit}`;
   return `${def.label} · ${valueLabel}`;
-}
-
-function getActivityTagText(activity) {
-  if (!activity || !activity.type) return 'Trening';
-  const short = ACTIVITY_TAG_SHORT[activity.type] || 'Plan';
-  if (activity.type === 'gym') return short;
-  const numeric = Number(activity.plannedValue || activity.loggedValue);
-  if (!Number.isFinite(numeric) || numeric <= 0) return short;
-  const unit = ACTIVITY_UNIT_SHORT[activity.type] || '';
-  const value = numeric.toLocaleString('pl-PL');
-  return unit ? `${short} ${value} ${unit}` : `${short} ${value}`;
-}
-
-function getExtraTagText(extra) {
-  if (!extra) return 'Aktywność';
-  const base = (extra.title || '').trim() || EXTRA_CATEGORY_LABELS[extra.category] || 'Aktywność';
-  if (base.length <= 14) return base;
-  return `${base.slice(0, 13)}…`;
 }
 
 function isPlanningActive() {
@@ -1045,7 +882,7 @@ function enableDrag(element, payload) {
   element.setAttribute('draggable', 'true');
   element.addEventListener('dragstart', event => {
     dragPayload = payload;
-    element.classList.add('dragging');
+    element.classList.add('is-dragging');
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       try {
@@ -1057,7 +894,7 @@ function enableDrag(element, payload) {
   });
   element.addEventListener('dragend', () => {
     dragPayload = null;
-    element.classList.remove('dragging');
+    element.classList.remove('is-dragging');
   });
 }
 
@@ -1137,13 +974,14 @@ function getISOWeekInfo(date) {
 }
 
 function loadState() {
-  state = { activities: {}, extras: {}, vacations: {} };
+  state = { activities: {}, extras: {}, vacations: {}, predefinedExtras: [] };
   planningMode = null;
   const parsed = safeParse(localStorage.getItem(STORAGE_KEY), () => ({}));
   if (parsed && typeof parsed === 'object') {
     state.activities = parsed.activities && typeof parsed.activities === 'object' ? parsed.activities : {};
     state.extras = parsed.extras && typeof parsed.extras === 'object' ? parsed.extras : {};
     state.vacations = parsed.vacations && typeof parsed.vacations === 'object' ? parsed.vacations : {};
+    state.predefinedExtras = Array.isArray(parsed.predefinedExtras) ? parsed.predefinedExtras : [];
   }
   migrateLegacyState();
 }
@@ -1160,10 +998,13 @@ function migrateLegacyState() {
   try {
     if (localStorage.getItem(MIGRATION_FLAG_KEY)) return;
     const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (!legacyRaw) return;
+    if (!legacyRaw) {
+      localStorage.setItem(MIGRATION_FLAG_KEY, 'done_empty');
+      return;
+    };
     const legacyState = safeParse(legacyRaw, () => null);
     if (!legacyState || typeof legacyState !== 'object') {
-      localStorage.setItem(MIGRATION_FLAG_KEY, 'done');
+      localStorage.setItem(MIGRATION_FLAG_KEY, 'done_invalid');
       return;
     }
     let imported = false;
@@ -1247,10 +1088,6 @@ function migrateLegacyState() {
   }
 }
 
-function getMonthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
 function getCalendarDays(monthDate) {
   const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const offset = (start.getDay() + 6) % 7;
@@ -1287,24 +1124,9 @@ function calculateMonthlyStats(monthDate) {
     if (activities.length) activeDays.add(dateString);
     totals.planned += activities.length;
     activities.forEach(activity => {
-      if (activity.completed) {
-        totals.completed += 1;
-      } else if (normalized >= today) {
-        const goal = GOAL_DEFINITIONS[activity.type];
-        if (!goal) return;
-        let label = goal.label;
-        if (activity.type !== 'gym' && activity.plannedValue) {
-          label += ` • ${Number(activity.plannedValue).toLocaleString('pl-PL')} ${goal.unit}`;
-        }
-        upcoming.push({
-          type: activity.type,
-          label,
-          badge: 'Trening',
-          icon: goal.icon || 'activity',
-          date: normalized,
-          dateLabel: formatDateWithDay(normalized),
-          relative: getRelativeLabel(normalized, today)
-        });
+      if (activity.completed) totals.completed += 1;
+      else if (normalized >= today) {
+        upcoming.push({ type: activity.type, date: normalized });
       }
     });
   });
@@ -1316,35 +1138,26 @@ function calculateMonthlyStats(monthDate) {
     if (extras.length) activeDays.add(dateString);
     totals.planned += extras.length;
     extras.forEach(extra => {
-      if (extra.completed) {
-        totals.completed += 1;
-      } else if (normalized >= today) {
-        upcoming.push({
-          type: 'extra',
-          label: extra.title,
-          badge: EXTRA_CATEGORY_LABELS[extra.category] || 'Aktywność',
-          icon: 'sparkles',
-          date: normalized,
-          dateLabel: formatDateWithDay(normalized),
-          relative: getRelativeLabel(normalized, today)
-        });
+      if (extra.completed) totals.completed += 1;
+      else if (normalized >= today) {
+        upcoming.push({ type: 'extra', date: normalized });
       }
     });
   });
 
-  upcoming.sort((a, b) => {
-    const diff = a.date - b.date;
-    if (diff !== 0) return diff;
-    return a.type.localeCompare(b.type);
-  });
+  upcoming.sort((a, b) => a.date - b.date);
+  const next = upcoming[0];
+  const nextActivity = next ? {
+    type: next.type,
+    relative: getRelativeLabel(next.date, today)
+  } : null;
 
   return {
     plannedCount: totals.planned,
     completedCount: totals.completed,
     activeDays: activeDays.size,
     totalDays,
-    nextActivity: upcoming.length ? upcoming[0] : null,
-    upcoming,
+    nextActivity,
     range: { start: firstDay, end: lastDay }
   };
 }
@@ -1413,76 +1226,16 @@ function getRelativeLabel(targetDate, today) {
   const diff = Math.round((targetDate.getTime() - today.getTime()) / DAY_MS);
   if (diff === 0) return 'Dziś';
   if (diff === 1) return 'Jutro';
-  if (diff === 2) return 'Pojutrze';
-  if (diff > 2 && diff < 7) return `Za ${diff} dni`;
-  if (diff === -1) return 'Wczoraj';
-  if (diff < -1 && diff > -7) return `${Math.abs(diff)} dni temu`;
-  return targetDate.toLocaleDateString('pl-PL', { weekday: 'short', day: '2-digit', month: 'short' });
-}
-
-function calculateUpcomingWindow() {
-  const today = normalizeDate(new Date());
-  const horizon = addDays(today, 6);
-  const items = [];
-
-  Object.entries(state.activities).forEach(([dateString, activities]) => {
-    const date = parseDate(dateString);
-    const normalized = normalizeDate(date);
-    if (normalized < today || normalized > horizon) return;
-    activities.forEach(activity => {
-      if (!activity || activity.completed) return;
-      const goal = GOAL_DEFINITIONS[activity.type];
-      if (!goal) return;
-      let label = goal.label;
-      if (activity.type !== 'gym' && activity.plannedValue) {
-        label += ` • ${Number(activity.plannedValue).toLocaleString('pl-PL')} ${goal.unit}`;
-      }
-      items.push({
-        type: activity.type,
-        label,
-        badge: 'Trening',
-        icon: goal.icon || 'activity',
-        date: normalized,
-        dateLabel: formatDateWithDay(normalized),
-        relative: getRelativeLabel(normalized, today)
-      });
-    });
-  });
-
-  Object.entries(state.extras).forEach(([dateString, extras]) => {
-    const date = parseDate(dateString);
-    const normalized = normalizeDate(date);
-    if (normalized < today || normalized > horizon) return;
-    extras.forEach(extra => {
-      if (!extra || extra.completed) return;
-      items.push({
-        type: 'extra',
-        label: extra.title,
-        badge: EXTRA_CATEGORY_LABELS[extra.category] || 'Aktywność',
-        icon: 'sparkles',
-        date: normalized,
-        dateLabel: formatDateWithDay(normalized),
-        relative: getRelativeLabel(normalized, today)
-      });
-    });
-  });
-
-  items.sort((a, b) => {
-    const diff = a.date - b.date;
-    if (diff !== 0) return diff;
-    return a.label.localeCompare(b.label);
-  });
-
-  return items;
+  if (diff > 1 && diff < 7) return `Za ${diff} dni`;
+  return targetDate.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
 }
 
 function render() {
   ensureSelectionInMonth();
   const monthStats = calculateMonthlyStats(currentMonth);
   const weekStats = calculateWeeklyGoalStats(parseDate(selectedDate));
-  const upcomingWindow = calculateUpcomingWindow();
   const yearStats = calculateWeekCompletionToDate();
-  renderHeader(monthStats, weekStats, upcomingWindow, yearStats);
+  renderHeader(monthStats, weekStats, yearStats);
   renderCalendar();
   renderDayDetail();
   renderGoalProgress(weekStats.goalPercents);
@@ -1491,85 +1244,32 @@ function render() {
   lucide.createIcons();
 }
 
-function renderHeader(monthStats, weekStats, upcomingWindow, yearStats) {
+function renderHeader(monthStats, weekStats, yearStats) {
   const monthLabel = formatMonth(currentMonth);
   document.getElementById('header-month-chip').textContent = monthLabel;
   document.getElementById('current-month-label').textContent = monthLabel;
   document.getElementById('current-month-range').textContent = `${formatRange(monthStats.range.start, monthStats.range.end)} ${currentMonth.getFullYear()}`;
-  const todayButton = document.getElementById('today-month-btn');
-  if (sameMonth(new Date(), currentMonth)) todayButton.style.display = 'none';
-  else todayButton.style.display = 'inline-flex';
-  const weeklyPercentLabel = `${weekStats.averageGoalPercent}%`;
-  document.getElementById('metric-goal-progress').textContent = weeklyPercentLabel;
-  const heroGoalProgress = document.getElementById('hero-goal-progress');
-  if (heroGoalProgress) heroGoalProgress.textContent = weeklyPercentLabel;
-  const goalProgressSub = document.getElementById('metric-goal-progress-sub');
-  const weeklyRange = weekStats && weekStats.range ? formatRange(weekStats.range.start, weekStats.range.end) : '--';
-  if (goalProgressSub) {
-    goalProgressSub.innerHTML = `<span class="metric-subline">Cele tygodniowe</span><span class="metric-subline">${weeklyRange}</span>`;
-  }
-  const heroGoalNote = document.getElementById('hero-goal-progress-note');
-  if (heroGoalNote) heroGoalNote.textContent = `Cele tygodniowe — ${weeklyRange}`;
-  const planCompletionLabel = `${monthStats.completedCount}/${monthStats.plannedCount}`;
-  document.getElementById('metric-plan-completion').textContent = planCompletionLabel;
+  document.getElementById('today-month-btn').style.display = sameMonth(new Date(), currentMonth) ? 'none' : 'inline-flex';
+  
+  const weeklyRange = weekStats?.range ? formatRange(weekStats.range.start, weekStats.range.end) : '--';
+  document.getElementById('metric-weekly-complete-percent').textContent = `${weekStats.averageGoalPercent}%`;
+  document.getElementById('metric-weekly-complete-sub').innerHTML = `<span class="metric-subline">Cele tygodniowe</span><span class="metric-subline">${weeklyRange}</span>`;
   document.getElementById('metric-active-days').textContent = `${monthStats.activeDays}/${monthStats.totalDays}`;
-  const heroActiveDays = document.getElementById('hero-active-days');
-  if (heroActiveDays) heroActiveDays.textContent = `${monthStats.activeDays}/${monthStats.totalDays}`;
-  const heroActiveNote = document.getElementById('hero-active-days-note');
-  if (heroActiveNote) heroActiveNote.textContent = `Ukończone ${monthStats.completedCount.toLocaleString('pl-PL')} działań`;
-  const countEl = document.getElementById('metric-weekly-complete-count');
-  if (countEl && yearStats) {
-    const completedLabel = `${yearStats.completedWeeks.toLocaleString('pl-PL')}/${yearStats.totalWeeks.toLocaleString('pl-PL')}`;
-    countEl.textContent = completedLabel;
-  } else if (countEl) {
-    countEl.textContent = '0/0';
+
+  if (yearStats) {
+    const el = document.getElementById('metric-weekly-complete-count');
+    el.innerHTML = `${yearStats.completedWeeks}/${yearStats.totalWeeks} <span class="tiny muted" style="margin-left: 4px;">(${yearStats.percent}%)</span>`;
   }
-  const heroWeeklyCount = document.getElementById('hero-weekly-complete-count');
-  if (heroWeeklyCount) {
-    if (yearStats) {
-      heroWeeklyCount.textContent = `${yearStats.completedWeeks.toLocaleString('pl-PL')}/${yearStats.totalWeeks.toLocaleString('pl-PL')}`;
-    } else {
-      heroWeeklyCount.textContent = '0/0';
-    }
-  }
-  const subEl = document.getElementById('metric-weekly-complete-sub');
-  if (subEl) {
-    if (yearStats && yearStats.totalWeeks > 0) {
-      const uptoWeek = Math.max(0, yearStats.currentWeek - 1);
-      subEl.innerHTML = `<span class="metric-subline">Rok ${yearStats.isoYear}</span><span class="metric-subline">Do tygodnia ${uptoWeek.toLocaleString('pl-PL')}</span>`;
-    } else if (yearStats) {
-      subEl.innerHTML = `<span class="metric-subline">Rok ${yearStats.isoYear}</span><span class="metric-subline">Start sezonu</span>`;
-    } else {
-      subEl.innerHTML = `<span class="metric-subline">Rok --</span><span class="metric-subline">--</span>`;
-    }
-  }
-  const percentEl = document.getElementById('metric-weekly-complete-percent');
-  const heroWeeklyNote = document.getElementById('hero-weekly-complete-note');
-  const value = yearStats ? yearStats.percent : 0;
-  const formatted = Number(value).toLocaleString('pl-PL', { maximumFractionDigits: 0 });
-  if (percentEl) {
-    percentEl.textContent = `${formatted}%`;
-  }
-  if (heroWeeklyNote) heroWeeklyNote.textContent = `${formatted}% wykonania`;
-  const circle = document.getElementById('metric-weekly-complete-circle');
-  if (circle) {
-    const safePercent = yearStats ? Math.max(0, Math.min(100, yearStats.percent)) : 0;
-    const dashOffset = DONUT_CIRCUMFERENCE * (1 - safePercent / 100);
-    circle.setAttribute('stroke-dasharray', DONUT_CIRCUMFERENCE);
-    circle.setAttribute('stroke-dashoffset', dashOffset);
-  }
-  const metricNext = upcomingWindow && upcomingWindow.length ? upcomingWindow[0] : monthStats.nextActivity;
+  
   const nextCard = document.getElementById('metric-next-activity-card');
-  const nextVisual = document.getElementById('metric-next-activity-visual');
   const nextDate = document.getElementById('metric-next-activity-date');
-  if (metricNext) {
-    if (nextDate) nextDate.textContent = metricNext.relative || metricNext.dateLabel || 'Najbliższe dni';
-    if (nextCard) nextCard.dataset.activityType = metricNext.type || 'none';
-    if (nextVisual) nextVisual.innerHTML = `<i data-lucide="${metricNext.icon || 'calendar'}" class="icon"></i>`;
+  const nextEmoji = nextCard.querySelector('.kpi-emoji');
+  if (monthStats.nextActivity) {
+      nextDate.textContent = monthStats.nextActivity.relative || 'Najbliższe dni';
+      nextEmoji.textContent = ACTIVITY_EMOJIS[monthStats.nextActivity.type] || '🎯';
   } else {
-    if (nextDate) nextDate.textContent = 'Brak terminu';
-    if (nextCard) nextCard.dataset.activityType = 'none';
-    if (nextVisual) nextVisual.innerHTML = '<i data-lucide="calendar-x" class="icon"></i>';
+      nextDate.textContent = 'Brak terminu';
+      nextEmoji.textContent = '🗓️';
   }
 }
 
@@ -1578,109 +1278,88 @@ function renderCalendar() {
   grid.innerHTML = '';
   const today = normalizeDate(new Date());
   const days = getCalendarDays(currentMonth);
+  
   days.forEach(date => {
     const dateString = toYYYYMMDD(date);
     ensureDay(dateString);
     const activities = state.activities[dateString] || [];
     const extras = state.extras[dateString] || [];
     const vacationDay = isVacationDay(dateString);
+    const isCurrentMonth = sameMonth(date, currentMonth);
     const plannedCount = activities.length + extras.length;
     const completedCount = activities.filter(a => a.completed).length + extras.filter(e => e.completed).length;
+    const isPast = normalizeDate(date) < today;
 
     const cell = document.createElement('div');
     cell.className = 'calendar-day';
-    if (date.getMonth() !== currentMonth.getMonth()) cell.classList.add('calendar-day--other-month');
-    if (dateString === selectedDate) cell.classList.add('calendar-day--selected');
-    if (normalizeDate(date).getTime() === today.getTime()) cell.classList.add('calendar-day--today');
-    if (vacationDay) cell.classList.add('calendar-day--vacation');
-    if (!vacationDay && plannedCount === 0) cell.classList.add('calendar-day--empty');
-    else if (plannedCount > 0 && completedCount === 0) cell.classList.add('calendar-day--planned');
-    else if (plannedCount > 0) cell.classList.add('calendar-day--completed');
+    cell.dataset.date = dateString;
+    if (!isCurrentMonth) cell.classList.add('is-other-month');
+    if (dateString === selectedDate) cell.classList.add('is-selected');
+    if (normalizeDate(date).getTime() === today.getTime()) cell.classList.add('is-today');
+    
+    if (vacationDay) {
+      cell.classList.add('is-vacation');
+    } else if (plannedCount > 0) {
+      if (completedCount === plannedCount) {
+        cell.classList.add('is-completed');
+      } else if (isPast) {
+        cell.classList.add('is-missed');
+      } else {
+        cell.classList.add('is-planned');
+      }
+    } else if (isPast) {
+        cell.classList.add('is-missed');
+    }
 
-    const header = document.createElement('div');
-    header.className = 'calendar-day-header';
     const number = document.createElement('span');
     number.className = 'calendar-date-number';
     number.textContent = date.getDate();
-    header.appendChild(number);
-    const badges = document.createElement('div');
-    badges.className = 'calendar-day-badges';
-    if (plannedCount > 0) {
-      const badge = document.createElement('span');
-      badge.className = 'calendar-badge';
-      badge.textContent = plannedCount;
-      badges.appendChild(badge);
-    }
-    header.appendChild(badges);
-    cell.appendChild(header);
+    cell.appendChild(number);
 
-    const tags = document.createElement('div');
-    tags.className = 'calendar-day-tags';
-    const tagItems = [];
-    activities.forEach(activity => {
-      tagItems.push({
-        type: activity.type,
-        text: getActivityTagText(activity),
-        tooltip: formatPlanningSummary(activity.type, activity.plannedValue || activity.loggedValue),
-        itemType: 'activity',
-        id: activity.id,
-        draggable: true
-      });
-    });
-    extras.forEach(extra => {
-      tagItems.push({
-        type: 'extra',
-        text: getExtraTagText(extra),
-        tooltip: (extra.title || '').trim() || EXTRA_CATEGORY_LABELS[extra.category] || 'Aktywność dodatkowa',
-        itemType: 'extra',
-        id: extra.id,
-        draggable: true
-      });
-    });
+    const emojisContainer = document.createElement('div');
+    emojisContainer.className = 'calendar-day-emojis';
     if (vacationDay) {
-      tagItems.unshift({
-        type: 'vacation',
-        text: 'Urlop',
-        tooltip: 'Dzień wolny od planów',
-        draggable: false
-      });
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = 'activity-emoji';
+      emojiSpan.title = 'Urlop';
+      emojiSpan.textContent = ACTIVITY_EMOJIS.vacation;
+      emojisContainer.appendChild(emojiSpan);
     }
-    tagItems.slice(0, MAX_CALENDAR_TAGS).forEach(tag => {
-      const pill = document.createElement('span');
-      pill.className = `activity-tag ${tag.type}`;
-      pill.textContent = tag.text;
-      pill.title = tag.tooltip || tag.text;
-      if (tag.draggable !== false && tag.itemType && tag.id) {
-        enableDrag(pill, { itemType: tag.itemType, id: tag.id, sourceDate: dateString });
-      }
-      tags.appendChild(pill);
+    activities.forEach(a => {
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = `activity-emoji ${a.completed ? 'completed' : ''}`;
+      emojiSpan.title = GOAL_DEFINITIONS[a.type].label;
+      emojiSpan.textContent = GOAL_DEFINITIONS[a.type].emoji;
+      enableDrag(emojiSpan, { itemType: 'activity', id: a.id, sourceDate: dateString });
+      emojisContainer.appendChild(emojiSpan);
     });
-    if (tagItems.length > MAX_CALENDAR_TAGS) {
-      const more = document.createElement('span');
-      more.className = 'activity-tag more';
-      more.textContent = `+${tagItems.length - MAX_CALENDAR_TAGS}`;
-      more.title = 'Więcej zaplanowanych aktywności';
-      tags.appendChild(more);
-    }
-    cell.appendChild(tags);
+    extras.forEach(e => {
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = `activity-emoji ${e.completed ? 'completed' : ''}`;
+      emojiSpan.title = e.title;
+      emojiSpan.textContent = e.emoji || ACTIVITY_EMOJIS.extra;
+      enableDrag(emojiSpan, { itemType: 'extra', id: e.id, sourceDate: dateString });
+      emojisContainer.appendChild(emojiSpan);
+    });
+    cell.appendChild(emojisContainer);
 
     const footer = document.createElement('div');
     footer.className = 'calendar-day-footer';
-    const done = document.createElement('span');
-    done.className = 'calendar-footer-label';
-    done.textContent = vacationDay && plannedCount === 0 ? 'Urlop' : `${completedCount} ukończ.`;
-    const remaining = document.createElement('span');
-    const openCount = Math.max(0, plannedCount - completedCount);
-    remaining.textContent = openCount > 0 ? `${openCount} otwarte` : '';
-    footer.appendChild(done);
-    footer.appendChild(remaining);
+    if(plannedCount > 0 && !vacationDay){
+        const badge = document.createElement('span');
+        badge.className = 'completion-badge';
+        badge.textContent = `${completedCount}/${plannedCount}`;
+        if (completedCount >= plannedCount) badge.classList.add('is-done');
+        else if (completedCount > 0) badge.classList.add('in-progress');
+        footer.appendChild(badge);
+    }
     cell.appendChild(footer);
 
     const handleDragTarget = (event) => {
       const payload = resolveDragPayload(event);
       if (!payload || payload.sourceDate === dateString) return;
       event.preventDefault();
-      cell.classList.add('calendar-day--drag-over');
+      cell.classList.add('is-drag-over');
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
     };
 
@@ -1688,11 +1367,11 @@ function renderCalendar() {
     cell.addEventListener('dragenter', handleDragTarget);
     cell.addEventListener('dragleave', (event) => {
       if (event.relatedTarget && cell.contains(event.relatedTarget)) return;
-      cell.classList.remove('calendar-day--drag-over');
+      cell.classList.remove('is-drag-over');
     });
     cell.addEventListener('drop', (event) => {
       event.preventDefault();
-      cell.classList.remove('calendar-day--drag-over');
+      cell.classList.remove('is-drag-over');
       const payload = resolveDragPayload(event);
       if (!payload || payload.sourceDate === dateString) return;
       movePlannedItem(payload, dateString);
@@ -1700,7 +1379,7 @@ function renderCalendar() {
 
     cell.addEventListener('click', () => {
       selectedDate = dateString;
-      if (!sameMonth(date, currentMonth)) {
+      if (!isCurrentMonth) {
         currentMonth = startOfMonth(date);
       }
       if (isPlanningActive()) {
@@ -1718,157 +1397,237 @@ function renderPlanningIndicator() {
   const banner = document.getElementById('planning-banner');
   const title = document.getElementById('planning-banner-title');
   const meta = document.getElementById('planning-banner-meta');
-  const calendarCard = document.querySelector('.calendar-card');
   const grid = document.getElementById('calendar-grid');
-  const addBtn = document.getElementById('add-training-btn');
-  if (!banner || !title || !meta || !calendarCard || !grid || !addBtn) return;
-
+  
   if (isPlanningActive()) {
     const summary = formatPlanningSummary(planningMode.type, planningMode.plannedValue);
-    banner.classList.add('active');
+    banner.classList.add('is-active');
     title.textContent = summary;
-    meta.textContent = 'Klikaj dni w kalendarzu, aby dodać ten trening. Zakończ, gdy skończysz planować.';
-    calendarCard.classList.add('calendar-card--planning');
+    meta.textContent = 'Klikaj dni, by dodać ten trening.';
     grid.classList.add('is-planning');
-    addBtn.innerHTML = '<i data-lucide="x" class="icon"></i>Zakończ planowanie';
-    addBtn.classList.add('ghost');
   } else {
-    banner.classList.remove('active');
+    banner.classList.remove('is-active');
     title.textContent = 'Tryb planowania';
-    meta.textContent = DEFAULT_PLANNING_META;
-    calendarCard.classList.remove('calendar-card--planning');
     grid.classList.remove('is-planning');
-    addBtn.innerHTML = '<i data-lucide="plus" class="icon"></i>Zaplanuj treningi';
-    addBtn.classList.remove('ghost');
   }
 }
 
 function renderDayDetail() {
+  const container = document.getElementById('day-detail-container');
+  if (!selectedDate) {
+    container.innerHTML = `<div class="day-detail-placeholder">
+      <i data-lucide="calendar-days" class="icon"></i>
+      <strong>Wybierz dzień</strong>
+      <p class="muted tiny">Kliknij w datę na kalendarzu, aby zobaczyć szczegóły i zarządzać planem.</p>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
   ensureDay(selectedDate);
   const date = parseDate(selectedDate);
   const activities = state.activities[selectedDate] || [];
   const extras = state.extras[selectedDate] || [];
   const vacationDay = isVacationDay(selectedDate);
-  const completedCount = activities.filter(a => a.completed).length + extras.filter(e => e.completed).length;
-  const total = activities.length + extras.length;
-  document.getElementById('selected-day-title').textContent = date.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-  const summary = vacationDay
-    ? (total > 0
-      ? `Urlop · Zaplanowane: ${total} · Ukończone: ${completedCount}`
-      : 'Dzień urlopowy. Nie planujesz aktywności.')
-    : (total > 0
-      ? `Zaplanowane: ${total} · Ukończone: ${completedCount}`
-      : 'Brak zaplanowanych aktywności na ten dzień.');
-  document.getElementById('selected-day-summary').textContent = summary;
-  document.getElementById('selected-day-chip').textContent = date.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase();
-  const vacationNote = document.getElementById('vacation-note');
-  if (vacationNote) vacationNote.style.display = vacationDay ? 'block' : 'none';
-  const vacationBtn = document.getElementById('toggle-vacation-btn');
-  if (vacationBtn) {
-    if (vacationDay) {
-      vacationBtn.classList.add('active');
-      vacationBtn.innerHTML = '<i data-lucide="sun" class="icon"></i>Usuń urlop';
-    } else {
-      vacationBtn.classList.remove('active');
-      vacationBtn.innerHTML = '<i data-lucide="plane" class="icon"></i>Oznacz urlop';
-    }
-  }
+  
+  container.innerHTML = `
+    <div class="day-detail">
+      <div class="day-detail-header">
+        <div class="day-detail-title">
+          <h3 id="selected-day-title">${formatDateWithDay(date)}</h3>
+          <p id="selected-day-summary"></p>
+        </div>
+        <div class="day-detail-meta">
+          <button id="plan-vacation-range-btn" class="btn ghost small" title="Zaplanuj dłuższy urlop"><i data-lucide="calendar-plus" class="icon"></i></button>
+          <button id="toggle-vacation-btn" class="btn ghost small" title="${vacationDay ? 'Usuń urlop' : 'Oznacz jako urlop'}">
+            <i data-lucide="${vacationDay ? 'sun' : 'plane'}" class="icon"></i>
+          </button>
+        </div>
+      </div>
+      <div class="day-detail-body">
+        ${vacationDay ? `
+          <div id="vacation-note" class="vacation-note">
+            <i data-lucide="plane" class="icon"></i>
+            <span>Dzień oznaczony jako urlop — bez oczekiwań treningowych.</span>
+          </div>` : ''}
+
+        <div class="detail-block">
+          <h4 class="detail-block-header">Plan treningowy</h4>
+          <div id="day-plan-list" class="detail-list"></div>
+        </div>
+        <div class="detail-block">
+          <h4 class="detail-block-header">Szybkie Akcje
+            <button id="manage-predefined-btn" class="btn ghost" style="padding: 2px 6px; font-size: 10px; height: auto;">Zarządzaj</button>
+          </h4>
+          <div id="quick-add-list" class="quick-add-list"></div>
+        </div>
+        <div class="detail-block">
+          <h4 class="detail-block-header">Aktywności dodatkowe</h4>
+          <div id="day-extra-list" class="detail-list"></div>
+        </div>
+      </div>
+      <div class="day-detail-actions">
+        <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj trening</button>
+        <button id="add-extra-btn" class="btn soft"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
+      </div>
+    </div>`;
 
   renderDayActivities(activities);
   renderDayExtras(extras);
+  renderQuickAddButtons();
+  updateDaySummary();
+
+  document.getElementById('add-training-btn').addEventListener('click', showAddTrainingModal);
+  document.getElementById('add-extra-btn').addEventListener('click', showAddExtraModal);
+  document.getElementById('toggle-vacation-btn').addEventListener('click', () => toggleVacationDay(selectedDate));
+  document.getElementById('plan-vacation-range-btn').addEventListener('click', showVacationRangeModal);
+  document.getElementById('manage-predefined-btn').addEventListener('click', showManagePredefinedExtrasModal);
+  lucide.createIcons();
+}
+
+function updateDaySummary(){
+    const activities = state.activities[selectedDate] || [];
+    const extras = state.extras[selectedDate] || [];
+    const vacationDay = isVacationDay(selectedDate);
+    const completedCount = activities.filter(a => a.completed).length + extras.filter(e => e.completed).length;
+    const total = activities.length + extras.length;
+    
+    const summaryEl = document.getElementById('selected-day-summary');
+    if(!summaryEl) return;
+
+    if (vacationDay) {
+      summaryEl.textContent = total > 0 ? `Urlop · ${completedCount}/${total} ukończone` : 'Dzień urlopowy';
+    } else {
+      summaryEl.textContent = total > 0 ? `${completedCount}/${total} ukończone` : 'Brak planów';
+    }
 }
 
 function renderDayActivities(activities) {
   const list = document.getElementById('day-plan-list');
-  const empty = document.getElementById('day-plan-empty');
   list.innerHTML = '';
   if (!activities.length) {
-    empty.style.display = 'block';
+    list.innerHTML = `<p class="muted tiny" style="padding: 0 4px;">Brak zaplanowanych treningów.</p>`;
     return;
   }
-  empty.style.display = 'none';
-
+  
   activities.forEach(activity => {
     const goal = GOAL_DEFINITIONS[activity.type];
     const item = document.createElement('div');
-    item.className = 'detail-item';
-    if (activity.completed) item.classList.add('completed');
-    const plannedInfo = activity.type === 'gym' ? 'Sesja siłowa' : (activity.plannedValue ? `Plan: ${Number(activity.plannedValue).toLocaleString('pl-PL')} ${goal.unit}` : 'Plan: brak');
+    item.className = `detail-item ${activity.completed ? 'is-completed' : ''}`;
+    
+    const plannedInfo = activity.type === 'gym' ? '' : (activity.plannedValue ? `Plan: ${Number(activity.plannedValue).toLocaleString('pl-PL')} ${goal.unit}` : '');
     let progressInfo = '';
     if (activity.completed) {
-      if (activity.type === 'gym') progressInfo = 'Sesja zakończona';
-      else progressInfo = `Zrealizowano: ${Number(activity.loggedValue).toLocaleString('pl-PL')} ${goal.unit}`;
+      if (activity.type === 'gym') progressInfo = 'Ukończono';
+      else progressInfo = `Wynik: ${Number(activity.loggedValue).toLocaleString('pl-PL')} ${goal.unit}`;
     }
     const metaText = [plannedInfo, progressInfo].filter(Boolean).join(' · ');
+
     item.innerHTML = `
       <div class="detail-info">
-        <div class="detail-icon ${activity.type}"><i data-lucide="${goal.icon}" class="icon"></i></div>
-        <div>
+        <div class="detail-icon ${activity.type}">${goal.emoji}</div>
+        <div class="detail-text">
           <div class="detail-title">${goal.label}</div>
           <div class="detail-meta">${metaText}</div>
         </div>
       </div>
       <div class="detail-actions-inline">
-        ${activity.completed ? `<button class="action-btn" data-action="undo-activity" data-day="${selectedDate}" data-activity-id="${activity.id}">Cofnij</button>` : `<button class="action-btn primary" data-action="complete-activity" data-day="${selectedDate}" data-type="${activity.type}" data-activity-id="${activity.id}">${activity.type === 'gym' ? 'Oznacz wykonane' : 'Zaloguj wynik'}</button>`}
-        ${activity.type !== 'gym' ? `<button class="action-btn" data-action="edit-activity" data-day="${selectedDate}" data-activity-id="${activity.id}">Edytuj wynik</button>` : ''}
-        <button class="action-btn danger" data-action="delete-activity" data-day="${selectedDate}" data-activity-id="${activity.id}">Usuń</button>
+        ${activity.completed 
+          ? `<button class="action-btn" title="Cofnij ukończenie" data-action="undo-activity"><i data-lucide="rotate-ccw" class="icon"></i></button>` 
+          : `<button class="action-btn success" title="Oznacz jako wykonane" data-action="complete-activity"><i data-lucide="check" class="icon"></i></button>`}
+        ${activity.type !== 'gym' ? `<button class="action-btn" title="Edytuj wynik" data-action="edit-activity"><i data-lucide="edit-3" class="icon"></i></button>` : ''}
+        <button class="action-btn danger" title="Usuń" data-action="delete-activity"><i data-lucide="trash-2" class="icon"></i></button>
       </div>
     `;
+    item.querySelector('[data-action="complete-activity"]')?.addEventListener('click', () => completeActivity(selectedDate, activity.id));
+    item.querySelector('[data-action="undo-activity"]')?.addEventListener('click', () => undoActivity(selectedDate, activity.id));
+    item.querySelector('[data-action="edit-activity"]')?.addEventListener('click', () => editActivity(selectedDate, activity.id));
+    item.querySelector('[data-action="delete-activity"]')?.addEventListener('click', () => deleteActivity(selectedDate, activity.id));
+
     enableDrag(item, { itemType: 'activity', id: activity.id, sourceDate: selectedDate });
     list.appendChild(item);
   });
+  lucide.createIcons();
 }
 
 function renderDayExtras(extras) {
   const list = document.getElementById('day-extra-list');
-  const empty = document.getElementById('day-extra-empty');
   list.innerHTML = '';
   if (!extras.length) {
-    empty.style.display = 'block';
+    list.innerHTML = `<p class="muted tiny" style="padding: 0 4px;">Brak dodatkowych aktywności.</p>`;
     return;
   }
-  empty.style.display = 'none';
+  
   extras.forEach(extra => {
     const item = document.createElement('div');
-    item.className = 'detail-item';
-    if (extra.completed) item.classList.add('completed');
+    item.className = `detail-item ${extra.completed ? 'is-completed' : ''}`;
     item.innerHTML = `
       <div class="detail-info">
-        <div class="detail-icon extra"><i data-lucide="sparkles" class="icon"></i></div>
-        <div>
+        <div class="detail-icon extra">${extra.emoji || ACTIVITY_EMOJIS.extra}</div>
+        <div class="detail-text">
           <div class="detail-title">${extra.title}</div>
           <div class="detail-meta">${EXTRA_CATEGORY_LABELS[extra.category] || 'Aktywność'}</div>
         </div>
       </div>
       <div class="detail-actions-inline">
-        <button class="action-btn ${extra.completed ? '' : 'success'}" data-action="toggle-extra" data-day="${selectedDate}" data-extra-id="${extra.id}">${extra.completed ? 'Cofnij' : 'Zakończ'}</button>
-        <button class="action-btn danger" data-action="delete-extra" data-day="${selectedDate}" data-extra-id="${extra.id}">Usuń</button>
+        <button class="action-btn ${extra.completed ? '' : 'success'}" title="${extra.completed ? 'Cofnij' : 'Zakończ'}" data-action="toggle-extra">
+            <i data-lucide="${extra.completed ? 'rotate-ccw' : 'check'}" class="icon"></i>
+        </button>
+        <button class="action-btn danger" title="Usuń" data-action="delete-extra"><i data-lucide="trash-2" class="icon"></i></button>
       </div>
     `;
+    item.querySelector('[data-action="toggle-extra"]')?.addEventListener('click', () => toggleExtra(selectedDate, extra.id));
+    item.querySelector('[data-action="delete-extra"]')?.addEventListener('click', () => deleteExtra(selectedDate, extra.id));
+
     enableDrag(item, { itemType: 'extra', id: extra.id, sourceDate: selectedDate });
     list.appendChild(item);
   });
+  lucide.createIcons();
 }
+
+function renderQuickAddButtons() {
+    const container = document.getElementById('quick-add-list');
+    container.innerHTML = '';
+    if (!state.predefinedExtras || state.predefinedExtras.length === 0) {
+        container.innerHTML = `<p class="muted tiny" style="padding: 0 4px;">Brak szablonów. Dodaj nową aktywność i zaznacz opcję, by ją zapisać.</p>`;
+        return;
+    }
+
+    state.predefinedExtras.forEach(extra => {
+        const btn = document.createElement('button');
+        btn.className = 'quick-add-btn';
+        btn.textContent = `${extra.emoji || ''} ${extra.title}`.trim();
+        btn.title = `Dodaj "${extra.title}"`;
+        btn.addEventListener('click', () => {
+            addExtra(selectedDate, extra.title, extra.category, extra.emoji);
+        });
+        container.appendChild(btn);
+    });
+}
+
 
 function renderGoalProgress(goalPercents) {
   const container = document.getElementById('goal-progress-list');
+  if (!container) return;
   container.innerHTML = '';
   if (!goalPercents) return;
+  
   Object.entries(goalPercents).forEach(([type, info]) => {
     const def = GOAL_DEFINITIONS[type];
+    if (!def) return;
     const item = document.createElement('div');
     item.className = 'goal-progress-item';
+
     const progressValue = Number(info.progress || 0).toLocaleString('pl-PL');
-    const targetValue = Number(info.target || 0).toLocaleString('pl-PL');
+    const targetValue = Number((info && info.target) || def.target || 0).toLocaleString('pl-PL');
+
     item.innerHTML = `
-      <div class="goal-progress-label">
-        <div>
-          <strong>${def.label}</strong>
-          <div class="muted tiny">${progressValue} / ${targetValue} ${def.unit}</div>
-        </div>
-        <span class="goal-progress-value">${info.percent}%</span>
+      <div class="goal-progress-header">
+        <span class="goal-progress-label">${def.emoji} ${def.label}</span>
+        <span class="goal-progress-meta">${progressValue} / ${targetValue} ${def.unit}</span>
       </div>
-      <div class="goal-progress-bar"><span style="width:${info.percent}%; background:${def.color};"></span></div>
+      <div class="kpi-progress-bar">
+        <div class="kpi-progress-fill" style="width: ${info.percent}%; background-color: ${def.color};"></div>
+      </div>
     `;
     container.appendChild(item);
   });
@@ -1904,14 +1663,30 @@ function renderHeatmap() {
   const start = new Date(year, 0, 1);
   const offset = (start.getDay() + 6) % 7;
   start.setDate(start.getDate() - offset);
+
   for (let week = 0; week < 53; week++) {
+    const weekStart = addDays(start, week * 7);
+    if (weekStart.getFullYear() > year && weekStart.getMonth() > 0) break;
+
     const column = document.createElement('div');
     column.className = 'heatmap-week';
-    const weekStart = new Date(start);
-    weekStart.setDate(start.getDate() + week * 7);
+    let monthLabel = '';
+    
+    // Check if this week contains the end of a month
     for (let day = 0; day < 7; day++) {
-      const current = new Date(weekStart);
-      current.setDate(weekStart.getDate() + day);
+        const current = addDays(weekStart, day);
+        const next = addDays(current, 1);
+        if (current.getMonth() !== next.getMonth() && current.getFullYear() === year) {
+            column.style.marginRight = '8px'; // Add wider gap
+            const monthDate = new Date(year, current.getMonth(), 1);
+            monthLabel = monthDate.toLocaleDateString('pl-PL', { month: 'short' }).replace('.', '').toUpperCase();
+            break; // Found the end of the month, no need to check further
+        }
+    }
+
+    // Create day cells
+    for (let day = 0; day < 7; day++) {
+      const current = addDays(weekStart, day);
       const key = toYYYYMMDD(current);
       const cell = document.createElement('div');
       cell.className = 'heatmap-cell';
@@ -1919,25 +1694,23 @@ function renderHeatmap() {
         const value = counts[key] || 0;
         const level = getHeatLevel(value);
         cell.dataset.level = level;
-        const label = current.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
-        cell.title = value > 0 ? `${label}: ${value} ukończone aktywności` : label;
+        const labelText = current.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
+        cell.title = value > 0 ? `${labelText}: ${value} ukończone aktywności` : labelText;
       } else {
         cell.classList.add('heatmap-cell--empty');
       }
       column.appendChild(cell);
     }
+    
     const label = document.createElement('span');
     label.className = 'heatmap-month-label';
-    if (weekStart.getFullYear() === year) {
-      label.textContent = weekStart.toLocaleDateString('pl-PL', { month: 'short' }).replace('.', '').toUpperCase();
-      label.title = `${formatRange(weekStart, addDays(weekStart, 6))} ${weekStart.getFullYear()}`;
-    } else {
-      label.textContent = '';
-    }
+    label.textContent = monthLabel;
     column.appendChild(label);
+    
     container.appendChild(column);
   }
 }
+
 
 function addTraining(dateString, type, plannedValue) {
   ensureDay(dateString);
@@ -1954,12 +1727,13 @@ function addTraining(dateString, type, plannedValue) {
   render();
 }
 
-function addExtra(dateString, title, category) {
+function addExtra(dateString, title, category, emoji) {
   ensureDay(dateString);
   state.extras[dateString].push({
     id: `extra_${Date.now()}_${Math.random().toString(16).slice(2)}`,
     title,
     category,
+    emoji: emoji || ACTIVITY_EMOJIS.extra,
     completed: false,
     createdAt: Date.now()
   });
@@ -1992,7 +1766,7 @@ function showLogModal(activity, day) {
       { text: 'Anuluj', class: 'btn soft', action: 'close' },
       { text: 'Zapisz', class: 'btn', action: (value) => {
           const numeric = Number(value);
-          if (!numeric || numeric <= 0) return false;
+          if (Number.isNaN(numeric) || numeric < 0) return false;
           activity.loggedValue = numeric;
           activity.completed = true;
           saveState();
@@ -2046,9 +1820,9 @@ function showAddTrainingModal() {
     text: `Dodaj aktywność na ${date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}.`,
     input: { type: 'number', placeholder: 'Docelowa wartość', min: '0', step: '1' },
     options: [
-      { value: 'gym', label: 'Trening siłowy', checked: true },
-      { value: 'running', label: 'Bieganie' },
-      { value: 'reading', label: 'Czytanie' }
+      { value: 'gym', label: '🏋️ Trening siłowy', checked: true },
+      { value: 'running', label: '🏃 Bieganie' },
+      { value: 'reading', label: '📚 Czytanie' }
     ],
     buttons: [
       { text: 'Anuluj', class: 'btn soft', action: 'close' },
@@ -2062,7 +1836,7 @@ function showAddTrainingModal() {
             startPlanningMode(type, 1);
           }
         } },
-      { text: 'Dodaj', class: 'btn', action: (value, selected) => {
+      { text: 'Dodaj na dziś', class: 'btn', action: (value, selected) => {
           const type = selected || 'gym';
           if (type !== 'gym') {
             const numeric = Number(value);
@@ -2101,17 +1875,91 @@ function showAddExtraModal() {
   showModal({
     title: 'Dodaj aktywność dodatkową',
     text: `Dodaj drobne działanie na ${date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}.`,
-    textarea: { placeholder: 'Opis aktywności' },
+    inputs: [
+        { type: 'text', placeholder: 'Opis aktywności', key: 'title', required: true },
+        { type: 'text', placeholder: 'Emoji (np. ✨)', key: 'emoji', maxLength: 2 }
+    ],
     options: EXTRA_ACTIVITY_CATEGORIES.map((cat, index) => ({ value: cat.value, label: cat.label, checked: index === 0 })),
     buttons: [
       { text: 'Anuluj', class: 'btn soft', action: 'close' },
+      { 
+        text: 'Dodaj i zapisz szablon', 
+        class: 'btn ghost', 
+        action: (value, selected) => {
+            const textValue = (value.title || '').trim();
+            if (!textValue) return false;
+            const newExtra = {
+                id: `pre_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                title: textValue,
+                category: selected || 'other',
+                emoji: value.emoji || ACTIVITY_EMOJIS.extra
+            };
+            if (!state.predefinedExtras.find(p => p.title === newExtra.title)) {
+                state.predefinedExtras.push(newExtra);
+            }
+            addExtra(selectedDate, newExtra.title, newExtra.category, newExtra.emoji);
+        }
+      },
       { text: 'Dodaj', class: 'btn', action: (value, selected) => {
-          const textValue = (value || '').trim();
+          const textValue = (value.title || '').trim();
           if (!textValue) return false;
-          addExtra(selectedDate, textValue, selected || 'other');
+          addExtra(selectedDate, textValue, selected || 'other', value.emoji);
         } }
     ]
   });
+}
+
+function showManagePredefinedExtrasModal() {
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '8px';
+
+    state.predefinedExtras.forEach(extra => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.padding = '8px';
+        item.style.borderRadius = '8px';
+        item.style.background = '#f8fafc';
+        item.innerHTML = `<span>${extra.emoji || ''} ${extra.title}</span>`;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn ghost';
+        deleteBtn.innerHTML = `<i data-lucide="trash-2" class="icon"></i>`;
+        deleteBtn.style.padding = '4px';
+        deleteBtn.style.height = 'auto';
+        deleteBtn.onclick = () => {
+            state.predefinedExtras = state.predefinedExtras.filter(p => p.id !== extra.id);
+            saveState();
+            // Re-render modal content
+            const newContainer = showManagePredefinedExtrasModal();
+            const modalInput = document.getElementById('modal-input-container');
+            modalInput.innerHTML = '';
+            modalInput.appendChild(newContainer);
+            lucide.createIcons();
+        };
+        item.appendChild(deleteBtn);
+        container.appendChild(item);
+    });
+
+    if (state.predefinedExtras.length === 0) {
+        container.innerHTML = `<p class="muted tiny">Brak zapisanych szablonów.</p>`;
+    }
+
+    showModal({
+        title: 'Zarządzaj szablonami',
+        text: 'Usuń szablony, których już nie potrzebujesz.',
+        customHTML: container,
+        buttons: [
+            { text: 'Zamknij', class: 'btn', action: 'close' }
+        ],
+        onShow: () => {
+          lucide.createIcons();
+        }
+    });
+    return container;
 }
 
 function showVacationRangeModal() {
@@ -2135,11 +1983,6 @@ function showVacationRangeModal() {
       const [startField, endField] = inputs;
       if (!startField || !endField) return;
       endField.min = startField.value;
-      endField.addEventListener('change', () => {
-        if (endField.value < startField.value) {
-          endField.value = startField.value;
-        }
-      });
       startField.addEventListener('change', () => {
         if (endField.value < startField.value) {
           endField.value = startField.value;
@@ -2161,6 +2004,10 @@ function showModal(config) {
   optionsContainer.innerHTML = '';
   actions.innerHTML = '';
 
+  if (config.customHTML) {
+    inputContainer.appendChild(config.customHTML);
+  }
+
   const inputConfigs = [];
   if (Array.isArray(config.inputs)) inputConfigs.push(...config.inputs);
   if (config.input) inputConfigs.push(config.input);
@@ -2181,7 +2028,7 @@ function showModal(config) {
     if (inputConfig.min !== undefined) input.min = inputConfig.min;
     if (inputConfig.max !== undefined) input.max = inputConfig.max;
     if (inputConfig.step !== undefined) input.step = inputConfig.step;
-    if (inputConfig.disabled) input.disabled = true;
+    if (inputConfig.maxLength !== undefined) input.maxLength = inputConfig.maxLength;
     if (inputConfig.required) input.required = true;
     input.autocomplete = 'off';
     input.dataset.modalInput = 'true';
@@ -2194,19 +2041,12 @@ function showModal(config) {
   if (config.textarea) {
     const wrapper = document.createElement('div');
     wrapper.className = 'modal-field';
-    if (config.textarea.label) {
-      const label = document.createElement('span');
-      label.className = 'modal-field-label';
-      label.textContent = config.textarea.label;
-      wrapper.appendChild(label);
-    }
     const textarea = document.createElement('textarea');
     textarea.placeholder = config.textarea.placeholder || '';
     textarea.value = config.textarea.value || '';
     textarea.rows = config.textarea.rows || 4;
     textarea.autocomplete = 'off';
     textarea.dataset.modalInput = 'true';
-    if (config.textarea.key) textarea.dataset.modalKey = config.textarea.key;
     wrapper.appendChild(textarea);
     inputContainer.appendChild(wrapper);
   }
@@ -2230,6 +2070,7 @@ function showModal(config) {
     button.addEventListener('click', () => {
       if (btn.action === 'close') {
         overlay.classList.remove('visible');
+        render(); // Re-render to reflect changes if modal was for management
         return;
       }
       const fields = Array.from(inputContainer.querySelectorAll('[data-modal-input]'));
@@ -2275,43 +2116,13 @@ function setupEventListeners() {
     selectedDate = toYYYYMMDD(today);
     render();
   });
-  document.getElementById('add-training-btn').addEventListener('click', () => {
-    if (isPlanningActive()) {
-      stopPlanningMode();
-    } else {
-      showAddTrainingModal();
-    }
-  });
+  
   document.getElementById('stop-planning-btn').addEventListener('click', () => stopPlanningMode());
-  document.getElementById('add-extra-btn').addEventListener('click', showAddExtraModal);
-  document.getElementById('plan-vacation-range-btn').addEventListener('click', showVacationRangeModal);
-  document.getElementById('toggle-vacation-btn').addEventListener('click', () => toggleVacationDay(selectedDate));
-
-  document.getElementById('day-plan-list').addEventListener('click', (event) => {
-    const target = event.target.closest('[data-action]');
-    if (!target) return;
-    const day = target.dataset.day;
-    const id = target.dataset.activityId;
-    const action = target.dataset.action;
-    if (action === 'complete-activity') completeActivity(day, id);
-    if (action === 'undo-activity') undoActivity(day, id);
-    if (action === 'delete-activity') deleteActivity(day, id);
-    if (action === 'edit-activity') editActivity(day, id);
-  });
-
-  document.getElementById('day-extra-list').addEventListener('click', (event) => {
-    const target = event.target.closest('[data-action]');
-    if (!target) return;
-    const day = target.dataset.day;
-    const id = target.dataset.extraId;
-    const action = target.dataset.action;
-    if (action === 'toggle-extra') toggleExtra(day, id);
-    if (action === 'delete-extra') deleteExtra(day, id);
-  });
 
   document.getElementById('modal-overlay').addEventListener('click', (event) => {
     if (event.target === event.currentTarget) {
       event.currentTarget.classList.remove('visible');
+      render(); // Re-render in case a management modal was closed
     }
   });
 }
@@ -2325,3 +2136,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+

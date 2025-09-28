@@ -7,260 +7,722 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <style>
-    :root, [data-theme="light"]{
-      --accent-h: 222; --accent-s: 83%; --accent-l: 53%;
-      --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
-      --accent-weak: hsl(var(--accent-h) 60% 94%);
-      --bg:#f6f7fb; --card:#ffffff; --ink:#0f172a; --muted:#667085; --line:#e7eaf0;
-      --surface:#f9fafb;
-      --green:#059669; --red:#dc2626; --orange:#ea580c; --blue:#2563eb;
-      --shadow-sm:0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow:0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-      --shadow-md:0 6px 16px -6px rgb(0 0 0 / 0.12);
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; background: var(--bg); color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto;
-      font-size: 14px; line-height: 1.6;
-    }
-    
-    @keyframes fadeInUp { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
-
-    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px; }
-    .grid { display: grid; gap: 24px; }
+    .grid { display: grid; gap: 14px; }
     .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    @media(max-width:1024px){ .g-3{grid-template-columns: repeat(2,1fr)} .g-2{grid-template-columns:1fr} }
-    @media(max-width:640px){ .g-3{grid-template-columns:1fr} }
-    
-    .card{
-      background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
-      box-shadow: var(--shadow); animation: fadeInUp .4s ease-out;
+    @media (max-width: 900px) {
+      .g-2 { grid-template-columns: 1fr; }
+      .g-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .g-3 { grid-template-columns: 1fr; }
     }
 
-    .title { margin: 0 0 16px 0; font-weight: 700; font-size: 18px; letter-spacing: .2px; }
-    .muted { color: var(--muted); }
-    .tiny { font-size: 12px }
-
-    .btn{
-      display:inline-flex; gap:8px; align-items:center; justify-content:center;
-      border-radius: 12px; padding: 12px 20px; border: 1px solid var(--line);
-      background: var(--surface); color: var(--ink); cursor:pointer; text-decoration:none; font-weight:600;
-      font-size: 14px; transition: transform .15s ease, box-shadow .15s ease, background .2s ease, border-color .2s ease;
+    .loan-setup-card {
+      text-align: center;
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
     }
-    .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color:hsl(var(--accent-h) 30% 75% / .6) }
-    .btn.primary{ background: var(--accent); color:#fff; border-color: transparent }
-    .btn.danger{ background: var(--red); color:#fff; border-color: transparent }
 
-    .header {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        gap: 16px;
-        animation: fadeInUp .3s ease-out;
+    .setup-icon {
+      font-size: 48px;
     }
-    .header-title { font-size: 28px; font-weight: 800; margin: 0; }
-    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-    .kpi-card {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+    .loan-progress-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
-    .kpi-label { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .kpi-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
-    .kpi-value .currency { font-size: 16px; font-weight: 600; color: var(--muted); margin-left: 4px; }
-    .kpi-sub { font-size: 12px; color: var(--muted); }
 
-    .insights-grid {
-        display: grid;
-        gap: 14px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    .loan-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .insight-card {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-    .insight-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .insight-card .value { font-size: 22px; font-weight: 700; }
-    .insight-card .note { font-size: 12px; color: var(--muted); }
 
-    .progress-bar { background: #e2e8f0; border-radius: 8px; height: 16px; overflow: hidden; }
-    .progress-bar-inner {
+    .loan-progress-header .title {
+      margin: 0;
+    }
+
+    .loan-progress-percent {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .loan-progress-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .loan-progress-fill {
       height: 100%;
-      border-radius: 8px;
-      background: linear-gradient(90deg, var(--green), hsl(145, 50%, 60%));
+      background: linear-gradient(90deg, var(--green), hsl(152 76% 48%));
       transition: width 0.5s ease-out;
     }
-    
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
-    td { vertical-align: middle; }
-    th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
-    tbody tr:hover { background-color: var(--surface); }
 
-    .rate-history-list { display: flex; flex-direction: column; gap: 10px; }
-    .rate-history-entry { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-    .rate-history-entry.current { border-color: var(--accent); background: var(--accent-weak); }
-    .rate-history-entry .rate { font-weight: 700; font-size: 16px; }
-    .rate-history-entry .date { font-size: 12px; color: var(--muted); }
+    .loan-progress-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
 
-    .modal-overlay{
-      position:fixed; inset:0; background: rgba(15,23,42,.6); display:flex; justify-content:center; align-items:flex-start;
-      padding-top: 5vh; z-index:1000; backdrop-filter: blur(8px); opacity:0; pointer-events:none; transition: opacity .2s ease-out; overflow-y: auto;
+    .loan-progress-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--surface);
     }
-    .modal-overlay.visible{ opacity:1; pointer-events: all }
-    .modal-card{ background: var(--card); padding: 0; border-radius: 16px; box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
-      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line); overflow: hidden; margin-bottom: 5vh;
+
+    .loan-progress-stat .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
     }
-    .modal-overlay.visible .modal-card{ transform: scale(1) }
-    .modal-header { padding: 20px; border-bottom: 1px solid var(--line); }
-    .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
-    .modal-body { padding: 20px; }
-    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface); display:flex; justify-content:flex-end; gap:10px }
-    
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+
+    .loan-progress-stat .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .loan-progress-stat .note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .loan-progress-stat .value .currency {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+      font-weight: 600;
+    }
+
+    .kpi-value .currency {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+      font-weight: 600;
+    }
+
+    .loan-insights-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px dashed var(--line);
+    }
+
+    .loan-insights-panel .panel-title {
+      margin: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .insights-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .insight-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .insight-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .insight-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .insight-card .note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .loan-charts-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .loan-analytics-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loan-tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .loan-tab-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .loan-tab-btn.active {
+      background: var(--ink);
+      color: var(--card);
+      border-color: transparent;
+    }
+
+    .loan-tab-panels {
+      position: relative;
+      min-height: 320px;
+    }
+
+    .loan-tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .loan-tab-panel.active {
+      display: flex;
+    }
+
+    .loan-chart-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .loan-chart-actions.with-switch {
+      justify-content: space-between;
+    }
+
+    .loan-chart-toggle {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .loan-chart-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .loan-chart-mode-btn {
+      border: none;
+      background: transparent;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .loan-chart-mode-btn.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
+
+    .loan-chart-mode-btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .loan-chart-toggle:hover,
+    .loan-chart-toggle:focus {
+      background: var(--card);
+      color: var(--ink);
+      outline: none;
+    }
+
+    .loan-chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .loan-chart-area,
+    .loan-donut-area {
+      position: relative;
+      min-height: 300px;
+    }
+
+    .loan-donut-area { min-height: 260px; }
+
+    @media (max-width: 1200px) {
+      .loan-chart-grid { grid-template-columns: 1fr; }
+      .loan-donut-area { min-height: 240px; }
+    }
+
+    .loan-chart-placeholder {
+      display: none;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 32px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+    }
+
+    .loan-table-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .table-wrapper.scrollable {
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    thead th {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    tbody tr:hover { background: var(--surface); }
+
+    .rate-history-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rate-history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rate-history-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .rate-history-entry.current {
+      border-color: var(--accent);
+      background: var(--accent-weak);
+    }
+
+    .rate-history-entry .rate {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .rate-history-entry .date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
     .form-input {
-      width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--surface); font-size: 14px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      font-size: 14px;
     }
-    .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
-    hr.divider { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 
-    .setup-container {
-        text-align: center;
-        padding: 60px 20px;
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 20px 0;
     }
-    .setup-icon { font-size: 48px; margin-bottom: 16px; }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 5vh;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-card {
+      background: var(--card);
+      padding: 0;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      max-width: 520px;
+      width: 92%;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      margin-bottom: 5vh;
+    }
+
+    .modal-overlay.visible .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   </style>
 </head>
-<body>
+<body data-page="loan">
 
-  <div class="wrap">
-    <header class="page-header">
-      <div class="page-title-group">
-        <a href="index.html" class="back-link">← Powrót</a>
-        <h1 class="page-title">Monitor kredytu</h1>
-        <p class="page-subtitle">Śledź saldo, nadpłaty i harmonogram spłat w jednym miejscu.</p>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link active" href="loan.html" aria-current="page"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
-      <div class="page-actions">
-        <button class="btn primary" id="add-payment-btn" style="display: none;">+ Dodaj spłatę</button>
-        <button class="btn" id="settings-btn" style="display: none;">⚙️ Ustawienia</button>
-      </div>
-    </header>
+    </aside>
 
-    <main id="app-container">
-      
-      <div id="setup-container" class="card setup-container" style="display: none;">
-        <div class="setup-icon">📊</div>
-        <h2 class="title">Witaj w module kredytowym!</h2>
-        <p class="muted" style="max-width: 400px; margin: 0 auto 24px;">Aby rozpocząć, wprowadź podstawowe informacje o swoim kredycie. Te dane posłużą do wszystkich dalszych obliczeń.</p>
-        <button class="btn primary" id="setup-loan-btn">Skonfiguruj kredyt</button>
-      </div>
-
-      <div id="dashboard-container" class="grid" style="display: none;">
-        
-        <div class="grid g-3">
-          <div class="card kpi-card">
-            <div class="kpi-label">Pozostało kapitału</div>
-            <div id="capital-remaining" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Spłacono kapitału</div>
-            <div id="capital-paid" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Suma nadpłat</div>
-            <div id="overpayments-total" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Zapłacone odsetki</div>
-            <div id="interest-paid" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Liczba rat</div>
-            <div id="payments-count" class="kpi-value"></div>
-            <div id="payments-sub" class="kpi-sub"></div>
-          </div>
-           <div class="card kpi-card">
-           <div class="kpi-label">Kredyt skrócony o</div>
-           <div id="time-saved" class="kpi-value"></div>
-          </div>
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-info">
+          <p class="topbar-eyebrow">Finanse</p>
+          <h1 class="topbar-title">Kredyt</h1>
         </div>
-
-        <div class="card" id="loan-insights-card" style="display:none;">
-            <h3 class="title">Najbliższe kroki</h3>
-            <div id="loan-insights-grid" class="insights-grid"></div>
+        <div class="topbar-actions">
+          <button class="btn soft" id="settings-btn" style="display: none;">⚙️ Ustawienia</button>
+          <button class="btn primary" id="add-payment-btn" style="display: none;">+ Dodaj spłatę</button>
         </div>
+      </header>
 
-        <div class="card">
-            <h3 class="title">Postęp spłaty kapitału</h3>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div class="content">
+        <main class="stack tight">
+          <div id="app-container" class="stack tight">
+
+            <section id="setup-container" class="card loan-setup-card" style="display: none;">
+              <div class="setup-icon">📊</div>
+              <h2 class="title">Witaj w module kredytowym!</h2>
+              <p class="muted" style="max-width: 420px; margin: 0 auto;">Aby rozpocząć, wprowadź podstawowe informacje o swoim kredycie. Te dane posłużą do wszystkich dalszych obliczeń.</p>
+              <button class="btn primary" id="setup-loan-btn">Skonfiguruj kredyt</button>
+            </section>
+
+            <div id="dashboard-container" class="stack tight" style="display: none;">
+              <section class="card loan-progress-card">
+                <div class="loan-progress-header">
+                  <h2 class="title">Postęp spłaty kapitału</h2>
+                  <span id="progress-percent" class="loan-progress-percent">0%</span>
+                </div>
                 <span id="progress-text" class="tiny muted"></span>
-                <span id="progress-percent" style="font-weight: 700;">0%</span>
-            </div>
-            <div class="progress-bar">
-                <div id="progress-bar-inner" class="progress-bar-inner" style="width: 0%;"></div>
-            </div>
-        </div>
+                <div class="loan-progress-bar">
+                  <div id="progress-bar-inner" class="loan-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="loan-progress-stats">
+                  <div class="loan-progress-stat">
+                    <span class="label">Suma nadpłat</span>
+                    <span id="overpayments-total" class="value"></span>
+                  </div>
+                  <div class="loan-progress-stat">
+                    <span class="label">Raty wykonane</span>
+                    <span id="payments-count" class="value"></span>
+                    <span id="payments-sub" class="note"></span>
+                  </div>
+                  <div class="loan-progress-stat">
+                    <span class="label">Kredyt skrócony o</span>
+                    <span id="time-saved" class="value"></span>
+                  </div>
+                </div>
+                <div id="loan-insights-card" class="loan-insights-panel" style="display: none;">
+                  <p class="panel-title">Najbliższe kroki</p>
+                  <div id="loan-insights-grid" class="insights-grid"></div>
+                </div>
+              </section>
 
-        <div class="grid g-2">
-            <div class="card">
-                <h3 class="title">Rata i oprocentowanie</h3>
-                <canvas id="capital-chart" style="max-height: 300px;"></canvas>
-            </div>
-            <div class="card">
-                <h3 class="title">Struktura spłat</h3>
-                <canvas id="structure-chart" style="max-height: 300px;"></canvas>
-            </div>
-        </div>
+              <section class="card loan-charts-card" id="loan-analytics-card">
+                <div class="section-heading">
+                  <h2 class="title">Hub analityczny</h2>
+                  <span class="tiny muted">Przełącz zakładki, aby porównać strukturę rat i postępy spłaty</span>
+                </div>
+                <div class="loan-analytics-hub">
+                  <div class="loan-tab-nav" id="loan-tab-nav">
+                    <button class="loan-tab-btn active" data-chart="mix">Struktura raty</button>
+                    <button class="loan-tab-btn" data-chart="line">Kapitał vs odsetki</button>
+                    <button class="loan-tab-btn" data-chart="share">Udziały w czasie</button>
+                    <button class="loan-tab-btn" data-chart="cumulative">Kumulacja spłat</button>
+                    <button class="loan-tab-btn" data-chart="balance">Saldo kredytu</button>
+                    <button class="loan-tab-btn" data-chart="rate">Trend oprocentowania</button>
+                    <button class="loan-tab-btn" data-chart="change">Zmiana raty</button>
+                  </div>
+                  <div id="loan-chart-placeholder" class="loan-chart-placeholder">
+                    Dodaj raty, aby zobaczyć analizy spłaty kredytu.
+                  </div>
+                  <div class="loan-tab-panels" id="loan-tab-panels">
+                    <div class="loan-tab-panel active" data-chart="mix">
+                      <div class="loan-chart-grid">
+                        <div class="loan-chart-area">
+                          <canvas id="capital-chart"></canvas>
+                        </div>
+                        <div class="loan-donut-area">
+                          <canvas id="structure-chart"></canvas>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="line">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="line">Pokaż dane</button>
+                      </div>
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="monthly-line-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="share">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="share">Pokaż dane</button>
+                      </div>
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="share-area-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="cumulative">
+                      <div class="loan-chart-actions">
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="cumulative">Pokaż dane</button>
+                      </div>
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="cumulative-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="balance">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="balance-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="rate">
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="rate-trend-chart"></canvas>
+                      </div>
+                    </div>
+                    <div class="loan-tab-panel" data-chart="change">
+                      <div class="loan-chart-actions with-switch">
+                        <div class="loan-chart-switch" role="group" aria-label="Tryb zmian raty">
+                          <button class="loan-chart-mode-btn active" type="button" data-change-mode="value">Kwotowo</button>
+                          <button class="loan-chart-mode-btn" type="button" data-change-mode="percent">Procentowo</button>
+                        </div>
+                        <button class="loan-chart-toggle" type="button" data-chart-toggle="change">Pokaż dane</button>
+                      </div>
+                      <div class="loan-chart-area" style="min-height:320px;">
+                        <canvas id="payment-change-chart"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-        <div class="card" id="rate-history-card">
-            <h3 class="title">Historia oprocentowania</h3>
-            <ul id="rate-history-list" class="rate-history-list list-clean"></ul>
-        </div>
-
-        <div class="card">
-            <h3 class="title">Historia spłat</h3>
-            <div class="table-wrapper">
-                <table>
+              <section class="card loan-table-card">
+                <div class="section-heading">
+                  <h2 class="title">Historia spłat</h2>
+                  <span class="tiny muted">Edytuj dowolny wpis, aby zaktualizować harmonogram</span>
+                </div>
+                <div class="table-wrapper scrollable">
+                  <table>
                     <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Kapitał</th>
-                            <th>Odsetki</th>
-                            <th>Nadpłata</th>
-                            <th>Suma raty</th>
-                            <th>Akcje</th>
-                        </tr>
+                      <tr>
+                        <th>Data</th>
+                        <th>Kapitał</th>
+                        <th>Odsetki</th>
+                        <th>Nadpłata</th>
+                        <th>Suma raty</th>
+                        <th>Akcje</th>
+                      </tr>
                     </thead>
-                    <tbody id="history-tbody">
-                    </tbody>
-                </table>
+                    <tbody id="history-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="card rate-history-card" id="rate-history-card">
+                <div class="section-heading">
+                  <h2 class="title">Historia oprocentowania</h2>
+                  <span class="tiny muted">Aktualne stawki wpływają na kolejne raty</span>
+                </div>
+                <ul id="rate-history-list" class="rate-history-list"></ul>
+              </section>
             </div>
-        </div>
+          </div>
+        </main>
 
+        <aside class="right-rail">
+          <div class="kpi-compact">
+            <span class="kpi-emoji">💰</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Kapitał pozostały</span>
+              <span class="kpi-value" id="capital-remaining">—</span>
+              <span class="tiny muted" id="capital-remaining-note"></span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📉</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Kapitał spłacony</span>
+              <span class="kpi-value" id="capital-paid">—</span>
+              <span class="tiny muted" id="capital-paid-note"></span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📈</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Odsetki spłacone</span>
+              <span class="kpi-value" id="interest-paid">—</span>
+              <span class="tiny muted" id="interest-paid-note"></span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">💸</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Śr. rata</span>
+              <span class="kpi-value" id="avg-installment">—</span>
+              <span class="tiny muted" id="avg-installment-note"></span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">⏳</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Następna rata</span>
+              <span class="kpi-value" id="next-payment">—</span>
+              <span class="tiny muted" id="next-payment-note"></span>
+            </div>
+          </div>
+        </aside>
       </div>
-
-    </main>
+    </div>
   </div>
-  
+
   <div id="modal-overlay" class="modal-overlay" role="dialog">
     <div class="modal-card" id="modal-card">
       <div class="modal-header">
@@ -281,6 +743,15 @@ const defaultState = {
 
 let state = {};
 let charts = {};
+let chartDataCache = null;
+const chartLabelState = {
+  line: false,
+  share: false,
+  cumulative: false,
+  change: false
+};
+
+let paymentChangeMode = 'value';
 
 function $(selector) { return document.querySelector(selector); }
 function $$(selector) { return document.querySelectorAll(selector); }
@@ -296,8 +767,76 @@ function saveState() {
 }
 
 function fmt(n) {
-  try { return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(n || 0); } 
-  catch { return `${(n || 0).toFixed(2)} PLN`; }
+  try {
+    const value = Number(n || 0);
+    const formatter = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatted = formatter.format(value).replace(/\u00a0/g, ' ');
+    if (Math.abs(value) < 10000) {
+      const compact = formatted.replace(/\s(?=\d)/g, '');
+      return `${compact} zł`;
+    }
+    return `${formatted} zł`;
+  } catch {
+    return `${(n || 0).toFixed(2)} zł`;
+  }
+}
+
+function fmtPlain(n) {
+  try {
+    const value = Number(n || 0);
+    const formatter = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatter.format(value).replace(/\u00a0/g, ' ');
+  } catch {
+    return Number(n || 0).toFixed(2);
+  }
+}
+
+function formatThousands(value, fractionDigits = 1) {
+  const formatter = new Intl.NumberFormat('pl-PL', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+  return formatter.format(value).replace(/\u00a0/g, ' ');
+}
+
+function fmtChartValue(n) {
+  try {
+    const value = Number(n || 0);
+    if (!Number.isFinite(value)) return '0 zł';
+    if (Math.abs(value) >= 1000) {
+      return `${formatThousands(value / 1000, 1)} k zł`;
+    }
+    return fmt(value);
+  } catch {
+    const numeric = Number(n || 0);
+    if (Math.abs(numeric) >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} k zł`;
+    }
+    return fmt(numeric);
+  }
+}
+
+function fmtChartTick(n) {
+  try {
+    const value = Number(n || 0);
+    if (!Number.isFinite(value)) return '0 zł';
+    if (Math.abs(value) >= 1000) {
+      return `${formatThousands(value / 1000, 1)} k zł`;
+    }
+    return `${fmtPlain(value)} zł`;
+  } catch {
+    const numeric = Number(n || 0);
+    if (Math.abs(numeric) >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} k zł`;
+    }
+    return `${Number(numeric || 0).toFixed(2)} zł`;
+  }
+}
+
+function formatRateValue(value) {
+  const numeric = Number.parseFloat(value || 0);
+  if (Number.isNaN(numeric)) return 0;
+  return Number(numeric.toFixed(2));
 }
 
 /* === Modal Logic === */
@@ -475,7 +1014,7 @@ function render() {
     $('#settings-btn').style.display = 'none';
   } else {
     $('#setup-container').style.display = 'none';
-    $('#dashboard-container').style.display = 'grid';
+    $('#dashboard-container').style.display = 'flex';
     $('#add-payment-btn').style.display = 'inline-flex';
     $('#settings-btn').style.display = 'inline-flex';
     renderDashboard();
@@ -492,10 +1031,10 @@ function renderDashboard() {
     const capitalRemaining = loanDetails.totalCapital - totalCapitalPaid;
     const progress = (totalCapitalPaid / loanDetails.totalCapital) * 100;
 
-    $('#capital-remaining').innerHTML = `${fmt(capitalRemaining)}<span class="currency">PLN</span>`;
-    $('#capital-paid').innerHTML = `${fmt(totalCapitalPaid)}<span class="currency">PLN</span>`;
-    $('#overpayments-total').innerHTML = `${fmt(totalOverpayments)}<span class="currency">PLN</span>`;
-    $('#interest-paid').innerHTML = `${fmt(totalInterestPaid)}<span class="currency">PLN</span>`;
+    $('#capital-remaining').textContent = fmt(capitalRemaining);
+    $('#capital-paid').textContent = fmt(totalCapitalPaid);
+    $('#overpayments-total').textContent = fmt(totalOverpayments);
+    $('#interest-paid').textContent = fmt(totalInterestPaid);
     $('#payments-count').innerHTML = `${payments.length}<span class="currency">z ${loanDetails.loanTerm * 12}</span>`;
 
     const originalMonths = loanDetails.loanTerm * 12;
@@ -504,6 +1043,56 @@ function renderDashboard() {
     const avgInstallment = monthsPaid > 0 ? payments.reduce((s, p) => s + p.capital + p.interest + (p.overpayment || 0), 0) / monthsPaid : 0;
     const projectedMonthsRemaining = avgMonthlyPrincipal > 0 ? capitalRemaining / avgMonthlyPrincipal : Infinity;
     const monthsSaved = originalMonths - monthsPaid - projectedMonthsRemaining;
+
+    const capitalRemainingNoteEl = $('#capital-remaining-note');
+    const capitalPaidNoteEl = $('#capital-paid-note');
+    const interestPaidNoteEl = $('#interest-paid-note');
+    const avgInstallmentNoteEl = $('#avg-installment-note');
+
+    if (capitalRemainingNoteEl) {
+        if (payments.length && projectedMonthsRemaining && isFinite(projectedMonthsRemaining)) {
+            const monthsLeft = Math.max(0, Math.round(projectedMonthsRemaining));
+            const label = monthsLeft > 0 ? `~${monthsLeft} rat do końca` : 'Finisz w zasięgu ręki';
+            capitalRemainingNoteEl.textContent = label;
+        } else if (loanDetails.totalCapital) {
+            capitalRemainingNoteEl.textContent = 'Dodaj raty, by wyliczyć prognozę';
+        } else {
+            capitalRemainingNoteEl.textContent = '';
+        }
+    }
+
+    if (capitalPaidNoteEl) {
+        if (payments.length) {
+            capitalPaidNoteEl.textContent = totalOverpayments > 0 ? `Nadpłaty ${fmt(totalOverpayments)}` : "Standardowe raty bez nadpłat";
+        } else {
+            capitalPaidNoteEl.textContent = 'Dodaj pierwszą ratę';
+        }
+    }
+
+    if (interestPaidNoteEl) {
+        const totalOutflow = payments.reduce((sum, p) => sum + p.capital + p.interest + (p.overpayment || 0), 0);
+        if (totalOutflow > 0) {
+            const share = ((totalInterestPaid / totalOutflow) * 100).toFixed(1);
+            interestPaidNoteEl.textContent = `To ${share}% wszystkich wpłat`;
+        } else {
+            interestPaidNoteEl.textContent = 'Brak danych o odsetkach';
+        }
+    }
+
+    if (avgInstallmentNoteEl) {
+        if (payments.length) {
+            const latestPayment = [...payments].sort((a, b) => (a.date || '').localeCompare(b.date || '')).pop();
+            const latestTotal = latestPayment ? latestPayment.capital + latestPayment.interest + (latestPayment.overpayment || 0) : 0;
+            avgInstallmentNoteEl.textContent = latestPayment ? `Ostatnia rata ${fmt(latestTotal)}` : '';
+        } else {
+            avgInstallmentNoteEl.textContent = 'Brak danych o ratach';
+        }
+    }
+
+    const avgInstallmentEl = $('#avg-installment');
+    if (avgInstallmentEl) {
+        avgInstallmentEl.textContent = monthsPaid > 0 ? fmt(avgInstallment) : '—';
+    }
 
     if (monthsSaved > 0) {
         const years = Math.floor(monthsSaved / 12);
@@ -588,7 +1177,7 @@ function getRateForDate(paymentDate, history) {
             break;
         }
     }
-    return currentRate;
+    return formatRateValue(currentRate);
 }
 
 function getNextPaymentMonth(payments, loanDetails) {
@@ -613,19 +1202,29 @@ function getNextPaymentMonth(payments, loanDetails) {
 function updateLoanInsights(metrics) {
     const card = $('#loan-insights-card');
     const grid = $('#loan-insights-grid');
+    const nextPaymentEl = $('#next-payment');
+    const nextNoteEl = $('#next-payment-note');
     if (!card || !grid) return;
 
     if (!metrics || !metrics.loanDetails) {
         card.style.display = 'none';
+        if (nextPaymentEl) nextPaymentEl.textContent = '—';
+        if (nextNoteEl) nextNoteEl.textContent = '';
         return;
     }
 
-    card.style.display = 'block';
+    card.style.display = 'flex';
     const { loanDetails, payments, capitalRemaining, totalCapitalPaid, totalOverpayments, avgMonthlyPrincipal, avgInstallment, projectedMonthsRemaining, nextPaymentMonth } = metrics;
     const paymentsList = payments || [];
     const avgInterestPortion = paymentsList.length ? paymentsList.reduce((sum, p) => sum + p.interest, 0) / paymentsList.length : 0;
     const nextRate = getRateForDate(nextPaymentMonth, loanDetails.interestRateHistory || []);
     const nextLabel = new Date(`${nextPaymentMonth}-01`).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+
+    if (nextPaymentEl) nextPaymentEl.textContent = nextLabel || '—';
+    if (nextNoteEl) {
+        const hasRateHistory = (loanDetails.interestRateHistory || []).length > 0;
+        nextNoteEl.textContent = hasRateHistory ? `Oprocentowanie ${Number(nextRate || 0).toFixed(2)}%` : '';
+    }
 
     const recommendedOverpayment = (avgMonthlyPrincipal > 0 && projectedMonthsRemaining && isFinite(projectedMonthsRemaining) && projectedMonthsRemaining > 6)
         ? Math.max(0, (capitalRemaining / Math.max(projectedMonthsRemaining - 6, 1)) - avgMonthlyPrincipal)
@@ -700,84 +1299,930 @@ function renderRateHistory(loanDetails, nextPaymentMonth) {
 }
 
 function renderCharts() {
-  const capitalCtx = $('#capital-chart').getContext('2d');
-  const structureCtx = $('#structure-chart').getContext('2d');
-  if (charts.capital) charts.capital.destroy();
-  if (charts.structure) charts.structure.destroy();
+  const placeholder = $('#loan-chart-placeholder');
+  const panels = $('#loan-tab-panels');
+  const tabNav = $('#loan-tab-nav');
+  const payments = state.payments || [];
+  const loanDetails = state.loanDetails || { interestRateHistory: [] };
+  const hasPayments = payments.length > 0;
+
+  if (placeholder) {
+    placeholder.style.display = hasPayments ? 'none' : 'flex';
+  }
+  if (panels) {
+    panels.style.display = hasPayments ? 'block' : 'none';
+  }
+  if (tabNav) {
+    tabNav.style.display = hasPayments ? 'flex' : 'none';
+  }
+
+  if (!hasPayments) {
+    destroyAllLoanCharts();
+    chartDataCache = null;
+    return;
+  }
 
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted').trim();
 
-  const { payments, loanDetails } = state;
-  const paymentLabels = payments.map(p => new Date(p.date+'-02').toLocaleDateString('pl-PL', {month:'short', year:'2-digit'}));
-  
-  const interestRateData = payments.map(p => getRateForDate(p.date, loanDetails.interestRateHistory));
+  const paymentLabels = payments.map(p => new Date(p.date + '-02').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }));
+  const basePrincipalSeries = payments.map(p => p.capital);
+  const overpaymentSeries = payments.map(p => p.overpayment || 0);
+  const principalSeries = payments.map((p, index) => basePrincipalSeries[index] + overpaymentSeries[index]);
+  const interestSeries = payments.map(p => p.interest);
+  const totalSeries = principalSeries.map((value, index) => value + interestSeries[index]);
+  const cumulativePrincipal = [];
+  const cumulativeInterest = [];
+  let principalRunning = 0;
+  let interestRunning = 0;
+  principalSeries.forEach((value, index) => {
+    principalRunning += value;
+    interestRunning += interestSeries[index];
+    cumulativePrincipal.push(principalRunning);
+    cumulativeInterest.push(interestRunning);
+  });
 
-  const greenColor = getComputedStyle(document.body).getPropertyValue('--green').trim();
-  const orangeColor = getComputedStyle(document.body).getPropertyValue('--orange').trim();
-  const blueColor = getComputedStyle(document.body).getPropertyValue('--blue').trim();
-
-  charts.capital = new Chart(capitalCtx, {
-    type: 'bar',
-    data: {
-      labels: paymentLabels,
-      datasets: [
-        { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: blueColor, yAxisID: 'yRate', tension: 0.1, pointRadius: 3, pointBackgroundColor: blueColor },
-        { label: 'Kapitał', data: payments.map(p => p.capital + (p.overpayment || 0)), backgroundColor: greenColor, borderRadius: 4, order: 2 },
-        { label: 'Odsetki', data: payments.map(p => p.interest), backgroundColor: orangeColor, borderRadius: 4, order: 3 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, grid: { color: getComputedStyle(document.body).getPropertyValue('--line').trim() }, ticks: { callback: (value) => fmt(value).replace(/\sPLN/,'') } },
-        yRate: { type: 'linear', position: 'right', grid: { display: false }, ticks: { callback: (value) => `${value}%` } }
-      },
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.dataset.type === 'line' ? context.raw+'%' : fmt(context.raw)}` } }
-      }
+  const sharePrincipal = [];
+  const shareInterest = [];
+  totalSeries.forEach((total, index) => {
+    if (total > 0) {
+      const principalShare = Number(((principalSeries[index] / total) * 100).toFixed(1));
+      const interestShare = Math.max(0, Number((100 - principalShare).toFixed(1)));
+      sharePrincipal.push(principalShare);
+      shareInterest.push(interestShare);
+    } else {
+      sharePrincipal.push(0);
+      shareInterest.push(0);
     }
   });
 
-  const totalCapitalPaid = payments.reduce((sum, p) => sum + p.capital + (p.overpayment || 0), 0);
-  const totalInterestPaid = payments.reduce((sum, p) => sum + p.interest, 0);
-  const totalPaid = totalCapitalPaid + totalInterestPaid;
+  const rateHistory = loanDetails.interestRateHistory || [];
+  const interestRateData = payments.map(p => formatRateValue(getRateForDate(p.date, rateHistory)));
+  const totalCapitalAmount = Number(loanDetails.totalCapital || 0);
+  let runningBalance = totalCapitalAmount;
+  const remainingBalances = payments.map((p, index) => {
+    runningBalance -= principalSeries[index];
+    return Math.max(runningBalance, 0);
+  });
 
-  charts.structure = new Chart(structureCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Spłacony kapitał', 'Zapłacone odsetki'],
-      datasets: [{ data: [totalCapitalPaid, totalInterestPaid], backgroundColor: [greenColor, orangeColor], borderColor: getComputedStyle(document.body).getPropertyValue('--card').trim(), borderWidth: 5, hoverOffset: 8 }]
-    },
-    plugins: [ChartDataLabels, doughnutCenterText],
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        datalabels: {
-          formatter: (value, ctx) => {
-            if (totalPaid === 0) return '0%';
-            const percentage = ((value / totalPaid) * 100).toFixed(1) + '%';
-            return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+  const rateHistoryLabels = paymentLabels;
+  const rateHistoryValues = interestRateData;
+  const rateHistoryDiffs = rateHistoryValues.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = rateHistoryValues[index - 1];
+    const diff = value - previous;
+    return formatRateValue(diff);
+  });
+  const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
+  const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
+  const averageInstallment = totalSeries.length
+    ? Number((totalSeries.reduce((sum, value) => sum + value, 0) / totalSeries.length).toFixed(2))
+    : 0;
+
+  const paymentChangeValues = totalSeries.map((value, index) => {
+    if (index === 0) return 0;
+    return value - totalSeries[index - 1];
+  });
+
+  const paymentChangePercentages = totalSeries.map((value, index) => {
+    if (index === 0) return 0;
+    const previous = totalSeries[index - 1];
+    if (!previous) return 0;
+    return Number(((value - previous) / previous * 100).toFixed(2));
+  });
+
+  chartDataCache = {
+    labels: paymentLabels,
+    principalSeries,
+    basePrincipalSeries,
+    overpaymentSeries,
+    interestSeries,
+    totalSeries,
+    cumulativePrincipal,
+    cumulativeInterest,
+    sharePrincipal,
+    shareInterest,
+    interestRateData,
+    remainingBalances,
+    rateHistoryLabels,
+    rateHistoryValues,
+    rateHistoryDiffs,
+    paymentChangeValues,
+    paymentChangePercentages,
+    averageInstallment,
+    totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
+  };
+
+  const activePanel = document.querySelector('.loan-tab-panel.active');
+  const activeChart = activePanel ? activePanel.dataset.chart : 'mix';
+  renderChartForPanel(activeChart);
+}
+
+function destroyAllLoanCharts() {
+  Object.keys(charts).forEach(key => {
+    if (charts[key]) {
+      charts[key].destroy();
+      delete charts[key];
+    }
+  });
+}
+
+function getLoanPalette() {
+  const styles = getComputedStyle(document.body);
+  return {
+    green: styles.getPropertyValue('--green').trim(),
+    greenSoft: styles.getPropertyValue('--green-soft').trim(),
+    orange: styles.getPropertyValue('--orange').trim(),
+    orangeSoft: styles.getPropertyValue('--orange-soft').trim(),
+    blue: styles.getPropertyValue('--blue').trim(),
+    blueSoft: styles.getPropertyValue('--blue-soft').trim(),
+    line: styles.getPropertyValue('--line').trim(),
+    card: styles.getPropertyValue('--card').trim(),
+    ink: styles.getPropertyValue('--ink').trim()
+  };
+}
+
+function renderChartForPanel(panelType) {
+  if (!chartDataCache) return;
+  const palette = getLoanPalette();
+  const {
+    labels,
+    principalSeries,
+    basePrincipalSeries,
+    overpaymentSeries,
+    interestSeries,
+    totalSeries,
+    interestRateData,
+    totals,
+    sharePrincipal,
+    shareInterest,
+    cumulativePrincipal,
+    cumulativeInterest,
+    remainingBalances,
+    rateHistoryLabels,
+    rateHistoryValues,
+    rateHistoryDiffs,
+    paymentChangeValues,
+    paymentChangePercentages,
+    averageInstallment
+  } = chartDataCache;
+
+  if (panelType === 'mix') {
+    const capitalCanvas = $('#capital-chart');
+    if (capitalCanvas) {
+      const capitalCtx = capitalCanvas.getContext('2d');
+      const minRateValue = interestRateData.length ? Math.min(...interestRateData) : 0;
+      const maxRateValue = interestRateData.length ? Math.max(...interestRateData) : 0;
+      const ratePadding = 0.4;
+      const suggestedRateMin = Number.isFinite(minRateValue) ? Math.min(minRateValue - ratePadding, 4) : 0;
+      const yRateMin = Math.max(0, Number.isFinite(suggestedRateMin) ? suggestedRateMin : 0);
+      const yRateMax = Number.isFinite(maxRateValue) ? maxRateValue + ratePadding : undefined;
+      if (charts.capital) {
+        charts.capital.data.labels = labels;
+        const rateDataset = charts.capital.data.datasets.find(ds => ds.label === 'Oprocentowanie');
+        const principalDataset = charts.capital.data.datasets.find(ds => ds.label === 'Kapitał');
+        const interestDataset = charts.capital.data.datasets.find(ds => ds.label === 'Odsetki');
+        const averageDataset = charts.capital.data.datasets.find(ds => ds.label === 'Średnia rata');
+        if (rateDataset) rateDataset.data = interestRateData;
+        if (principalDataset) principalDataset.data = principalSeries;
+        if (interestDataset) interestDataset.data = interestSeries;
+        if (averageDataset) {
+          averageDataset.data = labels.map(() => averageInstallment);
+          averageDataset.hidden = !averageInstallment;
+        }
+        if (charts.capital.options?.scales?.yRate) {
+          charts.capital.options.scales.yRate.min = yRateMin;
+          charts.capital.options.scales.yRate.max = yRateMax;
+        }
+        charts.capital.update();
+      } else {
+        charts.capital = new Chart(capitalCtx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2, datalabels: { display: false } },
+              { label: 'Kapitał', data: principalSeries, backgroundColor: palette.green, borderRadius: 4, order: 2, datalabels: { display: false } },
+              {
+                label: 'Odsetki',
+                data: interestSeries,
+                backgroundColor: palette.orange,
+                borderRadius: 4,
+                order: 3,
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  color: palette.ink,
+                  font: { weight: 700, size: 11 },
+                  formatter: (value, context) => {
+                    const index = context.dataIndex;
+                    const principalValue = context.chart.data.datasets[1].data[index] || 0;
+                    const total = (value || 0) + principalValue;
+                    return total ? fmtChartValue(total) : '';
+                  }
+                }
+              },
+              { type: 'line', label: 'Średnia rata', data: labels.map(() => averageInstallment), borderColor: palette.ink, borderDash: [6, 4], borderWidth: 1.5, yAxisID: 'y', pointRadius: 0, tension: 0, datalabels: { display: false }, hidden: !averageInstallment }
+            ]
           },
-          color: '#fff',
-          font: { weight: 'bold', size: 12 },
-        },
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                const percentage = totalPaid > 0 ? ((value / totalPaid) * 100).toFixed(2) : 0;
-                return `${label}: ${fmt(value)} (${percentage}%)`;
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, grid: { color: palette.line }, ticks: { callback: (value) => fmtChartTick(value) } },
+              yRate: { type: 'linear', position: 'right', grid: { display: false }, min: yRateMin, max: yRateMax, ticks: { callback: (value) => `${value}%` } }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true } },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    if (context.dataset.yAxisID === 'yRate') {
+                      return `${context.dataset.label}: ${context.raw}%`;
+                    }
+                    return `${context.dataset.label}: ${fmtChartValue(context.raw)}`;
+                  }
+                }
+              }
             }
           }
-        },
+        });
       }
+      setTimeout(() => charts.capital && charts.capital.resize(), 30);
     }
+
+    const structureCanvas = $('#structure-chart');
+    if (structureCanvas) {
+      const structureCtx = structureCanvas.getContext('2d');
+      const totalPaid = totals.principal + totals.interest;
+      if (charts.structure) {
+        charts.structure.data.datasets[0].data = [totals.principal, totals.interest];
+        charts.structure.options.plugins.datalabels.formatter = (value, ctx) => {
+          const sum = totals.principal + totals.interest;
+          if (sum === 0) return '0%';
+          const percentage = ((value / sum) * 100).toFixed(1) + '%';
+          return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+        };
+        charts.structure.options.plugins.tooltip.callbacks.label = (context) => {
+          const label = context.label || '';
+          const value = context.raw || 0;
+          const sum = totals.principal + totals.interest;
+          const percentage = sum > 0 ? ((value / sum) * 100).toFixed(2) : 0;
+          return `${label}: ${fmtChartValue(value)} (${percentage}%)`;
+        };
+        charts.structure.update();
+      } else {
+        charts.structure = new Chart(structureCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Spłacony kapitał', 'Zapłacone odsetki'],
+            datasets: [{ data: [totals.principal, totals.interest], backgroundColor: [palette.green, palette.orange], borderColor: palette.card, borderWidth: 5, hoverOffset: 8 }]
+          },
+          plugins: [ChartDataLabels, doughnutCenterText],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              datalabels: {
+                formatter: (value, ctx) => {
+                  if (totalPaid === 0) return '0%';
+                  const percentage = ((value / totalPaid) * 100).toFixed(1) + '%';
+                  return ctx.dataset.data[ctx.dataIndex] > 0 ? percentage : '';
+                },
+                color: '#fff',
+                font: { weight: 'bold', size: 12 }
+              },
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const percentage = totalPaid > 0 ? ((value / totalPaid) * 100).toFixed(2) : 0;
+                    return `${label}: ${fmtChartValue(value)} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.structure && charts.structure.resize(), 30);
+    }
+  }
+
+  if (panelType === 'line') {
+    const lineCanvas = $('#monthly-line-chart');
+    if (lineCanvas) {
+      const lineCtx = lineCanvas.getContext('2d');
+      if (charts.monthlyLine) {
+        charts.monthlyLine.data.labels = labels;
+        charts.monthlyLine.data.datasets[0].data = principalSeries;
+        charts.monthlyLine.data.datasets[1].data = interestSeries;
+        charts.monthlyLine.options.plugins.datalabels.display = chartLabelState.line;
+        charts.monthlyLine.update();
+      } else {
+        charts.monthlyLine = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.green },
+              { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.orange }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
+                }
+              },
+              datalabels: {
+                display: chartLabelState.line,
+                align: (context) => (context.datasetIndex === 0 ? 'top' : 'bottom'),
+                anchor: (context) => (context.datasetIndex === 0 ? 'end' : 'start'),
+                color: (context) => context.dataset.borderColor || palette.ink,
+                font: { weight: 600, size: 10 },
+                formatter: (value) => fmtChartValue(value)
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmtChartTick(value) }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.monthlyLine && charts.monthlyLine.resize(), 30);
+    }
+  }
+  if (panelType === 'share') {
+    const shareCanvas = $('#share-area-chart');
+    if (shareCanvas) {
+      const shareCtx = shareCanvas.getContext('2d');
+      const shareLabelFormatter = (value) => `${Number(value).toFixed(1)}%`;
+      const shareLabelOffset = (context) => {
+        const chart = context.chart;
+        const datasetIndex = context.datasetIndex;
+        const dataIndex = context.dataIndex;
+        const yScale = chart.scales.y;
+        if (!yScale) return 0;
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || !meta.data || !meta.data[dataIndex]) return 0;
+        const element = meta.data[dataIndex];
+        const target = datasetIndex === 0 ? 10 : 80;
+        const targetPixel = yScale.getPixelForValue(target);
+        const baseOffset = targetPixel - element.y;
+        const separation = datasetIndex === 0 ? -14 : 14;
+        return baseOffset + separation;
+      };
+      const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
+      if (charts.shareArea) {
+        charts.shareArea.data.labels = labels;
+        charts.shareArea.data.datasets[0].data = sharePrincipal;
+        charts.shareArea.data.datasets[1].data = shareInterest;
+        charts.shareArea.options.plugins.datalabels.display = (ctx) => chartLabelState.share && !ctx.dataset.hidden;
+        charts.shareArea.options.plugins.datalabels.offset = shareLabelOffset;
+        charts.shareArea.options.plugins.datalabels.color = shareLabelColor;
+        charts.shareArea.options.plugins.datalabels.align = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.anchor = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        charts.shareArea.options.plugins.datalabels.borderRadius = 6;
+        charts.shareArea.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
+        charts.shareArea.options.plugins.datalabels.formatter = shareLabelFormatter;
+        charts.shareArea.update();
+      } else {
+        charts.shareArea = new Chart(shareCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: 'origin', tension: 0.25, pointRadius: 0, stack: 'shares' },
+              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: '-1', tension: 0.25, pointRadius: 0, stack: 'shares' }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { usePointStyle: true } },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
+                }
+              },
+              datalabels: {
+                display: (ctx) => chartLabelState.share && !ctx.dataset.hidden,
+                align: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
+                anchor: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
+                clip: false,
+                offset: shareLabelOffset,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 6,
+                padding: { top: 2, bottom: 2, left: 6, right: 6 },
+                color: shareLabelColor,
+                font: { weight: 600, size: 10 },
+                formatter: shareLabelFormatter
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: palette.line, drawOnChartArea: false }
+              },
+              y: {
+                stacked: true,
+                min: 0,
+                max: 100,
+                ticks: { callback: (value) => `${value}%` },
+                grid: { color: palette.line }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.shareArea && charts.shareArea.resize(), 30);
+    }
+  }
+  if (panelType === 'cumulative') {
+    const cumulativeCanvas = $('#cumulative-chart');
+    if (cumulativeCanvas) {
+      const cumulativeCtx = cumulativeCanvas.getContext('2d');
+      if (charts.cumulative) {
+        charts.cumulative.data.labels = labels;
+        charts.cumulative.data.datasets[0].data = cumulativePrincipal;
+        charts.cumulative.data.datasets[1].data = cumulativeInterest;
+        charts.cumulative.data.datasets[2].data = cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]);
+        charts.cumulative.options.plugins.datalabels.display = chartLabelState.cumulative;
+        charts.cumulative.options.plugins.datalabels.align = (context) => {
+          if (context.datasetIndex === 2) return 'end';
+          return context.datasetIndex === 1 ? 'bottom' : 'top';
+        };
+        charts.cumulative.options.plugins.datalabels.anchor = (context) => {
+          if (context.datasetIndex === 2) return 'end';
+          return context.datasetIndex === 1 ? 'start' : 'end';
+        };
+        charts.cumulative.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        charts.cumulative.options.plugins.datalabels.borderRadius = 6;
+        charts.cumulative.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
+        charts.cumulative.options.plugins.datalabels.clamp = true;
+        charts.cumulative.options.plugins.datalabels.formatter = (value) => fmtChartValue(value);
+        charts.cumulative.update();
+      } else {
+        charts.cumulative = new Chart(cumulativeCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Kapitał skumulowany', data: cumulativePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 0 },
+              { label: 'Odsetki skumulowane', data: cumulativeInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 0 },
+              { label: 'Łącznie', data: cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]), borderColor: palette.blue, backgroundColor: palette.blueSoft, fill: false, borderDash: [6, 4], tension: 0.25, pointRadius: 0 }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
+                }
+              },
+              datalabels: {
+                display: chartLabelState.cumulative,
+                align: (context) => {
+                  if (context.datasetIndex === 2) return 'end';
+                  return context.datasetIndex === 1 ? 'bottom' : 'top';
+                },
+                anchor: (context) => {
+                  if (context.datasetIndex === 2) return 'end';
+                  return context.datasetIndex === 1 ? 'start' : 'end';
+                },
+                color: (context) => context.dataset.borderColor || palette.ink,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 6,
+                padding: { top: 2, bottom: 2, left: 6, right: 6 },
+                font: { weight: 600, size: 10 },
+                clamp: true,
+                formatter: (value) => fmtChartValue(value)
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmtChartTick(value) }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.cumulative && charts.cumulative.resize(), 30);
+    }
+  }
+  if (panelType === 'balance') {
+    const balanceCanvas = $('#balance-chart');
+    if (balanceCanvas) {
+      const balanceCtx = balanceCanvas.getContext('2d');
+      if (charts.balance) {
+        charts.balance.data.labels = labels;
+        charts.balance.data.datasets[0].data = remainingBalances;
+        charts.balance.update();
+      } else {
+        charts.balance = new Chart(balanceCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Saldo po spłacie',
+                data: remainingBalances,
+                borderColor: palette.blue,
+                backgroundColor: palette.blueSoft,
+                fill: 'start',
+                tension: 0.25,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `Saldo: ${fmtChartValue(context.raw)}`
+                }
+              },
+              datalabels: {
+                align: 'top',
+                anchor: 'end',
+                color: palette.ink,
+                font: { weight: 700, size: 11 },
+                formatter: (value, context) => {
+                  const dataset = context.dataset.data || [];
+                  return context.dataIndex === dataset.length - 1 ? fmtChartValue(value) : '';
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmtChartTick(value) }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.balance && charts.balance.resize(), 30);
+    }
+  }
+
+  if (panelType === 'change') {
+    const changeCanvas = $('#payment-change-chart');
+    if (changeCanvas) {
+      updateChangeModeButtons();
+      const changeCtx = changeCanvas.getContext('2d');
+      const barColors = paymentChangeValues.map(value => {
+        if (value < 0) return palette.green;
+        if (value > 0) return palette.orange;
+        return palette.line;
+      });
+      const showValue = paymentChangeMode === 'value';
+      const showPercent = paymentChangeMode === 'percent';
+      if (charts.paymentChange) {
+        charts.paymentChange.data.labels = labels;
+        const valueDataset = charts.paymentChange.data.datasets.find(ds => ds.label === 'Zmiana kwotowa');
+        const percentDataset = charts.paymentChange.data.datasets.find(ds => ds.label === 'Zmiana %');
+        if (valueDataset) {
+          valueDataset.data = paymentChangeValues;
+          valueDataset.backgroundColor = barColors;
+          valueDataset.hidden = !showValue;
+        }
+        if (percentDataset) {
+          percentDataset.data = paymentChangePercentages;
+          percentDataset.hidden = !showPercent;
+        }
+        if (charts.paymentChange.options?.scales?.yValue) {
+          charts.paymentChange.options.scales.yValue.display = showValue;
+        }
+        if (charts.paymentChange.options?.scales?.yPercent) {
+          charts.paymentChange.options.scales.yPercent.display = showPercent;
+        }
+        charts.paymentChange.options.plugins.datalabels.display = (ctx) => chartLabelState.change && !ctx.dataset.hidden;
+        charts.paymentChange.update();
+      } else {
+        charts.paymentChange = new Chart(changeCtx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Zmiana kwotowa',
+                data: paymentChangeValues,
+                backgroundColor: barColors,
+                borderRadius: 4,
+                yAxisID: 'yValue',
+                hidden: !showValue
+              },
+              {
+                type: 'line',
+                label: 'Zmiana %',
+                data: paymentChangePercentages,
+                borderColor: palette.blue,
+                backgroundColor: palette.blueSoft,
+                fill: false,
+                tension: 0.25,
+                pointRadius: 3,
+                yAxisID: 'yPercent',
+                hidden: !showPercent
+              }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: { grid: { display: false } },
+              yValue: {
+                type: 'linear',
+                position: 'left',
+                display: showValue,
+                grid: { color: palette.line },
+                ticks: { callback: (value) => fmtChartTick(value) }
+              },
+              yPercent: {
+                type: 'linear',
+                position: 'right',
+                display: showPercent,
+                grid: { display: false },
+                ticks: {
+                  callback: (value) => `${value}%`
+                }
+              }
+            },
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    if (context.dataset.type === 'line') {
+                      const numeric = Number(context.raw || 0);
+                      const sign = numeric > 0 ? '+' : '';
+                      return `${context.dataset.label}: ${sign}${numeric.toFixed(2)}%`;
+                    }
+                    return `${context.dataset.label}: ${fmtChartValue(context.raw)}`;
+                  }
+                }
+              },
+              datalabels: {
+                display: (ctx) => chartLabelState.change && !ctx.dataset.hidden,
+                align: (context) => {
+                  if (context.dataset.type === 'line') return 'bottom';
+                  return Number(context.raw || 0) >= 0 ? 'top' : 'bottom';
+                },
+                anchor: (context) => {
+                  if (context.dataset.type === 'line') return 'start';
+                  return Number(context.raw || 0) >= 0 ? 'end' : 'start';
+                },
+                color: (context) => {
+                  if (context.dataset.type === 'line') return palette.blue;
+                  const numeric = Number(context.raw || 0);
+                  if (numeric < 0) return palette.green;
+                  if (numeric > 0) return palette.orange;
+                  return palette.ink;
+                },
+                font: { weight: 600, size: 10 },
+                formatter: (value, context) => {
+                  if (context.dataset.type === 'line') {
+                    const numeric = Number(value || 0);
+                    if (!numeric) return '0.00%';
+                    const sign = numeric > 0 ? '+' : '';
+                    return `${sign}${numeric.toFixed(2)}%`;
+                  }
+                  return fmtChartValue(value);
+                }
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.paymentChange && charts.paymentChange.resize(), 30);
+    }
+  }
+
+  if (panelType === 'rate') {
+    const rateCanvas = $('#rate-trend-chart');
+    if (rateCanvas) {
+      const rateCtx = rateCanvas.getContext('2d');
+      const minRateValue = rateHistoryValues.length ? Math.min(...rateHistoryValues) : 0;
+      const maxRateValue = rateHistoryValues.length ? Math.max(...rateHistoryValues) : 0;
+      const ratePadding = 0.25;
+      const yRateMin = Math.max(0, Math.min(minRateValue - ratePadding, 4));
+      const yRateMax = maxRateValue + ratePadding;
+      const pointColor = (index) => {
+        const diff = rateHistoryDiffs[index] || 0;
+        if (diff > 0.01) return palette.orange;
+        if (diff < -0.01) return palette.green;
+        return palette.line;
+      };
+      const pointRadius = (index) => (Math.abs(rateHistoryDiffs[index] || 0) >= 0.01 ? 4 : 2);
+      if (charts.rateTrend) {
+        charts.rateTrend.data.labels = rateHistoryLabels;
+        charts.rateTrend.data.datasets[0].data = rateHistoryValues;
+        charts.rateTrend.data.datasets[0].pointBackgroundColor = (ctx) => pointColor(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointBorderColor = (ctx) => pointColor(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointRadius = (ctx) => pointRadius(ctx.dataIndex);
+        charts.rateTrend.data.datasets[0].pointHoverRadius = (ctx) => Math.max(5, pointRadius(ctx.dataIndex) + 1);
+        charts.rateTrend.data.datasets[0].segment = {
+          borderDash: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? [4, 4] : undefined),
+          borderColor: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? palette.line : palette.orange)
+        };
+        charts.rateTrend.options.plugins.tooltip.callbacks.label = (context) => {
+          const value = Number(context.raw || 0);
+          const diff = rateHistoryDiffs[context.dataIndex] || 0;
+          const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
+          if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
+            return `${base} (bez zmian)`;
+          }
+          const sign = diff > 0 ? '+' : '';
+          return `${base} (${sign}${diff.toFixed(2)} pp)`;
+        };
+        charts.rateTrend.options.plugins.datalabels.formatter = (value, context) => {
+          const idx = context.dataIndex;
+          const numeric = Number(value || 0);
+          if (idx === 0) {
+            return `${numeric.toFixed(2)}%`;
+          }
+          const diff = rateHistoryDiffs[idx] || 0;
+          if (Math.abs(diff) < 0.01) {
+            return '';
+          }
+          const sign = diff > 0 ? '+' : '';
+          return `${sign}${diff.toFixed(2)} pp`;
+        };
+        if (charts.rateTrend.options?.scales?.y) {
+          charts.rateTrend.options.scales.y.min = yRateMin;
+          charts.rateTrend.options.scales.y.max = yRateMax;
+        }
+        charts.rateTrend.update();
+      } else {
+        charts.rateTrend = new Chart(rateCtx, {
+          type: 'line',
+          data: {
+            labels: rateHistoryLabels,
+            datasets: [
+              {
+                label: 'Oprocentowanie',
+                data: rateHistoryValues,
+                borderColor: palette.orange,
+                backgroundColor: palette.orangeSoft,
+                fill: 'start',
+                tension: 0.25,
+                pointRadius: (ctx) => pointRadius(ctx.dataIndex),
+                pointHoverRadius: (ctx) => Math.max(5, pointRadius(ctx.dataIndex) + 1),
+                pointBackgroundColor: (ctx) => pointColor(ctx.dataIndex),
+                pointBorderColor: (ctx) => pointColor(ctx.dataIndex),
+                segment: {
+                  borderDash: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? [4, 4] : undefined),
+                  borderColor: (ctx) => (ctx.p0.parsed.y === ctx.p1.parsed.y ? palette.line : palette.orange)
+                }
+              }
+            ]
+          },
+          plugins: [ChartDataLabels],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = Number(context.raw || 0);
+                    const diff = rateHistoryDiffs[context.dataIndex] || 0;
+                    const base = `${context.dataset.label}: ${value.toFixed(2)}%`;
+                    if (context.dataIndex === 0 || Math.abs(diff) < 0.01) {
+                      return `${base} (bez zmian)`;
+                    }
+                    const sign = diff > 0 ? '+' : '';
+                    return `${base} (${sign}${diff.toFixed(2)} pp)`;
+                  }
+                }
+              },
+              datalabels: {
+                align: 'top',
+                anchor: 'end',
+                color: palette.orange,
+                font: { weight: 700, size: 11 },
+                formatter: (value, context) => {
+                  const idx = context.dataIndex;
+                  const numeric = Number(value || 0);
+                  if (idx === 0) {
+                    return `${numeric.toFixed(2)}%`;
+                  }
+                  const diff = rateHistoryDiffs[idx] || 0;
+                  if (Math.abs(diff) < 0.01) {
+                    return '';
+                  }
+                  const sign = diff > 0 ? '+' : '';
+                  return `${sign}${diff.toFixed(2)} pp`;
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: palette.line },
+                ticks: { callback: (value) => `${value}%` },
+                min: yRateMin,
+                max: yRateMax
+              }
+            }
+          }
+        });
+      }
+      setTimeout(() => charts.rateTrend && charts.rateTrend.resize(), 30);
+    }
+  }
+}
+
+function updateChartToggleLabels() {
+  document.querySelectorAll('.loan-chart-toggle').forEach(button => {
+    const target = button.dataset.chartToggle;
+    if (!target) return;
+    button.textContent = chartLabelState[target] ? 'Ukryj dane' : 'Pokaż dane';
+  });
+}
+
+function setupLoanChartToggles() {
+  document.querySelectorAll('.loan-chart-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.chartToggle;
+      if (!target) return;
+      chartLabelState[target] = !chartLabelState[target];
+      updateChartToggleLabels();
+      const activePanel = document.querySelector('.loan-tab-panel.active');
+      const activeType = activePanel ? activePanel.dataset.chart : 'mix';
+      renderChartForPanel(activeType);
+    });
+  });
+  updateChartToggleLabels();
+}
+
+function updateChangeModeButtons() {
+  document.querySelectorAll('.loan-chart-mode-btn').forEach(button => {
+    const mode = button.dataset.changeMode;
+    button.classList.toggle('active', mode === paymentChangeMode);
+  });
+}
+
+function setupChangeModeSwitch() {
+  document.querySelectorAll('.loan-chart-mode-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.changeMode;
+      if (!mode || mode === paymentChangeMode) return;
+      paymentChangeMode = mode;
+      updateChangeModeButtons();
+      const activePanel = document.querySelector('.loan-tab-panel.active');
+      if (activePanel && activePanel.dataset.chart === 'change') {
+        renderChartForPanel('change');
+      }
+    });
+  });
+  updateChangeModeButtons();
+}
+
+function setupLoanChartTabs() {
+  document.querySelectorAll('.loan-tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.chart;
+      if (button.classList.contains('active')) {
+        return;
+      }
+      document.querySelectorAll('.loan-tab-btn').forEach(btn => btn.classList.toggle('active', btn === button));
+      document.querySelectorAll('.loan-tab-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.chart === target));
+      renderChartForPanel(target);
+    });
   });
 }
 
@@ -785,6 +2230,9 @@ function renderCharts() {
 function init() {
   loadState();
   render();
+  setupLoanChartTabs();
+  setupLoanChartToggles();
+  setupChangeModeSwitch();
   $('#setup-loan-btn').addEventListener('click', openSetupModal);
   $('#settings-btn').addEventListener('click', openSetupModal);
   $('#add-payment-btn').addEventListener('click', () => openPaymentModal(null));
@@ -795,4 +2243,3 @@ window.addEventListener('load', init);
 </script>
 </body>
 </html>
-

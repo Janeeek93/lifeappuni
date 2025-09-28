@@ -7,85 +7,112 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     :root {
-      --gradient-primary: radial-gradient(1200px 400px at 20% -10%, hsl(var(--accent-h) 80% 92%) 0%, transparent 55%),
-                          radial-gradient(1000px 500px at 80% -20%, hsl(280 70% 95%) 0%, transparent 50%);
-      --ring: 2px solid hsl(var(--accent-h) var(--accent-s) 60%);
+      --gradient-primary: linear-gradient(110deg, hsl(230 80% 97%) 0%, hsl(280 70% 98%) 100%);
     }
 
-    .grid { gap: 18px; }
-    .g-main { grid-template-columns: 2fr 1fr; align-items: start; }
-    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .modules-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .grid { gap: 16px; }
     .card { animation: fadeInUp .4s ease-out; }
 
     @keyframes slideInRight { from{opacity:0; transform:translateX(12px)} to{opacity:1; transform:translateX(0)} }
 
-    @media(max-width:1200px){ .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-    @media(max-width:900px){ .g-main{ grid-template-columns: 1fr; } }
-
-    .tile{
-      cursor:pointer; display:flex; flex-direction:column; gap:10px; border-radius:16px; border:1px solid var(--line);
-      background: var(--card); padding:16px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-      text-decoration:none; color: var(--ink); position:relative; overflow:hidden;
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        align-items: start;
+        gap: 16px;
     }
-    .tile::before{
-      content:''; position:absolute; inset:0 0 auto 0; height:3px; background: var(--accent); opacity:.18; transform: scaleX(0);
-      transform-origin:left; transition: transform .2s ease;
+    
+    .dashboard-grid .left-column,
+    .dashboard-grid .right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
-    .tile:hover{ transform: translateY(-3px); box-shadow: var(--shadow-md); border-color:hsl(var(--accent-h) 30% 70%) }
-    .tile:hover::before{ transform: scaleX(1) }
 
-    /* === New KPI Tiles === */
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+   
+    @media(max-width:1024px){ 
+        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+     @media(max-width:768px){ 
+        .dashboard-grid { grid-template-columns: 1fr; }
+        .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    }
+
+
+    /* === Compact KPI Tiles === */
     .kpi-tile-large {
-        display: flex; flex-direction: column; gap: 8px;
+        display: flex; flex-direction: column; gap: 6px;
         background: var(--surface); border: 1px solid var(--line);
-        border-radius: 16px; padding: 16px; text-decoration: none; color: var(--ink);
+        border-radius: 14px; padding: 16px; text-decoration: none; color: var(--ink);
         transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
         height: 100%;
     }
     .kpi-tile-large:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
         border-color: hsl(var(--accent-h) 30% 70%);
     }
-    .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
-    .kpi-main-value { font-size: 24px; font-weight: 800; line-height: 1.1; }
-    .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+    .kpi-main-value { font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+    .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
     .kpi-detail-line { position: relative; padding-left: 12px; }
-    .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); font-weight:700; }
-    .kpi-progress-container { margin-top: auto; padding-top: 8px; }
+    .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); }
+    .kpi-progress-container { margin-top: auto; padding-top: 10px; }
     .value-ok { color: var(--green); }
     .value-warn { color: var(--orange); }
     .value-bad { color: var(--red); }
 
     /* === Hero === */
-    .hero-header{
-      margin:-32px -20px 24px -20px; padding: 28px 20px; color: var(--ink); position:relative; overflow:hidden;
+    .app-main > .hero-header {
+      border-radius: 0;
+      padding: 16px 24px;
       background: var(--gradient-primary);
-      border-bottom: 1px solid var(--line);
+    }
+    .hero-header{
+      color: var(--ink); position:relative; overflow:hidden;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
     }
     .hero-content{
-        position:relative; z-index:1; max-width:1280px; margin:0 auto;
-        width: 100%;
+        position:relative; z-index:1; width: 100%;
+        display:flex; flex-wrap: wrap; align-items:center; justify-content:space-between; gap:20px;
     }
-    .greeting-text{ font-size: clamp(20px, 4vw, 28px); font-weight:800; margin:0 0 6px 0; animation: fadeInUp .5s ease-out }
-    .date-text{ opacity:.9; font-size: 13px; margin:0 0 10px 0; animation: fadeInUp .5s ease-out .1s both }
-    .dynamic-message{ font-style: italic; opacity:.85; font-size:12px; animation: fadeInUp .5s ease-out .2s both }
+    .hero-copy{ display:flex; flex-direction:column; gap:2px; }
+    .greeting-text{ font-size: clamp(16px, 3vw, 20px); font-weight:700; margin:0; animation: fadeInUp .5s ease-out }
+    .date-text{ opacity:.9; font-size: 11px; margin:0; animation: fadeInUp .5s ease-out .1s both }
+    
+    .header-actions-group {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
 
-    .quick-actions{ position:absolute; top:20px; right:20px; display:flex; gap:10px; animation: slideInRight .5s ease-out .2s both; }
+    .data-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+    }
+
+    .data-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .quick-actions{ display:flex; gap:8px; align-items:center; animation: slideInRight .5s ease-out .2s both; }
     .quick-action{
-      width:42px; height:42px; background: hsl(0 0% 100% / .6);
+      width:36px; height:36px; background: hsl(0 0% 100% / .6);
       border:1px solid hsl(0 0% 100% / .7); border-radius:10px; display:flex; align-items:center; justify-content:center;
-      color:#111; text-decoration:none; font-size:16px; transition: transform .15s ease, background .2s ease; backdrop-filter: blur(8px);
+      color:#111; text-decoration:none; font-size:14px; transition: transform .15s ease, background .2s ease; backdrop-filter: blur(8px);
     }
     .quick-action:hover{ transform: scale(1.07) }
 
     /* === Lists & feeds === */
-    .activity-feed{ max-height: 300px; overflow-y:auto; padding-right:6px }
-    .activity-item{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); animation:fadeInUp .35s ease-out }
+    .activity-feed{ max-height: 250px; overflow-y:auto; padding-right:6px }
+    .activity-item{ display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); animation:fadeInUp .35s ease-out }
     .activity-item:last-child{ border-bottom:none }
 
     /* === Upcoming tasks === */
@@ -93,33 +120,32 @@
     .upcoming-header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px }
     #upcoming-tasks-list{ overflow:auto; padding-right:6px; flex-grow: 1; }
     .task-group-header {
-      font-size: 9px; text-transform: uppercase; color: var(--muted); margin: 16px 0 4px 4px; font-weight: 600; letter-spacing:0.5px;
+      font-size: 9px; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px 4px; font-weight: 600; letter-spacing:0.5px;
     }
     .task-group-header:first-of-type { margin-top: 0; }
     .upcoming-task-item{
-      display:flex; align-items:center; gap:12px; padding:10px 12px; margin:4px 0;
-      background: var(--surface); border-radius:12px; border:1px solid var(--line); transition: background .2s ease, transform .2s ease;
+      display:flex; align-items:center; gap:10px; padding:8px 10px; margin:4px 0;
+      background: var(--surface); border-radius:10px; border:1px solid var(--line); transition: background .2s ease, transform .2s ease;
     }
     .upcoming-task-item:hover{ transform: translateX(3px); background: hsl(var(--accent-h) 60% 96% / .5) }
-    .task-title{ font-weight: 600; color: var(--ink) }
+    .task-title{ font-weight: 500; font-size: 13px; color: var(--ink) }
     .task-due-date{
-      font-size:10px; font-weight:700; text-align:right; margin-left:auto; white-space:nowrap; background: var(--accent-weak);
-      color: hsl(var(--accent-h) 30% 25%); padding:4px 8px; border-radius: 8px; border:1px solid hsl(var(--accent-h) 45% 85% / .8)
+      font-size:10px; font-weight:600; text-align:right; margin-left:auto; white-space:nowrap; background: var(--accent-weak);
+      color: hsl(var(--accent-h) 30% 25%); padding:3px 7px; border-radius: 8px; border:1px solid hsl(var(--accent-h) 45% 85% / .8)
     }
-    .prio-pill{ width:10px; height:10px; border-radius:50%; flex-shrink:0; border:2px solid #fff; box-shadow: 0 0 0 2px var(--line) }
+    .prio-pill{ width:8px; height:8px; border-radius:50%; flex-shrink:0; border:1.5px solid #fff; box-shadow: 0 0 0 1.5px var(--line) }
     .prio-pill.high{ background:#ff6b6b } .prio-pill.medium{ background:#ffd93d } .prio-pill.low{ background:#6bcf7f }
 
     /* === Weather === */
-    .weather-main { display: flex; align-items: center; gap: 14px; }
-    .weather-icon { font-size: 42px; line-height: 1; }
-    .weather-temp { font-size: 36px; font-weight: 800; line-height: 1; margin: 0; }
-    .weather-desc { opacity: .95; font-weight: 600; }
-    .weather-sub { display:flex; gap:12px; align-items:center; font-size:10px; color:var(--muted); margin-top: 8px; }
-    .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
-    .forecast-day { background: var(--surface); padding: 10px; border-radius: 10px; text-align: center; font-size: 11px; border: 1px solid var(--line); }
-    .forecast-day .forecast-icon { font-size: 24px; margin: 4px 0; }
-    .forecast-day .forecast-temp { font-weight: 700; font-size: 14px; }
-    .forecast-day .tiny { font-size: 9px; }
+    .weather-main { display: flex; align-items: center; gap: 12px; }
+    .weather-icon { font-size: 36px; line-height: 1; }
+    .weather-temp { font-size: 32px; font-weight: 700; line-height: 1; margin: 0; }
+    .weather-desc { opacity: .95; font-weight: 500; font-size: 13px; }
+    .weather-sub { display:flex; gap:10px; align-items:center; font-size:10px; color:var(--muted); margin-top: 6px; }
+    .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .forecast-day { background: var(--surface); padding: 8px; border-radius: 10px; text-align: center; font-size: 10px; border: 1px solid var(--line); }
+    .forecast-day .forecast-icon { font-size: 20px; margin: 2px 0; }
+    .forecast-day .forecast-temp { font-weight: 600; font-size: 13px; }
 
     /* === Notification === */
     .notification{
@@ -153,105 +179,88 @@
     }
     @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg) } }
 
-    @media (max-width: 768px){
-      .hero-header{ padding: 24px; margin:-28px -20px 20px -20px }
-      .quick-actions{ position: static; margin-top: 12px; justify-content: center }
-    }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <header class="hero-header">
-      <div class="hero-content">
-        <div class="quick-actions">
-          <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-          <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-        </div>
-        <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-        <p id="current-date" class="date-text"></p>
-        <p id="dynamic-message" class="dynamic-message"></p>
+<body data-page="dashboard">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link active" href="index.html" aria-current="page"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twoje centrum dowodzenia życiem.</strong>
       </div>
-    </header>
+    </aside>
 
-    <div class="grid g-main">
-      <div style="display: grid; gap: 14px; align-content: start;">
-        <div class="card">
-          <h3 class="title">📊 Kluczowe wskaźniki</h3>
-          <div class="grid g-2 kpi-grid">
-            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-            <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-            <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-            <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+    <div class="app-main">
+      <header class="topbar hero-header">
+        <div class="hero-content">
+          <div class="hero-copy">
+            <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
+            <p id="current-date" class="date-text"></p>
+          </div>
+          <div class="header-actions-group">
+            <div class="data-actions">
+              <div class="data-buttons">
+                <button class="btn small" id="export-all-btn">📤 Eksport</button>
+                <button class="btn small" id="import-all-btn">📥 Import</button>
+                <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
+              </div>
+              <p id="backup-status" class="tiny" style="margin: 0; text-align: right;"></p>
+            </div>
+            <div class="quick-actions">
+              <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
+              <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
+            </div>
           </div>
         </div>
+      </header>
 
-        <div class="card">
-          <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
-          <div id="weekly-activities-list" class="activity-feed"></div>
-        </div>
-        
-        <div class="card">
-          <h3 class="title">🗂️ Moduły</h3>
-          <div class="grid modules-grid" style="margin-top: 14px;">
-            <a class="tile" href="budget.html">
-              <div class="pill">💰 Budżet</div>
-              <div style="font-weight: 600;">Finanse</div>
-              <div class="tiny muted">Zarządzaj wydatkami</div>
-            </a>
-            <a class="tile" href="fuel.html">
-              <div class="pill">⛽ Paliwo</div>
-              <div style="font-weight: 600;">Rozliczenia</div>
-              <div class="tiny muted">Tankowania i faktury</div>
-            </a>
-            <a class="tile" href="tasks.html">
-              <div class="pill">✅ Zadania</div>
-              <div style="font-weight: 600;">Organizacja</div>
-              <div class="tiny muted">Listy i kalendarz</div>
-            </a>
-            <a class="tile" href="trainings.html">
-              <div class="pill">💪 Treningi</div>
-              <div style="font-weight: 600;">Cele</div>
-              <div class="tiny muted">Plany i progres</div>
-            </a>
-            <a class="tile" href="house.html">
-                <div class="pill">🏗️ Budowa</div>
-                <div style="font-weight: 600;">Projekt</div>
-                <div class="tiny muted">Kontroluj budowę</div>
-            </a>
-            <a class="tile" href="loan.html">
-                <div class="pill">🏦 Kredyt</div>
-                <div style="font-weight: 600;">Spłata</div>
-                <div class="tiny muted">Monitoruj postępy</div>
-            </a>
+      <main class="page-content">
+        <div class="wrap" style="max-width: none; padding: 24px;">
+          <div class="dashboard-grid">
+            <div class="left-column">
+                <section class="card kpi-card">
+                    <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
+                    <div class="grid kpi-grid">
+                        <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+                        <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
+                        <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+                        <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
+                    </div>
+                </section>
+                 <section class="card training-card">
+                    <h3 class="title" style="font-size: 16px;">🎯 Cele treningowe na ten tydzień</h3>
+                    <div id="weekly-activities-list" class="activity-feed"></div>
+                </section>
+            </div>
+            <div class="right-column">
+                <section class="card weather-card" id="weather-widget" aria-live="polite">
+                    <!-- Weather content will be dynamically inserted here -->
+                </section>
+                <section class="card priorities-card tasks-card" id="priorities-card">
+                    <div class="upcoming-header">
+                        <h3 class="title" style="margin:0; font-size: 16px;">📅 Najbliższe zadania</h3>
+                        <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+                    </div>
+                    <div id="upcoming-tasks-list"></div>
+                    <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+                </section>
+            </div>
           </div>
-          <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
-          <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
-          <div class="grid g-2" style="gap: 10px;">
-            <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
-            <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
-            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-          </div>
-          <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
         </div>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="card weather-widget" id="weather-widget" aria-live="polite">
-          <!-- Weather content will be dynamically inserted here -->
-        </div>
-        <div class="card priorities-card" id="priorities-card">
-          <div class="upcoming-header">
-            <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
-            <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
-          </div>
-          <div id="upcoming-tasks-list"></div>
-          <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
-        </div>
-      </div>
+      </main>
     </div>
-
   </div>
 
   <!-- Modals -->
@@ -394,30 +403,9 @@ function showNotification(message, type='success'){
 function renderGreetingAndDate(){
   const now = new Date();
   const hour = now.getHours();
-  const dayOfWeek = now.getDay();
-  let greeting = "Dzień dobry!", emoji = "🌅";
-  if(hour < 6){ greeting="Dobrej nocy!"; emoji="🌙" }
-  else if(hour < 12){ greeting="Dzień dobry!"; emoji="🌅" }
-  else if(hour < 18){ greeting="Dzień dobry!"; emoji="☀️" }
-  else { greeting="Dobry wieczór!"; emoji="🌆" }
-  document.getElementById('greeting').innerHTML = `${emoji} ${greeting}`;
+  document.getElementById('greeting').textContent = `Dzień dobry!`;
   document.getElementById('current-date').textContent =
     `Dzisiaj jest ${now.toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
-  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-  let msg = "";
-  if(isWeekday){
-    if(hour < 9) msg = "🍵 Dzień się dopiero zaczyna. Czas na kawę i planowanie!";
-    else if(hour < 12) msg = "💪 Poranne godziny to najlepszy czas na produktywność!";
-    else if(hour < 17){
-      const endWork = new Date(); endWork.setHours(17,0,0,0);
-      const diffMs = endWork - now;
-      if (diffMs > 0){
-        const h = Math.floor(diffMs/3600000), m = Math.floor((diffMs%3600000)/60000);
-        msg = `⏰ Do końca pracy zostało ${h}h ${m}m. Dasz radę!`;
-      } else msg = "🎉 Praca na dziś skończona. Czas na odpoczynek!";
-    } else msg = "🌟 Wieczór to idealny czas na podsumowania i planowanie jutra!";
-  } else msg = "🎨 Miłego weekendu! Czas naładować baterie i robić to co lubisz!";
-  document.getElementById('dynamic-message').textContent = msg;
 }
 
 /* === UPCOMING TASKS === */
@@ -549,7 +537,7 @@ function renderWeatherWidget() {
         }).join('');
 
         widget.innerHTML = `
-          <h4 class="title" style="margin-bottom: 12px;">🌤️ Pogoda</h4>
+          <h4 class="title" style="margin-bottom: 12px; font-size: 16px;">🌤️ Pogoda</h4>
           ${todayHTML}
           <div class="forecast-grid">${forecastHTML}</div>
         `;

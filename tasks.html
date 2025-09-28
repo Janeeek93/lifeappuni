@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS — Zadania Pro</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
     .task-exit { animation: fadeOut 0.3s ease-in forwards; }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--ink);font-family: 'Inter', system-ui,-apple-system,Segoe UI,Roboto; font-size: 12px; line-height: 1.5;}
-    .wrap{max-width:1200px;margin:0 auto;padding:32px 24px}
+    .wrap{max-width:1320px;margin:0 auto;padding:0}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow: var(--shadow); transition: all .3s ease;}
     .row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
     .muted{color:var(--muted)}
@@ -174,63 +174,85 @@
 
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <header class="page-header">
-      <div class="page-title-group">
-        <a href="./index.html" class="back-link">← Powrót</a>
-        <h1 class="page-title">Zadania Pro</h1>
-        <p class="page-subtitle">Zarządzaj wszystkimi obowiązkami w jednym miejscu i miej kontrolę nad priorytetami.</p>
+<body data-page="tasks">
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link active" href="tasks.html" aria-current="page"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
-      <div class="page-actions">
-        <button id="clear-all-btn" class="btn danger">Wyczyść wszystko</button>
-      </div>
-    </header>
+    </aside>
 
-    <section class="card insights-card" aria-live="polite">
-      <div class="insights-header">
+    <div class="main">
+      <header class="topbar">
         <div>
-          <h2 class="title" style="margin-bottom:4px;">Szybkie wnioski</h2>
-          <p class="muted tiny">Inteligentne podpowiedzi pomagają zaplanować kolejny krok.</p>
+          <h1 class="topbar-title">Zadania</h1>
         </div>
-      </div>
-      <div class="insights-grid" id="insights-grid" role="list"></div>
-      <p class="muted tiny" id="insights-empty" style="margin-top:12px; display:none;">Dodaj pierwsze zadanie, aby zobaczyć proponowane działania.</p>
-    </section>
+        <div class="topbar-actions" style="gap:8px">
+          <a class="btn primary" href="#task-form-card">➕ Dodaj</a>
+          <button class="btn" id="tasks-import-btn" type="button">⬆️ Import</button>
+          <button class="btn" id="tasks-export-btn" type="button">⬇️ Eksport</button>
+        </div>
+      </header>
 
-    <div class="card" style="margin-top:16px;">
-      <h3 class="title" id="form-title" style="margin-bottom: 16px;">Nowe zadanie</h3>
-      <input type="hidden" id="task-id">
-      <div class="grid" style="grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tytuł zadania</label><input type="text" id="task-title" placeholder="Np. Przygotować raport kwartalny"></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Notatki</label><textarea id="task-notes" placeholder="Szczegóły, linki, wymagania..."></textarea></div>
-      </div>
-      <div class="grid g-3">
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Kategoria</label>
-          <div id="task-category-selector" class="segmented-control">
-              <div class="segment active" data-value="work">Praca</div>
-              <div class="segment" data-value="private">Prywatne</div>
+      <div class="content">
+        <main class="page-content stack">
+        <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; align-items:flex-start; margin-top:12px;">
+          <div class="card" id="task-form-card">
+            <h3 class="title" id="form-title" style="margin-bottom: 16px;">Nowe zadanie</h3>
+            <input type="hidden" id="task-id">
+            <div class="grid" style="grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px;">
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tytuł zadania</label><input type="text" id="task-title" placeholder="Np. Przygotować raport kwartalny"></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Notatki</label><textarea id="task-notes" placeholder="Szczegóły, linki, wymagania..."></textarea></div>
+            </div>
+            <div class="grid g-3">
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Kategoria</label>
+                <div id="task-category-selector" class="segmented-control">
+                    <div class="segment active" data-value="work">Praca</div>
+                    <div class="segment" data-value="private">Prywatne</div>
+                </div>
+              </div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Priorytet</label><select id="task-priority"><option value="low">Niski</option><option value="medium">Średni</option><option value="high">Wysoki</option></select></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Termin</label><input type="date" id="task-due-date"></div>
+              <div style="grid-column: 1 / -1;"><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tagi (oddzielone przecinkiem)</label><input type="text" id="task-tags" placeholder="np. praca, pilne, projekt-x"></div>
+              <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Powtarzalność</label><select id="task-recurrence"><option value="none">Nigdy</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
+              <div style="grid-column: 2 / -1;">
+                   <label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Podzadania</label>
+                   <div style="display:flex; gap: 8px;">
+                       <input type="text" id="subtask-input" placeholder="Dodaj krok do wykonania...">
+                       <button id="add-subtask-btn" class="btn" style="white-space:nowrap;">Dodaj</button>
+                   </div>
+                   <ul id="subtask-list-form" style="list-style:none; padding: 0; margin: 8px 0 0 0; display:flex; flex-direction:column; gap: 4px;"></ul>
+              </div>
+            </div>
+            <div style="display:flex; gap: 8px; justify-content:flex-end; margin-top: 16px;">
+               <button id="cancel-edit-btn" class="btn" style="display:none;">Anuluj</button>
+               <button id="add-task-btn" class="btn primary"><span id="add-task-btn-text">Dodaj zadanie</span></button>
+            </div>
           </div>
+          <section class="card insights-card" aria-live="polite">
+            <div class="insights-header">
+              <div>
+                <h2 class="title" style="margin-bottom:4px;">Szybkie wnioski</h2>
+                <p class="muted tiny">Inteligentne podpowiedzi pomagają zaplanować kolejny krok.</p>
+              </div>
+            </div>
+            <div class="insights-grid" id="insights-grid" role="list" style="display:flex; flex-direction:column; gap:12px;"></div>
+            <p class="muted tiny" id="insights-empty" style="margin-top:12px; display:none;">Dodaj pierwsze zadanie, aby zobaczyć proponowane działania.</p>
+          </section>
         </div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Priorytet</label><select id="task-priority"><option value="low">Niski</option><option value="medium">Średni</option><option value="high">Wysoki</option></select></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Termin</label><input type="date" id="task-due-date"></div>
-        <div style="grid-column: 1 / -1;"><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Tagi (oddzielone przecinkiem)</label><input type="text" id="task-tags" placeholder="np. praca, pilne, projekt-x"></div>
-        <div><label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Powtarzalność</label><select id="task-recurrence"><option value="none">Nigdy</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
-        <div style="grid-column: 2 / -1;">
-             <label class="muted" style="font-size:11px; display:block; margin-bottom: 4px;">Podzadania</label>
-             <div style="display:flex; gap: 8px;">
-                 <input type="text" id="subtask-input" placeholder="Dodaj krok do wykonania...">
-                 <button id="add-subtask-btn" class="btn" style="white-space:nowrap;">Dodaj</button>
-             </div>
-             <ul id="subtask-list-form" style="list-style:none; padding: 0; margin: 8px 0 0 0; display:flex; flex-direction:column; gap: 4px;"></ul>
-        </div>
-      </div>
-       <div style="display:flex; gap: 8px; justify-content:flex-end; margin-top: 16px;">
-          <button id="cancel-edit-btn" class="btn" style="display:none;">Anuluj</button>
-          <button id="add-task-btn" class="btn primary"><span id="add-task-btn-text">Dodaj zadanie</span></button>
-       </div>
-    </div>
-    
+
     <div class="tabs" style="margin-top: 24px;">
         <div class="tab active" data-tab="list">Lista Zadań</div>
         <div class="tab" data-tab="calendar">Kalendarz</div>
@@ -238,17 +260,18 @@
     </div>
 
     <div id="tab-content-list" class="card">
-        <div class="row" style="gap: 8px; padding-bottom: 12px;">
-            <div class="row" style="gap: 8px; flex-grow: 1;">
+        <div class="grid-2" style="gap:12px; align-items:flex-start; margin-bottom:12px;">
+            <div class="row" style="gap: 8px; flex-wrap: wrap;">
               <select id="category-filter" style="width:auto;"></select>
               <select id="date-filter" style="width:auto;"></select>
               <select id="task-priority-filter" style="width:auto;"></select>
-              <input type="text" id="tag-filter" placeholder="Filtruj po tagach..." style="width: 150px; flex-grow: 1;">
+              <input type="text" id="tag-filter" placeholder="Filtruj po tagach..." style="min-width:180px; flex:1 1 160px;">
             </div>
-            <div class="row" style="gap: 8px;">
+            <div class="row" style="gap: 8px; justify-content:flex-end; flex-wrap: wrap;">
               <select id="sort-by" style="width:auto;"></select>
               <button id="sort-direction" class="btn" style="padding: 10px;">↑</button>
               <label style="display:flex; align-items:center; gap: 6px; font-size: 11px; white-space: nowrap;"><input type="checkbox" id="hide-completed-filter" checked style="width: 16px; height: 16px;"> Ukryj wykonane</label>
+              <button id="clear-all-btn" class="btn danger" style="white-space: nowrap;">Wyczyść wszystko</button>
             </div>
         </div>
         <table class="task-table">
@@ -319,7 +342,46 @@
                 <div class="chart-container"><canvas id="completion-progress-chart"></canvas></div>
             </div>
         </div>
+        </div>
+      </main>
+      <aside class="right-rail">
+        <div class="kpi-compact">
+          <div class="kpi-emoji">📌</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Wszystkie zadania</div>
+            <div class="kpi-value" id="kpi-total-tasks">0</div>
+            <div class="muted tiny" id="kpi-total-note">—</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">✅</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Ukończone</div>
+            <div class="kpi-value" id="kpi-completed-tasks">0</div>
+            <div class="muted tiny" id="kpi-completed-note">—</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">⏱</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Przeterminowane</div>
+            <div class="kpi-value" id="kpi-overdue-tasks">0</div>
+            <div class="muted tiny" id="kpi-overdue-note">Brak zaległości</div>
+          </div>
+        </div>
+        <div class="kpi-compact">
+          <div class="kpi-emoji">📅</div>
+          <div class="kpi-body">
+            <div class="kpi-label">Nadchodzące</div>
+            <div class="kpi-value" id="kpi-upcoming-tasks">0</div>
+            <div class="muted tiny" id="kpi-upcoming-note">—</div>
+          </div>
+        </div>
+        <div class="insight-bubble" id="tasks-progress-bubble">Postęp tygodnia: —</div>
+        <div class="insight-bubble" id="tasks-focus-bubble">Najbliższe kroki: —</div>
+      </aside>
     </div>
+  </div>
   </div>
 
 <div id="modal-overlay" class="modal-overlay" style="display: none;">
@@ -413,11 +475,22 @@ const statsRangeControl = getEl('stats-range-control');
 const statsCategoryControl = getEl('stats-category-control');
 const insightsGrid = getEl('insights-grid');
 const insightsEmpty = getEl('insights-empty');
+const kpiTotalTasksEl = getEl('kpi-total-tasks');
+const kpiCompletedTasksEl = getEl('kpi-completed-tasks');
+const kpiOverdueTasksEl = getEl('kpi-overdue-tasks');
+const kpiUpcomingTasksEl = getEl('kpi-upcoming-tasks');
+const kpiTotalNoteEl = getEl('kpi-total-note');
+const kpiCompletedNoteEl = getEl('kpi-completed-note');
+const kpiOverdueNoteEl = getEl('kpi-overdue-note');
+const kpiUpcomingNoteEl = getEl('kpi-upcoming-note');
+const tasksProgressBubble = getEl('tasks-progress-bubble');
+const tasksFocusBubble = getEl('tasks-focus-bubble');
 
 const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // --- GŁÓWNE FUNKCJE ---
 function render() {
+    renderKpis();
     renderInsights();
     renderTaskList();
     const activeTabEl = document.querySelector('.tab.active');
@@ -438,6 +511,102 @@ function describeRelativeDate(target, base) {
     const label = pluralize(Math.abs(diffDays), ['dzień', 'dni', 'dni']);
     if (diffDays > 1) return `za ${diffDays} ${label}`;
     return `${Math.abs(diffDays)} ${label} temu`;
+}
+
+function renderKpis() {
+    if (!kpiTotalTasksEl) return;
+    const tasks = state.tasks;
+    const total = tasks.length;
+    const completed = tasks.filter(task => task.status === 'done');
+    const active = tasks.filter(task => task.status !== 'done');
+    const completionRate = total ? Math.round((completed.length / total) * 100) : 0;
+
+    kpiTotalTasksEl.textContent = total;
+    if (kpiTotalNoteEl) {
+        kpiTotalNoteEl.textContent = total
+            ? `${active.length} aktywnych • ${completed.length} ukończonych`
+            : 'Brak zadań w bazie';
+    }
+
+    if (kpiCompletedTasksEl) kpiCompletedTasksEl.textContent = completed.length;
+    if (kpiCompletedNoteEl) {
+        kpiCompletedNoteEl.textContent = total ? `${completionRate}% realizacji` : 'Dodaj zadania';
+    }
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const horizon = new Date(today);
+    horizon.setUTCDate(horizon.getUTCDate() + 7);
+
+    const activeWithDue = active
+        .filter(task => task.dueDate)
+        .map(task => ({ task, due: parseDate(task.dueDate) }))
+        .filter(entry => entry.due && !Number.isNaN(entry.due.getTime()));
+
+    const overdueEntries = activeWithDue.filter(entry => entry.due < today);
+    const overdueSorted = [...overdueEntries].sort((a, b) => a.due - b.due);
+    if (kpiOverdueTasksEl) kpiOverdueTasksEl.textContent = overdueEntries.length;
+    if (kpiOverdueNoteEl) {
+        if (overdueSorted.length) {
+            const oldest = overdueSorted[0];
+            const relative = describeRelativeDate(oldest.due, today);
+            kpiOverdueNoteEl.textContent = `${formatDateShort(oldest.due)} • ${relative}`;
+        } else {
+            kpiOverdueNoteEl.textContent = 'Brak zaległości';
+        }
+    }
+
+    const upcomingEntries = activeWithDue
+        .filter(entry => entry.due >= today && entry.due <= horizon)
+        .sort((a, b) => {
+            const diff = a.due - b.due;
+            if (diff !== 0) return diff;
+            return priorityWeight(a.task.priority) - priorityWeight(b.task.priority);
+        });
+    if (kpiUpcomingTasksEl) kpiUpcomingTasksEl.textContent = upcomingEntries.length;
+    if (kpiUpcomingNoteEl) {
+        if (upcomingEntries.length) {
+            const { task, due } = upcomingEntries[0];
+            const relative = describeRelativeDate(due, today);
+            const priorityLabel = { high: 'wysoki', medium: 'średni', low: 'niski' }[task.priority] || 'średni';
+            kpiUpcomingNoteEl.textContent = `${task.title} • ${formatDateShort(due)} (${relative}, ${priorityLabel})`;
+        } else {
+            kpiUpcomingNoteEl.textContent = 'Dodaj terminy na tydzień';
+        }
+    }
+
+    const lastSevenStart = new Date(today);
+    lastSevenStart.setUTCDate(lastSevenStart.getUTCDate() - 6);
+    const completedRecent = completed.filter(task => {
+        if (!task.dueDate) return false;
+        const due = parseDate(task.dueDate);
+        return due && due >= lastSevenStart && due <= today;
+    }).length;
+    const plannedWeek = upcomingEntries.length;
+    const denominator = completedRecent + plannedWeek;
+    const progressRate = denominator ? Math.round((completedRecent / denominator) * 100) : 0;
+    if (tasksProgressBubble) {
+        tasksProgressBubble.textContent = denominator
+            ? `Postęp tygodnia: ${progressRate}% (✓ ${completedRecent} / ${denominator})`
+            : 'Postęp tygodnia: Brak zaplanowanych zadań — dodaj priorytety.';
+    }
+
+    if (tasksFocusBubble) {
+        if (overdueSorted.length) {
+            const { task, due } = overdueSorted[0];
+            const relative = describeRelativeDate(due, today);
+            tasksFocusBubble.textContent = `Najbliższe kroki: nadrób „${task.title}” (termin ${formatDateShort(due)}, ${relative}).`;
+        } else if (upcomingEntries.length) {
+            const { task, due } = upcomingEntries[0];
+            const relative = describeRelativeDate(due, today);
+            const priorityLabel = { high: 'wysoki', medium: 'średni', low: 'niski' }[task.priority] || 'średni';
+            tasksFocusBubble.textContent = `Najbliższe kroki: „${task.title}” (${priorityLabel}) — ${relative}.`;
+        } else if (active.length) {
+            tasksFocusBubble.textContent = 'Najbliższe kroki: przypisz terminy otwartym zadaniom.';
+        } else {
+            tasksFocusBubble.textContent = 'Najbliższe kroki: dodaj nowe zadania.';
+        }
+    }
 }
 
 function priorityWeight(priority) {

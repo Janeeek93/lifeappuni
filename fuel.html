@@ -4,26 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS — Paliwo</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     .fuel-insights-grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
 
-    .insight-card {
+    .fuel-insight-card {
       background: var(--surface);
       border: 1px solid var(--line);
       border-radius: 14px;
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
       box-shadow: var(--shadow-sm);
     }
 
-    .insight-card .label {
+    .fuel-insight-card .label {
       font-size: 12px;
       color: var(--muted);
       text-transform: uppercase;
@@ -31,13 +30,13 @@
       font-weight: 600;
     }
 
-    .insight-card .value {
-      font-size: 22px;
+    .fuel-insight-card .value {
+      font-size: 20px;
       font-weight: 700;
       color: var(--ink);
     }
 
-    .insight-card .note {
+    .fuel-insight-card .note {
       font-size: 12px;
       color: var(--muted);
     }
@@ -74,137 +73,209 @@
     .summary-delta.flat {
       color: var(--muted);
     }
+
+    .last-invoice-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .table-wrapper.scrollable {
+      max-height: 320px;
+      overflow: auto;
+    }
   </style>
 </head>
-<body class="module-shell">
-  <section class="module-hero">
-    <div class="wrap module-hero-inner">
-      <div class="module-hero-top">
-        <div>
-          <a href="index.html" class="back-link">← Powrót</a>
-          <div class="module-eyebrow">Finanse</div>
-          <h1 class="module-title">Moduł paliwowy</h1>
-          <p class="module-subtitle">Rozliczaj wydatki służbowe i prywatne tankowania w jednym miejscu.</p>
+<body data-page="fuel">
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link active" href="fuel.html" aria-current="page"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-info">
+          <p class="topbar-eyebrow">Finanse</p>
+          <h1 class="topbar-title">Paliwo</h1>
         </div>
-        <div class="module-hero-actions">
+        <div class="topbar-actions">
           <button id="import-csv-btn" class="btn soft">Importuj z CSV</button>
           <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
           <button id="export-csv-btn" class="btn soft">Eksportuj do CSV</button>
           <button id="clear-all-btn" class="btn danger">Wyczyść wszystko</button>
         </div>
-      </div>
-      <div class="module-hero-stats">
-        <div class="module-hero-stat">
-          <div class="label">Aktualne saldo</div>
-          <div class="value ok" id="fuel-balance">0,00 PLN</div>
-          <div class="note muted" id="balance-info">—</div>
-        </div>
-        <div class="module-hero-stat" id="last-invoice-card">
-          <div class="muted">Brak faktur w historii</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <main class="module-content">
-    <div class="wrap">
-      <section class="card card-section">
-        <div class="section-heading">
-          <h2 class="title">Kluczowe wnioski</h2>
-          <span class="tiny muted">Aktualizowane automatycznie na podstawie historii tankowań</span>
-        </div>
-        <div id="insights-grid" class="fuel-insights-grid"></div>
-      </section>
+      <div class="content">
+        <main class="content-main stack">
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title">Kluczowe wnioski</h2>
+              <span class="tiny muted">Aktualizowane automatycznie na podstawie historii tankowań</span>
+            </div>
+            <div id="insights-grid" class="grid-3 fuel-insights-grid"></div>
+            <div class="insight-bubble" id="fuel-kpi-insight">Dodaj pierwszą transakcję, aby zobaczyć trend wydatków.</div>
+          </section>
 
-      <section class="card card-section">
-        <div class="section-heading">
-          <h2 class="title">Podsumowanie miesięczne</h2>
-          <p class="tiny muted" id="monthly-summary-caption">Ostatnie 6 miesięcy</p>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Miesiąc</th>
-                <th>Faktury</th>
-                <th>Litry</th>
-                <th>Śr. cena</th>
-                <th>Zmiana m/m</th>
-              </tr>
-            </thead>
-            <tbody id="monthly-summary-body"></tbody>
-          </table>
-        </div>
-      </section>
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title">Ostatnia faktura</h2>
+              <span class="tiny muted">Historia aktualizuje się po każdym dodaniu faktury</span>
+            </div>
+            <div class="last-invoice-card" id="last-invoice-card">
+              <div class="muted">Brak faktur w historii</div>
+            </div>
+          </section>
 
-      <section class="card card-section">
-        <div class="section-heading">
-          <h2 class="title" id="form-title">Dodaj transakcję</h2>
-          <span class="tiny muted">Obsługujemy faktury i zaliczki firmowe</span>
-        </div>
-        <div class="grid g-4 fuel-form-grid">
-          <input type="hidden" id="tx-id">
-          <input type="date" id="tx-date">
-          <select id="tx-type">
-            <option value="invoice">Faktura (koszt)</option>
-            <option value="advance">Zaliczka (wpływ)</option>
-          </select>
-          <input type="text" id="tx-ref" placeholder="Nr faktury / Opis">
-          <input type="text" id="tx-liters" placeholder="Litry (opcjonalnie)" inputmode="decimal">
-          <input type="text" id="tx-amount" placeholder="Kwota" inputmode="decimal" required>
-          <div class="fuel-form-actions">
-            <button id="cancel-edit-btn" class="btn soft" style="display:none;">Anuluj</button>
-            <button id="add-tx-btn" class="btn primary">Dodaj</button>
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title">Podsumowanie miesięczne</h2>
+              <p class="tiny muted" id="monthly-summary-caption">Ostatnie 6 miesięcy</p>
+            </div>
+            <div class="table-wrapper scrollable">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Miesiąc</th>
+                    <th>Faktury</th>
+                    <th>Litry</th>
+                    <th>Śr. cena</th>
+                    <th>Zmiana m/m</th>
+                  </tr>
+                </thead>
+                <tbody id="monthly-summary-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title">Analityka</h2>
+              <select id="analytics-period-filter" style="width:auto;">
+                <option value="12" selected>Ostatni rok</option>
+                <option value="24">Ostatnie 2 lata</option>
+                <option value="36">Ostatnie 3 lata</option>
+                <option value="all">Wszystkie dane</option>
+              </select>
+            </div>
+            <div class="fuel-analytics-grid">
+              <article class="chart-card">
+                <h3 class="title">Miesięczne koszty i liczba tankowań</h3>
+                <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
+              </article>
+              <article class="chart-card">
+                <h3 class="title">Średnia cena za litr</h3>
+                <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title" id="form-title">Dodaj transakcję</h2>
+              <span class="tiny muted">Obsługujemy faktury i zaliczki firmowe</span>
+            </div>
+            <div class="grid g-4 fuel-form-grid">
+              <input type="hidden" id="tx-id">
+              <input type="date" id="tx-date">
+              <select id="tx-type">
+                <option value="invoice">Faktura (koszt)</option>
+                <option value="advance">Zaliczka (wpływ)</option>
+              </select>
+              <input type="text" id="tx-ref" placeholder="Nr faktury / Opis">
+              <input type="text" id="tx-liters" placeholder="Litry (opcjonalnie)" inputmode="decimal">
+              <input type="text" id="tx-amount" placeholder="Kwota" inputmode="decimal" required>
+              <div class="fuel-form-actions">
+                <button id="cancel-edit-btn" class="btn soft" style="display:none;">Anuluj</button>
+                <button id="add-tx-btn" class="btn primary">Dodaj</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-section">
+            <div class="section-heading">
+              <h2 class="title">Historia transakcji</h2>
+              <span class="tiny muted">Kliknij wpis, aby edytować lub usuń w przypadku pomyłki</span>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Typ</th>
+                    <th>Opis/Nr faktury</th>
+                    <th>Litry</th>
+                    <th>Cena/l</th>
+                    <th>Kwota</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="history-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+
+        <aside class="right-rail">
+          <div class="kpi-compact">
+            <div class="kpi-emoji">⛽</div>
+            <div class="kpi-body">
+              <div class="kpi-label">Saldo rozliczeń</div>
+              <div class="kpi-value ok" id="fuel-balance">0,00 PLN</div>
+              <p class="tiny muted" id="balance-info">—</p>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section class="card card-section">
-        <div class="section-heading">
-          <h2 class="title">Analityka</h2>
-          <select id="analytics-period-filter" style="width:auto;">
-            <option value="12" selected>Ostatni rok</option>
-            <option value="24">Ostatnie 2 lata</option>
-            <option value="36">Ostatnie 3 lata</option>
-            <option value="all">Wszystkie dane</option>
-          </select>
-        </div>
-        <div class="fuel-analytics-grid">
-          <article class="chart-card">
-            <h3 class="title">Miesięczne koszty i liczba tankowań</h3>
-            <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
-          </article>
-          <article class="chart-card">
-            <h3 class="title">Średnia cena za litr</h3>
-            <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="card card-section">
-        <div class="section-heading">
-          <h2 class="title">Historia transakcji</h2>
-          <span class="tiny muted">Kliknij wpis, aby edytować lub usuń w przypadku pomyłki</span>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Typ</th>
-                <th>Opis/Nr faktury</th>
-                <th>Litry</th>
-                <th>Cena/l</th>
-                <th>Kwota</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="history-tbody"></tbody>
-          </table>
-        </div>
-      </section>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">🧾</div>
+            <div class="kpi-body">
+              <div class="kpi-label">Śr. cena/L (12m)</div>
+              <div class="kpi-value" id="avg-price-12m">—</div>
+              <p class="tiny muted" id="avg-price-12m-note">Brak danych z ostatniego roku</p>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">🟢</div>
+            <div class="kpi-body">
+              <div class="kpi-label">Najlepsza cena</div>
+              <div class="kpi-value" id="best-price">—</div>
+              <p class="tiny muted" id="best-price-note">Dodaj faktury z litrami</p>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">🔴</div>
+            <div class="kpi-body">
+              <div class="kpi-label">Najwyższa cena</div>
+              <div class="kpi-value" id="worst-price">—</div>
+              <p class="tiny muted" id="worst-price-note">Dodaj faktury z litrami</p>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">💳</div>
+            <div class="kpi-body">
+              <div class="kpi-label">Śr. faktura</div>
+              <div class="kpi-value" id="avg-invoice">—</div>
+              <p class="tiny muted" id="avg-invoice-note">Czekamy na nowe dane</p>
+            </div>
+          </div>
+          <div class="insight-bubble" id="kpi-context-bubble">Wprowadź historyczne faktury, aby zobaczyć trend kosztów paliwa.</div>
+        </aside>
+      </div>
     </div>
-  </main>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -300,24 +371,175 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const historyTbody = document.getElementById('history-tbody');
 const balanceEl = document.getElementById('fuel-balance');
 const balanceInfoEl = document.getElementById('balance-info');
+const avgPriceEl = document.getElementById('avg-price-12m');
+const avgPriceNoteEl = document.getElementById('avg-price-12m-note');
+const bestPriceEl = document.getElementById('best-price');
+const bestPriceNoteEl = document.getElementById('best-price-note');
+const worstPriceEl = document.getElementById('worst-price');
+const worstPriceNoteEl = document.getElementById('worst-price-note');
+const avgInvoiceEl = document.getElementById('avg-invoice');
+const avgInvoiceNoteEl = document.getElementById('avg-invoice-note');
+const kpiContextBubble = document.getElementById('kpi-context-bubble');
+const fuelInsightBubble = document.getElementById('fuel-kpi-insight');
 const lastInvoiceCard = document.getElementById('last-invoice-card');
 const exportBtn = document.getElementById('export-csv-btn');
 const importBtn = document.getElementById('import-csv-btn');
 const csvFileInput = document.getElementById('csv-file-input');
 const clearAllBtn = document.getElementById('clear-all-btn');
 
+function computeFuelMetrics() {
+    const transactions = Array.isArray(state.transactions) ? state.transactions : [];
+    const invoices = transactions.filter(tx => tx.type === 'invoice');
+    const advances = transactions.filter(tx => tx.type === 'advance');
+
+    const lastYearThreshold = (() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setFullYear(d.getFullYear() - 1);
+        return d;
+    })();
+
+    const invoicesLastYear = invoices.filter(tx => {
+        if (!tx.date) return false;
+        const parsed = new Date(tx.date);
+        if (Number.isNaN(parsed.valueOf())) return false;
+        return parsed >= lastYearThreshold;
+    });
+
+    const costLastYear = invoicesLastYear.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    const litersLastYear = invoicesLastYear.reduce((sum, tx) => sum + (tx.liters || 0), 0);
+    const avgPrice = litersLastYear > 0 ? costLastYear / litersLastYear : 0;
+    const avgInvoice = invoicesLastYear.length > 0 ? costLastYear / invoicesLastYear.length : 0;
+
+    const last30Threshold = new Date();
+    last30Threshold.setDate(last30Threshold.getDate() - 30);
+    const last30Invoices = invoices.filter(tx => tx.date && new Date(tx.date) >= last30Threshold);
+    const last30Cost = last30Invoices.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+    const bestPriceInvoice = invoices.reduce((best, tx) => {
+        if (!tx.liters) return best;
+        const unitPrice = Math.abs(tx.amount) / tx.liters;
+        if (!best || unitPrice < best.unitPrice) {
+            return { unitPrice, ref: tx.ref, date: tx.date };
+        }
+        return best;
+    }, null);
+
+    const worstPriceInvoice = invoices.reduce((worst, tx) => {
+        if (!tx.liters) return worst;
+        const unitPrice = Math.abs(tx.amount) / tx.liters;
+        if (!worst || unitPrice > worst.unitPrice) {
+            return { unitPrice, ref: tx.ref, date: tx.date };
+        }
+        return worst;
+    }, null);
+
+    const balance = transactions.reduce((acc, tx) => acc + tx.amount, 0);
+    const advancesValue = advances.reduce((sum, tx) => sum + tx.amount, 0);
+
+    const monthlyTotals = invoices.reduce((acc, tx) => {
+        if (!tx.date) return acc;
+        const key = tx.date.slice(0, 7);
+        acc[key] = (acc[key] || 0) + Math.abs(tx.amount);
+        return acc;
+    }, {});
+    const sortedMonths = Object.keys(monthlyTotals).sort();
+    const latestMonthKey = sortedMonths.length ? sortedMonths[sortedMonths.length - 1] : null;
+    const prevMonthKey = sortedMonths.length > 1 ? sortedMonths[sortedMonths.length - 2] : null;
+    const latestTotal = latestMonthKey ? monthlyTotals[latestMonthKey] : 0;
+    const prevTotal = prevMonthKey ? monthlyTotals[prevMonthKey] : 0;
+    let monthDelta = null;
+    if (latestMonthKey) {
+        const diff = latestTotal - prevTotal;
+        const percent = prevTotal ? (diff / prevTotal) * 100 : null;
+        const direction = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'flat');
+        monthDelta = { latestMonthKey, prevMonthKey, latestTotal, prevTotal, diff, percent, direction };
+    }
+
+    const lastInvoice = transactions.find(tx => tx.type === 'invoice' && tx.date);
+
+    return {
+        balance,
+        advancesValue,
+        invoicesLastYearCount: invoicesLastYear.length,
+        litersLastYear,
+        avgPrice,
+        avgInvoice,
+        bestPriceInvoice,
+        worstPriceInvoice,
+        last30Cost,
+        last30InvoicesCount: last30Invoices.length,
+        monthDelta,
+        lastInvoice,
+        costLastYear,
+        monthlyTotals
+    };
+}
 
 function render() {
     state.transactions = normalizeTransactions(state.transactions || []);
     state.transactions.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-    
-    // Render Balance and Last Invoice
-    const totalBalance = state.transactions.reduce((acc, tx) => acc + tx.amount, 0);
-    balanceEl.textContent = fmt(totalBalance);
-    balanceEl.className = `value ${totalBalance >= 0 ? 'ok' : 'bad'}`;
-    balanceInfoEl.textContent = totalBalance >= 0 ? 'Masz jeszcze środki z zaliczki do wykorzystania' : 'Musisz zwrócić pieniądze firmie';
-    
-    const lastInvoice = state.transactions.find(tx => tx.type === 'invoice' && tx.date);
+
+    const metrics = computeFuelMetrics();
+
+    // Render KPI rail
+    balanceEl.textContent = fmt(metrics.balance);
+    balanceEl.className = `kpi-value ${metrics.balance >= 0 ? 'ok' : 'bad'}`;
+    balanceInfoEl.textContent = metrics.balance >= 0
+        ? 'Masz jeszcze środki z zaliczki do wykorzystania'
+        : 'Musisz zwrócić pieniądze firmie';
+
+    if (metrics.avgPrice > 0) {
+        avgPriceEl.textContent = fmt(metrics.avgPrice, 'PLN/L');
+        avgPriceNoteEl.textContent = `${metrics.litersLastYear.toFixed(1)} L w ${metrics.invoicesLastYearCount} fakturach (12 mies.)`;
+    } else {
+        avgPriceEl.textContent = '—';
+        avgPriceNoteEl.textContent = 'Brak danych z ostatniego roku';
+    }
+
+    if (metrics.bestPriceInvoice) {
+        bestPriceEl.textContent = fmt(metrics.bestPriceInvoice.unitPrice, 'PLN/L');
+        const bestLabel = metrics.bestPriceInvoice.ref || 'Faktura';
+        bestPriceNoteEl.textContent = `${bestLabel} • ${metrics.bestPriceInvoice.date}`;
+    } else {
+        bestPriceEl.textContent = '—';
+        bestPriceNoteEl.textContent = 'Dodaj faktury z litrami';
+    }
+
+    if (metrics.worstPriceInvoice) {
+        worstPriceEl.textContent = fmt(metrics.worstPriceInvoice.unitPrice, 'PLN/L');
+        const worstLabel = metrics.worstPriceInvoice.ref || 'Faktura';
+        worstPriceNoteEl.textContent = `${worstLabel} • ${metrics.worstPriceInvoice.date}`;
+    } else {
+        worstPriceEl.textContent = '—';
+        worstPriceNoteEl.textContent = 'Dodaj faktury z litrami';
+    }
+
+    if (metrics.avgInvoice > 0) {
+        avgInvoiceEl.textContent = fmt(metrics.avgInvoice);
+        avgInvoiceNoteEl.textContent = `${metrics.invoicesLastYearCount} faktur w ostatnich 12 mies.`;
+    } else {
+        avgInvoiceEl.textContent = '—';
+        avgInvoiceNoteEl.textContent = metrics.advancesValue > 0
+            ? `Zaliczki: ${fmt(metrics.advancesValue)}`
+            : 'Czekamy na nowe dane';
+    }
+
+    if (metrics.monthDelta && metrics.monthDelta.percent !== null) {
+        const directionWord = metrics.monthDelta.direction === 'down' ? 'spadły' : (metrics.monthDelta.direction === 'up' ? 'wzrosły' : 'pozostały bez zmian');
+        const percentText = `${Math.abs(metrics.monthDelta.percent).toFixed(1)}%`;
+        const compareLabel = metrics.monthDelta.prevMonthKey ? ` vs ${metrics.monthDelta.prevMonthKey}` : '';
+        kpiContextBubble.textContent = `Wydatki m/m ${directionWord} o ${percentText}${compareLabel}.`;
+    } else if (metrics.monthDelta && metrics.monthDelta.diff) {
+        const directionWord = metrics.monthDelta.diff < 0 ? 'spadły' : 'wzrosły';
+        kpiContextBubble.textContent = `Wydatki m/m ${directionWord} o ${fmt(Math.abs(metrics.monthDelta.diff))}.`;
+    } else if (metrics.last30Cost > 0) {
+        kpiContextBubble.textContent = `Ostatnie 30 dni kosztowały ${fmt(metrics.last30Cost)} (${metrics.last30InvoicesCount} faktur).`;
+    } else {
+        kpiContextBubble.textContent = 'Wprowadź historyczne faktury, aby zobaczyć trend kosztów paliwa.';
+    }
+
+    const lastInvoice = metrics.lastInvoice;
     if (lastInvoice) {
         const daysSince = Math.floor((new Date() - new Date(lastInvoice.date)) / (1000 * 60 * 60 * 24));
         const litersValue = typeof lastInvoice.liters === 'number' ? lastInvoice.liters : num(lastInvoice.liters);
@@ -372,107 +594,78 @@ function render() {
         };
     });
 
-    renderInsightsSection();
+    renderInsightsSection(metrics);
     renderMonthlySummary();
     renderAnalytics();
 }
 
-function renderInsightsSection() {
+function renderInsightsSection(metrics) {
     const grid = document.getElementById('insights-grid');
     if (!grid) return;
 
     if (!state.transactions.length) {
         grid.innerHTML = '<p class="tiny muted">Dodaj pierwszą transakcję, aby zobaczyć kluczowe wskaźniki.</p>';
+        if (fuelInsightBubble) {
+            fuelInsightBubble.textContent = 'Gdy pojawią się pierwsze faktury pokażemy tu dynamikę kosztów.';
+        }
         return;
     }
 
-    const invoices = state.transactions.filter(tx => tx.type === 'invoice');
-    const advances = state.transactions.filter(tx => tx.type === 'advance');
-    const lastYearThreshold = (() => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        d.setFullYear(d.getFullYear() - 1);
-        return d;
-    })();
-
-    const invoicesLastYear = invoices.filter(tx => {
-        if (!tx.date) return false;
-        const parsed = new Date(tx.date);
-        if (Number.isNaN(parsed.valueOf())) return false;
-        return parsed >= lastYearThreshold;
-    });
-
-    const costLastYear = invoicesLastYear.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-    const litersLastYear = invoicesLastYear.reduce((sum, tx) => sum + (tx.liters || 0), 0);
-    const avgPrice = litersLastYear > 0 ? costLastYear / litersLastYear : 0;
-    const avgInvoice = invoicesLastYear.length > 0 ? costLastYear / invoicesLastYear.length : 0;
-
-    const last30Threshold = new Date();
-    last30Threshold.setDate(last30Threshold.getDate() - 30);
-    const last30Invoices = invoices.filter(tx => tx.date && new Date(tx.date) >= last30Threshold);
-    const last30Cost = last30Invoices.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-
-    const bestPriceInvoice = invoices.reduce((best, tx) => {
-        if (!tx.liters) return best;
-        const unitPrice = Math.abs(tx.amount) / tx.liters;
-        if (!best || unitPrice < best.unitPrice) {
-            return { unitPrice, ref: tx.ref, date: tx.date };
-        }
-        return best;
-    }, null);
-
-    const worstPriceInvoice = invoices.reduce((worst, tx) => {
-        if (!tx.liters) return worst;
-        const unitPrice = Math.abs(tx.amount) / tx.liters;
-        if (!worst || unitPrice > worst.unitPrice) {
-            return { unitPrice, ref: tx.ref, date: tx.date };
-        }
-        return worst;
-    }, null);
-
-    const balance = state.transactions.reduce((acc, tx) => acc + tx.amount, 0);
-    const advancesValue = advances.reduce((sum, tx) => sum + tx.amount, 0);
+    const monthEntries = metrics.monthlyTotals ? Object.entries(metrics.monthlyTotals) : [];
+    const referenceStart = '2022-01';
+    const recentEntries = monthEntries.filter(([month]) => month >= referenceStart);
+    const monthsWithData = recentEntries.length;
+    const totalMonthlyCost = recentEntries.reduce((sum, [, value]) => sum + value, 0);
+    const avgMonthlyCost = monthsWithData ? totalMonthlyCost / monthsWithData : 0;
 
     const cards = [
         {
-            label: 'Średnia cena za litr',
-            value: litersLastYear > 0 ? fmt(avgPrice, 'PLN/L') : '—',
-            note: litersLastYear > 0 ? `${litersLastYear.toFixed(1)} L w ${invoicesLastYear.length} fakturach (12 mies.)` : 'Brak danych z ostatniego roku'
-        },
-        {
             label: 'Koszt ostatnich 30 dni',
-            value: last30Invoices.length ? fmt(last30Cost) : '—',
-            note: last30Invoices.length ? `${last30Invoices.length} tankowania` : 'Brak nowych faktur'
+            value: metrics.last30Cost > 0 ? fmt(metrics.last30Cost) : '—',
+            note: metrics.last30InvoicesCount ? `${metrics.last30InvoicesCount} faktur w tym okresie` : 'Brak nowych faktur'
         },
         {
-            label: 'Najlepsza cena',
-            value: bestPriceInvoice ? fmt(bestPriceInvoice.unitPrice, 'PLN/L') : '—',
-            note: bestPriceInvoice ? `${bestPriceInvoice.ref || 'Faktura'} (${bestPriceInvoice.date})` : 'Brak danych o litrach'
+            label: 'Śr. miesięczny koszt',
+            value: avgMonthlyCost > 0 ? fmt(avgMonthlyCost) : '—',
+            note: monthsWithData ? `${monthsWithData} mies. z fakturami` : 'Dodaj więcej danych do analizy'
         },
         {
-            label: 'Najwyższa cena',
-            value: worstPriceInvoice ? fmt(worstPriceInvoice.unitPrice, 'PLN/L') : '—',
-            note: worstPriceInvoice ? `${worstPriceInvoice.ref || 'Faktura'} (${worstPriceInvoice.date})` : 'Brak danych o litrach'
-        },
-        {
-            label: 'Śr. kwota faktury',
-            value: invoicesLastYear.length ? fmt(avgInvoice) : '—',
-            note: invoicesLastYear.length ? `${invoicesLastYear.length} faktur z ostatnich 12 miesięcy` : (advances.length ? `${advances.length} zaliczek na ${fmt(advancesValue)}` : 'Brak danych z ostatniego roku')
-        },
-        {
-            label: 'Saldo rozliczeń',
-            value: fmt(balance),
-            note: balance >= 0 ? 'Pozostałe środki z zaliczki' : 'Do zwrotu dla firmy'
+            label: 'Zaliczki przyjęte',
+            value: metrics.advancesValue > 0 ? fmt(metrics.advancesValue) : '—',
+            note: metrics.advancesValue > 0 ? 'Wliczone w saldo rozliczeń' : 'Brak nowych zaliczek'
         }
     ];
 
+    if (metrics.costLastYear > 0) {
+        cards.push({
+            label: 'Łączny koszt (12 mies.)',
+            value: fmt(metrics.costLastYear),
+            note: `${metrics.invoicesLastYearCount} faktur w roku`
+        });
+    }
+
     grid.innerHTML = cards.map(card => `
-        <div class="insight-card">
+        <div class="fuel-insight-card">
             <div class="label">${card.label}</div>
             <div class="value">${card.value}</div>
             <div class="note">${card.note}</div>
         </div>
     `).join('');
+
+    if (fuelInsightBubble) {
+        if (metrics.bestPriceInvoice && metrics.worstPriceInvoice) {
+            const spread = metrics.worstPriceInvoice.unitPrice - metrics.bestPriceInvoice.unitPrice;
+            const spreadText = spread > 0 ? fmt(spread, 'PLN/L') : fmt(0, 'PLN/L');
+            fuelInsightBubble.textContent = `Różnica pomiędzy najlepszą a najdroższą ceną paliwa to ${spreadText}.`;
+        } else if (metrics.monthDelta && metrics.monthDelta.diff) {
+            const directionWord = metrics.monthDelta.diff < 0 ? 'spadły' : 'wzrosły';
+            fuelInsightBubble.textContent = `Wydatki miesiąc do miesiąca ${directionWord} o ${fmt(Math.abs(metrics.monthDelta.diff))}.`;
+        } else if (metrics.last30Cost > 0) {
+            fuelInsightBubble.textContent = `W ciągu 30 dni zatankowano za ${fmt(metrics.last30Cost)}.`;
+        } else {
+            fuelInsightBubble.textContent = 'Dodaj litraż przy fakturach, by porównać ceny za litr.';
+        }
+    }
 }
 
 function renderMonthlySummary() {
