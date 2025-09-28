@@ -496,6 +496,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Kapitał pozostały</span>
               <span class="kpi-value" id="capital-remaining">—</span>
+              <span class="tiny muted" id="capital-remaining-note"></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -503,6 +504,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Kapitał spłacony</span>
               <span class="kpi-value" id="capital-paid">—</span>
+              <span class="tiny muted" id="capital-paid-note"></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -510,6 +512,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Odsetki spłacone</span>
               <span class="kpi-value" id="interest-paid">—</span>
+              <span class="tiny muted" id="interest-paid-note"></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -517,6 +520,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Śr. rata</span>
               <span class="kpi-value" id="avg-installment">—</span>
+              <span class="tiny muted" id="avg-installment-note"></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -775,6 +779,51 @@ function renderDashboard() {
     const avgInstallment = monthsPaid > 0 ? payments.reduce((s, p) => s + p.capital + p.interest + (p.overpayment || 0), 0) / monthsPaid : 0;
     const projectedMonthsRemaining = avgMonthlyPrincipal > 0 ? capitalRemaining / avgMonthlyPrincipal : Infinity;
     const monthsSaved = originalMonths - monthsPaid - projectedMonthsRemaining;
+
+    const capitalRemainingNoteEl = $('#capital-remaining-note');
+    const capitalPaidNoteEl = $('#capital-paid-note');
+    const interestPaidNoteEl = $('#interest-paid-note');
+    const avgInstallmentNoteEl = $('#avg-installment-note');
+
+    if (capitalRemainingNoteEl) {
+        if (payments.length && projectedMonthsRemaining && isFinite(projectedMonthsRemaining)) {
+            const monthsLeft = Math.max(0, Math.round(projectedMonthsRemaining));
+            const label = monthsLeft > 0 ? `~${monthsLeft} rat do końca` : 'Finisz w zasięgu ręki';
+            capitalRemainingNoteEl.textContent = label;
+        } else if (loanDetails.totalCapital) {
+            capitalRemainingNoteEl.textContent = 'Dodaj raty, by wyliczyć prognozę';
+        } else {
+            capitalRemainingNoteEl.textContent = '';
+        }
+    }
+
+    if (capitalPaidNoteEl) {
+        if (payments.length) {
+            capitalPaidNoteEl.textContent = totalOverpayments > 0 ? `Nadpłaty ${fmt(totalOverpayments)}` : "Standardowe raty bez nadpłat";
+        } else {
+            capitalPaidNoteEl.textContent = 'Dodaj pierwszą ratę';
+        }
+    }
+
+    if (interestPaidNoteEl) {
+        const totalOutflow = payments.reduce((sum, p) => sum + p.capital + p.interest + (p.overpayment || 0), 0);
+        if (totalOutflow > 0) {
+            const share = ((totalInterestPaid / totalOutflow) * 100).toFixed(1);
+            interestPaidNoteEl.textContent = `To ${share}% wszystkich wpłat`;
+        } else {
+            interestPaidNoteEl.textContent = 'Brak danych o odsetkach';
+        }
+    }
+
+    if (avgInstallmentNoteEl) {
+        if (payments.length) {
+            const latestPayment = [...payments].sort((a, b) => (a.date || '').localeCompare(b.date || '')).pop();
+            const latestTotal = latestPayment ? latestPayment.capital + latestPayment.interest + (latestPayment.overpayment || 0) : 0;
+            avgInstallmentNoteEl.textContent = latestPayment ? `Ostatnia rata ${fmt(latestTotal)}` : '';
+        } else {
+            avgInstallmentNoteEl.textContent = 'Brak danych o ratach';
+        }
+    }
 
     const avgInstallmentEl = $('#avg-installment');
     if (avgInstallmentEl) {
