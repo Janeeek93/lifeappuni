@@ -126,8 +126,8 @@
 }
 
 .grid-2.plan-overview {
-  grid-template-columns: minmax(260px, 0.8fr) minmax(560px, 1.45fr);
-  gap: 16px;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(560px, 1.75fr);
+  gap: 18px;
   align-items: stretch;
 }
 
@@ -169,7 +169,54 @@
 .plan-card-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  min-height: 0;
+}
+
+.plan-card--board {
+  padding: 18px;
+}
+
+.plan-card-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.plan-summary {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.plan-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.plan-summary .vacation-note {
+  margin: 0;
+}
+
+.plan-panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-height: 0;
 }
 
@@ -215,8 +262,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 12px 12px;
-  max-height: 220px;
+  padding: 12px 14px 14px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
@@ -293,6 +340,15 @@
 .plan-card-actions--compact .btn {
   padding: 10px 12px;
   font-size: 13px;
+}
+
+.plan-card-actions--stacked {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.plan-card-actions--stacked .btn {
+  justify-content: flex-start;
 }
 
 .focus-card--compact {
@@ -612,8 +668,8 @@
 .calendar-card--compact {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 16px 18px;
   height: 100%;
   min-height: 0;
 }
@@ -635,26 +691,27 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
-  grid-auto-rows: minmax(108px, 1fr);
+  gap: 8px;
+  grid-auto-rows: minmax(140px, 1fr);
 }
 
 .calendar-day {
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--line);
-  padding: 10px;
+  padding: 12px;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  overflow: hidden;
 }
 
-.calendar-day:hover { border-color: var(--primary); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12); transform: translateY(-2px); }
+.calendar-day:hover { border-color: var(--primary); box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12); transform: translateY(-2px); }
 .calendar-day--other-month { opacity: 0.45; }
 .calendar-day--selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14); }
 .calendar-day--today { border-color: var(--success); }
@@ -674,24 +731,32 @@
 .calendar-day-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
 }
 .calendar-day-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.calendar-day-weekday {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 600;
 }
 .calendar-date-number {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  height: 28px;
+  border-radius: 9px;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
@@ -704,6 +769,13 @@
   letter-spacing: 0.04em;
   color: var(--muted);
 }
+.calendar-day-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .calendar-day-status[data-state="planned"] { color: var(--warning); }
 .calendar-day-status[data-state="progress"] { color: var(--accent); }
 .calendar-day-status[data-state="done"] { color: var(--success); }
@@ -713,6 +785,7 @@
   display: inline-flex;
   gap: 4px;
   align-items: center;
+  flex-shrink: 0;
 }
 .calendar-badge {
   background: rgba(148, 163, 184, 0.16);
@@ -727,31 +800,35 @@
 .calendar-day-tags {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-height: 0;
   flex: 1;
+  overflow: hidden;
 }
 .activity-tag {
   display: grid;
   grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border-radius: 9px;
-  font-size: 10.5px;
+  align-items: start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 600;
   background: rgba(148, 163, 184, 0.12);
   color: var(--ink);
   border: 1px solid rgba(148, 163, 184, 0.24);
   max-width: 100%;
   white-space: normal;
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .activity-tag::before {
   content: '•';
   font-size: 12px;
   color: var(--muted);
+  line-height: 1;
+  transform: translateY(2px);
 }
 .activity-tag[draggable="true"] { cursor: grab; }
 .activity-tag.dragging { opacity: 0.6; cursor: grabbing; }
@@ -849,7 +926,7 @@
   border: 1px dashed rgba(37, 99, 235, 0.2);
   border-radius: 12px;
   padding: 10px 12px;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .planning-banner.active {
@@ -885,24 +962,24 @@
 .detail-item {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(248, 250, 252, 0.85);
   transition: var(--transition);
 }
 .detail-item[draggable="true"] { cursor: grab; }
 .detail-item.dragging { opacity: 0.6; cursor: grabbing; }
 .detail-item:hover { border-color: var(--primary-border); box-shadow: var(--shadow-sm); background: #fff; }
 .detail-item.completed { background: var(--success-soft); border-color: var(--success-border); }
-.detail-info { display: flex; gap: 10px; }
-.detail-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 14px; }
+.detail-info { display: flex; gap: 8px; }
+.detail-icon { width: 34px; height: 34px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 13px; }
 .detail-icon.gym { background: rgba(91, 33, 182, 0.2); color: var(--gym-color); }
 .detail-icon.running { background: rgba(4, 120, 87, 0.18); color: var(--run-color); }
 .detail-icon.reading { background: rgba(29, 78, 216, 0.18); color: var(--read-color); }
 .detail-icon.extra { background: rgba(14, 165, 233, 0.18); color: var(--extra-color); }
-.detail-title { font-weight: 600; font-size: 13px; }
+.detail-title { font-weight: 600; font-size: 12.5px; }
 .detail-meta { font-size: 11px; color: var(--muted); }
 .detail-actions-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
@@ -1006,6 +1083,7 @@
   .focus-columns { grid-template-columns: 1fr; }
   .bottom-grid { grid-template-columns: 1fr; }
   .grid-2.plan-overview { grid-template-columns: 1fr; }
+  .plan-card-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -1065,63 +1143,72 @@
       <div class="content">
         <main class="page-content content-main stack">
           <div class="grid-2 plan-overview">
-            <section class="card focus-card focus-card--compact plan-card plan-card--slim">
+            <section class="card focus-card focus-card--compact plan-card plan-card--slim plan-card--board">
               <header class="plan-card-header">
                 <div class="plan-card-title">
                   <span class="tiny muted">Plan na dziś</span>
-                  <h3 id="selected-day-title">--</h3>
+                  <h3>Twoja dzisiejsza ścieżka</h3>
                 </div>
                 <div class="plan-card-meta">
                   <span class="month-chip" id="selected-day-chip">--</span>
                   <button id="toggle-vacation-btn" class="btn ghost small"><i data-lucide="plane" class="icon"></i>Urlop</button>
                 </div>
               </header>
-              <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
-              <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
               <div class="plan-card-body">
-                <div class="plan-panels">
-                  <details id="plan-training-panel" class="plan-panel" open>
-                    <summary>
-                      <div class="panel-main">
-                        <span class="panel-title">Plan treningowy</span>
-                        <span class="panel-count" id="day-plan-count">0</span>
-                      </div>
-                      <span class="panel-meta" id="day-plan-meta">Brak zaplanowanych treningów</span>
-                    </summary>
-                    <div class="plan-panel-body">
-                      <div id="day-plan-list" class="detail-list"></div>
-                      <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
+                <div class="plan-card-layout">
+                  <div class="plan-summary">
+                    <div class="plan-summary-head">
+                      <h4 id="selected-day-title" class="plan-summary-title">--</h4>
                     </div>
-                  </details>
-                  <details id="plan-extra-panel" class="plan-panel">
-                    <summary>
-                      <div class="panel-main">
-                        <span class="panel-title">Aktywności dodatkowe</span>
-                        <span class="panel-count" id="day-extra-count">0</span>
-                      </div>
-                      <span class="panel-meta" id="day-extra-meta">Nic zaplanowanego</span>
-                    </summary>
-                    <div class="plan-panel-body">
-                      <div id="day-extra-list" class="detail-list"></div>
-                      <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
+                    <p class="muted tiny" id="selected-day-summary">Wybierz dzień z kalendarza, aby zarządzać planem.</p>
+                    <div id="vacation-note" class="vacation-note">Dzień oznaczony jako urlop — bez oczekiwań treningowych.</div>
+                    <div class="plan-card-actions plan-card-actions--compact plan-card-actions--stacked">
+                      <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
+                      <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
+                      <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
                     </div>
-                  </details>
-                </div>
-              </div>
-              <div class="plan-card-actions plan-card-actions--compact">
-                <button id="add-training-btn" class="btn"><i data-lucide="plus" class="icon"></i>Zaplanuj treningi</button>
-                <button id="add-extra-btn" class="btn ghost"><i data-lucide="sparkles" class="icon"></i>Dodaj aktywność</button>
-                <button id="plan-vacation-range-btn" class="btn ghost"><i data-lucide="calendar-range" class="icon"></i>Zaplanuj urlop</button>
-              </div>
-              <div class="planning-banner" id="planning-banner" aria-live="polite">
-                <div class="planning-banner-info">
-                  <i data-lucide="mouse-pointer" class="icon"></i>
-                  <div>
-                    <strong id="planning-banner-title">Tryb planowania</strong>
-                    <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+                    <div class="planning-banner" id="planning-banner" aria-live="polite">
+                      <div class="planning-banner-info">
+                        <i data-lucide="mouse-pointer" class="icon"></i>
+                        <div>
+                          <strong id="planning-banner-title">Tryb planowania</strong>
+                          <span id="planning-banner-meta">Wybierz typ treningu, aby rozpocząć tryb planowania wielu dni.</span>
+                        </div>
+                      </div>
+                      <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
+                    </div>
+                  </div>
+                  <div class="plan-panel-stack">
+                    <div class="plan-panels">
+                      <details id="plan-training-panel" class="plan-panel" open>
+                        <summary>
+                          <div class="panel-main">
+                            <span class="panel-title">Plan treningowy</span>
+                            <span class="panel-count" id="day-plan-count">0</span>
+                          </div>
+                          <span class="panel-meta" id="day-plan-meta">Brak zaplanowanych treningów</span>
+                        </summary>
+                        <div class="plan-panel-body">
+                          <div id="day-plan-list" class="detail-list"></div>
+                          <p id="day-plan-empty" class="empty-state">Brak zaplanowanych treningów na ten dzień.</p>
+                        </div>
+                      </details>
+                      <details id="plan-extra-panel" class="plan-panel">
+                        <summary>
+                          <div class="panel-main">
+                            <span class="panel-title">Aktywności dodatkowe</span>
+                            <span class="panel-count" id="day-extra-count">0</span>
+                          </div>
+                          <span class="panel-meta" id="day-extra-meta">Nic zaplanowanego</span>
+                        </summary>
+                        <div class="plan-panel-body">
+                          <div id="day-extra-list" class="detail-list"></div>
+                          <p id="day-extra-empty" class="empty-state">Dodaj krótkie działania lub przypomnienia.</p>
+                        </div>
+                      </details>
+                    </div>
                   </div>
                 </div>
-                <button id="stop-planning-btn" class="btn soft small"><i data-lucide="check" class="icon"></i>Zakończ</button>
               </div>
             </section>
 
@@ -1995,16 +2082,22 @@ function renderCalendar() {
     header.className = 'calendar-day-header';
     const titleWrap = document.createElement('div');
     titleWrap.className = 'calendar-day-title';
+    const weekday = document.createElement('span');
+    weekday.className = 'calendar-day-weekday';
+    weekday.textContent = date.toLocaleDateString('pl-PL', { weekday: 'short' }).replace('.', '').toUpperCase();
+    titleWrap.appendChild(weekday);
     const number = document.createElement('span');
     number.className = 'calendar-date-number';
     number.textContent = date.getDate();
     titleWrap.appendChild(number);
+    header.appendChild(titleWrap);
+    const metaWrap = document.createElement('div');
+    metaWrap.className = 'calendar-day-meta';
     const status = document.createElement('span');
     status.className = 'calendar-day-status';
     status.dataset.state = stateKey;
     status.textContent = statusLabel;
-    titleWrap.appendChild(status);
-    header.appendChild(titleWrap);
+    metaWrap.appendChild(status);
     const badges = document.createElement('div');
     badges.className = 'calendar-day-badges';
     if (plannedCount > 0) {
@@ -2015,7 +2108,10 @@ function renderCalendar() {
       badge.setAttribute('aria-label', `${plannedCount} zaplanowanych aktywności`);
       badges.appendChild(badge);
     }
-    header.appendChild(badges);
+    if (badges.childElementCount > 0) {
+      metaWrap.appendChild(badges);
+    }
+    header.appendChild(metaWrap);
     cell.appendChild(header);
 
     const tags = document.createElement('div');
