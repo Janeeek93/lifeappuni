@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     :root {
       --gradient-primary: radial-gradient(1200px 400px at 20% -10%, hsl(var(--accent-h) 80% 92%) 0%, transparent 55%),
@@ -63,19 +63,20 @@
 
     /* === Hero === */
     .hero-header{
-      margin:-32px -20px 24px -20px; padding: 28px 20px; color: var(--ink); position:relative; overflow:hidden;
+      padding: 28px 32px; color: var(--ink); position:relative; overflow:hidden;
       background: var(--gradient-primary);
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid rgba(15,23,42,0.08);
     }
     .hero-content{
-        position:relative; z-index:1; max-width:1280px; margin:0 auto;
-        width: 100%;
+        position:relative; z-index:1; width: 100%;
+        display:flex; flex-wrap: wrap; align-items:flex-start; justify-content:space-between; gap:24px;
     }
+    .hero-copy{ display:flex; flex-direction:column; gap:6px; max-width: 560px; }
     .greeting-text{ font-size: clamp(20px, 4vw, 28px); font-weight:800; margin:0 0 6px 0; animation: fadeInUp .5s ease-out }
     .date-text{ opacity:.9; font-size: 13px; margin:0 0 10px 0; animation: fadeInUp .5s ease-out .1s both }
     .dynamic-message{ font-style: italic; opacity:.85; font-size:12px; animation: fadeInUp .5s ease-out .2s both }
 
-    .quick-actions{ position:absolute; top:20px; right:20px; display:flex; gap:10px; animation: slideInRight .5s ease-out .2s both; }
+    .quick-actions{ display:flex; gap:10px; align-items:center; animation: slideInRight .5s ease-out .2s both; }
     .quick-action{
       width:42px; height:42px; background: hsl(0 0% 100% / .6);
       border:1px solid hsl(0 0% 100% / .7); border-radius:10px; display:flex; align-items:center; justify-content:center;
@@ -154,104 +155,131 @@
     @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg) } }
 
     @media (max-width: 768px){
-      .hero-header{ padding: 24px; margin:-28px -20px 20px -20px }
-      .quick-actions{ position: static; margin-top: 12px; justify-content: center }
+      .hero-header{ padding: 24px; }
+      .hero-content{ flex-direction: column; align-items: flex-start; }
+      .quick-actions{ width: 100%; justify-content: flex-start; }
     }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <header class="hero-header">
-      <div class="hero-content">
-        <div class="quick-actions">
-          <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-          <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-        </div>
-        <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-        <p id="current-date" class="date-text"></p>
-        <p id="dynamic-message" class="dynamic-message"></p>
+<body data-page="dashboard">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link active" href="index.html" aria-current="page"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
-    </header>
+    </aside>
 
-    <div class="grid g-main">
-      <div style="display: grid; gap: 14px; align-content: start;">
-        <div class="card">
-          <h3 class="title">📊 Kluczowe wskaźniki</h3>
-          <div class="grid g-2 kpi-grid">
-            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-            <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-            <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-            <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+    <div class="app-main">
+      <header class="topbar hero-header">
+        <div class="hero-content">
+          <div class="hero-copy">
+            <p class="topbar-eyebrow">Twój dzień w skrócie</p>
+            <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
+            <p id="current-date" class="date-text"></p>
+            <p id="dynamic-message" class="dynamic-message"></p>
+          </div>
+          <div class="quick-actions">
+            <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
+            <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
           </div>
         </div>
+      </header>
 
-        <div class="card">
-          <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
-          <div id="weekly-activities-list" class="activity-feed"></div>
-        </div>
-        
-        <div class="card">
-          <h3 class="title">🗂️ Moduły</h3>
-          <div class="grid modules-grid" style="margin-top: 14px;">
-            <a class="tile" href="budget.html">
-              <div class="pill">💰 Budżet</div>
-              <div style="font-weight: 600;">Finanse</div>
-              <div class="tiny muted">Zarządzaj wydatkami</div>
-            </a>
-            <a class="tile" href="fuel.html">
-              <div class="pill">⛽ Paliwo</div>
-              <div style="font-weight: 600;">Rozliczenia</div>
-              <div class="tiny muted">Tankowania i faktury</div>
-            </a>
-            <a class="tile" href="tasks.html">
-              <div class="pill">✅ Zadania</div>
-              <div style="font-weight: 600;">Organizacja</div>
-              <div class="tiny muted">Listy i kalendarz</div>
-            </a>
-            <a class="tile" href="trainings.html">
-              <div class="pill">💪 Treningi</div>
-              <div style="font-weight: 600;">Cele</div>
-              <div class="tiny muted">Plany i progres</div>
-            </a>
-            <a class="tile" href="house.html">
-                <div class="pill">🏗️ Budowa</div>
-                <div style="font-weight: 600;">Projekt</div>
-                <div class="tiny muted">Kontroluj budowę</div>
-            </a>
-            <a class="tile" href="loan.html">
-                <div class="pill">🏦 Kredyt</div>
-                <div style="font-weight: 600;">Spłata</div>
-                <div class="tiny muted">Monitoruj postępy</div>
-            </a>
-          </div>
-          <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
-          <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
-          <div class="grid g-2" style="gap: 10px;">
-            <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
-            <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
-            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-          </div>
-          <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
-        </div>
-      </div>
+      <main class="page-content">
+        <div class="wrap">
+          <div class="page-columns">
+            <section class="stack tight">
+              <div class="card">
+                <h3 class="title">📊 Kluczowe wskaźniki</h3>
+                <div class="grid g-2 kpi-grid">
+                  <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+                  <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+                  <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
+                  <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+                  <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
+                  <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+                </div>
+              </div>
 
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="card weather-widget" id="weather-widget" aria-live="polite">
-          <!-- Weather content will be dynamically inserted here -->
-        </div>
-        <div class="card priorities-card" id="priorities-card">
-          <div class="upcoming-header">
-            <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
-            <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+              <div class="card">
+                <h3 class="title">🎯 Cele treningowe na ten tydzień</h3>
+                <div id="weekly-activities-list" class="activity-feed"></div>
+              </div>
+
+              <div class="card">
+                <h3 class="title">🗂️ Moduły</h3>
+                <div class="grid modules-grid" style="margin-top: 14px;">
+                  <a class="tile" href="budget.html">
+                    <div class="pill">💰 Budżet</div>
+                    <div style="font-weight: 600;">Finanse</div>
+                    <div class="tiny muted">Zarządzaj wydatkami</div>
+                  </a>
+                  <a class="tile" href="fuel.html">
+                    <div class="pill">⛽ Paliwo</div>
+                    <div style="font-weight: 600;">Rozliczenia</div>
+                    <div class="tiny muted">Tankowania i faktury</div>
+                  </a>
+                  <a class="tile" href="tasks.html">
+                    <div class="pill">✅ Zadania</div>
+                    <div style="font-weight: 600;">Organizacja</div>
+                    <div class="tiny muted">Listy i kalendarz</div>
+                  </a>
+                  <a class="tile" href="trainings.html">
+                    <div class="pill">💪 Treningi</div>
+                    <div style="font-weight: 600;">Cele</div>
+                    <div class="tiny muted">Plany i progres</div>
+                  </a>
+                  <a class="tile" href="house.html">
+                    <div class="pill">🏗️ Budowa</div>
+                    <div style="font-weight: 600;">Projekt</div>
+                    <div class="tiny muted">Kontroluj budowę</div>
+                  </a>
+                  <a class="tile" href="loan.html">
+                    <div class="pill">🏦 Kredyt</div>
+                    <div style="font-weight: 600;">Spłata</div>
+                    <div class="tiny muted">Monitoruj postępy</div>
+                  </a>
+                </div>
+                <div style="border-top: 1px solid var(--line); margin: 18px 0;"></div>
+                <h3 class="title" style="margin-bottom: 10px;">💾 Zarządzanie Danymi</h3>
+                <div class="grid g-2" style="gap: 10px;">
+                  <button class="btn" id="export-all-btn">📤 Eksportuj wszystko</button>
+                  <button class="btn" id="import-all-btn">📥 Importuj wszystko</button>
+                  <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
+                </div>
+                <p id="backup-status" class="tiny" style="margin-top: 12px; text-align: center;"></p>
+              </div>
+            </section>
+
+            <aside class="stack tight">
+              <div class="card weather-widget" id="weather-widget" aria-live="polite">
+                <!-- Weather content will be dynamically inserted here -->
+              </div>
+              <div class="card priorities-card" id="priorities-card">
+                <div class="upcoming-header">
+                  <h3 class="title" style="margin:0;">📅 Najbliższe zadania</h3>
+                  <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
+                </div>
+                <div id="upcoming-tasks-list"></div>
+                <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
+              </div>
+            </aside>
           </div>
-          <div id="upcoming-tasks-list"></div>
-          <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
         </div>
-      </div>
+      </main>
     </div>
-
   </div>
 
   <!-- Modals -->

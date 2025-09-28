@@ -7,260 +7,531 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <style>
-    :root, [data-theme="light"]{
-      --accent-h: 222; --accent-s: 83%; --accent-l: 53%;
-      --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
-      --accent-weak: hsl(var(--accent-h) 60% 94%);
-      --bg:#f6f7fb; --card:#ffffff; --ink:#0f172a; --muted:#667085; --line:#e7eaf0;
-      --surface:#f9fafb;
-      --green:#059669; --red:#dc2626; --orange:#ea580c; --blue:#2563eb;
-      --shadow-sm:0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow:0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-      --shadow-md:0 6px 16px -6px rgb(0 0 0 / 0.12);
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; background: var(--bg); color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto;
-      font-size: 14px; line-height: 1.6;
-    }
-    
-    @keyframes fadeInUp { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
-
-    .wrap { max-width: 1280px; margin: 0 auto; padding: 28px 20px; }
-    .grid { display: grid; gap: 24px; }
+    .grid { display: grid; gap: 14px; }
     .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    @media(max-width:1024px){ .g-3{grid-template-columns: repeat(2,1fr)} .g-2{grid-template-columns:1fr} }
-    @media(max-width:640px){ .g-3{grid-template-columns:1fr} }
-    
-    .card{
-      background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
-      box-shadow: var(--shadow); animation: fadeInUp .4s ease-out;
+    @media (max-width: 900px) {
+      .g-2 { grid-template-columns: 1fr; }
+      .g-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .g-3 { grid-template-columns: 1fr; }
     }
 
-    .title { margin: 0 0 16px 0; font-weight: 700; font-size: 18px; letter-spacing: .2px; }
-    .muted { color: var(--muted); }
-    .tiny { font-size: 12px }
-
-    .btn{
-      display:inline-flex; gap:8px; align-items:center; justify-content:center;
-      border-radius: 12px; padding: 12px 20px; border: 1px solid var(--line);
-      background: var(--surface); color: var(--ink); cursor:pointer; text-decoration:none; font-weight:600;
-      font-size: 14px; transition: transform .15s ease, box-shadow .15s ease, background .2s ease, border-color .2s ease;
+    .loan-setup-card {
+      text-align: center;
+      padding: 48px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
     }
-    .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color:hsl(var(--accent-h) 30% 75% / .6) }
-    .btn.primary{ background: var(--accent); color:#fff; border-color: transparent }
-    .btn.danger{ background: var(--red); color:#fff; border-color: transparent }
 
-    .header {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        gap: 16px;
-        animation: fadeInUp .3s ease-out;
+    .setup-icon {
+      font-size: 48px;
     }
-    .header-title { font-size: 28px; font-weight: 800; margin: 0; }
-    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-    .kpi-card {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+    .loan-progress-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
-    .kpi-label { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .kpi-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
-    .kpi-value .currency { font-size: 16px; font-weight: 600; color: var(--muted); margin-left: 4px; }
-    .kpi-sub { font-size: 12px; color: var(--muted); }
 
-    .insights-grid {
-        display: grid;
-        gap: 14px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    .loan-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .insight-card {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-    .insight-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .insight-card .value { font-size: 22px; font-weight: 700; }
-    .insight-card .note { font-size: 12px; color: var(--muted); }
 
-    .progress-bar { background: #e2e8f0; border-radius: 8px; height: 16px; overflow: hidden; }
-    .progress-bar-inner {
+    .loan-progress-header .title {
+      margin: 0;
+    }
+
+    .loan-progress-percent {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .loan-progress-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .loan-progress-fill {
       height: 100%;
-      border-radius: 8px;
-      background: linear-gradient(90deg, var(--green), hsl(145, 50%, 60%));
+      background: linear-gradient(90deg, var(--green), hsl(152 76% 48%));
       transition: width 0.5s ease-out;
     }
-    
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
-    td { vertical-align: middle; }
-    th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
-    tbody tr:hover { background-color: var(--surface); }
 
-    .rate-history-list { display: flex; flex-direction: column; gap: 10px; }
-    .rate-history-entry { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-    .rate-history-entry.current { border-color: var(--accent); background: var(--accent-weak); }
-    .rate-history-entry .rate { font-weight: 700; font-size: 16px; }
-    .rate-history-entry .date { font-size: 12px; color: var(--muted); }
+    .loan-progress-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
 
-    .modal-overlay{
-      position:fixed; inset:0; background: rgba(15,23,42,.6); display:flex; justify-content:center; align-items:flex-start;
-      padding-top: 5vh; z-index:1000; backdrop-filter: blur(8px); opacity:0; pointer-events:none; transition: opacity .2s ease-out; overflow-y: auto;
+    .loan-progress-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--surface);
     }
-    .modal-overlay.visible{ opacity:1; pointer-events: all }
-    .modal-card{ background: var(--card); padding: 0; border-radius: 16px; box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
-      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line); overflow: hidden; margin-bottom: 5vh;
+
+    .loan-progress-stat .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
     }
-    .modal-overlay.visible .modal-card{ transform: scale(1) }
-    .modal-header { padding: 20px; border-bottom: 1px solid var(--line); }
-    .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
-    .modal-body { padding: 20px; }
-    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface); display:flex; justify-content:flex-end; gap:10px }
-    
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+
+    .loan-progress-stat .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .loan-progress-stat .note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .loan-progress-stat .value .currency {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+      font-weight: 600;
+    }
+
+    .kpi-value .currency {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+      font-weight: 600;
+    }
+
+    .loan-insights-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px dashed var(--line);
+    }
+
+    .loan-insights-panel .panel-title {
+      margin: 0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .insights-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .insight-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .insight-card .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .insight-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .insight-card .note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .loan-charts-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .loan-chart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .loan-chart-area,
+    .loan-donut-area {
+      position: relative;
+      min-height: 300px;
+    }
+
+    .loan-donut-area { min-height: 260px; }
+
+    @media (max-width: 1200px) {
+      .loan-chart-grid { grid-template-columns: 1fr; }
+      .loan-donut-area { min-height: 240px; }
+    }
+
+    .loan-table-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .table-wrapper.scrollable {
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    thead th {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    tbody tr:hover { background: var(--surface); }
+
+    .rate-history-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rate-history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .rate-history-entry {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .rate-history-entry.current {
+      border-color: var(--accent);
+      background: var(--accent-weak);
+    }
+
+    .rate-history-entry .rate {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .rate-history-entry .date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
     .form-input {
-      width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--surface); font-size: 14px;
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--card);
+      font-size: 14px;
     }
-    .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
-    hr.divider { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 
-    .setup-container {
-        text-align: center;
-        padding: 60px 20px;
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 20px 0;
     }
-    .setup-icon { font-size: 48px; margin-bottom: 16px; }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 5vh;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-card {
+      background: var(--card);
+      padding: 0;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      max-width: 520px;
+      width: 92%;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      margin-bottom: 5vh;
+    }
+
+    .modal-overlay.visible .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   </style>
 </head>
-<body>
+<body data-page="loan">
 
-  <div class="wrap">
-    <header class="page-header">
-      <div class="page-title-group">
-        <a href="index.html" class="back-link">← Powrót</a>
-        <h1 class="page-title">Monitor kredytu</h1>
-        <p class="page-subtitle">Śledź saldo, nadpłaty i harmonogram spłat w jednym miejscu.</p>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link" href="budget.html"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link active" href="loan.html" aria-current="page"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
       </div>
-      <div class="page-actions">
-        <button class="btn primary" id="add-payment-btn" style="display: none;">+ Dodaj spłatę</button>
-        <button class="btn" id="settings-btn" style="display: none;">⚙️ Ustawienia</button>
-      </div>
-    </header>
+    </aside>
 
-    <main id="app-container">
-      
-      <div id="setup-container" class="card setup-container" style="display: none;">
-        <div class="setup-icon">📊</div>
-        <h2 class="title">Witaj w module kredytowym!</h2>
-        <p class="muted" style="max-width: 400px; margin: 0 auto 24px;">Aby rozpocząć, wprowadź podstawowe informacje o swoim kredycie. Te dane posłużą do wszystkich dalszych obliczeń.</p>
-        <button class="btn primary" id="setup-loan-btn">Skonfiguruj kredyt</button>
-      </div>
-
-      <div id="dashboard-container" class="grid" style="display: none;">
-        
-        <div class="grid g-3">
-          <div class="card kpi-card">
-            <div class="kpi-label">Pozostało kapitału</div>
-            <div id="capital-remaining" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Spłacono kapitału</div>
-            <div id="capital-paid" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Suma nadpłat</div>
-            <div id="overpayments-total" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Zapłacone odsetki</div>
-            <div id="interest-paid" class="kpi-value"></div>
-          </div>
-          <div class="card kpi-card">
-            <div class="kpi-label">Liczba rat</div>
-            <div id="payments-count" class="kpi-value"></div>
-            <div id="payments-sub" class="kpi-sub"></div>
-          </div>
-           <div class="card kpi-card">
-           <div class="kpi-label">Kredyt skrócony o</div>
-           <div id="time-saved" class="kpi-value"></div>
-          </div>
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-info">
+          <p class="topbar-eyebrow">Finanse</p>
+          <h1 class="topbar-title">Kredyt</h1>
         </div>
-
-        <div class="card" id="loan-insights-card" style="display:none;">
-            <h3 class="title">Najbliższe kroki</h3>
-            <div id="loan-insights-grid" class="insights-grid"></div>
+        <div class="topbar-actions">
+          <button class="btn soft" id="settings-btn" style="display: none;">⚙️ Ustawienia</button>
+          <button class="btn primary" id="add-payment-btn" style="display: none;">+ Dodaj spłatę</button>
         </div>
+      </header>
 
-        <div class="card">
-            <h3 class="title">Postęp spłaty kapitału</h3>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div class="content">
+        <main class="stack tight">
+          <div id="app-container" class="stack tight">
+
+            <section id="setup-container" class="card loan-setup-card" style="display: none;">
+              <div class="setup-icon">📊</div>
+              <h2 class="title">Witaj w module kredytowym!</h2>
+              <p class="muted" style="max-width: 420px; margin: 0 auto;">Aby rozpocząć, wprowadź podstawowe informacje o swoim kredycie. Te dane posłużą do wszystkich dalszych obliczeń.</p>
+              <button class="btn primary" id="setup-loan-btn">Skonfiguruj kredyt</button>
+            </section>
+
+            <div id="dashboard-container" class="stack tight" style="display: none;">
+              <section class="card loan-progress-card">
+                <div class="loan-progress-header">
+                  <h2 class="title">Postęp spłaty kapitału</h2>
+                  <span id="progress-percent" class="loan-progress-percent">0%</span>
+                </div>
                 <span id="progress-text" class="tiny muted"></span>
-                <span id="progress-percent" style="font-weight: 700;">0%</span>
-            </div>
-            <div class="progress-bar">
-                <div id="progress-bar-inner" class="progress-bar-inner" style="width: 0%;"></div>
-            </div>
-        </div>
+                <div class="loan-progress-bar">
+                  <div id="progress-bar-inner" class="loan-progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="loan-progress-stats">
+                  <div class="loan-progress-stat">
+                    <span class="label">Suma nadpłat</span>
+                    <span id="overpayments-total" class="value"></span>
+                  </div>
+                  <div class="loan-progress-stat">
+                    <span class="label">Raty wykonane</span>
+                    <span id="payments-count" class="value"></span>
+                    <span id="payments-sub" class="note"></span>
+                  </div>
+                  <div class="loan-progress-stat">
+                    <span class="label">Kredyt skrócony o</span>
+                    <span id="time-saved" class="value"></span>
+                  </div>
+                </div>
+                <div id="loan-insights-card" class="loan-insights-panel" style="display: none;">
+                  <p class="panel-title">Najbliższe kroki</p>
+                  <div id="loan-insights-grid" class="insights-grid"></div>
+                </div>
+              </section>
 
-        <div class="grid g-2">
-            <div class="card">
-                <h3 class="title">Rata i oprocentowanie</h3>
-                <canvas id="capital-chart" style="max-height: 300px;"></canvas>
-            </div>
-            <div class="card">
-                <h3 class="title">Struktura spłat</h3>
-                <canvas id="structure-chart" style="max-height: 300px;"></canvas>
-            </div>
-        </div>
+              <section class="card loan-charts-card">
+                <div class="section-heading">
+                  <h2 class="title">Kapitał i odsetki</h2>
+                  <span class="tiny muted">Śledź jak zmienia się struktura każdej raty</span>
+                </div>
+                <div class="loan-chart-grid">
+                  <div class="loan-chart-area">
+                    <canvas id="capital-chart"></canvas>
+                  </div>
+                  <div class="loan-donut-area">
+                    <canvas id="structure-chart"></canvas>
+                  </div>
+                </div>
+              </section>
 
-        <div class="card" id="rate-history-card">
-            <h3 class="title">Historia oprocentowania</h3>
-            <ul id="rate-history-list" class="rate-history-list list-clean"></ul>
-        </div>
-
-        <div class="card">
-            <h3 class="title">Historia spłat</h3>
-            <div class="table-wrapper">
-                <table>
+              <section class="card loan-table-card">
+                <div class="section-heading">
+                  <h2 class="title">Historia spłat</h2>
+                  <span class="tiny muted">Edytuj dowolny wpis, aby zaktualizować harmonogram</span>
+                </div>
+                <div class="table-wrapper scrollable">
+                  <table>
                     <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Kapitał</th>
-                            <th>Odsetki</th>
-                            <th>Nadpłata</th>
-                            <th>Suma raty</th>
-                            <th>Akcje</th>
-                        </tr>
+                      <tr>
+                        <th>Data</th>
+                        <th>Kapitał</th>
+                        <th>Odsetki</th>
+                        <th>Nadpłata</th>
+                        <th>Suma raty</th>
+                        <th>Akcje</th>
+                      </tr>
                     </thead>
-                    <tbody id="history-tbody">
-                    </tbody>
-                </table>
+                    <tbody id="history-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="card rate-history-card" id="rate-history-card">
+                <div class="section-heading">
+                  <h2 class="title">Historia oprocentowania</h2>
+                  <span class="tiny muted">Aktualne stawki wpływają na kolejne raty</span>
+                </div>
+                <ul id="rate-history-list" class="rate-history-list"></ul>
+              </section>
             </div>
-        </div>
+          </div>
+        </main>
 
+        <aside class="right-rail">
+          <div class="kpi-compact">
+            <span class="kpi-emoji">💰</span>
+            <div>
+              <span class="kpi-label">Kapitał pozostały</span>
+              <span class="kpi-value" id="capital-remaining">—</span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📉</span>
+            <div>
+              <span class="kpi-label">Kapitał spłacony</span>
+              <span class="kpi-value" id="capital-paid">—</span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">📈</span>
+            <div>
+              <span class="kpi-label">Odsetki spłacone</span>
+              <span class="kpi-value" id="interest-paid">—</span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">💸</span>
+            <div>
+              <span class="kpi-label">Śr. rata</span>
+              <span class="kpi-value" id="avg-installment">—</span>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <span class="kpi-emoji">⏳</span>
+            <div>
+              <span class="kpi-label">Następna rata</span>
+              <span class="kpi-value" id="next-payment">—</span>
+              <span class="tiny muted" id="next-payment-note"></span>
+            </div>
+          </div>
+        </aside>
       </div>
-
-    </main>
+    </div>
   </div>
-  
+
   <div id="modal-overlay" class="modal-overlay" role="dialog">
     <div class="modal-card" id="modal-card">
       <div class="modal-header">
@@ -475,7 +746,7 @@ function render() {
     $('#settings-btn').style.display = 'none';
   } else {
     $('#setup-container').style.display = 'none';
-    $('#dashboard-container').style.display = 'grid';
+    $('#dashboard-container').style.display = 'flex';
     $('#add-payment-btn').style.display = 'inline-flex';
     $('#settings-btn').style.display = 'inline-flex';
     renderDashboard();
@@ -504,6 +775,11 @@ function renderDashboard() {
     const avgInstallment = monthsPaid > 0 ? payments.reduce((s, p) => s + p.capital + p.interest + (p.overpayment || 0), 0) / monthsPaid : 0;
     const projectedMonthsRemaining = avgMonthlyPrincipal > 0 ? capitalRemaining / avgMonthlyPrincipal : Infinity;
     const monthsSaved = originalMonths - monthsPaid - projectedMonthsRemaining;
+
+    const avgInstallmentEl = $('#avg-installment');
+    if (avgInstallmentEl) {
+        avgInstallmentEl.textContent = monthsPaid > 0 ? fmt(avgInstallment) : '—';
+    }
 
     if (monthsSaved > 0) {
         const years = Math.floor(monthsSaved / 12);
@@ -613,19 +889,29 @@ function getNextPaymentMonth(payments, loanDetails) {
 function updateLoanInsights(metrics) {
     const card = $('#loan-insights-card');
     const grid = $('#loan-insights-grid');
+    const nextPaymentEl = $('#next-payment');
+    const nextNoteEl = $('#next-payment-note');
     if (!card || !grid) return;
 
     if (!metrics || !metrics.loanDetails) {
         card.style.display = 'none';
+        if (nextPaymentEl) nextPaymentEl.textContent = '—';
+        if (nextNoteEl) nextNoteEl.textContent = '';
         return;
     }
 
-    card.style.display = 'block';
+    card.style.display = 'flex';
     const { loanDetails, payments, capitalRemaining, totalCapitalPaid, totalOverpayments, avgMonthlyPrincipal, avgInstallment, projectedMonthsRemaining, nextPaymentMonth } = metrics;
     const paymentsList = payments || [];
     const avgInterestPortion = paymentsList.length ? paymentsList.reduce((sum, p) => sum + p.interest, 0) / paymentsList.length : 0;
     const nextRate = getRateForDate(nextPaymentMonth, loanDetails.interestRateHistory || []);
     const nextLabel = new Date(`${nextPaymentMonth}-01`).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+
+    if (nextPaymentEl) nextPaymentEl.textContent = nextLabel || '—';
+    if (nextNoteEl) {
+        const hasRateHistory = (loanDetails.interestRateHistory || []).length > 0;
+        nextNoteEl.textContent = hasRateHistory ? `Oprocentowanie ${Number(nextRate || 0).toFixed(2)}%` : '';
+    }
 
     const recommendedOverpayment = (avgMonthlyPrincipal > 0 && projectedMonthsRemaining && isFinite(projectedMonthsRemaining) && projectedMonthsRemaining > 6)
         ? Math.max(0, (capitalRemaining / Math.max(projectedMonthsRemaining - 6, 1)) - avgMonthlyPrincipal)

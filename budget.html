@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LifeOS — Budżet (ulepszona wersja)</title>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="styles.css">
     <style>
     .row {
       display: flex;
@@ -87,12 +87,225 @@
       font-size: 10px;
     }
 
+    .heatmap-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .recent-calendar-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .recent-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .recent-day {
+      background: var(--surface);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 14px;
+      padding: 8px 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+      transition: border-color .2s ease, transform .2s ease;
+    }
+
+    .recent-day:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .recent-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .recent-day-header span {
+      display: block;
+      line-height: 1.1;
+    }
+
+    .recent-day-weekday {
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .recent-day-date {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink);
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+
+    .recent-day-total {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .recent-day-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .recent-entry {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      padding: 4px 6px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: rgba(148, 163, 184, 0.08);
+      transition: border-color .2s ease, background .2s ease;
+      font-size: 10px;
+    }
+
+    .recent-entry-emoji {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .recent-entry-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .recent-entry-amount {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 1.2;
+      color: var(--ink);
+    }
+
+    .recent-entry-note {
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.2;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .recent-entry.top-spend {
+      border-color: rgba(248, 113, 113, 0.55);
+      background: rgba(248, 113, 113, 0.12);
+    }
+
+    .recent-entry.top-spend .recent-entry-emoji {
+      background: rgba(248, 113, 113, 0.18);
+    }
+
+    .recent-entry.top-spend .recent-entry-amount {
+      color: #b91c1c;
+    }
+
+    .recent-entry-hidden {
+      display: none;
+    }
+
+    .recent-more {
+      border: none;
+      background: transparent;
+      color: var(--blue);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      align-self: flex-start;
+    }
+
+    .recent-more::after {
+      content: '›';
+      font-size: 10px;
+      transition: transform .2s ease;
+    }
+
+    .recent-day.expanded .recent-more::after {
+      transform: rotate(90deg);
+    }
+
+    .recent-empty {
+      font-size: 9px;
+      color: var(--muted);
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .recent-day.recent-day-empty {
+      border-style: dashed;
+    }
+
+    .recent-day.recent-day-empty .recent-day-total {
+      color: var(--muted);
+    }
+
+    @media (max-width: 1100px) {
+      .recent-calendar {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+    }
+
+    .heatmap-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
     .heat-legend {
       display: flex;
       gap: 6px;
       align-items: center;
       font-size: 12px;
       color: #64748b;
+    }
+
+    .table-compact thead th,
+    .table-compact tbody td {
+      padding: 6px 8px;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .table-compact tbody tr:nth-child(even) {
+      background: transparent;
     }
 
     .editor-section {
@@ -313,17 +526,39 @@
     }
   </style>
 </head>
-<body class="module-shell">
-  <section class="module-hero">
-    <div class="wrap module-hero-inner">
-      <div class="module-hero-top">
-        <div>
-          <a href="index.html" class="back-link">← Powrót</a>
-          <div class="module-eyebrow">Budżet</div>
-          <h1 class="module-title">Mój Budżet</h1>
-          <p class="module-subtitle">Wersja lokalna</p>
+<body data-page="budget">
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar-header"><span class="emoji">🧭</span><span>LifeOS</span></div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="index.html"><span class="icon">📊</span><span>Dashboard</span></a>
+        <a class="nav-link active" href="budget.html" aria-current="page"><span class="icon">💰</span><span>Budżet</span></a>
+        <a class="nav-link" href="fuel.html"><span class="icon">⛽</span><span>Paliwo</span></a>
+        <a class="nav-link" href="trainings.html"><span class="icon">💪</span><span>Treningi</span></a>
+        <a class="nav-link" href="loan.html"><span class="icon">🏦</span><span>Kredyt</span></a>
+        <a class="nav-link" href="tasks.html"><span class="icon">✅</span><span>Zadania</span></a>
+        <a class="nav-link" href="house.html"><span class="icon">🏠</span><span>Budowa</span></a>
+        <a class="nav-link" href="index.html#settings"><span class="icon">⚙️</span><span>Ustawienia</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <strong>Twój cyfrowy dom</strong>
+        Zarządzaj budżetem, zadaniami i celami w jednym miejscu.
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="row" style="align-items:center;justify-content:space-between;gap:16px">
+          <div>
+            <p class="topbar-eyebrow">Finanse</p>
+            <h1 class="topbar-title">Budżet</h1>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <span class="badge">💾 Dane lokalne</span>
+            <span class="badge">📈 Analiza offline</span>
+          </div>
         </div>
-        <div class="module-hero-actions">
+        <div class="topbar-actions" style="gap:16px">
           <div class="toolbar budget-month-nav">
             <button class="btn soft" id="prevMonthBtn" title="Poprzedni miesiąc">←</button>
             <span class="pill" id="workingMonth">YYYY-MM</span>
@@ -335,34 +570,10 @@
             <input type="file" id="importFile" accept="application/json" style="display:none" />
           </div>
         </div>
-      </div>
-      <div class="module-hero-stats">
-        <div class="module-hero-stat">
-          <div class="label">Zostało do wydania</div>
-          <div class="big-number" id="dash-remaining">0</div>
-          <div class="note muted">na wydatki zmienne</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Dzienny limit</div>
-          <div class="big-number" id="dash-daily-budget">0</div>
-          <div class="note" id="dash-daily-trend">—</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Wydano dzisiaj</div>
-          <div class="big-number" id="dash-today-spent">0</div>
-          <div class="note" id="dash-today-vs-budget">—</div>
-        </div>
-        <div class="module-hero-stat">
-          <div class="label">Średnia dzienna</div>
-          <div class="big-number" id="dash-avg-daily">0</div>
-          <div class="note" id="dash-avg-trend">—</div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <main class="module-content">
-    <div class="wrap">
+      <div class="content">
+        <main class="page-content content-main stack">
     <div class="tabs budget-tabs" style="margin-top:12px">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="overview">Przegląd</button>
@@ -379,7 +590,7 @@
     <!-- Dashboard -->
     <section id="tab-dashboard" class="card" style="margin-top:12px">
       <h3 class="title">Dashboard finansowy</h3>
-      <div class="grid g-2" style="margin-top:12px">
+      <div class="grid-2" style="margin-top:12px">
         <div class="card">
           <div class="title">Wydatki dzień po dniu</div>
           <div class="chart-box"><canvas id="dailyLine"></canvas></div>
@@ -391,19 +602,56 @@
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px">
+      <div class="card heatmap-card" style="margin-top:16px">
         <div class="title">Wydatki dzienne — heatmap</div>
-        <div class="muted" style="margin-bottom:8px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
-        <div id="daily-spending-calendar" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-        <div class="heat-legend" style="margin-top:6px">
+        <div class="muted" style="margin-bottom:4px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
+        <div id="daily-spending-calendar" class="heatmap-strip"></div>
+        <div class="heat-legend">
           <span class="heat-day" style="background:#dcfce7"> </span> w normie
           <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
           <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
         </div>
       </div>
 
+      <div class="card recent-calendar-card" style="margin-top:16px">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+          <div>
+            <div class="title">Ostatnie 7 dni — wydatki</div>
+            <p class="muted tiny">Największe wydatki z ostatnich dni, posegregowane malejąco. Top 5 oznaczone na czerwono.</p>
+          </div>
+          <div class="chip" style="margin:0" id="recent-seven-total">Łącznie: —</div>
+        </div>
+        <div id="recent-spending-calendar" class="recent-calendar"></div>
+      </div>
+
+      <div id="var-table-dashboard-slot" style="display:none">
+        <div id="var-transactions-card" class="card">
+          <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
+            <div>
+              <div class="title">Transakcje w miesiącu</div>
+              <p class="muted tiny">Monitoruj wszystkie wydatki zmienne w aktywnym okresie.</p>
+            </div>
+            <div class="chip" style="margin:0">
+              Suma: <b id="var-sum">0</b>
+            </div>
+          </div>
+          <div class="row" style="margin:12px 0;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="tiny" style="display:flex;flex-direction:column;gap:6px">
+              Filtr kategorii
+              <select id="var-filter-cat"><option value="">Wszystkie kategorie</option></select>
+            </label>
+          </div>
+          <div class="table-wrapper" style="max-height:320px;overflow:auto">
+            <table class="table-compact">
+              <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
+              <tbody id="var-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- NEW: Forecast and Buffer Banners -->
-      <div class="grid g-2" style="margin-top:12px">
+      <div class="grid-2" style="margin-top:12px">
         <div class="banner" style="background: #f0fdf4; border-color: #dcfce7;">
           <b>🔮 Prognozowane oszczędności</b>
           <div class="big-number" id="forecast-content" style="font-size: 24px; margin-top: 4px;">0</div>
@@ -573,16 +821,10 @@
         <input name="note" placeholder="Notatka" />
         <button class="btn" type="submit">Dodaj wydatek</button>
       </form>
-      
-      <div class="row" style="margin-bottom:8px">
-        <div class="muted">Suma wydatków zmiennych: <b id="var-sum">0</b></div>
-        <select id="var-filter-cat"><option value="">Wszystkie kategorie</option></select>
-      </div>
 
-      <table>
-        <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
-        <tbody id="var-rows"></tbody>
-      </table>
+      <div id="var-table-variable-slot" style="margin-top:12px"></div>
+
+      <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz poniżej lub w panelu „Dashboard finansowy”.</div>
     </section>
 
     <!-- Categories -->
@@ -1070,8 +1312,44 @@
         </div>
       </div>
     </section>
+        </main>
+        <aside class="right-rail">
+          <div class="kpi-compact">
+            <div class="kpi-emoji">💸</div>
+            <div>
+              <div class="kpi-label">Pozostały budżet</div>
+              <div class="kpi-value" id="dash-remaining">0</div>
+              <div class="muted tiny">na wydatki zmienne</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📉</div>
+            <div>
+              <div class="kpi-label">Limit dzienny</div>
+              <div class="kpi-value" id="dash-daily-budget">0</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📅</div>
+            <div>
+              <div class="kpi-label">Wydane dziś</div>
+              <div class="kpi-value" id="dash-today-spent">0</div>
+            </div>
+          </div>
+          <div class="kpi-compact">
+            <div class="kpi-emoji">📊</div>
+            <div>
+              <div class="kpi-label">Średnia dzienna</div>
+              <div class="kpi-value" id="dash-avg-daily">0</div>
+            </div>
+          </div>
+          <div class="insight-bubble">📉 Trend limitu: <span id="dash-daily-trend">—</span></div>
+          <div class="insight-bubble">📅 Status dnia: <span id="dash-today-vs-budget">—</span></div>
+          <div class="insight-bubble">📊 Średnia vs plan: <span id="dash-avg-trend">—</span></div>
+        </aside>
+      </div>
+    </div>
   </div>
-  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
@@ -1319,12 +1597,23 @@
   }
   const tabs=document.querySelectorAll('.tab');
   const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),inventory:tab('inventory')};
+  const varCard=document.getElementById('var-transactions-card');
+  const varSlots={dashboard:document.getElementById('var-table-dashboard-slot'),variable:document.getElementById('var-table-variable-slot')};
+  function placeVarCard(target){
+    if(!varCard) return;
+    const slot=varSlots[target];
+    if(slot && varCard.parentElement!==slot){
+      slot.appendChild(varCard);
+    }
+  }
+  placeVarCard('dashboard');
   function tab(id){return document.getElementById('tab-'+id)}
   for(const t of tabs){
     t.addEventListener('click',()=>{
       tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
       Object.values(sections).forEach(s=>s.style.display='none'); sections[t.dataset.tab].style.display='block';
-      if(t.dataset.tab==='variable'){setDefaultDate()}
+      if(t.dataset.tab==='variable'){placeVarCard('variable'); setDefaultDate()}
+      else if(t.dataset.tab==='dashboard'){placeVarCard('dashboard')}
       if(t.dataset.tab==='analytics') renderAnalytics(); // Render analytics when tab is clicked
       if(t.dataset.tab==='eom') renderEOMHistory(); // Render history when tab is clicked
       if(t.dataset.tab==='inventory') renderInventory();
@@ -1526,8 +1815,8 @@
     const days=daysInYm(ym);
     const dailyBudget=Math.max(0,(incSum-fixSum)/days);
 
-    const entries=entriesForMonth(ym);
-    const cb=catsById();
+      const entries=entriesForMonth(ym);
+      const cb=catsById();
     
     const variableSpent = entries.reduce((s, e) => {
         const c = cb[e.categoryId];
@@ -1568,7 +1857,9 @@
       box.className='heat-day'; box.style.background=bg; box.title=`${String(d).padStart(2,'0')}: ${fmt(val, state.currency)}`; box.textContent=String(d);
       cal.appendChild(box);
     }
-    
+
+    renderRecentSpendingTiles();
+
     // --- Forecast & Buffer Section (NEW) ---
     const daysLeft = getDaysRemaining(ym);
     const totalVariableBudget = incSum - fixSum;
@@ -1607,6 +1898,151 @@
         return `${integerPart}\u00A0${state.currency || 'PLN'}`;
     } catch {
         return `${Math.round(Number(v || 0))}\u00A0${state.currency || 'PLN'}`;
+    }
+  }
+
+  function renderRecentSpendingTiles(){
+    const container=document.getElementById('recent-spending-calendar');
+    if(!container) return;
+    container.innerHTML='';
+    const totalChip=document.getElementById('recent-seven-total');
+    const today=new Date();
+    today.setHours(0,0,0,0);
+    const dayKeyFromDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dayDates=[];
+    for(let offset=6; offset>=0; offset--){
+      const d=new Date(today);
+      d.setDate(today.getDate()-offset);
+      dayDates.push(d);
+    }
+    const months=[...new Set(dayDates.map(d=>monthKey(d)))];
+    let allEntries=[];
+    for(const ym of months){
+      allEntries=allEntries.concat(entriesForMonth(ym));
+    }
+    const cb=catsById();
+    const accountsById=Object.fromEntries((b().accounts||[]).map(acc=>[acc.id,acc]));
+    const startKey=dayKeyFromDate(dayDates[0]);
+    const endKey=dayKeyFromDate(dayDates[dayDates.length-1]);
+    const filteredBase=[];
+    for(const entry of allEntries){
+      if(entry.date<startKey || entry.date>endKey) continue;
+      const cat=cb[entry.categoryId];
+      if(!cat || cat.type!=='expense' || cat.id==='c_fixed') continue;
+      const amount=Math.abs(entry.amount);
+      if(amount<=0) continue;
+      filteredBase.push({entry, amount, cat});
+    }
+    const filtered=filteredBase.map((item, idx)=>({...item, idx}));
+    const totalAmount=filtered.reduce((sum,item)=>sum+item.amount,0);
+    if(totalChip){
+      totalChip.textContent=filtered.length?`Łącznie: ${fmt(totalAmount, state.currency)}`:'Łącznie: —';
+    }
+    const topIdx=new Set(filtered.slice().sort((a,b)=>b.amount-a.amount).slice(0,5).map(item=>item.idx));
+    const grouped=new Map();
+    for(const item of filtered){
+      if(!grouped.has(item.entry.date)) grouped.set(item.entry.date, []);
+      grouped.get(item.entry.date).push(item);
+    }
+    const weekdayFmt=new Intl.DateTimeFormat('pl-PL',{weekday:'short'});
+    const dateFmt=new Intl.DateTimeFormat('pl-PL',{day:'2-digit',month:'2-digit'});
+    const tooltipDateFmt=new Intl.DateTimeFormat('pl-PL',{year:'numeric',month:'short',day:'2-digit'});
+    for(const dateObj of dayDates){
+      const key=dayKeyFromDate(dateObj);
+      const tile=document.createElement('div');
+      tile.className='recent-day';
+      const header=document.createElement('div');
+      header.className='recent-day-header';
+      const weekdayEl=document.createElement('span');
+      weekdayEl.className='recent-day-weekday';
+      weekdayEl.textContent=weekdayFmt.format(dateObj).replace('.', '').toUpperCase();
+      const dateEl=document.createElement('span');
+      dateEl.className='recent-day-date';
+      dateEl.textContent=dateFmt.format(dateObj);
+      header.append(weekdayEl, dateEl);
+      tile.appendChild(header);
+      const dayItems=(grouped.get(key)||[]).sort((a,b)=>b.amount-a.amount);
+      const dayTotal=dayItems.reduce((sum,item)=>sum+item.amount,0);
+      const total=document.createElement('div');
+      total.className='recent-day-total';
+      const totalIcon=document.createElement('span');
+      totalIcon.setAttribute('aria-hidden','true');
+      totalIcon.textContent='💰';
+      total.append(totalIcon, document.createTextNode(dayItems.length?fmt(dayTotal, state.currency):'—'));
+      if(dayItems.length===0){
+        tile.classList.add('recent-day-empty');
+      }
+      tile.appendChild(total);
+      const body=document.createElement('div');
+      body.className='recent-day-body';
+      if(dayItems.length===0){
+        const empty=document.createElement('div');
+        empty.className='recent-empty';
+        empty.textContent='brak ruchu';
+        body.appendChild(empty);
+      }else{
+        const maxVisible=2;
+        const extraRows=[];
+        dayItems.forEach((item, idx)=>{
+          const row=document.createElement('div');
+          row.className='recent-entry';
+          if(topIdx.has(item.idx)) row.classList.add('top-spend');
+          if(idx>=maxVisible){
+            row.classList.add('recent-entry-hidden');
+            extraRows.push(row);
+          }
+          const emoji=item.cat?.emoji||'💸';
+          const emojiEl=document.createElement('span');
+          emojiEl.className='recent-entry-emoji';
+          emojiEl.textContent=emoji;
+          const textWrap=document.createElement('div');
+          textWrap.className='recent-entry-text';
+          const amountEl=document.createElement('span');
+          amountEl.className='recent-entry-amount';
+          amountEl.textContent=fmt(item.amount, state.currency);
+          textWrap.appendChild(amountEl);
+          const noteText=(item.entry.note||'').trim();
+          if(noteText){
+            const noteEl=document.createElement('span');
+            noteEl.className='recent-entry-note';
+            noteEl.textContent=noteText;
+            textWrap.appendChild(noteEl);
+          }
+          const [yy,mm,dd]=item.entry.date.split('-').map(Number);
+          const entryDate=new Date(yy, (mm||1)-1, dd||1);
+          const tooltipParts=[
+            [emoji, item.cat?.name||'Wydatek'].filter(Boolean).join(' '),
+            `Kwota: ${fmt(item.amount, state.currency)}`,
+            `Data: ${tooltipDateFmt.format(entryDate)}`,
+            `Konto: ${accountsById[item.entry.accountId]?.name||'—'}`
+          ];
+          if(item.entry.note){
+            tooltipParts.push(`Notatka: ${item.entry.note}`);
+          }
+          row.title=tooltipParts.join('\n');
+          row.setAttribute('aria-label', tooltipParts.join(', '));
+          row.append(emojiEl, textWrap);
+          body.appendChild(row);
+        });
+        if(extraRows.length){
+          const collapsedLabel=`+${extraRows.length}`;
+          const toggle=document.createElement('button');
+          toggle.type='button';
+          toggle.className='recent-more';
+          toggle.textContent=collapsedLabel;
+          toggle.title='Pokaż więcej wydatków';
+          toggle.setAttribute('aria-expanded','false');
+          toggle.addEventListener('click',()=>{
+            const expanded=tile.classList.toggle('expanded');
+            extraRows.forEach(row=>row.classList.toggle('recent-entry-hidden', !expanded));
+            toggle.textContent=expanded?'−':collapsedLabel;
+            toggle.setAttribute('aria-expanded', expanded?'true':'false');
+          });
+          body.appendChild(toggle);
+        }
+      }
+      tile.appendChild(body);
+      container.appendChild(tile);
     }
   }
 
