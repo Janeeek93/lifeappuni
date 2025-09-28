@@ -58,6 +58,7 @@
     }
     .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
     .kpi-main-value { font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+    .kpi-sub-value { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: -2px; }
     .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
     .kpi-detail-line { position: relative; padding-left: 12px; }
     .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); }
@@ -203,9 +204,15 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="inventory.html" data-page="inventory">
-              <span class="sidebar__icon">📦</span>
-              <span class="sidebar__label">Magazyn</span>
+            <a class="sidebar__link" href="tasks.html" data-page="tasks">
+              <span class="sidebar__icon">✅</span>
+              <span class="sidebar__label">Zadania</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="trainings.html" data-page="trainings">
+              <span class="sidebar__icon">💪</span>
+              <span class="sidebar__label">Progres</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -215,21 +222,15 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="trainings.html" data-page="trainings">
-              <span class="sidebar__icon">💪</span>
-              <span class="sidebar__label">Treningi</span>
-            </a>
-          </li>
-          <li class="sidebar__item">
             <a class="sidebar__link" href="loan.html" data-page="loan">
               <span class="sidebar__icon">🏦</span>
               <span class="sidebar__label">Kredyt</span>
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="tasks.html" data-page="tasks">
-              <span class="sidebar__icon">✅</span>
-              <span class="sidebar__label">Zadania</span>
+            <a class="sidebar__link" href="inventory.html" data-page="inventory">
+              <span class="sidebar__icon">📦</span>
+              <span class="sidebar__label">Magazyn</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -277,11 +278,11 @@
                     <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
                     <div class="grid kpi-grid">
                         <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
-                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
                         <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
                         <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
                         <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
                     </div>
                 </section>
@@ -651,14 +652,6 @@ function renderKPIData(){
         const sold = Array.isArray(inventoryState.sold) ? inventoryState.sold : [];
         const currency = typeof parsedBudgetGlobal?.currency === 'string' && parsedBudgetGlobal.currency ? parsedBudgetGlobal.currency : 'PLN';
         const stockCost = items.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
-        const plannedValue = items.reduce((sum, item) => {
-          const plan = num(item?.planPricePln ?? item?.planPrice);
-          return Number.isFinite(plan) && plan > 0 ? sum + plan : sum;
-        }, 0);
-        const plannedCount = items.reduce((count, item) => {
-          const plan = num(item?.planPricePln ?? item?.planPrice);
-          return Number.isFinite(plan) && plan > 0 ? count + 1 : count;
-        }, 0);
         const soldRevenue = sold.reduce((sum, item) => sum + num(item?.salePricePln ?? item?.salePrice), 0);
         const soldPnl = sold.reduce((sum, item) => sum + num(item?.pnlPln), 0);
         const soldPurchase = sold.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
@@ -674,26 +667,26 @@ function renderKPIData(){
         const avgAge = ageValues.length ? ageValues.reduce((sum, value) => sum + value, 0) / ageValues.length : null;
 
         const avgAgeText = avgAge !== null ? `${Math.round(avgAge)} dni` : '—';
-        const planText = plannedValue > 0 ? fmt(plannedValue, currency) : '—';
-        const planLine = plannedCount > 0 ? `Plan sprzedaży: ${planText} (${plannedCount} poz.).` : 'Plan sprzedaży: —.';
-        const soldLine = sold.length > 0
-          ? `Sprzedane: ${sold.length} szt. • Przychód ${fmt(soldRevenue, currency)} • PnL ${fmt(soldPnl, currency)}${roi !== null ? ` (${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%)` : ''}.`
-          : 'Sprzedane: 0 szt.';
+        const avgPurchase = items.length ? stockCost / items.length : null;
+        const avgPurchaseText = avgPurchase !== null ? fmt(avgPurchase, currency) : '—';
+        const roiText = roi !== null ? `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%` : '—';
         const detailLines = [
-          `Koszt zakupu: ${fmt(stockCost, currency)} • Śr. czas: ${avgAgeText}.`,
-          planLine,
-          soldLine,
+          `Śr. czas na stanie: ${avgAgeText} • Śr. cena zakupu: ${avgPurchaseText}.`,
+          sold.length > 0
+            ? `Sprzedaż: ${sold.length} szt. • PnL ${fmt(soldPnl, currency)} • ROI ${roiText}.`
+            : 'Sprzedaż: brak danych • PnL — • ROI —.',
         ];
 
         kpiElements.inventory.innerHTML = `
           <div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div>
-          <div class="kpi-main-value">${items.length} szt.</div>
+          <div class="kpi-main-value">${fmt(stockCost, currency)}</div>
+          <div class="kpi-sub-value">${items.length} szt. w zapasie</div>
           <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
       } else {
-        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
       }
     } else {
-      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
     }
   }
 
