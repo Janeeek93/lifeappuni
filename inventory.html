@@ -106,6 +106,26 @@
     .inventory-table-actions { display: flex; flex-wrap: wrap; gap: 6px; }
     .inventory-badge { display: inline-flex; align-items: center; gap: 4px; background: #e2e8f0; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: #475569; }
     .inventory-quick-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .inventory-bulk-actions {
+        padding: 8px;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+    }
+    .collapsible-header-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
     
     /* Styles for KPIs in the right rail */
     .right-rail .inventory-kpis {
@@ -139,9 +159,15 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="inventory.html" data-page="inventory">
-              <span class="sidebar__icon">📦</span>
-              <span class="sidebar__label">Magazyn</span>
+            <a class="sidebar__link" href="tasks.html" data-page="tasks">
+              <span class="sidebar__icon">✅</span>
+              <span class="sidebar__label">Zadania</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="trainings.html" data-page="trainings">
+              <span class="sidebar__icon">💪</span>
+              <span class="sidebar__label">Progres</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -151,21 +177,15 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="trainings.html" data-page="trainings">
-              <span class="sidebar__icon">💪</span>
-              <span class="sidebar__label">Treningi</span>
-            </a>
-          </li>
-          <li class="sidebar__item">
             <a class="sidebar__link" href="loan.html" data-page="loan">
               <span class="sidebar__icon">🏦</span>
               <span class="sidebar__label">Kredyt</span>
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="tasks.html" data-page="tasks">
-              <span class="sidebar__icon">✅</span>
-              <span class="sidebar__label">Zadania</span>
+            <a class="sidebar__link" href="inventory.html" data-page="inventory">
+              <span class="sidebar__icon">📦</span>
+              <span class="sidebar__label">Magazyn</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -201,7 +221,6 @@
 
       <div class="content">
         <main class="page-content content-main stack">
-          <!-- Inventory Module Content -->
           <div class="card" style="margin-top:12px;">
             <div class="row" style="align-items:flex-start;justify-content:space-between;gap:12px">
               <div>
@@ -291,48 +310,70 @@
             </div>
 
             <div class="card inventory-section">
-              <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
-                <h4 class="title" style="margin:0">Towary na sprzedaż</h4>
+              <div class="row collapsible-header" id="inv-active-toggle">
+                <div class="collapsible-header-title">
+                  <span id="inv-active-icon">▼</span>
+                  <h4 class="title" style="margin:0">Towary na sprzedaż</h4>
+                </div>
                 <span class="muted">Kwoty w PLN oraz w wybranej walucie (<span data-inv-currency-label>PLN</span>)</span>
               </div>
-              <div style="overflow-x:auto;margin-top:8px">
-                <table id="inventory-active-table" class="table-modern table-sortable inventory-table">
-                  <thead>
-                    <tr>
-                      <th data-sort="product"><span class="th-label">Produkt<span class="sort-indicator"></span></span></th>
-                      <th data-sort="purchase"><span class="th-label">Zakup (PLN)<span class="sort-indicator"></span></span></th>
-                      <th data-sort="converted"><span class="th-label">Wycena (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
-                      <th data-sort="plan"><span class="th-label">Plan sprzedaży (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
-                      <th data-sort="age"><span class="th-label">Dni w magazynie<span class="sort-indicator"></span></span></th>
-                      <th data-sort="note"><span class="th-label">Notatki<span class="sort-indicator"></span></span></th>
-                      <th><span class="th-label">Akcje</span></th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+
+              <div class="inventory-quick-note" id="inv-active-summary" style="display:none; margin-top: 8px;"></div>
+              
+              <div id="inv-active-content">
+                <div id="inv-bulk-actions-bar" class="inventory-bulk-actions" style="display:none;">
+                  <div id="inv-bulk-summary" class="hint">...</div>
+                  <button class="btn danger" id="inv-bulk-delete-btn">Usuń zaznaczone</button>
+                </div>
+
+                <div style="overflow-x:auto;margin-top:8px">
+                  <table id="inventory-active-table" class="table-modern table-sortable inventory-table">
+                    <thead>
+                      <tr>
+                        <th style="width:20px;"><input type="checkbox" id="inv-select-all-checkbox" /></th>
+                        <th data-sort="product"><span class="th-label">Produkt<span class="sort-indicator"></span></span></th>
+                        <th data-sort="purchase"><span class="th-label">Zakup (PLN)<span class="sort-indicator"></span></span></th>
+                        <th data-sort="converted"><span class="th-label">Wycena (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
+                        <th data-sort="plan"><span class="th-label">Plan sprzedaży (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
+                        <th data-sort="age"><span class="th-label">Dni w magazynie<span class="sort-indicator"></span></span></th>
+                        <th data-sort="note"><span class="th-label">Notatki<span class="sort-indicator"></span></span></th>
+                        <th><span class="th-label">Akcje</span></th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
             <div class="card inventory-section">
-              <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
-                <h4 class="title" style="margin:0">Sprzedane pozycje</h4>
+               <div class="row collapsible-header" id="inv-sold-toggle">
+                <div class="collapsible-header-title">
+                  <span id="inv-sold-icon">▼</span>
+                  <h4 class="title" style="margin:0">Sprzedane pozycje</h4>
+                </div>
                 <span class="muted">Wszystkie wartości w PLN oraz w walucie <span data-inv-currency-label>PLN</span></span>
               </div>
-              <div style="overflow-x:auto;margin-top:8px">
-                <table id="inventory-sold-table" class="table-modern inventory-table">
-                  <thead>
-                    <tr>
-                      <th>Produkt</th>
-                      <th>Zakup</th>
-                      <th>Sprzedaż</th>
-                      <th>Przychód</th>
-                      <th>PnL</th>
-                      <th>ROI / czas</th>
-                      <th>Uwagi</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+              
+              <div class="inventory-quick-note" id="inv-sold-summary" style="display:none; margin-top: 8px;"></div>
+
+              <div id="inv-sold-content">
+                <div style="overflow-x:auto;margin-top:8px">
+                  <table id="inventory-sold-table" class="table-modern inventory-table">
+                    <thead>
+                      <tr>
+                        <th>Produkt</th>
+                        <th>Zakup</th>
+                        <th>Sprzedaż</th>
+                        <th>Przychód</th>
+                        <th>PnL</th>
+                        <th>ROI / czas</th>
+                        <th>Uwagi</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -355,7 +396,6 @@
           </div>
         </main>
         <aside class="right-rail">
-          <!-- KPIs for Inventory moved here -->
           <div class="inventory-kpis">
             <div class="kpi-card light">
               <div class="label">Towar na stanie</div>
@@ -430,7 +470,17 @@
     return Number.isFinite(n) ? n : 0;
   }
   function load(){try{const raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):null}catch{return null}}
-  function save(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}
+  function save(s){
+    // Convert Set to Array before saving to JSON
+    if (s.modules.budget.inventory.ui.selectedItemIds instanceof Set) {
+      s.modules.budget.inventory.ui.selectedItemIds = Array.from(s.modules.budget.inventory.ui.selectedItemIds);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    // Convert back to Set for in-memory operations
+    if (Array.isArray(s.modules.budget.inventory.ui.selectedItemIds)) {
+        s.modules.budget.inventory.ui.selectedItemIds = new Set(s.modules.budget.inventory.ui.selectedItemIds);
+    }
+  }
 
   // --- State Migration & Definition --------------------------------------------
   function migrateState(st){
@@ -536,6 +586,12 @@
     if(typeof invUi.sizeUsFilter!=='string') invUi.sizeUsFilter='';
     if(typeof invUi.sortMode!=='string') invUi.sortMode='newest';
     if(typeof invUi.showImport!=='boolean') invUi.showImport=false;
+    if(!Array.isArray(invUi.selectedItemIds)){
+        invUi.selectedItemIds = [];
+    }
+    if(typeof invUi.is_active_collapsed !== 'boolean') invUi.is_active_collapsed = false;
+    if(typeof invUi.is_sold_collapsed !== 'boolean') invUi.is_sold_collapsed = false;
+
     return st;
   }
 
@@ -547,16 +603,27 @@
           items:[],
           sold:[],
           rates:{base:'PLN',fetchedAt:null,rates:{}},
-          ui:{selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false}
+          ui:{
+              selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',
+              sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false, 
+              selectedItemIds: [], is_active_collapsed: false, is_sold_collapsed: false
+            }
         }
       }}
     });
   }
 
   let state = migrateState(load()) || def();
+  // Ensure selectedItemIds is a Set for efficient operations.
+  if (Array.isArray(state.modules.budget.inventory.ui.selectedItemIds)) {
+    state.modules.budget.inventory.ui.selectedItemIds = new Set(state.modules.budget.inventory.ui.selectedItemIds);
+  }
+
+
   const b=()=>state.modules.budget;
   const inv=()=>b().inventory;
 
+  
   // --- UI glue ----------------------------------------------------------------
   function bindMoneyInputs(root=document){
     root.querySelectorAll('input[inputmode="decimal"]').forEach(inp=>{
@@ -785,7 +852,10 @@
 
   function renderInventory(){
     const inventoryState=inv();
-    const ui=inventoryState.ui || (inventoryState.ui={selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false});
+    const ui=inventoryState.ui || (inventoryState.ui={selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false, selectedItemIds: new Set(), is_active_collapsed: false, is_sold_collapsed: false});
+    if (!(ui.selectedItemIds instanceof Set)) {
+        ui.selectedItemIds = new Set(ui.selectedItemIds);
+    }
     let selectedCurrency=(ui.selectedCurrency||'PLN').toUpperCase();
     if(!INVENTORY_SUPPORTED_CURRENCIES.includes(selectedCurrency)) selectedCurrency='PLN';
     ui.selectedCurrency=selectedCurrency;
@@ -921,6 +991,14 @@
       default:
         visible.sort((a,b)=>getCreated(b)-getCreated(a));
     }
+
+    // --- Clean up selected IDs that are no longer in the visible list
+    const visibleIds = new Set(visible.map(item => item.id));
+    ui.selectedItemIds.forEach(id => {
+        if (!visibleIds.has(id)) {
+            ui.selectedItemIds.delete(id);
+        }
+    });
 
     const headerSortOrders={
       product:['brandAsc','brandDesc'],
@@ -1111,7 +1189,7 @@
         const usdRate=rates.USD;
         if(Number.isFinite(usdRate)&&usdRate>0){
           const storedMid=inventoryState.rates?.mids?.USD;
-          const usdMid=Number.isFinite(storedMid)&&usdMid>0?storedMid:(1/usdRate);
+          const usdMid=Number.isFinite(storedMid)&&storedMid>0?storedMid:(1/usdRate);
           let text=`1 PLN → USD ${usdRate.toFixed(4)}`;
           if(Number.isFinite(usdMid)&&usdMid>0) text+=` (1 USD → PLN ${usdMid.toFixed(4)})`;
           segments.push(text);
@@ -1233,6 +1311,7 @@
         inv().ui.sizeEuFilter='';
         inv().ui.sizeUsFilter='';
         inv().ui.sortMode='newest';
+        inv().ui.selectedItemIds.clear();
         save(state);
         renderInventory();
       };
@@ -1323,7 +1402,7 @@
         for(const line of lines){
           const clean=line.trim();
           if(!clean) continue;
-          const parts=clean.split(/[,;\t]/).map(p=>p.trim());
+          const parts=clean.split(';').map(p=>p.trim());
           if(parts.length<4) continue;
           const brand=parts[0];
           const model=parts[1];
@@ -1463,16 +1542,18 @@
       };
     }
 
+    // --- Active Items Table Rendering ---
     const activeBody=document.querySelector('#inventory-active-table tbody');
     if(activeBody){
       activeBody.innerHTML='';
       if(!visible.length){
         const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="inventory-empty">Brak pozycji spełniających warunki.</td>';
+        tr.innerHTML='<td colspan="8" class="inventory-empty">Brak pozycji spełniających warunki.</td>';
         activeBody.appendChild(tr);
       }else{
         const todayStr=new Date().toISOString().slice(0,10);
         for(const item of visible){
+          const isSelected = ui.selectedItemIds.has(item.id);
           const meta=getMeta(item);
           const purchaseValue=meta.purchase ?? num(item.purchasePrice);
           const convertedValue=meta.converted;
@@ -1513,7 +1594,8 @@
           const saleOptions=INVENTORY_SUPPORTED_CURRENCIES.map(cur=>`<option value="${cur}" ${cur===selectedCurrency?'selected':''}>${cur}</option>`).join('');
           const tr=document.createElement('tr');
           tr.dataset.id=item.id;
-          tr.innerHTML=`<td><div><b>${item.brand||'—'}</b></div><div class="muted">${item.model||'—'}</div>${sizeInfo}</td>
+          tr.innerHTML=`<td><input type="checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''} /></td>
+            <td><div><b>${item.brand||'—'}</b></div><div class="muted">${item.model||'—'}</div>${sizeInfo}</td>
             <td><div>${fmt(item.purchasePrice,state.currency)}</div><div class="tiny">${item.purchaseDate||'—'}</div></td>
             <td>${convertedHtml}</td>
             <td class="inventory-plan-cell"><div><input class="inventory-plan-input" data-field="planPrice" inputmode="decimal" placeholder="0,00" value="${planInputValue}" /></div><div class="inventory-plan-summary"><span class="${planMainClass}">${planMainText}</span>${planPnlHtml}</div></td>
@@ -1556,6 +1638,19 @@
               </div>
             </td>`;
           activeBody.appendChild(tr);
+          
+          const checkbox = tr.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    ui.selectedItemIds.add(item.id);
+                } else {
+                    ui.selectedItemIds.delete(item.id);
+                }
+                save(state);
+                renderInventory(); 
+            });
+
+
           const planInput=tr.querySelector('[data-field="planPrice"]');
           if(planInput){
             planInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); planInput.blur();}});
@@ -1684,6 +1779,7 @@
       }
     }
 
+    // --- Sold Items Table Rendering ---
     const soldBody=document.querySelector('#inventory-sold-table tbody');
     if(soldBody){
       soldBody.innerHTML='';
@@ -1749,6 +1845,107 @@
         }
       }
     }
+
+    // --- Bulk Actions & Collapsible Logic ---
+    const bulkActionsBar = document.getElementById('inv-bulk-actions-bar');
+    const bulkSummary = document.getElementById('inv-bulk-summary');
+    const bulkDeleteBtn = document.getElementById('inv-bulk-delete-btn');
+    const selectAllCheckbox = document.getElementById('inv-select-all-checkbox');
+
+    if (ui.selectedItemIds.size > 0) {
+        bulkActionsBar.style.display = 'flex';
+        bulkSummary.textContent = `Zaznaczono: ${ui.selectedItemIds.size}`;
+    } else {
+        bulkActionsBar.style.display = 'none';
+    }
+
+    if(selectAllCheckbox) {
+        const areAllVisibleSelected = visible.length > 0 && visible.every(item => ui.selectedItemIds.has(item.id));
+        selectAllCheckbox.checked = areAllVisibleSelected;
+        selectAllCheckbox.indeterminate = !areAllVisibleSelected && visible.some(item => ui.selectedItemIds.has(item.id));
+        
+        if (!selectAllCheckbox.dataset.bound) {
+            selectAllCheckbox.dataset.bound = '1';
+            selectAllCheckbox.addEventListener('change', () => {
+                const visibleIds = visible.map(item => item.id);
+                if (selectAllCheckbox.checked) {
+                    visibleIds.forEach(id => ui.selectedItemIds.add(id));
+                } else {
+                    visibleIds.forEach(id => ui.selectedItemIds.delete(id));
+                }
+                save(state);
+                renderInventory();
+            });
+        }
+    }
+    
+    if(bulkDeleteBtn && !bulkDeleteBtn.dataset.bound) {
+        bulkDeleteBtn.dataset.bound = '1';
+        bulkDeleteBtn.addEventListener('click', () => {
+            const count = ui.selectedItemIds.size;
+            if (count === 0) return;
+            if (confirm(`Czy na pewno chcesz usunąć ${count} zaznaczonych pozycji?`)) {
+                inventoryState.items = inventoryState.items.filter(item => !ui.selectedItemIds.has(item.id));
+                ui.selectedItemIds.clear();
+                save(state);
+                renderInventory();
+            }
+        });
+    }
+
+    const activeToggle = document.getElementById('inv-active-toggle');
+    const activeContent = document.getElementById('inv-active-content');
+    const activeIcon = document.getElementById('inv-active-icon');
+    const activeSummary = document.getElementById('inv-active-summary');
+    
+    if (ui.is_active_collapsed) {
+        activeContent.style.display = 'none';
+        activeIcon.textContent = '▶';
+        activeSummary.style.display = 'block';
+        let summaryText = `Liczba pozycji: ${items.length} • Całkowity koszt: ${fmt(totalStockCost, state.currency)}`;
+        if (selectedCurrency !== 'PLN' && totalStockConverted !== null) summaryText += ` (${fmt(totalStockConverted, displayCurrency)})`;
+        if (avgStockAge !== null) summaryText += ` • Śr. czas na stanie: ${avgStockAge.toFixed(0)} dni`;
+        activeSummary.textContent = summaryText;
+    } else {
+        activeContent.style.display = 'block';
+        activeIcon.textContent = '▼';
+        activeSummary.style.display = 'none';
+    }
+    if (activeToggle && !activeToggle.dataset.bound) {
+        activeToggle.dataset.bound = '1';
+        activeToggle.addEventListener('click', () => {
+            ui.is_active_collapsed = !ui.is_active_collapsed;
+            save(state);
+            renderInventory();
+        });
+    }
+
+    const soldToggle = document.getElementById('inv-sold-toggle');
+    const soldContent = document.getElementById('inv-sold-content');
+    const soldIcon = document.getElementById('inv-sold-icon');
+    const soldSummary = document.getElementById('inv-sold-summary');
+
+    if (ui.is_sold_collapsed) {
+        soldContent.style.display = 'none';
+        soldIcon.textContent = '▶';
+        soldSummary.style.display = 'block';
+        let summaryText = `Sprzedano: ${sold.length} szt. • Przychód: ${fmt(totalSoldRevenue, state.currency)} • Zysk (PnL): ${fmt(totalSoldPnl, state.currency)}`;
+        if (roi !== null) summaryText += ` • Śr. ROI: ${roi.toFixed(1)}%`;
+        soldSummary.textContent = summaryText;
+    } else {
+        soldContent.style.display = 'block';
+        soldIcon.textContent = '▼';
+        soldSummary.style.display = 'none';
+    }
+    if (soldToggle && !soldToggle.dataset.bound) {
+        soldToggle.dataset.bound = '1';
+        soldToggle.addEventListener('click', () => {
+            ui.is_sold_collapsed = !ui.is_sold_collapsed;
+            save(state);
+            renderInventory();
+        });
+    }
+
 
     renderInventoryBrandChart(items);
     renderInventorySalesChart(sold);
