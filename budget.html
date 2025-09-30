@@ -2133,6 +2133,310 @@
 
   allocCancelBtn.onclick = resetAllocForm;
 
+  function renderGoals(){
+    const list=document.getElementById('goal-list');
+    const summary=document.getElementById('goal-summary');
+    const timelineWrapper=document.getElementById('goal-timeline-wrapper');
+    const commitmentWrapper=document.getElementById('goal-commitment-table')?.parentElement?.parentElement;
+    if(list) list.innerHTML='';
+    if(summary) summary.innerHTML='';
+
+    const goals=b().goals||[];
+    const allocations=b().goalAllocations||[];
+    const totalAllocatedByGoal=allocations.reduce((m,a)=>{m[a.goalId]=(m[a.goalId]||0)+num(a.amount);return m;},{});
+
+    if(goals.length===0){
+      if(list) list.innerHTML='<p class="muted" style="text-align:center;">Brak zdefiniowanych celów. Użyj formularza powyżej, aby dodać swój pierwszy cel!</p>';
+      if(timelineWrapper) timelineWrapper.style.display='none';
+      if(commitmentWrapper) commitmentWrapper.style.display='none';
+      if(summary) summary.style.display='none';
+      return;
+    }
+
+    if(timelineWrapper) timelineWrapper.style.display='block';
+    if(commitmentWrapper) commitmentWrapper.style.display='block';
+    if(summary) summary.style.display='block';
+
+    let totalTarget=0;
+    let totalCollected=0;
+
+    for(const g of goals){
+      const collected=totalAllocatedByGoal[g.id]||0;
+      totalTarget+=num(g.target);
+      totalCollected+=collected;
+      const pct=g.target>0?Math.min(100,(collected/g.target)*100):0;
+
+      let monthlyNeeded='';
+      if(g.deadline && g.startDate){
+        const startDate=new Date(g.startDate);
+        const deadlineDate=new Date(g.deadline);
+        if(deadlineDate>startDate){
+          const monthsLeft=Math.max(1,(deadlineDate.getFullYear()-startDate.getFullYear())*12+(deadlineDate.getMonth()-startDate.getMonth())+1);
+          const needed=Math.max(0,g.target-collected);
+          const monthly=needed/monthsLeft;
+          monthlyNeeded=`<div class="muted" style="font-size:12px">Sugerowana wpłata miesięczna: ${fmt(monthly,state.currency)}</div>`;
+        }
+      }
+
+      const card=document.createElement('div');
+      card.className='card';
+      card.id=`goal-card-${g.id}`;
+      card.innerHTML=`
+        <div data-view="display">
+          <div class="row">
+            <div><b>${g.name}</b> <span class="muted">${g.startDate ? `${g.startDate} → ` : ''}${g.deadline || ''}</span></div>
+            <div>${fmt(collected,state.currency)} / ${fmt(g.target,state.currency)}</div>
+          </div>
+          <div class="progress ${pct>=100?'good':pct>=75?'warn':''}" style="margin-top:6px"><i style="width:${pct}%"></i></div>
+          <div class="muted" style="font-size:12px;margin-top:4px">Postęp: ${pct.toFixed(0)}%</div>
+          ${monthlyNeeded}
+          <div class="row" style="margin-top:8px; justify-content: flex-end; gap:8px;">
+            <button class="btn soft" data-act="edit">Edytuj</button>
+            <button class="btn danger" data-act="del">Usuń</button>
+          </div>
+        </div>`;
+
+      card.querySelector('[data-act="edit"]').onclick=()=>startEditGoal(g.id);
+      card.querySelector('[data-act="del"]').onclick=()=>{
+        if(!confirm('Usunąć cel (razem z alokacjami)?')) return;
+        state.modules.budget.goals=(b().goals||[]).filter(x=>x.id!==g.id);
+        state.modules.budget.goalAllocations=(b().goalAllocations||[]).filter(a=>a.goalId!==g.id);
+        save(state);
+        renderGoals();
+      };
+      list?.appendChild(card);
+    }
+
+    const totalProgressPct=totalTarget>0?(totalCollected/totalTarget)*100:0;
+    if(summary){
+      summary.innerHTML=`
+        <div class="row">
+          <div class="stat-card" style="flex:1;"><div class="muted">Łącznie do zebrania</div><div class="big-number">${fmt(totalTarget,state.currency)}</div></div>
+          <div class="stat-card" style="flex:1;"><div class="muted">Zebrano do tej pory</div><div class="big-number">${fmt(totalCollected,state.currency)}</div></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="muted">Całkowity postęp</div>
+          <div class="progress ${totalProgressPct>=100?'good':totalProgressPct>=75?'warn':''}" style="margin-top:4px;height:12px;"><i style="width:${totalProgressPct}%"></i></div>
+          <div class="muted" style="font-size:12px;margin-top:4px">${totalProgressPct.toFixed(1)}%</div>
+        </div>
+      `;
+    }
+
+    renderGoalsTimeline();
+    renderAllocSelect();
+    renderAllocationsHistory();
+    setDefaultDateForAlloc();
+  }
+
+  function startEditGoal(id){
+    const goal=(b().goals||[]).find(g=>g.id===id);
+    if(!goal) return;
+    const card=document.getElementById(`goal-card-${id}`);
+    if(!card) return;
+    card.innerHTML=`
+      <div data-view="edit" class="grid g-4">
+        <input name="name" value="${goal.name}" placeholder="Nazwa celu" style="grid-column: 1 / 3;"/>
+        <input name="target" value="${String(goal.target).replace('.',',')}" placeholder="Kwota" inputmode="decimal" style="grid-column: 3 / 5;"/>
+        <label class="tiny" style="grid-column: 1 / 3;">Początek oszczędzania<input name="startdate" type="date" value="${goal.startDate||''}" /></label>
+        <label class="tiny" style="grid-column: 3 / 5;">Termin końcowy<input name="deadline" type="date" value="${goal.deadline||''}" /></label>
+        <div class="row" style="grid-column: 1 / -1; justify-content: flex-end; gap:8px;">
+          <button class="btn ghost" data-act="cancel">Anuluj</button>
+          <button class="btn" data-act="save">Zapisz</button>
+        </div>
+      </div>`;
+    bindMoneyInputs(card);
+    card.querySelector('[data-act="save"]').onclick=()=>{
+      goal.name=card.querySelector('[name="name"]').value;
+      goal.target=num(card.querySelector('[name="target"]').value);
+      goal.startDate=card.querySelector('[name="startdate"]').value||new Date().toISOString().slice(0,10);
+      goal.deadline=card.querySelector('[name="deadline"]').value||undefined;
+      save(state);
+      renderGoals();
+    };
+    card.querySelector('[data-act="cancel"]').onclick=()=>renderGoals();
+  }
+
+  function renderGoalsTimeline(){
+    const timeline=document.getElementById('goal-timeline');
+    const axis=document.getElementById('timeline-axis');
+    const labelsDiv=document.getElementById('timeline-labels');
+    if(timeline) timeline.innerHTML='';
+    if(axis) axis.innerHTML='';
+    if(labelsDiv) labelsDiv.innerHTML='';
+
+    const goalsWithDeadline=(b().goals||[]).filter(g=>g.deadline && g.startDate).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+    if(goalsWithDeadline.length===0) return;
+
+    const earliestStartDate=new Date(Math.min(...goalsWithDeadline.map(g=>new Date(g.startDate))));
+    const furthestDeadline=new Date(Math.max(...goalsWithDeadline.map(g=>new Date(g.deadline))));
+    const totalDurationDays=(furthestDeadline-earliestStartDate)/(1000*60*60*24);
+    if(totalDurationDays<=0) return;
+
+    const totalAllocatedByGoal=(b().goalAllocations||[]).reduce((m,a)=>{m[a.goalId]=(m[a.goalId]||0)+num(a.amount);return m;},{});
+
+    let topOffset=0;
+    for(const g of goalsWithDeadline){
+      const startDate=new Date(g.startDate);
+      const deadline=new Date(g.deadline);
+      const duration=(deadline-startDate)/(1000*60*60*24);
+      const left=((startDate-earliestStartDate)/(1000*60*60*24)/totalDurationDays)*100;
+      const width=(duration/totalDurationDays)*100;
+      const collected=totalAllocatedByGoal[g.id]||0;
+      const pct=g.target>0?Math.min(100,(collected/g.target)*100):0;
+      const bar=document.createElement('div');
+      bar.className='timeline-bar';
+      bar.style.top=`${topOffset}px`;
+      bar.style.left=`${left}%`;
+      bar.style.width=`${width}%`;
+      bar.style.background=`linear-gradient(90deg, #3b82f6 ${pct}%, #93c5fd ${pct}%)`;
+      bar.title=`${g.name}: ${pct.toFixed(0)}% zrealizowano (${fmt(collected)} / ${fmt(g.target)})`;
+      bar.innerHTML=`<span class="bar-label">${g.name}</span> <span class="bar-progress">${pct.toFixed(0)}%</span>`;
+      timeline?.appendChild(bar);
+      topOffset+=30;
+    }
+    if(timeline) timeline.style.height=`${topOffset}px`;
+
+    const monthlyCommitments={};
+    goalsWithDeadline.forEach(g=>{
+      const collected=totalAllocatedByGoal[g.id]||0;
+      const needed=Math.max(0,num(g.target)-collected);
+      const startDate=new Date(g.startDate);
+      const deadlineDate=new Date(g.deadline);
+      if(deadlineDate>startDate){
+        const monthsLeft=Math.max(1,(deadlineDate.getFullYear()-startDate.getFullYear())*12+(deadlineDate.getMonth()-startDate.getMonth())+1);
+        const monthlyAmount=needed/monthsLeft;
+        for(let i=0;i<monthsLeft;i++){
+          const targetMonth=ymAdd(monthKey(startDate),i);
+          if(!monthlyCommitments[targetMonth]) monthlyCommitments[targetMonth]={};
+          monthlyCommitments[targetMonth][g.id]=monthlyAmount;
+        }
+      }
+    });
+
+    const axisMonths=[];
+    const iter=new Date(earliestStartDate.getFullYear(),earliestStartDate.getMonth(),1);
+    while(iter<=furthestDeadline){
+      axisMonths.push(new Date(iter));
+      iter.setMonth(iter.getMonth()+1);
+    }
+
+    if(axis){
+      axis.innerHTML=axisMonths.map(month=>{
+        const monthStart=new Date(month.getFullYear(),month.getMonth(),1);
+        const left=((monthStart-earliestStartDate)/(1000*60*60*24)/totalDurationDays)*100;
+        if(left<0||left>100) return '';
+        return `<div style="position:absolute; left: ${left}%; transform: translateX(-50%);">${month.toLocaleString('pl-PL',{month:'short',year:'numeric'})}</div>`;
+      }).join('');
+    }
+
+    if(labelsDiv){
+      labelsDiv.innerHTML=axisMonths.map(month=>{
+        const ym=monthKey(month);
+        const monthMid=new Date(month.getFullYear(),month.getMonth(),15);
+        const left=((monthMid-earliestStartDate)/(1000*60*60*24)/totalDurationDays)*100;
+        const totalForMonth=Object.values(monthlyCommitments[ym]||{}).reduce((s,a)=>s+a,0);
+        if(left<0||left>100||totalForMonth===0) return '';
+        return `<div class="timeline-label" style="left: ${left}%;">${fmt(totalForMonth,state.currency)}</div>`;
+      }).join('');
+    }
+
+    renderGoalCommitmentTable(monthlyCommitments,goalsWithDeadline);
+  }
+
+  function renderGoalCommitmentTable(monthlyCommitments,goals){
+    const table=document.getElementById('goal-commitment-table');
+    if(!table) return;
+    if(goals.length===0){ table.innerHTML=''; return; }
+    let header='<thead><tr><th>Miesiąc</th>';
+    goals.forEach(g=>{header+=`<th>${g.name}</th>`;});
+    header+='<th>Suma miesięczna</th></tr></thead>';
+    const months=Object.keys(monthlyCommitments).sort();
+    let body='<tbody>';
+    months.forEach(ym=>{
+      let monthlyTotal=0;
+      body+=`<tr><td><b>${ym}</b></td>`;
+      goals.forEach(g=>{
+        const amount=monthlyCommitments[ym]?.[g.id]||0;
+        if(amount>0){
+          body+=`<td>${fmt(amount,state.currency)}</td>`;
+          monthlyTotal+=amount;
+        }else{
+          body+='<td class="muted">—</td>';
+        }
+      });
+      body+=`<td><b>${fmt(monthlyTotal,state.currency)}</b></td></tr>`;
+    });
+    body+='</tbody>';
+    table.innerHTML=header+body;
+  }
+
+  function renderAllocationsHistory(){
+    const tbody=document.getElementById('alloc-history-tbody');
+    if(!tbody) return;
+    tbody.innerHTML='';
+    const allocations=(b().goalAllocations||[]).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
+    const goalsById=Object.fromEntries((b().goals||[]).map(g=>[g.id,g]));
+    if(allocations.length===0){
+      tbody.innerHTML='<tr><td colspan="4" class="muted" style="text-align:center;">Brak historii alokacji.</td></tr>';
+      return;
+    }
+    for(const alloc of allocations){
+      const goal=goalsById[alloc.goalId];
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${alloc.date}</td>
+        <td>${goal ? goal.name : '<em>Usunięty cel</em>'}</td>
+        <td>${fmt(alloc.amount,state.currency)}</td>
+        <td class="row" style="justify-content:flex-end; gap:8px;">
+          <button class="btn soft" data-edit-id="${alloc.id}">Edytuj</button>
+          <button class="btn danger" data-del-id="${alloc.id}">Usuń</button>
+        </td>`;
+      tr.querySelector('[data-edit-id]').onclick=()=>startEditAllocation(alloc.id);
+      tr.querySelector('[data-del-id]').onclick=()=>{
+        if(!confirm('Czy na pewno usunąć tę alokację?')) return;
+        state.modules.budget.goalAllocations=(b().goalAllocations||[]).filter(a=>a.id!==alloc.id);
+        save(state);
+        renderGoals();
+      };
+      tbody.appendChild(tr);
+    }
+  }
+
+  function startEditAllocation(allocId){
+    const alloc=(b().goalAllocations||[]).find(a=>a.id===allocId);
+    if(!alloc) return;
+    const form=document.getElementById('alloc-form');
+    if(!form) return;
+    const idField=form.querySelector('[name="allocId"]');
+    if(idField) idField.value=alloc.id;
+    const goalSel=form.querySelector('[name="goalId"]');
+    if(goalSel) goalSel.value=alloc.goalId;
+    const dateField=form.querySelector('[name="date"]');
+    if(dateField) dateField.value=alloc.date;
+    const amountField=form.querySelector('[name="amount"]');
+    if(amountField) amountField.value=String(alloc.amount).replace('.',',');
+    const title=document.getElementById('alloc-form-title');
+    if(title) title.textContent='Edytuj alokację';
+    const submit=document.getElementById('alloc-submit-btn');
+    if(submit) submit.textContent='Zapisz zmiany';
+    const cancel=document.getElementById('alloc-cancel-btn');
+    if(cancel) cancel.style.display='inline-flex';
+  }
+
+  function resetAllocForm(){
+    const form=document.getElementById('alloc-form');
+    form.reset();
+    const idField=form.querySelector('[name="allocId"]');
+    if(idField) idField.value='';
+    const title=document.getElementById('alloc-form-title');
+    if(title) title.textContent='Dodaj alokację na cel';
+    const submit=document.getElementById('alloc-submit-btn');
+    if(submit) submit.textContent='Dodaj alokację';
+    const cancel=document.getElementById('alloc-cancel-btn');
+    if(cancel) cancel.style.display='none';
+    setDefaultDateForAlloc();
+  }
+
 
   document.getElementById('acct-form').onsubmit=(e)=>{
     e.preventDefault();
