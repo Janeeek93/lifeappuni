@@ -58,6 +58,7 @@
     }
     .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
     .kpi-main-value { font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
+    .kpi-sub-value { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: -2px; }
     .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
     .kpi-detail-line { position: relative; padding-left: 12px; }
     .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); }
@@ -203,15 +204,21 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="fuel.html" data-page="fuel">
-              <span class="sidebar__icon">⛽</span>
-              <span class="sidebar__label">Paliwo</span>
+            <a class="sidebar__link" href="tasks.html" data-page="tasks">
+              <span class="sidebar__icon">✅</span>
+              <span class="sidebar__label">Zadania</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="trainings.html" data-page="trainings">
               <span class="sidebar__icon">💪</span>
-              <span class="sidebar__label">Treningi</span>
+              <span class="sidebar__label">Progres</span>
+            </a>
+          </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="fuel.html" data-page="fuel">
+              <span class="sidebar__icon">⛽</span>
+              <span class="sidebar__label">Paliwo</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -221,9 +228,9 @@
             </a>
           </li>
           <li class="sidebar__item">
-            <a class="sidebar__link" href="tasks.html" data-page="tasks">
-              <span class="sidebar__icon">✅</span>
-              <span class="sidebar__label">Zadania</span>
+            <a class="sidebar__link" href="inventory.html" data-page="inventory">
+              <span class="sidebar__icon">📦</span>
+              <span class="sidebar__label">Magazyn</span>
             </a>
           </li>
           <li class="sidebar__item">
@@ -271,10 +278,11 @@
                     <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
                     <div class="grid kpi-grid">
                         <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
                         <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
                         <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
+                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
+                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
+                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
                         <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
                     </div>
                 </section>
@@ -606,6 +614,7 @@ function renderWeatherWidget() {
 function renderKPIs(){
     const kpiElements = {
         budget: document.getElementById('kpi-budget'),
+        inventory: document.getElementById('kpi-inventory'),
         fuel: document.getElementById('kpi-fuel'),
         tasks: document.getElementById('kpi-tasks'),
         progress: document.getElementById('kpi-progress'),
@@ -622,6 +631,7 @@ function renderKPIs(){
 function renderKPIData(){
   const kpiElements = {
       budget: document.getElementById('kpi-budget'),
+      inventory: document.getElementById('kpi-inventory'),
       fuel: document.getElementById('kpi-fuel'),
       tasks: document.getElementById('kpi-tasks'),
       progress: document.getElementById('kpi-progress'),
@@ -629,11 +639,61 @@ function renderKPIData(){
       loan: document.getElementById('kpi-loan'),
   };
 
+  const budgetRawGlobal = localStorage.getItem(BUDGET_STORAGE_KEY);
+  const parsedBudgetGlobal = budgetRawGlobal ? safeParse(budgetRawGlobal, null) : null;
+  const budgetModuleGlobal = parsedBudgetGlobal?.modules?.budget || parsedBudgetGlobal?.budget || parsedBudgetGlobal;
+
+  // --- Inventory KPI ---
+  if(kpiElements.inventory){
+    if(budgetModuleGlobal){
+      const inventoryState = budgetModuleGlobal?.inventory;
+      if(inventoryState){
+        const items = Array.isArray(inventoryState.items) ? inventoryState.items : [];
+        const sold = Array.isArray(inventoryState.sold) ? inventoryState.sold : [];
+        const currency = typeof parsedBudgetGlobal?.currency === 'string' && parsedBudgetGlobal.currency ? parsedBudgetGlobal.currency : 'PLN';
+        const stockCost = items.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
+        const soldRevenue = sold.reduce((sum, item) => sum + num(item?.salePricePln ?? item?.salePrice), 0);
+        const soldPnl = sold.reduce((sum, item) => sum + num(item?.pnlPln), 0);
+        const soldPurchase = sold.reduce((sum, item) => sum + num(item?.purchasePrice), 0);
+        const roi = soldPurchase > 0 ? ((soldRevenue / soldPurchase) - 1) * 100 : null;
+        const today = new Date();
+        const ageValues = items.map(item => {
+          const date = parseDate(item?.purchaseDate);
+          if(!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+          const diff = today - date;
+          const days = diff / 86400000;
+          return Number.isFinite(days) && days >= 0 ? days : null;
+        }).filter(value => value !== null);
+        const avgAge = ageValues.length ? ageValues.reduce((sum, value) => sum + value, 0) / ageValues.length : null;
+
+        const avgAgeText = avgAge !== null ? `${Math.round(avgAge)} dni` : '—';
+        const avgPurchase = items.length ? stockCost / items.length : null;
+        const avgPurchaseText = avgPurchase !== null ? fmt(avgPurchase, currency) : '—';
+        const roiText = roi !== null ? `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%` : '—';
+        const detailLines = [
+          `Śr. czas na stanie: ${avgAgeText} • Śr. cena zakupu: ${avgPurchaseText}.`,
+          sold.length > 0
+            ? `Sprzedaż: ${sold.length} szt. • PnL ${fmt(soldPnl, currency)} • ROI ${roiText}.`
+            : 'Sprzedaż: brak danych • PnL — • ROI —.',
+        ];
+
+        kpiElements.inventory.innerHTML = `
+          <div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div>
+          <div class="kpi-main-value">${fmt(stockCost, currency)}</div>
+          <div class="kpi-sub-value">${items.length} szt. w zapasie</div>
+          <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+      } else {
+        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+      }
+    } else {
+      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    }
+  }
+
   // --- Budget KPI ---
-  const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
-  if(budgetRaw){
-    const parsedBudget = safeParse(budgetRaw, null);
-    const bState = parsedBudget?.modules?.budget || parsedBudget?.budget || parsedBudget;
+  if(budgetModuleGlobal){
+    const parsedBudget = parsedBudgetGlobal;
+    const bState = budgetModuleGlobal;
     const ym = monthKey();
     if(bState && bState.monthly && bState.monthly[ym]){
       const m = bState.monthly[ym];
