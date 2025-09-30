@@ -412,22 +412,6 @@
 
     .th-label { display: inline-flex; align-items: center; gap: 4px; }
 
-    .inventory-table thead th,
-    .inventory-table tbody td {
-      padding: 6px 8px;
-      font-size: 12px;
-      line-height: 1.3;
-    }
-
-    .inventory-table tbody td:first-child b { font-size: 13px; }
-    .inventory-table tbody td .muted { font-size: 11px; }
-
-    .inventory-table-actions .btn { padding: 6px 10px; font-size: 12px; border-radius: 10px; }
-
-    .inventory-plan-cell { min-width: 200px; }
-    .inventory-plan-input { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; background: #fff; min-width: 0; }
-    .inventory-plan-summary { margin-top: 4px; font-size: 11px; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; }
-
     .delta-up { color: var(--green); font-weight: 600; }
     .delta-down { color: var(--red); font-weight: 600; }
     .delta-neutral { color: var(--muted); font-weight: 500; }
@@ -493,27 +477,41 @@
     .kpi-trend.trend-down { color: var(--red); }
     .kpi-trend.trend-flat { color: var(--muted); }
 
-    .inventory-toolbar {
+    .mom-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-top: 16px;
+      gap: 10px;
+      align-items: flex-end;
     }
 
-    .inventory-toolbar .row { gap: 8px; flex-wrap: wrap; }
+    .mom-control {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-    .inventory-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
-    .inventory-section { margin-top: 16px; }
-    .inventory-import { margin-top: 16px; }
-    .inventory-import textarea { width: 100%; min-height: 120px; border-radius: 12px; border: 1px dashed var(--line); padding: 10px; font-family: inherit; }
-    .inventory-inline { margin-top: 8px; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 12px; }
-    .inventory-inline .grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-    .inventory-empty { text-align: center; padding: 16px; color: var(--muted); font-size: 13px; }
-    .inventory-table-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-    .inventory-badge { display: inline-flex; align-items: center; gap: 4px; background: #e2e8f0; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: #475569; }
-    .inventory-quick-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .mom-control select,
+    .mom-control input[type="number"] {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 13px;
+      background: #fff;
+      min-width: 140px;
+    }
+
+    #mom-table tbody tr {
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+
+    #mom-table tbody tr:hover { background: rgba(59, 130, 246, 0.1); }
+    #mom-table tbody tr.active { background: rgba(59, 130, 246, 0.16); }
+
+    .mom-summary { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
 
     .chart-empty {
       position: absolute;
@@ -630,7 +628,7 @@
       <button class="tab" data-tab="eom">Salda (EOM)</button>
       <button class="tab" data-tab="goals">Cele</button>
       <button class="tab" data-tab="analytics">Analityka</button>
-      <button class="tab" data-tab="inventory">Inventory</button>
+      <button class="tab" data-tab="mom">Porównanie MoM</button>
     </div>
 
     <!-- Dashboard -->
@@ -1164,183 +1162,55 @@
       </div>
     </section>
 
-    <!-- Inventory -->
-    <section id="tab-inventory" class="card" style="margin-top:12px;display:none">
+    <!-- MoM Comparison -->
+    <section id="tab-mom" class="card" style="margin-top:12px;display:none">
       <div class="row" style="align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
-          <h3 class="title" style="margin-bottom:4px">Magazyn sprzedażowy</h3>
-          <div class="muted" style="max-width:640px">Monitoruj zapasy, wynik i przepływ gotówki z odsprzedaży obuwia oraz ubrań.</div>
+          <h3 class="title" style="margin-bottom:4px">Porównanie miesiąc do miesiąca</h3>
+          <div class="muted" id="mom-info">Wybierz miesiące, aby zobaczyć zestawienie wydatków.</div>
+          <div class="mom-summary" id="mom-summary" style="display:none"></div>
         </div>
-        <div class="inventory-badge">🧾 Stan magazynowy</div>
-      </div>
-
-      <div class="inventory-toolbar">
-        <div class="row">
-          <label class="tiny">Wyświetl w walucie
-            <select id="inv-currency-select" style="min-width:120px">
-              <option value="PLN">PLN</option>
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-            </select>
+        <div class="mom-controls">
+          <label class="mom-control">Miesiąc A
+            <select id="mom-month-a"></select>
           </label>
-          <button class="btn soft" id="inv-refresh-rates">🔄 Pobierz dzisiejsze kursy</button>
-          <span class="muted" id="inv-rate-info">Brak kursów – pobierz aktualne notowania.</span>
-        </div>
-        <div class="row">
-          <button class="btn ghost" id="inv-toggle-import">📥 Import / wklejka</button>
-          <button class="btn ghost" id="inv-export-btn">⬇️ Eksport CSV</button>
-        </div>
-      </div>
-
-      <div class="inventory-kpis">
-        <div class="kpi-card light">
-          <div class="label">Towar na stanie</div>
-          <div class="value" id="inv-kpi-stock-count">0</div>
-          <div class="sub" id="inv-kpi-stock-extra">Koszt zakupu: —</div>
-        </div>
-        <div class="kpi-card light">
-          <div class="label">Wycena (wybrana waluta)</div>
-          <div class="value" id="inv-kpi-stock-worth">—</div>
-          <div class="sub" id="inv-kpi-stock-worth-sub">Śr. koszt i czas w magazynie</div>
-        </div>
-        <div class="kpi-card light">
-          <div class="label">Planowana sprzedaż</div>
-          <div class="value" id="inv-kpi-plan-worth">—</div>
-          <div class="sub" id="inv-kpi-plan-extra">Brak planów sprzedaży</div>
-        </div>
-        <div class="kpi-card">
-          <div class="label">Sprzedane pozycje</div>
-          <div class="value" id="inv-kpi-sold-count">0</div>
-          <div class="sub" id="inv-kpi-sold-revenue">Przychód: —</div>
-        </div>
-        <div class="kpi-card">
-          <div class="label">Zrealizowany wynik</div>
-          <div class="value" id="inv-kpi-sold-pnl">—</div>
-          <div class="sub" id="inv-kpi-sold-roi">ROI: —</div>
+          <label class="mom-control">Miesiąc B
+            <select id="mom-month-b"></select>
+          </label>
+          <label class="mom-control">Dzień miesiąca
+            <input type="number" id="mom-day-input" min="1" max="31" />
+          </label>
         </div>
       </div>
-
-      <form id="inv-import-form" class="inventory-import" style="display:none">
-        <h4 class="title" style="font-size:16px;margin:0 0 4px 0">Szybki import / wklejka</h4>
-        <p class="hint">Wklej dane w formacie: marka;model;rozmiarEU;rozmiarUS;kwota;data;notatka. Możesz pominąć rozmiary lub użyć starego układu z jednym polem rozmiaru.</p>
-        <textarea id="inv-import-input" placeholder="Nike;Air Max 1;44;10;320;2024-05-10&#10;Adidas;Campus 00s;;11;280"></textarea>
-        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-          <button class="btn ghost" type="button" id="inv-import-cancel">Anuluj</button>
-          <button class="btn" type="submit">Dodaj pozycje</button>
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="align-items:flex-end;justify-content:space-between">
+          <h4 class="title">Tempo wydatków</h4>
+          <span class="tiny muted">Kliknij kategorię z tabeli, aby zobaczyć jej przebieg.</span>
         </div>
-      </form>
-
-      <div class="card inventory-section">
-        <div class="row" style="align-items:flex-end;gap:12px;justify-content:space-between">
-          <div>
-            <h4 class="title" style="margin:0">Dodaj nowy towar</h4>
-            <div class="muted">Uzupełnij podstawowe informacje, aby śledzić wartość magazynu.</div>
-          </div>
-          <span class="inventory-badge">💡 Możesz też importować hurtowo</span>
+        <div class="chart-box wide">
+          <canvas id="mom-chart"></canvas>
+          <div class="chart-empty" id="mom-chart-empty" style="display:none">Brak danych do wyświetlenia.</div>
         </div>
-        <form id="inv-add-form" class="grid g-4" style="margin-top:12px">
-          <label class="tiny">Marka<input name="brand" placeholder="np. Nike" required /></label>
-          <label class="tiny">Model<input name="model" placeholder="np. Air Max 1" required /></label>
-          <label class="tiny">Rozmiar EU<input name="sizeEu" placeholder="np. 44" /></label>
-          <label class="tiny">Rozmiar US<input name="sizeUs" placeholder="np. 10" /></label>
-          <label class="tiny">Dodatkowy opis rozmiaru<input name="size" placeholder="np. 29 cm, M" /></label>
-          <label class="tiny">Data zakupu<input name="purchaseDate" type="date" /></label>
-          <label class="tiny">Kwota zakupu (PLN)<input name="purchasePrice" inputmode="decimal" placeholder="0,00" required /></label>
-          <label class="tiny" style="grid-column:1 / -1">Notatka / źródło<input name="purchaseNote" placeholder="np. Allegro, outlet" /></label>
-          <button class="btn" type="submit" style="grid-column:1 / -1">Dodaj do magazynu</button>
-        </form>
+        <p class="tiny muted" id="mom-chart-caption" style="margin-top:8px"></p>
       </div>
-
-      <div class="split-box inventory-section">
-        <div class="grid g-4" style="gap:8px">
-          <input id="inv-search" placeholder="Szukaj po marce lub modelu" />
-          <select id="inv-filter-brand"></select>
-          <select id="inv-filter-size-eu"></select>
-          <select id="inv-filter-size-us"></select>
-          <select id="inv-filter-size"></select>
-          <select id="inv-sort">
-            <option value="newest">Najnowsze</option>
-            <option value="oldest">Najstarsze</option>
-            <option value="priceDesc">Najdroższe (zakup)</option>
-            <option value="priceAsc">Najtańsze (zakup)</option>
-            <option value="convertedDesc">Najwyższa wycena</option>
-            <option value="convertedAsc">Najniższa wycena</option>
-            <option value="planDesc">Najwyższa cena planowana</option>
-            <option value="planAsc">Najniższa cena planowana</option>
-            <option value="brandAsc">Marka A→Z</option>
-            <option value="brandDesc">Marka Z→A</option>
-            <option value="ageDesc">Najdłużej na stanie</option>
-            <option value="ageAsc">Najkrócej na stanie</option>
-            <option value="noteAsc">Notatka A→Z</option>
-            <option value="noteDesc">Notatka Z→A</option>
-          </select>
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="align-items:flex-end;justify-content:space-between">
+          <h4 class="title">Zestawienie kategorii</h4>
+          <span class="tiny muted">Kwoty obejmują wydatki do wybranego dnia.</span>
         </div>
-        <div class="row" style="justify-content:space-between;align-items:center;gap:8px;margin-top:8px">
-          <div id="inv-filter-summary" class="inventory-quick-note">Brak pozycji w magazynie.</div>
-          <button class="btn ghost" id="inv-reset-filters" type="button">Wyczyść filtry</button>
-        </div>
-      </div>
-
-      <div class="card inventory-section">
-        <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
-          <h4 class="title" style="margin:0">Towary na sprzedaż</h4>
-          <span class="muted">Kwoty w PLN oraz w wybranej walucie (<span data-inv-currency-label>PLN</span>)</span>
-        </div>
-        <div style="overflow-x:auto;margin-top:8px">
-          <table id="inventory-active-table" class="table-modern table-sortable inventory-table">
+        <div style="overflow-x:auto;">
+          <table id="mom-table" class="table-compact">
             <thead>
               <tr>
-                <th data-sort="product"><span class="th-label">Produkt<span class="sort-indicator"></span></span></th>
-                <th data-sort="purchase"><span class="th-label">Zakup (PLN)<span class="sort-indicator"></span></span></th>
-                <th data-sort="converted"><span class="th-label">Wycena (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
-                <th data-sort="plan"><span class="th-label">Plan sprzedaży (<span data-inv-currency-label>PLN</span>)<span class="sort-indicator"></span></span></th>
-                <th data-sort="age"><span class="th-label">Dni w magazynie<span class="sort-indicator"></span></span></th>
-                <th data-sort="note"><span class="th-label">Notatki<span class="sort-indicator"></span></span></th>
-                <th><span class="th-label">Akcje</span></th>
+                <th>Kategoria</th>
+                <th id="mom-col-a">Miesiąc A</th>
+                <th id="mom-col-b">Miesiąc B</th>
+                <th>Różnica</th>
+                <th>Tempo</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
-        </div>
-      </div>
-
-      <div class="card inventory-section">
-        <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
-          <h4 class="title" style="margin:0">Sprzedane pozycje</h4>
-          <span class="muted">Wszystkie wartości w PLN oraz w walucie <span data-inv-currency-label>PLN</span></span>
-        </div>
-        <div style="overflow-x:auto;margin-top:8px">
-          <table id="inventory-sold-table" class="table-modern inventory-table">
-            <thead>
-              <tr>
-                <th>Produkt</th>
-                <th>Zakup</th>
-                <th>Sprzedaż</th>
-                <th>Przychód</th>
-                <th>PnL</th>
-                <th>ROI / czas</th>
-                <th>Uwagi</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="grid g-2 inventory-section">
-        <div class="card" id="inventory-brand-card">
-          <div class="title">Struktura marek (aktywny stock)</div>
-          <div class="chart-box">
-            <canvas id="inventory-brand-chart"></canvas>
-            <div class="chart-empty" id="inventory-brand-empty" style="display:none">Brak danych do wyświetlenia.</div>
-          </div>
-        </div>
-        <div class="card" id="inventory-sales-card">
-          <div class="title">Sprzedaż miesięczna i PnL</div>
-          <div class="chart-box">
-            <canvas id="inventory-sales-chart"></canvas>
-            <div class="chart-empty" id="inventory-sales-empty" style="display:none">Brak historii sprzedaży.</div>
-          </div>
         </div>
       </div>
     </section>
@@ -1492,102 +1362,6 @@
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
 
-    const normalizeInventoryItem = (item, fallbackDate) => {
-      const id = typeof item?.id === 'string' ? item.id : 'inv_'+Math.random().toString(36).slice(2);
-      const purchasePrice = num(item?.purchasePrice);
-      const purchaseDate = typeof item?.purchaseDate === 'string' ? item.purchaseDate : '';
-      const createdAt = item?.createdAt || purchaseDate || fallbackDate;
-      const planRaw = num(item?.planPricePln ?? item?.planPrice);
-      const normalizedPlan = Number.isFinite(planRaw) && planRaw > 0 ? planRaw : null;
-      const planCurrencyRaw = item?.planCurrency ? String(item.planCurrency).toUpperCase() : 'PLN';
-      const allowedPlanCurrency = ['PLN','EUR','USD'];
-      return {
-        id,
-        brand: item?.brand ? String(item.brand) : '',
-        model: item?.model ? String(item.model) : '',
-        size: item?.size ? String(item.size) : '',
-        sizeEu: item?.sizeEu ? String(item.sizeEu) : '',
-        sizeUs: item?.sizeUs ? String(item.sizeUs) : '',
-        purchasePrice,
-        purchaseCurrency: 'PLN',
-        purchaseDate,
-        purchaseNote: item?.purchaseNote ? String(item.purchaseNote) : '',
-        planPricePln: normalizedPlan,
-        planCurrency: allowedPlanCurrency.includes(planCurrencyRaw) ? planCurrencyRaw : 'PLN',
-        planUpdatedAt: item?.planUpdatedAt || null,
-        createdAt
-      };
-    };
-    const normalizeSoldItem = (item, fallbackDate) => {
-      const id = typeof item?.id === 'string' ? item.id : 'inv_'+Math.random().toString(36).slice(2);
-      const purchasePrice = num(item?.purchasePrice);
-      const salePricePln = num(item?.salePricePln || item?.salePrice);
-      const saleFees = num(item?.saleFees);
-      const pnlCalculated = salePricePln - purchasePrice - saleFees;
-      const allowedPlanCurrency = ['PLN','EUR','USD'];
-      const planRaw = num(item?.planPricePln ?? item?.planPrice);
-      const normalizedPlan = Number.isFinite(planRaw) && planRaw > 0 ? planRaw : null;
-      const planCurrencyRaw = item?.planCurrency ? String(item.planCurrency).toUpperCase() : 'PLN';
-      return {
-        id,
-        brand: item?.brand ? String(item.brand) : '',
-        model: item?.model ? String(item.model) : '',
-        size: item?.size ? String(item.size) : '',
-        sizeEu: item?.sizeEu ? String(item.sizeEu) : '',
-        sizeUs: item?.sizeUs ? String(item.sizeUs) : '',
-        purchasePrice,
-        purchaseCurrency: 'PLN',
-        purchaseDate: typeof item?.purchaseDate === 'string' ? item.purchaseDate : '',
-        purchaseNote: item?.purchaseNote ? String(item.purchaseNote) : '',
-        salePrice: num(item?.salePrice),
-        saleCurrency: item?.saleCurrency ? String(item.saleCurrency) : 'PLN',
-        saleDate: typeof item?.saleDate === 'string' ? item.saleDate : '',
-        saleFees,
-        saleNote: item?.saleNote ? String(item.saleNote) : '',
-        salePricePln,
-        pnlPln: Number.isFinite(num(item?.pnlPln)) ? num(item.pnlPln) : pnlCalculated,
-        planPricePln: normalizedPlan,
-        planCurrency: allowedPlanCurrency.includes(planCurrencyRaw) ? planCurrencyRaw : 'PLN',
-        planUpdatedAt: item?.planUpdatedAt || null,
-        soldAt: item?.soldAt || item?.saleDate || fallbackDate
-      };
-    };
-
-    if(!bud.inventory || typeof bud.inventory!=='object') bud.inventory={};
-    if(!Array.isArray(bud.inventory.items)) bud.inventory.items=[];
-    if(!Array.isArray(bud.inventory.sold)) bud.inventory.sold=[];
-    const nowIso=new Date().toISOString();
-    bud.inventory.items=bud.inventory.items.map(item=>normalizeInventoryItem(item, nowIso));
-    bud.inventory.sold=bud.inventory.sold.map(item=>normalizeSoldItem(item, nowIso));
-    if(!bud.inventory.rates || typeof bud.inventory.rates!=='object') bud.inventory.rates={base:'PLN',fetchedAt:null,rates:{}};
-    bud.inventory.rates.base='PLN';
-    if(!bud.inventory.rates.rates || typeof bud.inventory.rates.rates!=='object') bud.inventory.rates.rates={};
-    bud.inventory.rates.rates.EUR = Number(bud.inventory.rates.rates.EUR)||null;
-    bud.inventory.rates.rates.USD = Number(bud.inventory.rates.rates.USD)||null;
-    if(!bud.inventory.rates.mids || typeof bud.inventory.rates.mids!=='object') bud.inventory.rates.mids={};
-    const eurMidCached=Number(bud.inventory.rates.mids.EUR);
-    const usdMidCached=Number(bud.inventory.rates.mids.USD);
-    bud.inventory.rates.mids.EUR=Number.isFinite(eurMidCached)&&eurMidCached>0?eurMidCached:null;
-    bud.inventory.rates.mids.USD=Number.isFinite(usdMidCached)&&usdMidCached>0?usdMidCached:null;
-    if(!bud.inventory.rates.mids.EUR && Number.isFinite(bud.inventory.rates.rates.EUR) && bud.inventory.rates.rates.EUR>0){
-      bud.inventory.rates.mids.EUR=1/bud.inventory.rates.rates.EUR;
-    }
-    if(!bud.inventory.rates.mids.USD && Number.isFinite(bud.inventory.rates.rates.USD) && bud.inventory.rates.rates.USD>0){
-      bud.inventory.rates.mids.USD=1/bud.inventory.rates.rates.USD;
-    }
-    if(typeof bud.inventory.rates.effectiveDate!=='string') bud.inventory.rates.effectiveDate=null;
-    if(typeof bud.inventory.rates.tableNo!=='string') bud.inventory.rates.tableNo=null;
-    if(typeof bud.inventory.rates.source!=='string') bud.inventory.rates.source='';
-    if(!bud.inventory.ui || typeof bud.inventory.ui!=='object') bud.inventory.ui={};
-    const invUi=bud.inventory.ui;
-    if(!['PLN','EUR','USD'].includes(invUi.selectedCurrency)) invUi.selectedCurrency='PLN';
-    if(typeof invUi.searchTerm!=='string') invUi.searchTerm='';
-    if(typeof invUi.brandFilter!=='string') invUi.brandFilter='';
-    if(typeof invUi.sizeFilter!=='string') invUi.sizeFilter='';
-    if(typeof invUi.sizeEuFilter!=='string') invUi.sizeEuFilter='';
-    if(typeof invUi.sizeUsFilter!=='string') invUi.sizeUsFilter='';
-    if(typeof invUi.sortMode!=='string') invUi.sortMode='newest';
-    if(typeof invUi.showImport!=='boolean') invUi.showImport=false;
     return st;
   }
 
@@ -1609,20 +1383,13 @@
         workingMonth:monthKey(),
         createTxOnFixedPay:true,
         recurringTemplates:[],recurringLog:[],
-        fixedTemplates:[],
-        inventory:{
-          items:[],
-          sold:[],
-          rates:{base:'PLN',fetchedAt:null,rates:{}},
-          ui:{selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false}
-        }
+        fixedTemplates:[]
       }}
     });
   }
 
   let state = migrateState(load()) || def();
   const b=()=>state.modules.budget;
-  const inv=()=>b().inventory;
 
   // --- Core Helpers ----------------------------------------------------------------
   function ensureMonth(ym){if(!b().monthly[ym]) b().monthly[ym]={ incomes:[], fixed:[] }}
@@ -1659,7 +1426,7 @@
     });
   }
   const tabs=document.querySelectorAll('.tab');
-  const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),inventory:tab('inventory')};
+  const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),mom:tab('mom')};
   const varCard=document.getElementById('var-transactions-card');
   const varSlots={dashboard:document.getElementById('var-table-dashboard-slot'),variable:document.getElementById('var-table-variable-slot')};
   function placeVarCard(target){
@@ -1679,7 +1446,7 @@
       else if(t.dataset.tab==='dashboard'){placeVarCard('dashboard')}
       if(t.dataset.tab==='analytics') renderAnalytics(); // Render analytics when tab is clicked
       if(t.dataset.tab==='eom') renderEOMHistory(); // Render history when tab is clicked
-      if(t.dataset.tab==='inventory') renderInventory();
+      if(t.dataset.tab==='mom') renderMomComparison();
       bindMoneyInputs();
     });
   }
@@ -3230,1475 +2997,6 @@
 
   const DAY_MS = 1000*60*60*24;
 
-  function destroyInventoryChart(key){
-    if(inventoryCharts[key]){
-      inventoryCharts[key].destroy();
-      delete inventoryCharts[key];
-    }
-  }
-
-  function inventoryCurrencyLabel(currency){
-    return currency==='PLN' ? (state.currency || 'PLN') : currency;
-  }
-
-  function convertPlnToCurrency(amount, currency){
-    const value = Number(amount);
-    if(!Number.isFinite(value)) return null;
-    if((currency||'PLN').toUpperCase()==='PLN') return value;
-    const rate = inv().rates?.rates?.[currency];
-    if(!Number.isFinite(rate) || rate<=0) return null;
-    return value * rate;
-  }
-
-  function convertCurrencyToPln(amount, currency){
-    const value = Number(amount);
-    if(!Number.isFinite(value)) return null;
-    if((currency||'PLN').toUpperCase()==='PLN') return value;
-    const rate = inv().rates?.rates?.[currency];
-    if(!Number.isFinite(rate) || rate<=0) return null;
-    return value / rate;
-  }
-
-  function convertBetweenCurrencies(amount, fromCurrency, toCurrency){
-    const value = Number(amount);
-    if(!Number.isFinite(value)) return null;
-    const from = (fromCurrency || 'PLN').toUpperCase();
-    const to = (toCurrency || 'PLN').toUpperCase();
-    if(from === to) return value;
-    if(to === 'PLN') return convertCurrencyToPln(value, from);
-    if(from === 'PLN') return convertPlnToCurrency(value, to);
-    const plnValue = convertCurrencyToPln(value, from);
-    if(plnValue === null) return null;
-    return convertPlnToCurrency(plnValue, to);
-  }
-
-  function inventoryDaysBetween(startDate, endDate=new Date()){
-    if(!startDate) return null;
-    const start = startDate instanceof Date ? startDate : new Date(startDate);
-    const end = endDate instanceof Date ? endDate : new Date(endDate);
-    if(isNaN(start) || isNaN(end)) return null;
-    return Math.max(0,(end - start)/DAY_MS);
-  }
-
-  function renderInventoryBrandChart(items){
-    const canvas=document.getElementById('inventory-brand-chart');
-    const empty=document.getElementById('inventory-brand-empty');
-    if(!canvas) return;
-    const map=new Map();
-    for(const item of items){
-      const brand=(item.brand||'Bez marki').trim()||'Bez marki';
-      const value=num(item.purchasePrice);
-      map.set(brand,(map.get(brand)||0)+value);
-    }
-    const entries=Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(entries.length===0){
-      destroyInventoryChart('brand');
-      if(empty) empty.style.display='flex';
-      canvas.style.display='none';
-      return;
-    }
-    canvas.style.display='block';
-    if(empty) empty.style.display='none';
-    destroyInventoryChart('brand');
-    inventoryCharts.brand=new Chart(canvas.getContext('2d'),{
-      type:'bar',
-      data:{
-        labels:entries.map(e=>e[0]),
-        datasets:[{
-          label:'Koszt zakupu (PLN)',
-          data:entries.map(e=>e[1]),
-          backgroundColor:entries.map((_,idx)=>withAlpha(ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length],0.55)),
-          borderColor:entries.map((_,idx)=>ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length]),
-          borderWidth:1
-        }]
-      },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          legend:{display:false},
-          tooltip:{
-            callbacks:{
-              label:context=>{
-                const value=context.parsed.y;
-                const selected=inv().ui?.selectedCurrency || 'PLN';
-                const converted=convertBetweenCurrencies(value,'PLN',selected);
-                const base=`${fmt(value,state.currency)}`;
-                if(selected==='PLN' || converted===null) return base;
-                return `${base} (${fmt(converted, inventoryCurrencyLabel(selected))})`;
-              }
-            }
-          }
-        },
-        scales:{ y:{ ticks:{ callback: currencyTicks } } }
-      }
-    });
-  }
-
-  function renderInventorySalesChart(soldItems){
-    const canvas=document.getElementById('inventory-sales-chart');
-    const empty=document.getElementById('inventory-sales-empty');
-    if(!canvas) return;
-    const monthly={};
-    for(const item of soldItems){
-      const ym=(item.saleDate || item.soldAt || '').slice(0,7);
-      if(!ym) continue;
-      if(!monthly[ym]) monthly[ym]={revenue:0,pnl:0,count:0};
-      monthly[ym].revenue+=num(item.salePricePln);
-      monthly[ym].pnl+=num(item.pnlPln);
-      monthly[ym].count+=1;
-    }
-    const months=Object.keys(monthly).sort();
-    if(months.length===0){
-      destroyInventoryChart('sales');
-      if(empty) empty.style.display='flex';
-      canvas.style.display='none';
-      return;
-    }
-    canvas.style.display='block';
-    if(empty) empty.style.display='none';
-    destroyInventoryChart('sales');
-    const selected=inv().ui?.selectedCurrency || 'PLN';
-    inventoryCharts.sales=new Chart(canvas.getContext('2d'),{
-      data:{
-        labels:months,
-        datasets:[
-          {
-            type:'line',
-            label:'Przychód (PLN)',
-            data:months.map(m=>monthly[m].revenue),
-            borderColor:'#0f172a',
-            backgroundColor:'rgba(15,23,42,0.12)',
-            borderWidth:2,
-            fill:true,
-            tension:0.35,
-            yAxisID:'y'
-          },
-          {
-            type:'line',
-            label:'PnL (PLN)',
-            data:months.map(m=>monthly[m].pnl),
-            borderColor:'#16a34a',
-            backgroundColor:'rgba(22,163,74,0.12)',
-            borderWidth:2,
-            fill:true,
-            tension:0.35,
-            yAxisID:'y'
-          },
-          {
-            type:'bar',
-            label:'Liczba transakcji',
-            data:months.map(m=>monthly[m].count),
-            backgroundColor:withAlpha('#0ea5e9',0.35),
-            borderColor:'#0ea5e9',
-            borderWidth:1,
-            yAxisID:'y1'
-          }
-        ]
-      },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          tooltip:{
-            callbacks:{
-              afterLabel:context=>{
-                if(context.dataset.yAxisID!=='y') return '';
-                if(selected==='PLN') return '';
-                const converted=convertBetweenCurrencies(context.parsed.y,'PLN',selected);
-                if(converted===null) return '';
-                return ` (${fmt(converted, inventoryCurrencyLabel(selected))})`;
-              }
-            }
-          }
-        },
-        scales:{
-          y:{ position:'left', ticks:{ callback: currencyTicks } },
-          y1:{ position:'right', grid:{ drawOnChartArea:false }, ticks:{ precision:0 } }
-        }
-      }
-    });
-  }
-
-  function renderInventory(){
-    const section=tab('inventory');
-    if(!section) return;
-    const inventoryState=inv();
-    const ui=inventoryState.ui || (inventoryState.ui={selectedCurrency:'PLN',searchTerm:'',brandFilter:'',sizeFilter:'',sizeEuFilter:'',sizeUsFilter:'',sortMode:'newest',showImport:false});
-    let selectedCurrency=(ui.selectedCurrency||'PLN').toUpperCase();
-    if(!INVENTORY_SUPPORTED_CURRENCIES.includes(selectedCurrency)) selectedCurrency='PLN';
-    ui.selectedCurrency=selectedCurrency;
-    const displayCurrency=inventoryCurrencyLabel(selectedCurrency);
-    const items=Array.isArray(inventoryState.items)?inventoryState.items:[];
-    const sold=Array.isArray(inventoryState.sold)?inventoryState.sold:[];
-    const search=(ui.searchTerm||'').toLowerCase();
-    const brandOptions=Array.from(new Set(items.map(it=>(it.brand||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pl',{sensitivity:'base'}));
-    const sizeOptions=Array.from(new Set(items.map(it=>(it.size||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pl',{numeric:true,sensitivity:'base'}));
-    const sizeEuOptions=Array.from(new Set(items.map(it=>(it.sizeEu||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pl',{numeric:true,sensitivity:'base'}));
-    const sizeUsOptions=Array.from(new Set(items.map(it=>(it.sizeUs||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pl',{numeric:true,sensitivity:'base'}));
-    if(ui.brandFilter && !brandOptions.includes(ui.brandFilter)) ui.brandFilter='';
-    if(ui.sizeFilter && !sizeOptions.includes(ui.sizeFilter)) ui.sizeFilter='';
-    if(ui.sizeEuFilter && !sizeEuOptions.includes(ui.sizeEuFilter)) ui.sizeEuFilter='';
-    if(ui.sizeUsFilter && !sizeUsOptions.includes(ui.sizeUsFilter)) ui.sizeUsFilter='';
-    const brandFilter=ui.brandFilter||'';
-    const sizeFilter=ui.sizeFilter||'';
-    const sizeEuFilter=ui.sizeEuFilter||'';
-    const sizeUsFilter=ui.sizeUsFilter||'';
-    const allowedSortModes=new Set(['newest','oldest','priceDesc','priceAsc','brandAsc','brandDesc','convertedDesc','convertedAsc','planAsc','planDesc','ageDesc','ageAsc','noteDesc','noteAsc']);
-    let sortMode=ui.sortMode||'newest';
-    if(sortMode==='brand') sortMode='brandAsc';
-    if(sortMode==='age') sortMode='ageDesc';
-    if(sortMode==='converted') sortMode='convertedDesc';
-    if(!allowedSortModes.has(sortMode)) sortMode='newest';
-    ui.sortMode=sortMode;
-    const today=new Date();
-    const filtered=items.filter(item=>{
-      const combined=`${item.brand||''} ${item.model||''}`.toLowerCase();
-      if(search && !combined.includes(search)) return false;
-      if(brandFilter && (item.brand||'')!==brandFilter) return false;
-      if(sizeFilter && (item.size||'')!==sizeFilter) return false;
-      if(sizeEuFilter && (item.sizeEu||'')!==sizeEuFilter) return false;
-      if(sizeUsFilter && (item.sizeUs||'')!==sizeUsFilter) return false;
-      return true;
-    });
-    const visible=[...filtered];
-    const getCreated=it=>{
-      const d=it.purchaseDate?new Date(it.purchaseDate):(it.createdAt?new Date(it.createdAt):new Date(0));
-      return isNaN(d)?0:d.getTime();
-    };
-    const computeCache=new Map();
-    const getMeta=item=>{
-      if(!computeCache.has(item.id)){
-        const purchase=num(item.purchasePrice);
-        const rawConverted=selectedCurrency==='PLN'?purchase:convertBetweenCurrencies(purchase,'PLN',selectedCurrency);
-        const planPlnRaw=num(item.planPricePln);
-        const planPln=Number.isFinite(planPlnRaw)&&planPlnRaw>0?planPlnRaw:null;
-        const planConverted=planPln!==null?(selectedCurrency==='PLN'?planPln:convertBetweenCurrencies(planPln,'PLN',selectedCurrency)):null;
-        const planPnl=planPln!==null&&Number.isFinite(purchase)?planPln-purchase:null;
-        const planPnlConverted=planPnl!==null?(selectedCurrency==='PLN'?planPnl:convertBetweenCurrencies(planPnl,'PLN',selectedCurrency)):null;
-        const planRoi=planPnl!==null&&Number.isFinite(purchase)&&purchase!==0?((planPnl/purchase)*100):null;
-        computeCache.set(item.id,{
-          purchase:Number.isFinite(purchase)?purchase:null,
-          converted:Number.isFinite(rawConverted)?rawConverted:null,
-          age:inventoryDaysBetween(item.purchaseDate,today),
-          product:`${item.brand||''} ${item.model||''}`.trim(),
-          note:(item.purchaseNote||'').trim(),
-          planPln,
-          planConverted:Number.isFinite(planConverted)?planConverted:null,
-          planPnl:Number.isFinite(planPnl)?planPnl:null,
-          planPnlConverted:Number.isFinite(planPnlConverted)?planPnlConverted:null,
-          planRoi:Number.isFinite(planRoi)?planRoi:null
-        });
-      }
-      return computeCache.get(item.id);
-    };
-    const compareNumeric=(a,b,dir=1)=>{
-      const aVal=Number.isFinite(a)?a:null;
-      const bVal=Number.isFinite(b)?b:null;
-      if(aVal===null && bVal===null) return 0;
-      if(aVal===null) return 1;
-      if(bVal===null) return -1;
-      return dir*(aVal-bVal);
-    };
-    const compareString=(a,b,dir=1)=>{
-      const textA=(a||'').toString().trim();
-      const textB=(b||'').toString().trim();
-      const emptyA=textA.length===0;
-      const emptyB=textB.length===0;
-      if(emptyA && emptyB) return 0;
-      if(emptyA) return 1;
-      if(emptyB) return -1;
-      return dir*textA.localeCompare(textB,'pl',{sensitivity:'base'});
-    };
-    const fallbackCompare=(a,b)=>getCreated(b)-getCreated(a);
-    const withFallback=cmp=>(a,b)=>{
-      const result=cmp(a,b);
-      if(result!==0) return result;
-      return fallbackCompare(a,b);
-    };
-    switch(sortMode){
-      case 'oldest':
-        visible.sort((a,b)=>getCreated(a)-getCreated(b));
-        break;
-      case 'priceDesc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).purchase,getMeta(b).purchase,-1)));
-        break;
-      case 'priceAsc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).purchase,getMeta(b).purchase,1)));
-        break;
-      case 'brandAsc':
-        visible.sort(withFallback((a,b)=>compareString(getMeta(a).product,getMeta(b).product,1)));
-        break;
-      case 'brandDesc':
-        visible.sort(withFallback((a,b)=>compareString(getMeta(a).product,getMeta(b).product,-1)));
-        break;
-      case 'convertedDesc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).converted,getMeta(b).converted,-1)));
-        break;
-      case 'convertedAsc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).converted,getMeta(b).converted,1)));
-        break;
-      case 'planDesc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).planConverted,getMeta(b).planConverted,-1)));
-        break;
-      case 'planAsc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).planConverted,getMeta(b).planConverted,1)));
-        break;
-      case 'ageDesc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).age,getMeta(b).age,-1)));
-        break;
-      case 'ageAsc':
-        visible.sort(withFallback((a,b)=>compareNumeric(getMeta(a).age,getMeta(b).age,1)));
-        break;
-      case 'noteDesc':
-        visible.sort(withFallback((a,b)=>compareString(getMeta(a).note,getMeta(b).note,-1)));
-        break;
-      case 'noteAsc':
-        visible.sort(withFallback((a,b)=>compareString(getMeta(a).note,getMeta(b).note,1)));
-        break;
-      case 'newest':
-      default:
-        visible.sort((a,b)=>getCreated(b)-getCreated(a));
-    }
-
-    const headerSortOrders={
-      product:['brandAsc','brandDesc'],
-      purchase:['priceAsc','priceDesc'],
-      converted:['convertedAsc','convertedDesc'],
-      plan:['planAsc','planDesc'],
-      age:['ageAsc','ageDesc'],
-      note:['noteAsc','noteDesc']
-    };
-    const headerCells=document.querySelectorAll('#inventory-active-table thead th[data-sort]');
-    headerCells.forEach(th=>{
-      if(!th.dataset.bound){
-        th.dataset.bound='1';
-        th.addEventListener('click',()=>{
-          const key=th.dataset.sort;
-          const order=headerSortOrders[key];
-          if(!order || !order.length) return;
-          const current=inv().ui.sortMode||'newest';
-          let next=order[0];
-          if(order.includes(current)){
-            const idx=order.indexOf(current);
-            next=order[(idx+1)%order.length];
-          }
-          inv().ui.sortMode=next;
-          save(state);
-          renderInventory();
-        });
-      }
-    });
-    headerCells.forEach(th=>{
-      const indicator=th.querySelector('.sort-indicator');
-      if(indicator) indicator.textContent='';
-      th.classList.remove('sorted-asc','sorted-desc');
-      th.removeAttribute('aria-sort');
-      const key=th.dataset.sort;
-      const order=headerSortOrders[key];
-      if(order && order.includes(sortMode)){
-        const index=order.indexOf(sortMode);
-        if(indicator) indicator.textContent=index===0?'▲':'▼';
-        th.classList.add(index===0?'sorted-asc':'sorted-desc');
-        th.setAttribute('aria-sort',index===0?'ascending':'descending');
-      }
-    });
-
-    const totalStockCost=items.reduce((sum,it)=>sum+num(it.purchasePrice),0);
-    const totalStockConverted=convertBetweenCurrencies(totalStockCost,'PLN',selectedCurrency);
-    const avgStockCostPln=items.length?totalStockCost/items.length:0;
-    const avgStockConverted=items.length?convertBetweenCurrencies(avgStockCostPln,'PLN',selectedCurrency):null;
-    const avgStockAgeArr=items.map(it=>inventoryDaysBetween(it.purchaseDate,today)).filter(v=>v!==null);
-    const avgStockAge=avgStockAgeArr.length?avgStockAgeArr.reduce((a,b)=>a+b,0)/avgStockAgeArr.length:null;
-
-    const filteredCost=filtered.reduce((sum,it)=>sum+num(it.purchasePrice),0);
-    const filteredConverted=convertBetweenCurrencies(filteredCost,'PLN',selectedCurrency);
-    const filteredAgeArr=filtered.map(it=>inventoryDaysBetween(it.purchaseDate,today)).filter(v=>v!==null);
-    const filteredAvgAge=filteredAgeArr.length?filteredAgeArr.reduce((a,b)=>a+b,0)/filteredAgeArr.length:null;
-
-    let plannedCountAll=0;
-    let totalPlanValueAll=0;
-    let totalPlanPurchaseAll=0;
-    let totalPlanPnlAll=0;
-    for(const item of items){
-      const planVal=Number(item.planPricePln);
-      if(!Number.isFinite(planVal) || planVal<=0) continue;
-      plannedCountAll++;
-      const purchaseVal=num(item.purchasePrice);
-      totalPlanValueAll+=planVal;
-      totalPlanPurchaseAll+=purchaseVal;
-      totalPlanPnlAll+=planVal-purchaseVal;
-    }
-    const totalPlanConvertedAll=convertBetweenCurrencies(totalPlanValueAll,'PLN',selectedCurrency);
-    const totalPlanPnlConvertedAll=convertBetweenCurrencies(totalPlanPnlAll,'PLN',selectedCurrency);
-    const planRoiAll=totalPlanPurchaseAll>0?((totalPlanPnlAll/totalPlanPurchaseAll)*100):null;
-
-    let plannedCountFiltered=0;
-    let totalPlanPnlFiltered=0;
-    for(const item of filtered){
-      const planVal=Number(item.planPricePln);
-      if(!Number.isFinite(planVal) || planVal<=0) continue;
-      plannedCountFiltered++;
-      const purchaseVal=num(item.purchasePrice);
-      totalPlanPnlFiltered+=planVal-purchaseVal;
-    }
-    const totalPlanPnlConvertedFiltered=convertBetweenCurrencies(totalPlanPnlFiltered,'PLN',selectedCurrency);
-
-    const totalSoldPurchase=sold.reduce((sum,it)=>sum+num(it.purchasePrice),0);
-    const totalSoldRevenue=sold.reduce((sum,it)=>sum+num(it.salePricePln),0);
-    const totalSoldPnl=sold.reduce((sum,it)=>sum+num(it.pnlPln),0);
-    const soldRevenueConverted=convertBetweenCurrencies(totalSoldRevenue,'PLN',selectedCurrency);
-    const soldPnlConverted=convertBetweenCurrencies(totalSoldPnl,'PLN',selectedCurrency);
-    const soldHoldArr=sold.map(it=>inventoryDaysBetween(it.purchaseDate,it.saleDate||it.soldAt)).filter(v=>v!==null);
-    const avgSoldHold=soldHoldArr.length?soldHoldArr.reduce((a,b)=>a+b,0)/soldHoldArr.length:null;
-    const roi=totalSoldPurchase>0?((totalSoldRevenue/totalSoldPurchase)-1)*100:null;
-
-    const stockCountEl=document.getElementById('inv-kpi-stock-count');
-    if(stockCountEl) stockCountEl.textContent=items.length;
-    const stockExtra=document.getElementById('inv-kpi-stock-extra');
-    if(stockExtra) stockExtra.textContent=items.length?`Koszt zakupu: ${fmt(totalStockCost,state.currency)}`:'Koszt zakupu: —';
-    const stockWorth=document.getElementById('inv-kpi-stock-worth');
-    if(stockWorth){
-      if(!items.length) stockWorth.textContent='—';
-      else if(selectedCurrency==='PLN' || totalStockConverted!==null) stockWorth.textContent=fmt(selectedCurrency==='PLN'?totalStockCost:totalStockConverted, displayCurrency);
-      else stockWorth.textContent='Brak kursu';
-    }
-    const stockWorthSub=document.getElementById('inv-kpi-stock-worth-sub');
-    if(stockWorthSub){
-      let avgCostText='Śr. koszt: —';
-      if(items.length){
-        if(selectedCurrency==='PLN') avgCostText=`Śr. koszt: ${fmt(avgStockCostPln,state.currency)}`;
-        else if(avgStockConverted!==null) avgCostText=`Śr. koszt: ${fmt(avgStockConverted,displayCurrency)}`;
-        else avgCostText=`Śr. koszt: ${fmt(avgStockCostPln,state.currency)} (brak kursu ${selectedCurrency})`;
-      }
-      const avgAgeText=avgStockAge!==null?`${avgStockAge.toFixed(0)} dni`:'—';
-      stockWorthSub.textContent=`${avgCostText} • Śr. czas w magazynie: ${avgAgeText}`;
-    }
-    const planWorthEl=document.getElementById('inv-kpi-plan-worth');
-    if(planWorthEl){
-      if(plannedCountAll===0) planWorthEl.textContent='—';
-      else if(selectedCurrency==='PLN' || totalPlanConvertedAll===null) planWorthEl.textContent=fmt(totalPlanValueAll,state.currency);
-      else planWorthEl.textContent=`${fmt(totalPlanConvertedAll,displayCurrency)} (${fmt(totalPlanValueAll,state.currency)})`;
-    }
-    const planExtraEl=document.getElementById('inv-kpi-plan-extra');
-    if(planExtraEl){
-      if(plannedCountAll===0){
-        planExtraEl.textContent='Brak planów sprzedaży';
-      }else{
-        const pnlBase=fmt(totalPlanPnlAll,state.currency);
-        const pnlExtra=(selectedCurrency!=='PLN' && totalPlanPnlConvertedAll!==null)?` / ${fmt(totalPlanPnlConvertedAll,displayCurrency)}`:'';
-        const roiText=planRoiAll!==null?`${planRoiAll>=0?'+':''}${planRoiAll.toFixed(1)}%`:'—';
-        planExtraEl.textContent=`PnL potencjał: ${pnlBase}${pnlExtra} • Pozycje: ${plannedCountAll} • ROI: ${roiText}`;
-      }
-    }
-    const soldCountEl=document.getElementById('inv-kpi-sold-count');
-    if(soldCountEl) soldCountEl.textContent=sold.length;
-    const soldRevenueEl=document.getElementById('inv-kpi-sold-revenue');
-    if(soldRevenueEl){
-      if(!sold.length) soldRevenueEl.textContent='Brak sprzedaży';
-      else if(selectedCurrency==='PLN' || soldRevenueConverted===null) soldRevenueEl.textContent=`Przychód: ${fmt(totalSoldRevenue,state.currency)}`;
-      else soldRevenueEl.textContent=`Przychód: ${fmt(soldRevenueConverted,displayCurrency)} (${fmt(totalSoldRevenue,state.currency)})`;
-    }
-    const soldPnlEl=document.getElementById('inv-kpi-sold-pnl');
-    if(soldPnlEl){
-      if(!sold.length) soldPnlEl.textContent='—';
-      else if(selectedCurrency==='PLN' || soldPnlConverted===null) soldPnlEl.textContent=fmt(totalSoldPnl,displayCurrency);
-      else soldPnlEl.textContent=fmt(soldPnlConverted,displayCurrency);
-    }
-    const soldRoiEl=document.getElementById('inv-kpi-sold-roi');
-    if(soldRoiEl){
-      if(!sold.length) soldRoiEl.textContent='Brak sprzedaży';
-      else{
-        const roiText=roi!==null?`${roi>=0?'+':''}${roi.toFixed(1)}%`:'—';
-        const pnlBase=fmt(totalSoldPnl,state.currency);
-        const pnlExtra=(selectedCurrency!=='PLN' && soldPnlConverted!==null)?` / ${fmt(soldPnlConverted,displayCurrency)}`:'';
-        const holdText=avgSoldHold!==null?`${avgSoldHold.toFixed(0)} dni`:'—';
-        soldRoiEl.textContent=`PnL: ${pnlBase}${pnlExtra} • ROI: ${roiText} • Śr. trzymanie: ${holdText}`;
-      }
-    }
-
-    const rateInfo=document.getElementById('inv-rate-info');
-    if(rateInfo){
-      const rates=inventoryState.rates?.rates||{};
-      const hasRates=Object.values(rates).some(v=>Number.isFinite(v)&&v>0);
-      if(!hasRates){
-        rateInfo.textContent='Brak kursów – pobierz aktualne notowania.';
-      }else{
-        const effectiveDate=inventoryState.rates?.effectiveDate;
-        const fetchedAt=inventoryState.rates?.fetchedAt;
-        let dateLabel='';
-        if(typeof effectiveDate==='string' && effectiveDate){
-          const dt=new Date(`${effectiveDate}T00:00:00`);
-          dateLabel=isNaN(dt)?effectiveDate:dt.toLocaleDateString('pl-PL');
-        }else if(fetchedAt){
-          const dt=new Date(fetchedAt);
-          dateLabel=isNaN(dt)?fetchedAt:dt.toLocaleString('pl-PL');
-        }
-        const sourceLabel=inventoryState.rates?.source?` (${inventoryState.rates.source})`:'';
-        const prefix=`Kursy${dateLabel?` z ${dateLabel}`:''}${sourceLabel}`;
-        const segments=[];
-        const eurRate=rates.EUR;
-        if(Number.isFinite(eurRate)&&eurRate>0){
-          const storedMid=inventoryState.rates?.mids?.EUR;
-          const eurMid=Number.isFinite(storedMid)&&storedMid>0?storedMid:(1/eurRate);
-          let text=`1 PLN → EUR ${eurRate.toFixed(4)}`;
-          if(Number.isFinite(eurMid)&&eurMid>0) text+=` (1 EUR → PLN ${eurMid.toFixed(4)})`;
-          segments.push(text);
-        }else{
-          segments.push('1 PLN → EUR —');
-        }
-        const usdRate=rates.USD;
-        if(Number.isFinite(usdRate)&&usdRate>0){
-          const storedMid=inventoryState.rates?.mids?.USD;
-          const usdMid=Number.isFinite(storedMid)&&storedMid>0?storedMid:(1/usdRate);
-          let text=`1 PLN → USD ${usdRate.toFixed(4)}`;
-          if(Number.isFinite(usdMid)&&usdMid>0) text+=` (1 USD → PLN ${usdMid.toFixed(4)})`;
-          segments.push(text);
-        }else{
-          segments.push('1 PLN → USD —');
-        }
-        rateInfo.textContent=`${prefix} | ${segments.join(' • ')}`;
-      }
-    }
-
-    document.querySelectorAll('[data-inv-currency-label]').forEach(el=>{el.textContent=displayCurrency;});
-
-    const importForm=document.getElementById('inv-import-form');
-    if(importForm) importForm.style.display=ui.showImport?'block':'none';
-
-    const summaryEl=document.getElementById('inv-filter-summary');
-    if(summaryEl){
-      let text=`Widoczne: ${filtered.length} / ${items.length} pozycji`;
-      text+=` • Koszt: ${fmt(filteredCost,state.currency)}`;
-      if(selectedCurrency!=='PLN' && filteredConverted!==null) text+=` (${fmt(filteredConverted,displayCurrency)})`;
-      if(filteredAvgAge!==null) text+=` • Śr. czas: ${filteredAvgAge.toFixed(0)} dni`;
-      if(plannedCountFiltered>0){
-        const planPnlBase=fmt(totalPlanPnlFiltered,state.currency);
-        const planPnlExtra=(selectedCurrency!=='PLN' && totalPlanPnlConvertedFiltered!==null)?` (${fmt(totalPlanPnlConvertedFiltered,displayCurrency)})`:'';
-        text+=` • Plan PnL: ${planPnlBase}${planPnlExtra}`;
-      }
-      summaryEl.textContent=text;
-    }
-
-    const searchInput=document.getElementById('inv-search');
-    if(searchInput){
-      if(searchInput.value!==ui.searchTerm) searchInput.value=ui.searchTerm;
-      if(!searchInput.dataset.bound){
-        searchInput.dataset.bound='1';
-        searchInput.addEventListener('input',e=>{
-          inv().ui.searchTerm=e.target.value;
-          save(state);
-          renderInventory();
-        });
-      }
-    }
-
-    const brandSelect=document.getElementById('inv-filter-brand');
-    if(brandSelect){
-      brandSelect.innerHTML='<option value="">Wszystkie marki</option>'+brandOptions.map(b=>`<option value="${b}">${b}</option>`).join('');
-      brandSelect.value=brandFilter;
-      if(!brandSelect.dataset.bound){
-        brandSelect.dataset.bound='1';
-        brandSelect.onchange=e=>{
-          inv().ui.brandFilter=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const sizeEuSelect=document.getElementById('inv-filter-size-eu');
-    if(sizeEuSelect){
-      sizeEuSelect.innerHTML='<option value="">Rozmiar EU (wszystkie)</option>'+sizeEuOptions.map(s=>`<option value="${s}">EU ${s}</option>`).join('');
-      sizeEuSelect.value=sizeEuFilter;
-      if(!sizeEuSelect.dataset.bound){
-        sizeEuSelect.dataset.bound='1';
-        sizeEuSelect.onchange=e=>{
-          inv().ui.sizeEuFilter=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const sizeUsSelect=document.getElementById('inv-filter-size-us');
-    if(sizeUsSelect){
-      sizeUsSelect.innerHTML='<option value="">Rozmiar US (wszystkie)</option>'+sizeUsOptions.map(s=>`<option value="${s}">US ${s}</option>`).join('');
-      sizeUsSelect.value=sizeUsFilter;
-      if(!sizeUsSelect.dataset.bound){
-        sizeUsSelect.dataset.bound='1';
-        sizeUsSelect.onchange=e=>{
-          inv().ui.sizeUsFilter=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const sizeSelect=document.getElementById('inv-filter-size');
-    if(sizeSelect){
-      sizeSelect.innerHTML='<option value="">Pozostałe rozmiary</option>'+sizeOptions.map(s=>`<option value="${s}">${s}</option>`).join('');
-      sizeSelect.value=sizeFilter;
-      if(!sizeSelect.dataset.bound){
-        sizeSelect.dataset.bound='1';
-        sizeSelect.onchange=e=>{
-          inv().ui.sizeFilter=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const sortSelect=document.getElementById('inv-sort');
-    if(sortSelect){
-      sortSelect.value=sortMode;
-      if(!sortSelect.dataset.bound){
-        sortSelect.dataset.bound='1';
-        sortSelect.onchange=e=>{
-          inv().ui.sortMode=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const resetBtn=document.getElementById('inv-reset-filters');
-    if(resetBtn && !resetBtn.dataset.bound){
-      resetBtn.dataset.bound='1';
-      resetBtn.onclick=()=>{
-        inv().ui.searchTerm='';
-        inv().ui.brandFilter='';
-        inv().ui.sizeFilter='';
-        inv().ui.sizeEuFilter='';
-        inv().ui.sizeUsFilter='';
-        inv().ui.sortMode='newest';
-        save(state);
-        renderInventory();
-      };
-    }
-
-    const currencySelect=document.getElementById('inv-currency-select');
-    if(currencySelect){
-      currencySelect.value=selectedCurrency;
-      if(!currencySelect.dataset.bound){
-        currencySelect.dataset.bound='1';
-        currencySelect.onchange=e=>{
-          inv().ui.selectedCurrency=e.target.value;
-          save(state);
-          renderInventory();
-        };
-      }
-    }
-
-    const toggleImport=document.getElementById('inv-toggle-import');
-    if(toggleImport && !toggleImport.dataset.bound){
-      toggleImport.dataset.bound='1';
-      toggleImport.onclick=()=>{
-        inv().ui.showImport=!inv().ui.showImport;
-        save(state);
-        renderInventory();
-      };
-    }
-
-    const cancelImport=document.getElementById('inv-import-cancel');
-    if(cancelImport && !cancelImport.dataset.bound){
-      cancelImport.dataset.bound='1';
-      cancelImport.onclick=()=>{
-        inv().ui.showImport=false;
-        save(state);
-        renderInventory();
-      };
-    }
-
-    const addForm=document.getElementById('inv-add-form');
-    if(addForm && !addForm.dataset.bound){
-      addForm.dataset.bound='1';
-      addForm.onsubmit=e=>{
-        e.preventDefault();
-        const data=new FormData(addForm);
-        const brand=String(data.get('brand')||'').trim();
-        const model=String(data.get('model')||'').trim();
-        const sizeEu=String(data.get('sizeEu')||'').trim();
-        const sizeUs=String(data.get('sizeUs')||'').trim();
-        const size=String(data.get('size')||'').trim();
-        const purchaseDate=String(data.get('purchaseDate')||'').trim();
-        const price=num(data.get('purchasePrice'));
-        const note=String(data.get('purchaseNote')||'').trim();
-        if(!brand || !model || !price){
-          alert('Podaj markę, model i kwotę zakupu.');
-          return;
-        }
-          inventoryState.items.unshift({
-            id:'inv_'+Math.random().toString(36).slice(2),
-            brand,
-            model,
-            sizeEu,
-            sizeUs,
-            size,
-            purchasePrice:price,
-            purchaseCurrency:'PLN',
-            purchaseDate:purchaseDate||'',
-            purchaseNote:note,
-            planPricePln:null,
-            planCurrency:inventoryState.ui?.selectedCurrency||'PLN',
-            planUpdatedAt:null,
-            createdAt:purchaseDate||new Date().toISOString()
-          });
-        save(state);
-        addForm.reset();
-        renderInventory();
-      };
-    }
-
-    if(importForm && !importForm.dataset.bound){
-      importForm.dataset.bound='1';
-      importForm.onsubmit=e=>{
-        e.preventDefault();
-        const textarea=document.getElementById('inv-import-input');
-        const raw=(textarea.value||'').trim();
-        if(!raw){alert('Wklej dane do importu.');return;}
-        const lines=raw.split(/\n+/);
-        let added=0;
-        for(const line of lines){
-          const clean=line.trim();
-          if(!clean) continue;
-          const parts=clean.split(/[,;\t]/).map(p=>p.trim());
-          if(parts.length<4) continue;
-          const brand=parts[0];
-          const model=parts[1];
-          let sizeEu='';
-          let sizeUs='';
-          let size='';
-          let priceStr='';
-          let extras=[];
-          if(parts.length>=5){
-            sizeEu=parts[2]||'';
-            sizeUs=parts[3]||'';
-            priceStr=parts[4]||'';
-            extras=parts.slice(5);
-          }else{
-            size=parts[2]||'';
-            priceStr=parts[3]||'';
-            extras=parts.slice(4);
-          }
-          const price=num(priceStr);
-          if(!brand || !model || !price) continue;
-          let dateCandidate='';
-          if(extras.length){
-            const firstExtra=extras[0];
-            if(/^\d{4}-\d{2}-\d{2}$/.test(firstExtra)){
-              dateCandidate=firstExtra;
-              extras=extras.slice(1);
-            }
-          }
-          if(!size && extras.length){
-            const possibleSize=extras[0];
-            if(!/^\d{4}-\d{2}-\d{2}$/.test(possibleSize)){
-              size=possibleSize;
-              extras=extras.slice(1);
-            }
-          }
-          const note=extras.filter(Boolean).join(' ');
-          inventoryState.items.unshift({
-            id:'inv_'+Math.random().toString(36).slice(2),
-            brand,
-            model,
-            size:size||'',
-            sizeEu:sizeEu||'',
-            sizeUs:sizeUs||'',
-            purchasePrice:price,
-            purchaseCurrency:'PLN',
-            purchaseDate:dateCandidate,
-            purchaseNote:note,
-            planPricePln:null,
-            planCurrency:inventoryState.ui?.selectedCurrency||'PLN',
-            planUpdatedAt:null,
-            createdAt:dateCandidate||new Date().toISOString()
-          });
-          added++;
-        }
-        if(added===0){alert('Nie udało się rozpoznać żadnej pozycji.');return;}
-        textarea.value='';
-        inv().ui.showImport=false;
-        save(state);
-        alert(`Dodano ${added} pozycji do magazynu.`);
-        renderInventory();
-      };
-    }
-
-    const refreshBtn=document.getElementById('inv-refresh-rates');
-    if(refreshBtn && !refreshBtn.dataset.bound){
-      refreshBtn.dataset.bound='1';
-      refreshBtn.onclick=async()=>{
-        const original=refreshBtn.textContent;
-        refreshBtn.disabled=true;
-        refreshBtn.textContent='Pobieranie...';
-        try{
-          const res=await fetch(INVENTORY_RATES_API,{headers:{'Accept':'application/json'}});
-          if(!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data=await res.json();
-          const tables=Array.isArray(data)?data:[data];
-          const table=tables.find(t=>Array.isArray(t?.rates)&&t.rates.length);
-          if(!table) throw new Error('Brak tabeli kursowej NBP');
-          const ratesList=Array.isArray(table.rates)?table.rates:[];
-          const eurEntry=ratesList.find(r=>r.code==='EUR');
-          const usdEntry=ratesList.find(r=>r.code==='USD');
-          const eurMid=Number(eurEntry?.mid);
-          const usdMid=Number(usdEntry?.mid);
-          const eurRate=Number.isFinite(eurMid)&&eurMid>0?1/eurMid:null;
-          const usdRate=Number.isFinite(usdMid)&&usdMid>0?1/usdMid:null;
-          if(!eurRate && !usdRate) throw new Error('Brak kursów EUR/USD w tabeli NBP');
-          const effectiveDate=typeof table.effectiveDate==='string'?table.effectiveDate:null;
-          const tableNo=typeof table.no==='string'?table.no:null;
-          const sourceLabel=tableNo?`NBP tabela A (${tableNo})`:'NBP tabela A';
-          inventoryState.rates={
-            base:'PLN',
-            fetchedAt:new Date().toISOString(),
-            effectiveDate,
-            tableNo,
-            source:sourceLabel,
-            rates:{
-              EUR:eurRate,
-              USD:usdRate
-            },
-            mids:{
-              EUR:Number.isFinite(eurMid)&&eurMid>0?eurMid:null,
-              USD:Number.isFinite(usdMid)&&usdMid>0?usdMid:null
-            }
-          };
-          save(state);
-          renderInventory();
-          alert('Kursy zostały zaktualizowane.');
-        }catch(err){
-          console.error('Inventory rates error',err);
-          alert('Nie udało się pobrać kursów z NBP. Spróbuj ponownie później.');
-        }finally{
-          refreshBtn.disabled=false;
-          refreshBtn.textContent=original;
-        }
-      };
-    }
-
-    const exportBtn=document.getElementById('inv-export-btn');
-    if(exportBtn && !exportBtn.dataset.bound){
-      exportBtn.dataset.bound='1';
-      exportBtn.onclick=()=>{
-        const rows=[['status','brand','model','size','sizeEu','sizeUs','purchasePricePLN','purchaseDate','planPricePLN','salePrice','saleCurrency','saleDate','saleFees','pnlPLN']];
-        for(const item of items){
-          rows.push(['active', item.brand||'', item.model||'', item.size||'', item.sizeEu||'', item.sizeUs||'', num(item.purchasePrice), item.purchaseDate||'', item.planPricePln??'', '', '', '', '', '']);
-        }
-        for(const item of sold){
-          rows.push(['sold', item.brand||'', item.model||'', item.size||'', item.sizeEu||'', item.sizeUs||'', num(item.purchasePrice), item.purchaseDate||'', item.planPricePln??'', num(item.salePrice), item.saleCurrency||'PLN', item.saleDate||'', num(item.saleFees), num(item.pnlPln)]);
-        }
-        const csv=rows.map(row=>row.map(value=>`"${String(value??'').replace(/"/g,'""')}"`).join(';')).join('\n');
-        const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-        const url=URL.createObjectURL(blob);
-        const link=document.createElement('a');
-        link.href=url;
-        link.download=`inventory_${new Date().toISOString().slice(0,10)}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(()=>{URL.revokeObjectURL(url);link.remove();},0);
-      };
-    }
-
-    const activeBody=document.querySelector('#inventory-active-table tbody');
-    if(activeBody){
-      activeBody.innerHTML='';
-      if(!visible.length){
-        const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="inventory-empty">Brak pozycji spełniających warunki.</td>';
-        activeBody.appendChild(tr);
-      }else{
-        const todayStr=new Date().toISOString().slice(0,10);
-        for(const item of visible){
-          const meta=getMeta(item);
-          const purchaseValue=meta.purchase ?? num(item.purchasePrice);
-          const convertedValue=meta.converted;
-          const ageValue=meta.age;
-          const noteText=meta.note || item.purchaseNote || '';
-          const noteHtml=noteText?noteText:'<span class="muted">—</span>';
-          const convertedHtml=selectedCurrency==='PLN'
-            ? fmt(purchaseValue,displayCurrency)
-            : (convertedValue!==null?fmt(convertedValue,displayCurrency):'<span class="muted">Brak kursu</span>');
-          const ageLabel=ageValue!==null?`${Math.round(ageValue)} dni`:'—';
-          const sizeParts=[];
-          if((item.sizeEu||'').trim()) sizeParts.push(`EU ${item.sizeEu}`);
-          if((item.sizeUs||'').trim()) sizeParts.push(`US ${item.sizeUs}`);
-          if((item.size||'').trim()) sizeParts.push(item.size);
-          const sizeInfo=sizeParts.length?`<div class="tiny muted">Rozmiary: ${sizeParts.join(' / ')}</div>`:'';
-          const planPln=meta.planPln;
-          const planConverted=meta.planConverted;
-          const planPnlVal=meta.planPnl;
-          const planPnlConverted=meta.planPnlConverted;
-          const planRoiVal=meta.planRoi;
-          const planInputBase=selectedCurrency==='PLN'?planPln:(planConverted!==null?planConverted:null);
-          const planInputValue=planInputBase!==null?String(planInputBase.toFixed(2)).replace('.',','):'';
-          let planMainText;
-          if(planPln!==null){
-            if(selectedCurrency==='PLN') planMainText=`Plan: ${fmt(planPln,state.currency)}`;
-            else if(planConverted!==null) planMainText=`Plan: ${fmt(planConverted,displayCurrency)} (${fmt(planPln,state.currency)})`;
-            else planMainText=`Plan: ${fmt(planPln,state.currency)} (brak kursu ${selectedCurrency})`;
-          }else{
-            planMainText='Brak planu';
-          }
-          const planMainClass=planPln!==null?'':'muted';
-          let planPnlHtml='';
-          if(planPnlVal!==null){
-            const pnlExtra=(selectedCurrency!=='PLN' && planPnlConverted!==null)?` (${fmt(planPnlConverted,displayCurrency)})`:'';
-            const roiText=planRoiVal!==null?` • ROI: ${planRoiVal>=0?'+':''}${planRoiVal.toFixed(1)}%`:'';
-            planPnlHtml=`<span class="${planPnlVal>=0?'ok':'bad'}">PnL: ${fmt(planPnlVal,state.currency)}${pnlExtra}${roiText}</span>`;
-          }
-          const saleOptions=INVENTORY_SUPPORTED_CURRENCIES.map(cur=>`<option value="${cur}" ${cur===selectedCurrency?'selected':''}>${cur}</option>`).join('');
-          const tr=document.createElement('tr');
-          tr.dataset.id=item.id;
-          tr.innerHTML=`<td><div><b>${item.brand||'—'}</b></div><div class="muted">${item.model||'—'}</div>${sizeInfo}</td>
-            <td><div>${fmt(item.purchasePrice,state.currency)}</div><div class="tiny">${item.purchaseDate||'—'}</div></td>
-            <td>${convertedHtml}</td>
-            <td class="inventory-plan-cell"><div><input class="inventory-plan-input" data-field="planPrice" inputmode="decimal" placeholder="0,00" value="${planInputValue}" /></div><div class="inventory-plan-summary"><span class="${planMainClass}">${planMainText}</span>${planPnlHtml}</div></td>
-            <td>${ageLabel}</td>
-            <td>${noteHtml}</td>
-            <td>
-              <div class="inventory-table-actions">
-                <button class="btn soft" data-act="sell">Sprzedaj</button>
-                <button class="btn ghost" data-act="edit">Edytuj</button>
-                <button class="btn danger" data-act="remove">Usuń</button>
-              </div>
-              <div class="inventory-inline" data-inline="sell" style="display:none">
-                <div class="grid" style="gap:8px">
-                  <label class="tiny">Cena sprzedaży<input data-field="salePrice" inputmode="decimal" placeholder="0,00" /></label>
-                  <label class="tiny">Waluta<select data-field="saleCurrency">${saleOptions}</select></label>
-                  <label class="tiny">Data sprzedaży<input data-field="saleDate" type="date" value="${todayStr}" /></label>
-                  <label class="tiny">Koszty/fee (PLN)<input data-field="saleFees" inputmode="decimal" placeholder="0" /></label>
-                  <label class="tiny" style="grid-column:1 / -1;">Notatka<input data-field="saleNote" placeholder="np. platforma, klient" /></label>
-                </div>
-                <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-                  <button class="btn ghost" data-act="cancel-sell">Anuluj</button>
-                  <button class="btn" data-act="confirm-sell">Zatwierdź sprzedaż</button>
-                </div>
-              </div>
-              <div class="inventory-inline" data-inline="edit" style="display:none">
-                <div class="grid" style="gap:8px">
-                  <label class="tiny">Marka<input data-field="brand" value="${item.brand||''}" /></label>
-                  <label class="tiny">Model<input data-field="model" value="${item.model||''}" /></label>
-                  <label class="tiny">Rozmiar EU<input data-field="sizeEu" value="${item.sizeEu||''}" /></label>
-                  <label class="tiny">Rozmiar US<input data-field="sizeUs" value="${item.sizeUs||''}" /></label>
-                  <label class="tiny">Opis rozmiaru<input data-field="size" value="${item.size||''}" /></label>
-                  <label class="tiny">Data zakupu<input data-field="purchaseDate" type="date" value="${item.purchaseDate||''}" /></label>
-                  <label class="tiny">Kwota (PLN)<input data-field="purchasePrice" inputmode="decimal" value="${String(item.purchasePrice??'').toString().replace('.',',')}" /></label>
-                  <label class="tiny" style="grid-column:1 / -1;">Notatka<input data-field="purchaseNote" value="${item.purchaseNote||''}" /></label>
-                </div>
-                <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
-                  <button class="btn ghost" data-act="cancel-edit">Anuluj</button>
-                  <button class="btn" data-act="confirm-edit">Zapisz</button>
-                </div>
-              </div>
-            </td>`;
-          activeBody.appendChild(tr);
-          const planInput=tr.querySelector('[data-field="planPrice"]');
-          if(planInput){
-            planInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); planInput.blur();}});
-            planInput.addEventListener('blur',()=>{
-              const raw=(planInput.value||'').trim();
-              if(!raw){
-                if(item.planPricePln!==null){
-                  item.planPricePln=null;
-                  item.planCurrency=selectedCurrency;
-                  item.planUpdatedAt=new Date().toISOString();
-                  save(state);
-                  renderInventory();
-                }
-                return;
-              }
-              const value=num(raw);
-              if(!value){
-                if(item.planPricePln!==null){
-                  item.planPricePln=null;
-                  item.planCurrency=selectedCurrency;
-                  item.planUpdatedAt=new Date().toISOString();
-                  save(state);
-                  renderInventory();
-                }else{
-                  planInput.value='';
-                }
-                return;
-              }
-              const plnValue=convertBetweenCurrencies(value,selectedCurrency,'PLN');
-              if(plnValue===null){
-                alert(`Brak kursu dla ${selectedCurrency}. Pobierz aktualne kursy.`);
-                renderInventory();
-                return;
-              }
-              if(item.planPricePln!==plnValue || item.planCurrency!==selectedCurrency){
-                item.planPricePln=plnValue;
-                item.planCurrency=selectedCurrency;
-                item.planUpdatedAt=new Date().toISOString();
-                save(state);
-              }
-              renderInventory();
-            });
-          }
-          const sellBox=tr.querySelector('.inventory-inline[data-inline="sell"]');
-          const editBox=tr.querySelector('.inventory-inline[data-inline="edit"]');
-          tr.querySelector('[data-act="sell"]').onclick=()=>{
-            sellBox.style.display=sellBox.style.display==='none'?'block':'none';
-            editBox.style.display='none';
-          };
-          tr.querySelector('[data-act="edit"]').onclick=()=>{
-            editBox.style.display=editBox.style.display==='none'?'block':'none';
-            sellBox.style.display='none';
-          };
-          tr.querySelector('[data-act="remove"]').onclick=()=>{
-            if(!confirm('Usunąć tę pozycję z magazynu?')) return;
-            inventoryState.items=inventoryState.items.filter(x=>x.id!==item.id);
-            save(state);
-            renderInventory();
-          };
-          sellBox.querySelector('[data-act="cancel-sell"]').onclick=()=>{sellBox.style.display='none';};
-          sellBox.querySelector('[data-act="confirm-sell"]').onclick=()=>{
-            const price=num(sellBox.querySelector('[data-field="salePrice"]').value);
-            const currency=sellBox.querySelector('[data-field="saleCurrency"]').value || 'PLN';
-            const saleDate=sellBox.querySelector('[data-field="saleDate"]').value || todayStr;
-            const fees=num(sellBox.querySelector('[data-field="saleFees"]').value);
-            const note=sellBox.querySelector('[data-field="saleNote"]').value || '';
-            if(!price){alert('Podaj cenę sprzedaży.');return;}
-            const salePricePln = convertBetweenCurrencies(price,currency,'PLN');
-            if(currency!=='PLN' && salePricePln===null){
-              alert(`Brak kursu dla ${currency}. Pobierz aktualne kursy.`);
-              return;
-            }
-            const saleValue = currency==='PLN'?price:salePricePln;
-            const pnl = saleValue - num(item.purchasePrice) - fees;
-            inventoryState.items=inventoryState.items.filter(x=>x.id!==item.id);
-            inventoryState.sold.unshift({
-              id:item.id,
-              brand:item.brand,
-              model:item.model,
-              size:item.size,
-              sizeEu:item.sizeEu,
-              sizeUs:item.sizeUs,
-              purchasePrice:num(item.purchasePrice),
-              purchaseCurrency:'PLN',
-              purchaseDate:item.purchaseDate,
-              purchaseNote:item.purchaseNote,
-              salePrice:price,
-              saleCurrency:currency,
-              saleDate,
-              saleFees:fees,
-              saleNote:note,
-              salePricePln:saleValue,
-              pnlPln:pnl,
-              planPricePln:item.planPricePln??null,
-              planCurrency:item.planCurrency||'PLN',
-              planUpdatedAt:item.planUpdatedAt||null,
-              soldAt:new Date().toISOString()
-            });
-            save(state);
-            renderInventory();
-          };
-          editBox.querySelector('[data-act="cancel-edit"]').onclick=()=>{editBox.style.display='none';};
-          editBox.querySelector('[data-act="confirm-edit"]').onclick=()=>{
-            const brand=editBox.querySelector('[data-field="brand"]').value.trim();
-            const model=editBox.querySelector('[data-field="model"]').value.trim();
-            const sizeEu=editBox.querySelector('[data-field="sizeEu"]').value.trim();
-            const sizeUs=editBox.querySelector('[data-field="sizeUs"]').value.trim();
-            const size=editBox.querySelector('[data-field="size"]').value.trim();
-            const purchaseDate=editBox.querySelector('[data-field="purchaseDate"]').value;
-            const purchasePrice=num(editBox.querySelector('[data-field="purchasePrice"]').value);
-            const note=editBox.querySelector('[data-field="purchaseNote"]').value.trim();
-            if(!brand || !model || !purchasePrice){alert('Podaj markę, model i kwotę zakupu.');return;}
-            item.brand=brand;
-            item.model=model;
-            item.sizeEu=sizeEu;
-            item.sizeUs=sizeUs;
-            item.size=size;
-            item.purchaseDate=purchaseDate||'';
-            item.purchasePrice=purchasePrice;
-            item.purchaseNote=note;
-            item.createdAt=item.createdAt || item.purchaseDate || new Date().toISOString();
-            save(state);
-            renderInventory();
-          };
-        }
-      }
-    }
-
-    const soldBody=document.querySelector('#inventory-sold-table tbody');
-    if(soldBody){
-      soldBody.innerHTML='';
-      if(!sold.length){
-        const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="inventory-empty">Brak zarejestrowanych sprzedaży.</td>';
-        soldBody.appendChild(tr);
-      }else{
-        const sortedSold=[...sold].sort((a,b)=>{
-          const dateA=new Date(a.saleDate || a.soldAt || 0).getTime();
-          const dateB=new Date(b.saleDate || b.soldAt || 0).getTime();
-          return dateB-dateA;
-        });
-        for(const item of sortedSold){
-          const saleConverted=selectedCurrency==='PLN'?null:convertBetweenCurrencies(item.salePricePln,'PLN',selectedCurrency);
-          const pnlConverted=selectedCurrency==='PLN'?null:convertBetweenCurrencies(item.pnlPln,'PLN',selectedCurrency);
-          const roiSingle=item.purchasePrice? (item.pnlPln/item.purchasePrice)*100 : null;
-          const holdDays=inventoryDaysBetween(item.purchaseDate,item.saleDate||item.soldAt);
-          const noteHtml=item.saleNote?item.saleNote:'<span class="muted">—</span>';
-          const sizeParts=[];
-          if((item.sizeEu||'').trim()) sizeParts.push(`EU ${item.sizeEu}`);
-          if((item.sizeUs||'').trim()) sizeParts.push(`US ${item.sizeUs}`);
-          if((item.size||'').trim()) sizeParts.push(item.size);
-          const sizeInfo=sizeParts.length?`<div class="tiny muted">Rozmiary: ${sizeParts.join(' / ')}</div>`:'';
-          const tr=document.createElement('tr');
-          tr.dataset.id=item.id;
-          tr.innerHTML=`<td><div><b>${item.brand||'—'}</b></div><div class="muted">${item.model||'—'}</div>${sizeInfo}</td>
-            <td><div>${fmt(item.purchasePrice,state.currency)}</div><div class="tiny">${item.purchaseDate||'—'}</div></td>
-            <td><div>${item.saleDate||'—'}</div><div class="tiny">${fmt(item.salePrice,item.saleCurrency||'PLN')}</div>${item.saleFees?`<div class="tiny">Fee: ${fmt(item.saleFees,state.currency)}</div>`:''}</td>
-            <td><div>${fmt(item.salePricePln,state.currency)}</div>${saleConverted!==null?`<div class="tiny">${fmt(saleConverted, displayCurrency)}</div>`:''}</td>
-            <td><div class="${item.pnlPln>=0?'ok':'bad'}">${fmt(item.pnlPln,state.currency)}</div>${pnlConverted!==null?`<div class="tiny">${fmt(pnlConverted, displayCurrency)}</div>`:''}</td>
-            <td><div>${roiSingle!==null && Number.isFinite(roiSingle)?`${roiSingle>=0?'+':''}${roiSingle.toFixed(1)}%`:'—'}</div><div class="tiny">Czas: ${holdDays!==null?`${Math.round(holdDays)} dni`:'—'}</div></td>
-            <td>${noteHtml}<div class="inventory-table-actions" style="margin-top:6px"><button class="btn ghost" data-act="restore">Przywróć</button><button class="btn danger" data-act="delete-sold">Usuń</button></div></td>`;
-          soldBody.appendChild(tr);
-          tr.querySelector('[data-act="restore"]').onclick=()=>{
-            if(!confirm('Przywrócić tę pozycję do magazynu?')) return;
-            inventoryState.sold=inventoryState.sold.filter(x=>x.id!==item.id);
-            inventoryState.items.unshift({
-              id:item.id,
-              brand:item.brand,
-              model:item.model,
-              size:item.size,
-              sizeEu:item.sizeEu||'',
-              sizeUs:item.sizeUs||'',
-              purchasePrice:item.purchasePrice,
-              purchaseCurrency:'PLN',
-              purchaseDate:item.purchaseDate,
-              purchaseNote:item.purchaseNote||'',
-              planPricePln:item.planPricePln??null,
-              planCurrency:item.planCurrency||inventoryState.ui?.selectedCurrency||'PLN',
-              planUpdatedAt:item.planUpdatedAt||null,
-              createdAt:item.purchaseDate || new Date().toISOString()
-            });
-            save(state);
-            renderInventory();
-          };
-          tr.querySelector('[data-act="delete-sold"]').onclick=()=>{
-            if(!confirm('Usunąć zapis sprzedaży?')) return;
-            inventoryState.sold=inventoryState.sold.filter(x=>x.id!==item.id);
-            save(state);
-            renderInventory();
-          };
-        }
-      }
-    }
-
-    renderInventoryBrandChart(items);
-    renderInventorySalesChart(sold);
-    bindMoneyInputs(section);
-  }
-
-
-  // --- Goals ------------------------------------------------------------------
-  function renderGoals(){
-    const list = document.getElementById('goal-list');
-    const summary = document.getElementById('goal-summary');
-    const timelineWrapper = document.getElementById('goal-timeline-wrapper');
-    const commitmentTableWrapper = document.getElementById('goal-commitment-table').parentElement.parentElement;
-    list.innerHTML = '';
-    summary.innerHTML = '';
-
-    const goals = b().goals || [];
-    const allocations = b().goalAllocations || [];
-    const totalAllocatedByGoal = allocations.reduce((m,a)=>{m[a.goalId]=(m[a.goalId]||0)+num(a.amount);return m;},{});
-
-    if(goals.length === 0) {
-        list.innerHTML = `<p class="muted" style="text-align:center;">Brak zdefiniowanych celów. Użyj formularza powyżej, aby dodać swój pierwszy cel!</p>`;
-        timelineWrapper.style.display = 'none';
-        commitmentTableWrapper.style.display = 'none';
-        summary.style.display = 'none';
-        return;
-    }
-    
-    timelineWrapper.style.display = 'block';
-    commitmentTableWrapper.style.display = 'block';
-    summary.style.display = 'block';
-
-    let totalTarget = 0;
-    let totalCollected = 0;
-
-    for(const g of goals){
-        const collected = totalAllocatedByGoal[g.id] || 0;
-        totalTarget += num(g.target);
-        totalCollected += collected;
-        
-        const pct = g.target > 0 ? Math.min(100, (collected / g.target) * 100) : 0;
-        let monthlyNeeded = '';
-        if(g.deadline && g.startDate){
-            const startDate = new Date(g.startDate);
-            const deadlineDate = new Date(g.deadline);
-            if(deadlineDate > startDate){
-                const monthsLeft = Math.max(1, (deadlineDate.getFullYear() - startDate.getFullYear()) * 12 + (deadlineDate.getMonth() - startDate.getMonth()) + 1);
-                const needed = Math.max(0, g.target - collected);
-                const monthly = needed / monthsLeft;
-                monthlyNeeded = `<div class="muted" style="font-size:12px">Sugerowana wpłata miesięczna: ${fmt(monthly, state.currency)}</div>`;
-            }
-        }
-        const box = document.createElement('div');
-        box.className = 'card';
-        box.id = `goal-card-${g.id}`;
-        box.innerHTML = `
-          <div data-view="display">
-            <div class="row">
-              <div><b>${g.name}</b> <span class="muted">${g.startDate ? `${g.startDate} → ` : ''}${g.deadline || ''}</span></div>
-              <div>${fmt(collected, state.currency)} / ${fmt(g.target, state.currency)}</div>
-            </div>
-            <div class="progress ${pct >= 100 ? 'good' : pct >= 75 ? 'warn' : ''}" style="margin-top:6px"><i style="width:${pct}%"></i></div>
-            <div class="muted" style="font-size:12px;margin-top:4px">Postęp: ${pct.toFixed(0)}%</div>
-            ${monthlyNeeded}
-            <div class="row" style="margin-top:8px; justify-content: flex-end; gap:8px;">
-              <button class="btn soft" data-act="edit">Edytuj</button>
-              <button class="btn danger" data-act="del">Usuń</button>
-            </div>
-          </div>`;
-        
-        box.querySelector('[data-act="edit"]').onclick = () => startEditGoal(g.id);
-        box.querySelector('[data-act="del"]').onclick = () => {
-            if(!confirm('Usunąć cel (razem z alokacjami)?')) return;
-            state.modules.budget.goals = b().goals.filter(x => x.id !== g.id);
-            state.modules.budget.goalAllocations = b().goalAllocations.filter(a => a.goalId !== g.id);
-            save(state);
-            renderGoals();
-        };
-        list.appendChild(box);
-    }
-
-    const totalProgressPct = totalTarget > 0 ? (totalCollected / totalTarget) * 100 : 0;
-    summary.innerHTML = `
-      <div class="row">
-        <div class="stat-card" style="flex:1;"><div class="muted">Łącznie do zebrania</div><div class="big-number">${fmt(totalTarget, state.currency)}</div></div>
-        <div class="stat-card" style="flex:1;"><div class="muted">Zebrano do tej pory</div><div class="big-number">${fmt(totalCollected, state.currency)}</div></div>
-      </div>
-      <div style="margin-top:8px;">
-        <div class="muted">Całkowity postęp</div>
-        <div class="progress ${totalProgressPct >= 100 ? 'good' : totalProgressPct >= 75 ? 'warn' : ''}" style="margin-top:4px; height: 12px;"><i style="width:${totalProgressPct}%"></i></div>
-        <div class="muted" style="font-size:12px;margin-top:4px">${totalProgressPct.toFixed(1)}%</div>
-      </div>
-    `;
-
-    renderGoalsTimeline();
-    renderAllocSelect();
-    renderAllocationsHistory();
-    setDefaultDateForAlloc();
-  }
-
-  function startEditGoal(id) {
-    const goal = b().goals.find(g => g.id === id);
-    if (!goal) return;
-    const card = document.getElementById(`goal-card-${id}`);
-    card.innerHTML = `
-      <div data-view="edit" class="grid g-4">
-        <input name="name" value="${goal.name}" placeholder="Nazwa celu" style="grid-column: 1 / 3;"/>
-        <input name="target" value="${String(goal.target).replace('.', ',')}" placeholder="Kwota" inputmode="decimal" style="grid-column: 3 / 5;"/>
-        <label class="tiny" style="grid-column: 1 / 3;">Początek oszczędzania<input name="startdate" type="date" value="${goal.startDate || ''}" /></label>
-        <label class="tiny" style="grid-column: 3 / 5;">Termin końcowy<input name="deadline" type="date" value="${goal.deadline || ''}" /></label>
-        <div class="row" style="grid-column: 1 / -1; justify-content: flex-end; gap:8px;">
-          <button class="btn ghost" data-act="cancel">Anuluj</button>
-          <button class="btn" data-act="save">Zapisz</button>
-        </div>
-      </div>`;
-    
-    bindMoneyInputs(card);
-    card.querySelector('[data-act="save"]').onclick = () => {
-      goal.name = card.querySelector('[name="name"]').value;
-      goal.target = num(card.querySelector('[name="target"]').value);
-      goal.startDate = card.querySelector('[name="startdate"]').value || new Date().toISOString().slice(0,10);
-      goal.deadline = card.querySelector('[name="deadline"]').value || undefined;
-      save(state);
-      renderGoals();
-    };
-    card.querySelector('[data-act="cancel"]').onclick = () => renderGoals();
-  }
-  
-  function renderGoalsTimeline() {
-    const timeline = document.getElementById('goal-timeline');
-    const axis = document.getElementById('timeline-axis');
-    const labelsDiv = document.getElementById('timeline-labels');
-    timeline.innerHTML = '';
-    axis.innerHTML = '';
-    labelsDiv.innerHTML = '';
-
-    const goalsWithDeadline = b().goals.filter(g => g.deadline && g.startDate).sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
-    if (goalsWithDeadline.length === 0) return;
-    
-    const earliestStartDate = new Date(Math.min(...goalsWithDeadline.map(g => new Date(g.startDate))));
-    const furthestDeadline = new Date(Math.max(...goalsWithDeadline.map(g => new Date(g.deadline))));
-
-    const totalDurationDays = (furthestDeadline - earliestStartDate) / (1000 * 60 * 60 * 24);
-    if (totalDurationDays <= 0) return;
-    
-    const totalAllocatedByGoal = (b().goalAllocations||[]).reduce((m,a)=>{m[a.goalId]=(m[a.goalId]||0)+num(a.amount);return m;},{});
-
-    let topOffset = 0;
-    goalsWithDeadline.forEach(g => {
-      const startDate = new Date(g.startDate);
-      const deadline = new Date(g.deadline);
-      const duration = (deadline - startDate) / (1000 * 60 * 60 * 24);
-      const left = ((startDate - earliestStartDate) / (1000 * 60 * 60 * 24) / totalDurationDays) * 100;
-      const width = (duration / totalDurationDays) * 100;
-
-      const collected = totalAllocatedByGoal[g.id] || 0;
-      const pct = g.target > 0 ? Math.min(100, (collected / g.target) * 100) : 0;
-
-      const bar = document.createElement('div');
-      bar.className = 'timeline-bar';
-      bar.style.top = `${topOffset}px`;
-      bar.style.left = `${left}%`;
-      bar.style.width = `${width}%`;
-      bar.style.background = `linear-gradient(90deg, #3b82f6 ${pct}%, #93c5fd ${pct}%)`;
-      bar.title = `${g.name}: ${pct.toFixed(0)}% zrealizowano (${fmt(collected)} / ${fmt(g.target)})`;
-      
-      bar.innerHTML = `<span class="bar-label">${g.name}</span> <span class="bar-progress">${pct.toFixed(0)}%</span>`;
-      timeline.appendChild(bar);
-      topOffset += 30;
-    });
-
-    timeline.style.height = `${topOffset}px`;
-
-    // Render Axis and Labels
-    const monthlyCommitments = {};
-    goalsWithDeadline.forEach(g => {
-        const collected = totalAllocatedByGoal[g.id] || 0;
-        const needed = Math.max(0, num(g.target) - collected);
-        const startDate = new Date(g.startDate);
-        const deadlineDate = new Date(g.deadline);
-        if(deadlineDate > startDate){
-            const monthsLeft = Math.max(1, (deadlineDate.getFullYear() - startDate.getFullYear()) * 12 + (deadlineDate.getMonth() - startDate.getMonth()) + 1);
-            const monthlyAmount = needed / monthsLeft;
-            for(let i=0; i < monthsLeft; i++){
-                const targetMonth = ymAdd(monthKey(startDate), i);
-                if(!monthlyCommitments[targetMonth]) monthlyCommitments[targetMonth] = {};
-                monthlyCommitments[targetMonth][g.id] = monthlyAmount;
-            }
-        }
-    });
-
-    const axisMonths = [];
-    let currentMonth = new Date(earliestStartDate.getFullYear(), earliestStartDate.getMonth(), 1);
-    while (currentMonth <= furthestDeadline) {
-        axisMonths.push(new Date(currentMonth));
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-    }
-    
-    axis.innerHTML = axisMonths.map(month => {
-        const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-        const left = ((monthStart - earliestStartDate) / (1000 * 60 * 60 * 24) / totalDurationDays) * 100;
-        if (left < 0 || left > 100) return '';
-        return `<div style="position:absolute; left: ${left}%; transform: translateX(-50%);">${month.toLocaleString('pl-PL', { month: 'short', year: 'numeric' })}</div>`;
-    }).join('');
-    
-    labelsDiv.innerHTML = axisMonths.map(month => {
-        const ym = monthKey(month);
-        const monthStart = new Date(month.getFullYear(), month.getMonth(), 15);
-        const left = ((monthStart - earliestStartDate) / (1000 * 60 * 60 * 24) / totalDurationDays) * 100;
-        const totalForMonth = Object.values(monthlyCommitments[ym] || {}).reduce((s, a) => s + a, 0);
-        if (left < 0 || left > 100 || totalForMonth === 0) return '';
-        return `<div class="timeline-label" style="left: ${left}%;">${fmt(totalForMonth, state.currency)}</div>`;
-    }).join('');
-    
-    renderGoalCommitmentTable(monthlyCommitments, goalsWithDeadline);
-  }
-
-  function renderGoalCommitmentTable(monthlyCommitments, goals) {
-    const table = document.getElementById('goal-commitment-table');
-    if (goals.length === 0) {
-        table.innerHTML = '';
-        return;
-    }
-
-    let header = `<thead><tr><th>Miesiąc</th>`;
-    goals.forEach(g => header += `<th>${g.name}</th>`);
-    header += `<th>Suma miesięczna</th></tr></thead>`;
-
-    const months = Object.keys(monthlyCommitments).sort();
-    let body = '<tbody>';
-    months.forEach(ym => {
-        let monthlyTotal = 0;
-        body += `<tr><td><b>${ym}</b></td>`;
-        goals.forEach(g => {
-            const amount = monthlyCommitments[ym]?.[g.id] || 0;
-            if(amount > 0) {
-                body += `<td>${fmt(amount, state.currency)}</td>`;
-                monthlyTotal += amount;
-            } else {
-                body += `<td class="muted">—</td>`;
-            }
-        });
-        body += `<td><b>${fmt(monthlyTotal, state.currency)}</b></td></tr>`;
-    });
-    body += '</tbody>';
-
-    table.innerHTML = header + body;
-  }
-  
-  function renderAllocationsHistory() {
-    const tbody = document.getElementById('alloc-history-tbody');
-    tbody.innerHTML = '';
-    const allocations = (b().goalAllocations || []).sort((a,b) => b.date.localeCompare(a.date)).slice(0, 15);
-    const goalsById = Object.fromEntries((b().goals || []).map(g => [g.id, g]));
-
-    if (allocations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="muted" style="text-align:center;">Brak historii alokacji.</td></tr>`;
-        return;
-    }
-
-    for (const alloc of allocations) {
-        const goal = goalsById[alloc.goalId];
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${alloc.date}</td>
-            <td>${goal ? goal.name : '<em>Usunięty cel</em>'}</td>
-            <td>${fmt(alloc.amount, state.currency)}</td>
-            <td class="row" style="justify-content:flex-end; gap:8px;">
-                <button class="btn soft" data-edit-id="${alloc.id}">Edytuj</button>
-                <button class="btn danger" data-del-id="${alloc.id}">Usuń</button>
-            </td>
-        `;
-
-        tr.querySelector(`[data-edit-id]`).onclick = () => startEditAllocation(alloc.id);
-        tr.querySelector(`[data-del-id]`).onclick = () => {
-            if (confirm('Czy na pewno usunąć tę alokację?')) {
-                b().goalAllocations = b().goalAllocations.filter(a => a.id !== alloc.id);
-                save(state);
-                renderGoals();
-            }
-        };
-        tbody.appendChild(tr);
-    }
-  }
-
-  function startEditAllocation(allocId) {
-    const alloc = b().goalAllocations.find(a => a.id === allocId);
-    if (!alloc) return;
-
-    const form = document.getElementById('alloc-form');
-    form.querySelector('[name="allocId"]').value = alloc.id;
-    form.querySelector('[name="goalId"]').value = alloc.goalId;
-    form.querySelector('[name="date"]').value = alloc.date;
-    form.querySelector('[name="amount"]').value = String(alloc.amount).replace('.', ',');
-    
-    document.getElementById('alloc-form-title').textContent = 'Edytuj alokację';
-    document.getElementById('alloc-submit-btn').textContent = 'Zapisz zmiany';
-    document.getElementById('alloc-cancel-btn').style.display = 'inline-flex';
-  }
-
-  function resetAllocForm() {
-    const form = document.getElementById('alloc-form');
-    form.reset();
-    form.querySelector('[name="allocId"]').value = '';
-    
-    document.getElementById('alloc-form-title').textContent = 'Dodaj alokację na cel';
-    document.getElementById('alloc-submit-btn').textContent = 'Dodaj alokację';
-    document.getElementById('alloc-cancel-btn').style.display = 'none';
-    setDefaultDateForAlloc();
-  }
-
   function setDefaultDateForAlloc() {
     const dateInput = document.querySelector('#alloc-form input[name="date"]');
     if (dateInput && !dateInput.value) {
@@ -4721,9 +3019,6 @@
     monthlySort:{field:'ym',dir:'desc'}
   };
   const ANALYTICS_COLORS=['#0ea5e9','#ef4444','#16a34a','#f97316','#8b5cf6','#14b8a6','#facc15','#6366f1','#0f172a'];
-  const INVENTORY_SUPPORTED_CURRENCIES=['PLN','EUR','USD'];
-  const INVENTORY_RATES_API='https://api.nbp.pl/api/exchangerates/tables/A/last/1?format=json';
-  const inventoryCharts={};
 
   function loadAnalyticsUiState(){
     try{
@@ -5837,6 +4132,298 @@
       }).join('');
   }
 
+  // --- MoM comparison ----------------------------------------------------------
+  const MOM_COLORS={a:'#0ea5e9',b:'#f97316'};
+  const momState={
+    monthA:null,
+    monthB:null,
+    day:Math.min(31,Math.max(1,new Date().getDate())),
+    selectedCategory:'__all'
+  };
+  let momChart=null;
+  let momLastContext=null;
+
+  function destroyMomChart(){
+    if(momChart){momChart.destroy(); momChart=null;}
+  }
+
+  function ensureMomState(months){
+    const sorted=[...months].sort();
+    if(sorted.length===0){
+      momState.monthA=null;
+      momState.monthB=null;
+      momState.selectedCategory='__all';
+      return;
+    }
+    if(!sorted.includes(momState.monthA)){
+      momState.monthA=sorted[sorted.length-1];
+    }
+    if(!sorted.includes(momState.monthB)){
+      const idx=sorted.indexOf(momState.monthA);
+      if(idx>0) momState.monthB=sorted[idx-1];
+      else if(sorted.length>1) momState.monthB=sorted[sorted.length-2];
+      else momState.monthB=momState.monthA;
+    }
+    const rawDay=Number(momState.day);
+    if(!Number.isFinite(rawDay) || rawDay<1){
+      momState.day=Math.min(31,Math.max(1,new Date().getDate()));
+    }else{
+      momState.day=Math.min(31,Math.max(1,Math.round(rawDay)));
+    }
+  }
+
+  function getMomEffectiveDay(monthA,monthB,requested){
+    const values=[];
+    if(Number.isFinite(requested) && requested>0) values.push(requested);
+    if(monthA) values.push(daysInYm(monthA));
+    if(monthB) values.push(daysInYm(monthB));
+    if(!values.length) return 1;
+    return Math.min(...values);
+  }
+
+  function buildMomSeries(ym,categoryIds){
+    const out={ym,days:0,series:{}};
+    categoryIds.forEach(id=>{out.series[id]=[];});
+    if(!ym) return out;
+    const days=daysInYm(ym);
+    out.days=days;
+    categoryIds.forEach(id=>{out.series[id]=Array(days).fill(0);});
+    const catSet=new Set(categoryIds);
+    const entries=entriesForMonth(ym);
+    for(const entry of entries){
+      const cat=catsById()[entry.categoryId];
+      if(!cat || cat.type!=='expense') continue;
+      if(!catSet.has(entry.categoryId)) continue;
+      const day=Math.min(days,Math.max(1,Number(entry.date.slice(-2))||1));
+      const idx=day-1;
+      const amount=Math.abs(entry.amount);
+      out.series[entry.categoryId][idx]+=amount;
+      if(out.series.__all) out.series.__all[idx]+=amount;
+    }
+    for(const id of categoryIds){
+      const arr=out.series[id];
+      for(let i=1;i<arr.length;i++){arr[i]+=arr[i-1];}
+    }
+    return out;
+  }
+
+  function momSeriesSlice(seriesData,catId,dayLimit){
+    const arr=seriesData?.series?.[catId];
+    if(!arr || !arr.length) return [];
+    const limit=Math.min(dayLimit,arr.length);
+    return arr.slice(0,limit);
+  }
+
+  function momSeriesValue(seriesData,catId,dayLimit){
+    const arr=seriesData?.series?.[catId];
+    if(!arr || !arr.length) return 0;
+    const idx=Math.min(dayLimit,arr.length);
+    if(idx<=0) return 0;
+    return arr[idx-1];
+  }
+
+  function formatMomDiff(diff){
+    if(!Number.isFinite(diff) || Math.abs(diff)<0.01) return '<span class="delta-neutral">—</span>';
+    const cls=diff>0?'delta-down':'delta-up';
+    const arrow=diff>0?'▲':'▼';
+    return `<span class="${cls}">${arrow} ${fmt(Math.abs(diff), state.currency)}</span>`;
+  }
+
+  function formatMomPace(totalA,totalB){
+    if(!Number.isFinite(totalA)) totalA=0;
+    if(!Number.isFinite(totalB)) totalB=0;
+    if(totalB<=0) return totalA>0?'<span class="delta-neutral">—</span>':'<span class="delta-neutral">—</span>';
+    const pct=((totalA-totalB)/totalB)*100;
+    if(!Number.isFinite(pct) || Math.abs(pct)<0.05) return '<span class="delta-neutral">—</span>';
+    const cls=pct>0?'delta-down':'delta-up';
+    const arrow=pct>0?'▲':'▼';
+    return `<span class="${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+  }
+
+  function updateMomActiveRows(tbody){
+    if(!tbody) return;
+    tbody.querySelectorAll('tr').forEach(row=>{
+      row.classList.toggle('active',row.dataset.catId===momState.selectedCategory);
+    });
+  }
+
+  function renderMomComparison(){
+    const section=document.getElementById('tab-mom');
+    if(!section) return;
+    const info=document.getElementById('mom-info');
+    const summary=document.getElementById('mom-summary');
+    const selectA=document.getElementById('mom-month-a');
+    const selectB=document.getElementById('mom-month-b');
+    const dayInput=document.getElementById('mom-day-input');
+    const tableBody=document.querySelector('#mom-table tbody');
+    const colA=document.getElementById('mom-col-a');
+    const colB=document.getElementById('mom-col-b');
+    const emptyChart=document.getElementById('mom-chart-empty');
+    const chartCanvas=document.getElementById('mom-chart');
+    const caption=document.getElementById('mom-chart-caption');
+
+    const months=getAnalyticsAvailableMonths();
+    ensureMomState(months);
+
+    if(selectA){
+      selectA.innerHTML='';
+      if(months.length===0){
+        selectA.disabled=true;
+        selectA.add(new Option('Brak danych',''));
+      }else{
+        selectA.disabled=false;
+        months.forEach(m=>selectA.add(new Option(m,m,false,m===momState.monthA)));
+      }
+      selectA.onchange=e=>{momState.monthA=e.target.value||null; renderMomComparison();};
+    }
+    if(selectB){
+      selectB.innerHTML='';
+      if(months.length===0){
+        selectB.disabled=true;
+        selectB.add(new Option('Brak danych',''));
+      }else{
+        selectB.disabled=false;
+        months.forEach(m=>selectB.add(new Option(m,m,false,m===momState.monthB)));
+      }
+      selectB.onchange=e=>{momState.monthB=e.target.value||null; renderMomComparison();};
+    }
+    if(dayInput){
+      dayInput.disabled=months.length===0;
+      dayInput.value=momState.day;
+      dayInput.onchange=e=>{
+        const raw=Number(e.target.value);
+        if(!Number.isFinite(raw)){
+          e.target.value=momState.day;
+          return;
+        }
+        momState.day=Math.min(31,Math.max(1,Math.round(raw)));
+        renderMomComparison();
+      };
+    }
+
+    if(months.length===0){
+      if(info) info.textContent='Brak danych do porównania. Dodaj transakcje, aby rozpocząć analizę.';
+      if(summary){summary.style.display='none'; summary.textContent='';}
+      if(colA) colA.textContent='Miesiąc A';
+      if(colB) colB.textContent='Miesiąc B';
+      if(tableBody) tableBody.innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">Brak danych do wyświetlenia.</td></tr>';
+      momLastContext=null;
+      destroyMomChart();
+      if(chartCanvas) chartCanvas.style.display='none';
+      if(emptyChart) emptyChart.style.display='flex';
+      if(caption) caption.textContent='';
+      return;
+    }
+
+    const effectiveDay=getMomEffectiveDay(momState.monthA,momState.monthB,Number(momState.day));
+
+    if(info) info.textContent='Porównuj tempo wydatków w dwóch miesiącach roku.';
+    if(summary){
+      const requested=Number(momState.day);
+      summary.style.display='block';
+      const base=`Porównanie do dnia ${String(effectiveDay).padStart(2,'0')}.`;
+      summary.textContent = effectiveDay !== requested ? `${base} Dopasowano do liczby dni krótszego miesiąca.` : base;
+    }
+    if(colA) colA.textContent = momState.monthA ? `Miesiąc A (${momState.monthA})` : 'Miesiąc A';
+    if(colB) colB.textContent = momState.monthB ? `Miesiąc B (${momState.monthB})` : 'Miesiąc B';
+
+    const expenseCats=(b().categories||[]).filter(c=>c.type==='expense');
+    const categories=[{id:'__all',name:'Wszystkie kategorie',emoji:'📊'}];
+    for(const cat of expenseCats){
+      categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
+    }
+    if(!categories.some(c=>c.id===momState.selectedCategory)){
+      momState.selectedCategory='__all';
+    }
+
+    const catIds=categories.map(c=>c.id);
+    const monthAData=buildMomSeries(momState.monthA,catIds);
+    const monthBData=buildMomSeries(momState.monthB,catIds);
+
+    const rows=categories.map(cat=>{
+      const totalA=momSeriesValue(monthAData,cat.id,effectiveDay);
+      const totalB=momSeriesValue(monthBData,cat.id,effectiveDay);
+      return {cat,totalA,totalB,diff:totalA-totalB};
+    });
+    const overall=rows.shift();
+    const others=rows.sort((a,b)=>b.totalA-a.totalA);
+    const ordered=overall?[overall,...others]:others;
+
+    if(tableBody){
+      tableBody.innerHTML='';
+      ordered.forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.dataset.catId=row.cat.id;
+        const label=row.cat.id==='__all'?'Wszystkie kategorie':`${row.cat.emoji?row.cat.emoji+' ':''}${row.cat.name}`;
+        tr.innerHTML=`<td>${label}</td><td>${fmt(row.totalA, state.currency)}</td><td>${fmt(row.totalB, state.currency)}</td><td>${formatMomDiff(row.diff)}</td><td>${formatMomPace(row.totalA,row.totalB)}</td>`;
+        tr.addEventListener('click',()=>{momState.selectedCategory=row.cat.id; updateMomActiveRows(tableBody); updateMomChart();});
+        tableBody.appendChild(tr);
+      });
+      updateMomActiveRows(tableBody);
+    }
+
+    momLastContext={categories,monthA:momState.monthA,monthB:momState.monthB,dayLimit:effectiveDay,monthAData,monthBData};
+    updateMomChart();
+  }
+
+  function updateMomChart(){
+    const canvas=document.getElementById('mom-chart');
+    const empty=document.getElementById('mom-chart-empty');
+    const caption=document.getElementById('mom-chart-caption');
+    if(!canvas){
+      destroyMomChart();
+      return;
+    }
+    if(!momLastContext){
+      destroyMomChart();
+      if(empty) empty.style.display='flex';
+      canvas.style.display='none';
+      if(caption) caption.textContent='';
+      return;
+    }
+    const {categories,monthA,monthB,dayLimit,monthAData,monthBData}=momLastContext;
+    const selected=categories.find(c=>c.id===momState.selectedCategory)||categories[0];
+    const seriesA=momSeriesSlice(monthAData,selected.id,dayLimit);
+    const seriesB=momSeriesSlice(monthBData,selected.id,dayLimit);
+    const maxLen=Math.max(seriesA.length,seriesB.length);
+    if(maxLen===0){
+      destroyMomChart();
+      if(empty) empty.style.display='flex';
+      canvas.style.display='none';
+      if(caption) caption.textContent='Brak danych dla wybranej kategorii.';
+      return;
+    }
+    canvas.style.display='block';
+    if(empty) empty.style.display='none';
+    const labels=Array.from({length:maxLen},(_,i)=>String(i+1).padStart(2,'0'));
+    destroyMomChart();
+    momChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:monthA||'Miesiąc A',data:seriesA,borderColor:MOM_COLORS.a,backgroundColor:withAlpha(MOM_COLORS.a,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4},
+          {label:monthB||'Miesiąc B',data:seriesB,borderColor:MOM_COLORS.b,backgroundColor:withAlpha(MOM_COLORS.b,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:true}},
+        scales:{
+          x:{title:{display:true,text:'Dzień miesiąca'}},
+          y:{beginAtZero:true,ticks:{callback:currencyTicks}}
+        }
+      }
+    });
+    if(caption){
+      const label=selected.id==='__all'?'Wszystkie kategorie':`${selected.emoji?selected.emoji+' ':''}${selected.name}`;
+      caption.textContent=`Aktualnie porównywana kategoria: ${label}`;
+    }
+  }
+
+
   // --- Recurring templates (variable expenses) --------------------------------
   function scheduledDateFor(tpl, ym){
     const d=Math.min(Math.max(1, Number(tpl.day)||1), daysInYm(ym));
@@ -6052,7 +4639,7 @@
     safeRender(renderFixed,'Fixed');
     safeRender(renderVariable,'Variable');
     safeRender(renderCategories,'Categories');
-    safeRender(renderInventory,'Inventory');
+    safeRender(renderMomComparison,'MoM');
     safeRender(renderGoalsAndEOM,'Goals+EOM');
     bindMoneyInputs();
   }
