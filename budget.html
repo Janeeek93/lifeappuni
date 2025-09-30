@@ -4701,13 +4701,26 @@
     if(empty) empty.style.display='none';
     const labels=Array.from({length:maxLen},(_,i)=>String(i+1).padStart(2,'0'));
     destroyMomChart();
+    const diffSeries=labels.map((_,idx)=>{
+      const valA=idx<seriesA.length?seriesA[idx]:null;
+      const valB=idx<seriesB.length?seriesB[idx]:null;
+      if(valA===null && valB===null) return null;
+      const safeA=Number.isFinite(valA)?valA:0;
+      const safeB=Number.isFinite(valB)?valB:0;
+      return safeA-safeB;
+    });
+    const diffColors=diffSeries.map(v=>{
+      if(v===null) return 'transparent';
+      return v>=0?withAlpha(MOM_COLORS.a,0.12):withAlpha(MOM_COLORS.b,0.12);
+    });
     momChart=new Chart(canvas.getContext('2d'),{
       type:'line',
       data:{
         labels,
         datasets:[
-          {label:monthA||'Miesiąc A',data:seriesA,borderColor:MOM_COLORS.a,backgroundColor:withAlpha(MOM_COLORS.a,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4},
-          {label:monthB||'Miesiąc B',data:seriesB,borderColor:MOM_COLORS.b,backgroundColor:withAlpha(MOM_COLORS.b,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4}
+          {type:'bar',label:'Różnica (A − B)',data:diffSeries,backgroundColor:diffColors,borderWidth:0,order:0,yAxisID:'y',barPercentage:0.9,categoryPercentage:1,borderRadius:4,hoverBackgroundColor:diffColors},
+          {label:monthA||'Miesiąc A',data:seriesA,borderColor:MOM_COLORS.a,backgroundColor:withAlpha(MOM_COLORS.a,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4,order:2},
+          {label:monthB||'Miesiąc B',data:seriesB,borderColor:MOM_COLORS.b,backgroundColor:withAlpha(MOM_COLORS.b,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4,order:2}
         ]
       },
       options:{
@@ -4723,7 +4736,7 @@
     });
     if(caption){
       const label=selected.id==='__all'?'Wszystkie kategorie':`${selected.emoji?selected.emoji+' ':''}${selected.name}`;
-      caption.textContent=`Aktualnie porównywana kategoria: ${label}`;
+      caption.textContent=`Aktualnie porównywana kategoria: ${label}. Słupki w tle pokazują różnicę (A − B).`;
     }
   }
 
