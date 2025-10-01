@@ -4450,6 +4450,9 @@
   // --- MoM comparison ----------------------------------------------------------
   const MOM_COLORS={a:'#0ea5e9',b:'#f97316'};
   const MOM_DIFF_COLORS={positive:'#ef4444',negative:'#22c55e',neutral:'#94a3b8'};
+  const MOM_NO_FIXED_ID='__all_no_fixed';
+  const MOM_NO_FIXED_LABEL='Wszystkie bez wydatków stałych';
+  const MOM_FIXED_CATEGORY_ID='c_fixed';
   const momState={
     monthA:null,
     monthB:null,
@@ -4520,6 +4523,9 @@
       const amount=Math.abs(entry.amount);
       out.series[entry.categoryId][idx]+=amount;
       if(out.series.__all) out.series.__all[idx]+=amount;
+      if(out.series[MOM_NO_FIXED_ID] && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
+        out.series[MOM_NO_FIXED_ID][idx]+=amount;
+      }
     }
     for(const id of categoryIds){
       const arr=out.series[id];
@@ -4559,6 +4565,13 @@
     const cls=pct>0?'delta-down':'delta-up';
     const arrow=pct>0?'▲':'▼';
     return `<span class="${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+  }
+
+  function momCategoryLabel(cat){
+    if(!cat) return '';
+    if(cat.id==='__all') return 'Wszystkie kategorie';
+    const prefix=cat.emoji?cat.emoji+' ':'';
+    return `${prefix}${cat.name}`;
   }
 
   function updateMomActiveRows(tbody){
@@ -4656,7 +4669,10 @@
     if(colB) colB.textContent = momState.monthB ? `Miesiąc B (${momState.monthB})` : 'Miesiąc B';
 
     const expenseCats=(b().categories||[]).filter(c=>c.type==='expense');
-    const categories=[{id:'__all',name:'Wszystkie kategorie',emoji:'📊'}];
+    const categories=[
+      {id:'__all',name:'Wszystkie kategorie',emoji:'📊'},
+      {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'}
+    ];
     for(const cat of expenseCats){
       categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
     }
@@ -4682,7 +4698,7 @@
       ordered.forEach(row=>{
         const tr=document.createElement('tr');
         tr.dataset.catId=row.cat.id;
-        const label=row.cat.id==='__all'?'Wszystkie kategorie':`${row.cat.emoji?row.cat.emoji+' ':''}${row.cat.name}`;
+        const label=momCategoryLabel(row.cat);
         tr.innerHTML=`<td>${label}</td><td>${fmt(row.totalA, state.currency)}</td><td>${fmt(row.totalB, state.currency)}</td><td>${formatMomDiff(row.diff)}</td><td>${formatMomPace(row.totalA,row.totalB)}</td>`;
         tr.addEventListener('click',()=>{momState.selectedCategory=row.cat.id; updateMomActiveRows(tableBody); updateMomChart();});
         tableBody.appendChild(tr);
@@ -4807,7 +4823,7 @@
       }
     });
     if(caption){
-      const label=selected.id==='__all'?'Wszystkie kategorie':`${selected.emoji?selected.emoji+' ':''}${selected.name}`;
+      const label=momCategoryLabel(selected);
       caption.textContent=`Aktualnie porównywana kategoria: ${label}.`;
     }
     if(diffCaption){
