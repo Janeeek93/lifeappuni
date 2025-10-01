@@ -4479,15 +4479,25 @@
       momState.selectedCategory='__all';
       return;
     }
+
+    const workingMonth=b().workingMonth;
     if(!sorted.includes(momState.monthA)){
-      momState.monthA=sorted[sorted.length-1];
+      if(workingMonth && sorted.includes(workingMonth)) momState.monthA=workingMonth;
+      else momState.monthA=sorted[sorted.length-1];
     }
+
     if(!sorted.includes(momState.monthB)){
-      const idx=sorted.indexOf(momState.monthA);
-      if(idx>0) momState.monthB=sorted[idx-1];
-      else if(sorted.length>1) momState.monthB=sorted[sorted.length-2];
-      else momState.monthB=momState.monthA;
+      const base=sorted.includes(momState.monthA)?momState.monthA:sorted[sorted.length-1];
+      const desiredPrev=base?ymAdd(base,-1):null;
+      if(desiredPrev && sorted.includes(desiredPrev)) momState.monthB=desiredPrev;
+      else {
+        const idx=sorted.indexOf(base);
+        if(idx>0) momState.monthB=sorted[idx-1];
+        else if(sorted.length>1) momState.monthB=sorted[sorted.length-2];
+        else momState.monthB=base;
+      }
     }
+
     const rawDay=Number(momState.day);
     if(!Number.isFinite(rawDay) || rawDay<1){
       momState.day=Math.min(31,Math.max(1,new Date().getDate()));
