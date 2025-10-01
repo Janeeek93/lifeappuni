@@ -1195,6 +1195,17 @@
       </div>
       <div class="card" style="margin-top:12px">
         <div class="row" style="align-items:flex-end;justify-content:space-between">
+          <h4 class="title">Dzienna różnica (A − B)</h4>
+          <span class="tiny muted">Czerwone słupki oznaczają szybsze tempo w miesiącu A, zielone — wolniejsze.</span>
+        </div>
+        <div class="chart-box wide">
+          <canvas id="mom-diff-chart"></canvas>
+          <div class="chart-empty" id="mom-diff-empty" style="display:none">Brak danych do wyświetlenia.</div>
+        </div>
+        <p class="tiny muted" id="mom-diff-caption" style="margin-top:8px"></p>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="align-items:flex-end;justify-content:space-between">
           <h4 class="title">Zestawienie kategorii</h4>
           <span class="tiny muted">Kwoty obejmują wydatki do wybranego dnia.</span>
         </div>
@@ -4438,6 +4449,7 @@
 
   // --- MoM comparison ----------------------------------------------------------
   const MOM_COLORS={a:'#0ea5e9',b:'#f97316'};
+  const MOM_DIFF_COLORS={positive:'#ef4444',negative:'#22c55e',neutral:'#94a3b8'};
   const momState={
     monthA:null,
     monthB:null,
@@ -4445,10 +4457,15 @@
     selectedCategory:'__all'
   };
   let momChart=null;
+  let momDiffChart=null;
   let momLastContext=null;
 
   function destroyMomChart(){
     if(momChart){momChart.destroy(); momChart=null;}
+  }
+
+  function destroyMomDiffChart(){
+    if(momDiffChart){momDiffChart.destroy(); momDiffChart=null;}
   }
 
   function ensureMomState(months){
@@ -4565,6 +4582,9 @@
     const emptyChart=document.getElementById('mom-chart-empty');
     const chartCanvas=document.getElementById('mom-chart');
     const caption=document.getElementById('mom-chart-caption');
+    const diffCanvas=document.getElementById('mom-diff-chart');
+    const diffEmpty=document.getElementById('mom-diff-empty');
+    const diffCaption=document.getElementById('mom-diff-caption');
 
     const months=getAnalyticsAvailableMonths();
     ensureMomState(months);
@@ -4613,9 +4633,13 @@
       if(tableBody) tableBody.innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;">Brak danych do wyświetlenia.</td></tr>';
       momLastContext=null;
       destroyMomChart();
+      destroyMomDiffChart();
       if(chartCanvas) chartCanvas.style.display='none';
       if(emptyChart) emptyChart.style.display='flex';
       if(caption) caption.textContent='';
+      if(diffCanvas) diffCanvas.style.display='none';
+      if(diffEmpty) diffEmpty.style.display='flex';
+      if(diffCaption) diffCaption.textContent='';
       return;
     }
 
@@ -4674,15 +4698,23 @@
     const canvas=document.getElementById('mom-chart');
     const empty=document.getElementById('mom-chart-empty');
     const caption=document.getElementById('mom-chart-caption');
-    if(!canvas){
+    const diffCanvas=document.getElementById('mom-diff-chart');
+    const diffEmpty=document.getElementById('mom-diff-empty');
+    const diffCaption=document.getElementById('mom-diff-caption');
+    if(!canvas || !diffCanvas){
       destroyMomChart();
+      destroyMomDiffChart();
       return;
     }
     if(!momLastContext){
       destroyMomChart();
+      destroyMomDiffChart();
       if(empty) empty.style.display='flex';
       canvas.style.display='none';
       if(caption) caption.textContent='';
+      if(diffEmpty) diffEmpty.style.display='flex';
+      diffCanvas.style.display='none';
+      if(diffCaption) diffCaption.textContent='';
       return;
     }
     const {categories,monthA,monthB,dayLimit,monthAData,monthBData}=momLastContext;
@@ -4692,15 +4724,16 @@
     const maxLen=Math.max(seriesA.length,seriesB.length);
     if(maxLen===0){
       destroyMomChart();
+      destroyMomDiffChart();
       if(empty) empty.style.display='flex';
       canvas.style.display='none';
       if(caption) caption.textContent='Brak danych dla wybranej kategorii.';
+      if(diffEmpty) diffEmpty.style.display='flex';
+      diffCanvas.style.display='none';
+      if(diffCaption) diffCaption.textContent='';
       return;
     }
-    canvas.style.display='block';
-    if(empty) empty.style.display='none';
     const labels=Array.from({length:maxLen},(_,i)=>String(i+1).padStart(2,'0'));
-    destroyMomChart();
     const diffSeries=labels.map((_,idx)=>{
       const valA=idx<seriesA.length?seriesA[idx]:null;
       const valB=idx<seriesB.length?seriesB[idx]:null;
@@ -4709,18 +4742,19 @@
       const safeB=Number.isFinite(valB)?valB:0;
       return safeA-safeB;
     });
-    const diffColors=diffSeries.map(v=>{
-      if(v===null) return 'transparent';
-      return v>=0?withAlpha(MOM_COLORS.a,0.12):withAlpha(MOM_COLORS.b,0.12);
-    });
+    canvas.style.display='block';
+    diffCanvas.style.display='block';
+    if(empty) empty.style.display='none';
+    if(diffEmpty) diffEmpty.style.display='none';
+    destroyMomChart();
+    destroyMomDiffChart();
     momChart=new Chart(canvas.getContext('2d'),{
       type:'line',
       data:{
         labels,
         datasets:[
-          {type:'bar',label:'Różnica (A − B)',data:diffSeries,backgroundColor:diffColors,borderWidth:0,order:0,yAxisID:'y',barPercentage:0.9,categoryPercentage:1,borderRadius:4,hoverBackgroundColor:diffColors},
-          {label:monthA||'Miesiąc A',data:seriesA,borderColor:MOM_COLORS.a,backgroundColor:withAlpha(MOM_COLORS.a,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4,order:2},
-          {label:monthB||'Miesiąc B',data:seriesB,borderColor:MOM_COLORS.b,backgroundColor:withAlpha(MOM_COLORS.b,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4,order:2}
+          {label:monthA||'Miesiąc A',data:seriesA,borderColor:MOM_COLORS.a,backgroundColor:withAlpha(MOM_COLORS.a,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4},
+          {label:monthB||'Miesiąc B',data:seriesB,borderColor:MOM_COLORS.b,backgroundColor:withAlpha(MOM_COLORS.b,0.15),tension:0.3,fill:false,pointRadius:3,pointHoverRadius:4}
         ]
       },
       options:{
@@ -4734,9 +4768,50 @@
         }
       }
     });
+    const diffColors=diffSeries.map(v=>{
+      if(v===null) return 'transparent';
+      if(v>0) return withAlpha(MOM_DIFF_COLORS.positive,0.55);
+      if(v<0) return withAlpha(MOM_DIFF_COLORS.negative,0.55);
+      return withAlpha(MOM_DIFF_COLORS.neutral,0.35);
+    });
+    const diffBorderColors=diffSeries.map(v=>{
+      if(v===null) return 'transparent';
+      if(v>0) return MOM_DIFF_COLORS.positive;
+      if(v<0) return MOM_DIFF_COLORS.negative;
+      return MOM_DIFF_COLORS.neutral;
+    });
+    momDiffChart=new Chart(diffCanvas.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[{
+          label:'Różnica skumulowana (A − B)',
+          data:diffSeries,
+          backgroundColor:diffColors,
+          borderColor:diffBorderColors,
+          borderWidth:1,
+          borderRadius:4,
+          barPercentage:0.9,
+          categoryPercentage:1
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{title:{display:true,text:'Dzień miesiąca'}},
+          y:{beginAtZero:true,ticks:{callback:currencyTicks}}
+        }
+      }
+    });
     if(caption){
       const label=selected.id==='__all'?'Wszystkie kategorie':`${selected.emoji?selected.emoji+' ':''}${selected.name}`;
-      caption.textContent=`Aktualnie porównywana kategoria: ${label}. Słupki w tle pokazują różnicę (A − B).`;
+      caption.textContent=`Aktualnie porównywana kategoria: ${label}.`;
+    }
+    if(diffCaption){
+      diffCaption.textContent='Wartości dodatnie wskazują, że miesiąc A wyprzedza miesiąc B (wydano więcej).';
     }
   }
 
