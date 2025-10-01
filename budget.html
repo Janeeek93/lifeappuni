@@ -1243,6 +1243,14 @@
               <span class="tiny muted" id="buffer-note">Plan vs wydatki do dziś</span>
             </div>
           </div>
+          <div class="kpi-compact" id="mom-diff-kpi">
+            <span class="kpi-emoji">🆚</span>
+            <div class="kpi-body">
+              <span class="kpi-label">MoM bez stałych</span>
+              <span class="kpi-value" id="dash-mom-diff">—</span>
+              <span class="tiny muted" id="dash-mom-note">Porównanie dostępne dla bieżącego miesiąca</span>
+            </div>
+          </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">💸</span>
             <div class="kpi-body">
@@ -1733,7 +1741,47 @@
       bufferEl.textContent = '—';
       bufferNote.textContent = 'Dostępne tylko dla bieżącego miesiąca';
     }
-    
+
+    const momDiffValueEl = document.getElementById('dash-mom-diff');
+    const momDiffNoteEl = document.getElementById('dash-mom-note');
+    if (momDiffValueEl && momDiffNoteEl) {
+      momDiffValueEl.classList.remove('ok', 'bad');
+      if (ym === monthKey() && daysElapsed > 0 && daysElapsed <= days) {
+        const today = new Date();
+        const dayOfMonth = today.getDate();
+        const currentDayLimit = Math.min(dayOfMonth, days);
+        const prevYm = ymAdd(ym, -1);
+        const prevDayLimit = Math.min(currentDayLimit, daysInYm(prevYm));
+        const sumVariableToDay = (targetYm, limit) => {
+          if (!limit) return 0;
+          return entriesForMonth(targetYm).reduce((acc, entry) => {
+            const cat = cb[entry.categoryId];
+            if (!cat || cat.type !== 'expense' || cat.id === 'c_fixed') return acc;
+            const day = Number(entry.date.slice(8, 10));
+            if (!Number.isFinite(day) || day > limit) return acc;
+            return acc + Math.abs(entry.amount);
+          }, 0);
+        };
+        const currentSpent = sumVariableToDay(ym, currentDayLimit);
+        const previousSpent = sumVariableToDay(prevYm, prevDayLimit);
+        const diff = currentSpent - previousSpent;
+        const diffFormatted = fmt(diff, state.currency);
+        momDiffValueEl.textContent = diff > 0 ? `+${diffFormatted}` : diffFormatted;
+        if (diff > 0) {
+          momDiffValueEl.classList.add('bad');
+        } else if (diff < 0) {
+          momDiffValueEl.classList.add('ok');
+        }
+        const currentDayLabel = String(currentDayLimit).padStart(2, '0');
+        const prevDayLabel = String(prevDayLimit).padStart(2, '0');
+        const dayNote = prevDayLimit === currentDayLimit ? currentDayLabel : `${currentDayLabel} / ${prevDayLabel}`;
+        momDiffNoteEl.textContent = `${ym}: ${fmt(currentSpent, state.currency)} | ${prevYm}: ${fmt(previousSpent, state.currency)} (do dnia ${dayNote})`;
+      } else {
+        momDiffValueEl.textContent = '—';
+        momDiffNoteEl.textContent = 'Dostępne tylko dla bieżącego miesiąca';
+      }
+    }
+
     renderDashboardCharts(ym, dailyBudget, avgDaily);
     renderQuickActions();
   }
