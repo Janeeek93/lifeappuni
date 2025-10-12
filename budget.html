@@ -151,6 +151,176 @@
       display: flex;
     }
 
+    .eom-history-controls {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .eom-history-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #eom-history-range {
+      min-width: 160px;
+    }
+
+    #eom-history-search {
+      min-width: 200px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .eom-history-checkbox {
+      flex-direction: row !important;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .eom-history-checkbox input {
+      transform: translateY(1px);
+    }
+
+    .eom-history-table-shell {
+      margin-top: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.35), rgba(248, 250, 252, 0.75));
+      position: relative;
+    }
+
+    .eom-history-table-scroll {
+      max-height: 500px;
+      overflow: auto;
+      border-radius: inherit;
+    }
+
+    .eom-history-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .eom-history-table thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(248, 250, 252, 0.95);
+      backdrop-filter: blur(6px);
+      z-index: 5;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 700;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .eom-history-table thead th button {
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eom-history-table th, .eom-history-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .eom-history-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .eom-history-table td {
+      position: relative;
+      background-clip: padding-box;
+      transition: background-color .2s ease, box-shadow .2s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-history-table td:hover {
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-history-value {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .eom-history-arrow {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .eom-history-arrow.positive { color: var(--green); }
+    .eom-history-arrow.negative { color: var(--red); }
+    .eom-history-arrow.neutral { color: var(--muted); }
+
+    .eom-history-table td.positive {
+      color: var(--ink);
+    }
+
+    .eom-history-table td.negative {
+      color: var(--ink);
+    }
+
+    .eom-history-table td.networth {
+      font-weight: 700;
+    }
+
+    .eom-history-table td.delta {
+      font-weight: 600;
+    }
+
+    .eom-history-table thead button[data-sort-dir]::after {
+      content: attr(data-sort-dir);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .eom-history-footer {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(37, 99, 235, 0.08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      color: var(--ink);
+    }
+
+    .eom-history-footer strong {
+      font-size: 18px;
+    }
+
+    .eom-history-footer .muted {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
     .eom-networth-month-card {
       border: 1px solid rgba(148, 163, 184, 0.35);
       border-radius: 16px;
@@ -2334,27 +2504,41 @@
       </div>
 
       <div class="eom-panel" style="margin-top:16px">
-        <div class="row" style="align-items:flex-end;gap:12px">
+        <div class="row" style="align-items:flex-start;gap:12px">
           <div>
             <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
             <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
           </div>
-          <label class="tiny" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-            Zakres miesięcy
-            <select id="eom-history-months" style="min-width:160px">
+        </div>
+        <div class="eom-history-controls">
+          <label class="tiny">
+            Pokaż zakres
+            <select id="eom-history-range">
               <option value="3">3 miesiące</option>
-              <option value="6" selected>6 miesięcy</option>
+              <option value="6">6 miesięcy</option>
               <option value="12">12 miesięcy</option>
               <option value="all">Wszystkie</option>
             </select>
           </label>
+          <label class="tiny">
+            Szukaj konta
+            <input id="eom-history-search" type="search" placeholder="np. Oszczędności" />
+          </label>
+          <label class="tiny eom-history-checkbox">
+            <input type="checkbox" id="eom-history-only-changes" /> Tylko ze zmianami
+          </label>
+          <button class="btn soft" type="button" id="eom-history-transpose" data-active="0">Transponuj widok</button>
+          <button class="btn ghost" type="button" id="eom-history-export">Eksportuj do CSV</button>
         </div>
-        <div style="overflow-x:auto;margin-top:12px">
-          <table id="eom-accounts-history" class="table-modern">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
+        <div class="eom-history-table-shell">
+          <div class="eom-history-table-scroll">
+            <table id="eom-accounts-history" class="table-modern eom-history-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
+        <div id="eom-history-footer" class="eom-history-footer"></div>
         <div style="overflow-x:auto;margin-top:16px">
           <table id="eom-monthly-summary" class="table-modern table-sortable">
             <thead></thead>
@@ -4811,71 +4995,538 @@
 
   function renderEomHistoryTable(ctx, monthsToShow, options={}){
     const table = document.getElementById('eom-accounts-history');
+    const footer = document.getElementById('eom-history-footer');
+    const scrollShell = document.querySelector('.eom-history-table-scroll');
+    const exportBtn = document.getElementById('eom-history-export');
+    eomHistoryExportCache = null;
     if(!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if(thead) thead.innerHTML = '';
     if(tbody) tbody.innerHTML = '';
-    if(!monthsToShow.length){
-      if(tbody) tbody.innerHTML = `<tr><td class="muted" style="text-align:center;padding:16px;">Brak danych historycznych do wyświetlenia.</td></tr>`;
-      return;
-    }
-    if(!thead || !tbody) return;
+    if(footer) footer.innerHTML = '';
+    if(scrollShell) scrollShell.scrollTop = 0;
+    if(exportBtn) exportBtn.disabled = true;
+
     const scenario = options.scenario || 'actual';
     const typeFilter = new Set(Array.isArray(options.accountTypes) ? options.accountTypes : []);
-    const accounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
-    if(!accounts.length){
-      if(tbody) tbody.innerHTML = `<tr><td class="muted" style="text-align:center;padding:16px;">Brak kont spełniających filtr typów.</td></tr>`;
+    let accounts = ctx.accounts
+      .filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pl', { sensitivity: 'base' }));
+    const searchTerm = (options.search || '').trim().toLowerCase();
+    if(searchTerm){
+      accounts = accounts.filter(acc => acc.name.toLowerCase().includes(searchTerm));
+    }
+
+    const emptyRow = '<tr><td class="muted" style="text-align:center;padding:16px;">Brak danych historycznych do wyświetlenia.</td></tr>';
+    if(!monthsToShow.length){
+      if(tbody) tbody.innerHTML = emptyRow;
+      if(footer) footer.innerHTML = '<span class="muted">Brak danych historycznych. Dodaj transakcje, aby rozpocząć analizę.</span>';
       return;
     }
-    let header = '<tr><th>Miesiąc</th>';
-    for(const acc of accounts){ header += `<th>${acc.name}</th>`; }
-    header += '<th>Majątek netto</th><th>Zmiana m/m</th></tr>';
-    thead.innerHTML = header;
-    let prevNetWorth = null;
-    for(const ym of monthsToShow){
+
+    if(!accounts.length){
+      if(tbody) tbody.innerHTML = '<tr><td class="muted" style="text-align:center;padding:16px;">Brak kont spełniających bieżące filtry lub wyszukiwanie.</td></tr>';
+      if(footer) footer.innerHTML = '<span class="muted">Dostosuj filtry, aby zobaczyć dane historyczne.</span>';
+      return;
+    }
+
+    const chronologicalMonths = [...monthsToShow].sort((a, b) => a.localeCompare(b));
+    const initialAccountIds = accounts.map(acc => acc.id);
+    let monthRecords = buildHistoryMonthRecords(ctx, chronologicalMonths, initialAccountIds, scenario);
+    let accountSummaries = computeHistoryAccountSummaries(monthRecords, initialAccountIds);
+
+    if(options.onlyChanges){
+      accounts = accounts.filter(acc => accountSummaries[acc.id]?.hasChange);
+    }
+
+    if(!accounts.length){
+      if(tbody) tbody.innerHTML = '<tr><td class="muted" style="text-align:center;padding:16px;">Żadne konto nie wykazuje zmian w wybranym zakresie.</td></tr>';
+      if(footer) footer.innerHTML = '<span class="muted">Zmień filtr lub zakres, by zobaczyć ruchy na kontach.</span>';
+      return;
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+    monthRecords = buildHistoryMonthRecords(ctx, chronologicalMonths, accountIds, scenario);
+    accountSummaries = computeHistoryAccountSummaries(monthRecords, accountIds);
+    const netWorthAverage = computeNetWorthAverage(monthRecords);
+    const totalMonths = Number.isFinite(options.totalMonths) ? options.totalMonths : ctx.months.length;
+    const sortState = normalizeHistorySort(options.sort, options.transpose);
+
+    if(!table.dataset.historySortBound){
+      table.dataset.historySortBound = '1';
+      table.addEventListener('click', event => {
+        const button = event.target.closest('button[data-sort-key]');
+        if(!button) return;
+        const key = button.dataset.sortKey;
+        if(!key) return;
+        const transposeMode = !!eomUiState.historyTranspose;
+        const prev = eomUiState.historySort || { key: transposeMode ? 'name' : 'ym', dir: transposeMode ? 'asc' : 'desc' };
+        let dir = 'desc';
+        if(prev.key === key){
+          dir = prev.dir === 'asc' ? 'desc' : 'asc';
+        } else if(key === 'name' || key === 'avg'){ dir = 'asc'; }
+        else if(key === 'ym'){ dir = 'desc'; }
+        else { dir = 'desc'; }
+        eomUiState.historySort = { key, dir };
+        saveEomUiState();
+        renderEOMHistory();
+      });
+    }
+
+    if(options.transpose){
+      renderHistoryTableTransposed({
+        thead,
+        tbody,
+        accounts,
+        accountSummaries,
+        monthRecords,
+        sortState,
+        netWorthAverage,
+        chronologicalMonths
+      });
+    } else {
+      renderHistoryTableStandard({
+        thead,
+        tbody,
+        accounts,
+        accountSummaries,
+        monthRecords,
+        sortState,
+        netWorthAverage
+      });
+    }
+
+    updateHistoryFooter(footer, monthRecords, netWorthAverage, totalMonths, accounts.length);
+    if(exportBtn && eomHistoryExportCache && Array.isArray(eomHistoryExportCache.rows) && eomHistoryExportCache.rows.length){
+      exportBtn.disabled = false;
+    }
+  }
+
+  function normalizeHistorySort(sort, transpose){
+    const fallback = transpose ? { key:'name', dir:'asc' } : { key:'ym', dir:'desc' };
+    if(!sort || !sort.key) return { ...fallback };
+    const dir = sort.dir === 'asc' ? 'asc' : 'desc';
+    if(transpose){
+      if(sort.key === 'name' || sort.key === 'avg' || sort.key === 'lastChange' || (typeof sort.key === 'string' && sort.key.startsWith('month:'))){
+        return { key: sort.key, dir };
+      }
+      return { ...fallback };
+    }
+    if(sort.key === 'ym' || sort.key === 'netWorth' || sort.key === 'delta' || (typeof sort.key === 'string' && sort.key.startsWith('acc:'))){
+      return { key: sort.key, dir };
+    }
+    return { ...fallback };
+  }
+
+  function buildHistoryMonthRecords(ctx, months, accountIds, scenario){
+    return months.map((ym, idx) => {
       const balances = ctx.monthBalances[ym] || {};
-      const prevMonth = ctx.months.filter(m => m < ym).pop() || null;
-      const prevBalances = prevMonth ? (ctx.monthBalances[prevMonth] || {}) : {};
-      let row = `<td><b>${ym}</b></td>`;
-      for(const acc of accounts){
-        const value = balances[acc.id];
-        if(value === undefined){
-          row += '<td class="muted">—</td>';
-        } else {
-          const adjusted = applyScenarioToValue(value, scenario);
-          const prevVal = prevBalances[acc.id];
-          const prevAdjusted = prevVal === undefined ? undefined : applyScenarioToValue(prevVal, scenario);
-          let change = '';
-          if(prevAdjusted !== undefined){
-            const diff = adjusted - prevAdjusted;
-            if(Math.abs(diff) >= 0.005){
-              change = `<br><span class="tiny ${diff >= 0 ? 'ok' : 'bad'}">${diff >= 0 ? '+' : ''}${fmt(diff, state.currency)}</span>`;
-            }
-          }
-          row += `<td>${fmt(adjusted, state.currency)}${change}</td>`;
+      const prevYm = idx > 0 ? months[idx - 1] : null;
+      const prevBalances = prevYm ? (ctx.monthBalances[prevYm] || {}) : null;
+      const perAccount = {};
+      let netWorth = 0;
+      let prevNetWorth = prevYm ? 0 : null;
+      for(const id of accountIds){
+        const currentRaw = balances[id];
+        const current = currentRaw === undefined ? null : applyScenarioToValue(currentRaw, scenario);
+        const prevRaw = prevBalances ? prevBalances[id] : undefined;
+        const previous = prevRaw === undefined || prevRaw === null ? null : applyScenarioToValue(prevRaw, scenario);
+        let change = current !== null && previous !== null ? current - previous : null;
+        if(change !== null && Math.abs(change) < 0.005) change = 0;
+        const pct = change !== null && previous !== null && previous !== 0 ? (change / Math.abs(previous)) * 100 : null;
+        perAccount[id] = { value: current, prev: previous, change, pct };
+        if(typeof current === 'number') netWorth += current;
+        if(prevYm && typeof previous === 'number') prevNetWorth += previous;
+      }
+      const delta = prevYm ? netWorth - (prevNetWorth ?? 0) : null;
+      return { ym, perAccount, netWorth, prevNetWorth: prevYm ? prevNetWorth : null, delta };
+    });
+  }
+
+  function computeHistoryAccountSummaries(records, accountIds){
+    const summaries = {};
+    for(const id of accountIds){
+      let sum = 0;
+      let count = 0;
+      let hasChange = false;
+      for(const record of records){
+        const info = record.perAccount[id];
+        if(!info) continue;
+        if(typeof info.value === 'number'){ sum += info.value; count += 1; }
+        if(info.change !== null && info.change !== undefined && Math.abs(info.change) >= 0.005){
+          hasChange = true;
         }
       }
-      const netWorth = accounts.reduce((sum, acc) => {
-        const value = balances[acc.id];
-        if(value === undefined) return sum;
-        const adjusted = applyScenarioToValue(value, scenario);
-        return sum + (adjusted ?? 0);
-      }, 0);
-      const prevWorthRaw = accounts.reduce((sum, acc) => {
-        const prevVal = prevBalances[acc.id];
-        if(prevVal === undefined) return sum;
-        const adjusted = applyScenarioToValue(prevVal, scenario);
-        return sum + (adjusted ?? 0);
-      }, 0);
-      const deltaTotal = prevNetWorth !== null ? netWorth - prevNetWorth : (prevMonth ? netWorth - prevWorthRaw : null);
-      row += `<td><b>${fmt(netWorth, state.currency)}</b></td>`;
-      row += `<td>${deltaTotal === null ? '<span class="muted">—</span>' : renderDeltaBadge(deltaTotal)}</td>`;
-      const tr = document.createElement('tr');
-      tr.innerHTML = row;
-      tbody.appendChild(tr);
-      prevNetWorth = netWorth;
+      summaries[id] = { avg: count ? sum / count : null, hasChange };
     }
+    return summaries;
+  }
+
+  function computeNetWorthAverage(records){
+    const values = records
+      .map(record => typeof record.netWorth === 'number' ? record.netWorth : null)
+      .filter(value => value !== null && !Number.isNaN(value));
+    if(!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  function renderHistoryTableStandard({ thead, tbody, accounts, accountSummaries, monthRecords, sortState, netWorthAverage }){
+    if(!thead || !tbody) return;
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createHistoryHeaderCell('ym', 'Miesiąc', sortState));
+    accounts.forEach(acc => {
+      headerRow.appendChild(createHistoryHeaderCell(`acc:${acc.id}`, acc.name, sortState));
+    });
+    headerRow.appendChild(createHistoryHeaderCell('netWorth', 'Majątek netto', sortState));
+    headerRow.appendChild(createHistoryHeaderCell('delta', 'Zmiana m/m', sortState));
+    thead.appendChild(headerRow);
+
+    const records = sortHistoryRecords([...monthRecords], sortState);
+    const positiveColor = cssVar('--green', '#22c55e');
+    const negativeColor = cssVar('--red', '#ef4444');
+    const exportHeaders = ['Miesiąc', ...accounts.map(acc => acc.name), 'Majątek netto', 'Zmiana m/m'];
+    const exportRows = [];
+
+    records.forEach(record => {
+      const tr = document.createElement('tr');
+      const monthTd = document.createElement('td');
+      monthTd.innerHTML = `<div class="eom-history-value">${formatMonthLabel(record.ym)}</div><div class="tiny muted">${record.ym}</div>`;
+      monthTd.dataset.value = record.ym;
+      tr.appendChild(monthTd);
+
+      accounts.forEach(acc => {
+        const summary = accountSummaries[acc.id] || {};
+        const info = record.perAccount[acc.id] || { value:null, change:null, prev:null, pct:null };
+        const td = createHistoryValueCell(info, summary.avg, positiveColor, negativeColor, false);
+        tr.appendChild(td);
+      });
+
+      const netInfo = {
+        value: record.netWorth,
+        change: record.delta,
+        prev: record.prevNetWorth,
+        pct: record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null
+      };
+      const netTd = createHistoryValueCell(netInfo, netWorthAverage, positiveColor, negativeColor, true);
+      netTd.classList.add('networth');
+      tr.appendChild(netTd);
+
+      const deltaTd = document.createElement('td');
+      deltaTd.className = 'delta';
+      if(record.delta === null || Number.isNaN(record.delta)){
+        deltaTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        deltaTd.innerHTML = renderDeltaBadge(record.delta);
+        const pct = record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null;
+        if(pct !== null && Number.isFinite(pct)){
+          deltaTd.title = `Zmiana m/m: ${record.delta >= 0 ? '+' : ''}${fmt(record.delta, state.currency)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
+        }
+      }
+      deltaTd.dataset.value = record.delta ?? '';
+      tr.appendChild(deltaTd);
+
+      tbody.appendChild(tr);
+
+      exportRows.push([
+        formatMonthLabel(record.ym),
+        ...accounts.map(acc => formatHistoryExportValue(record.perAccount[acc.id]?.value)),
+        formatHistoryExportValue(record.netWorth),
+        formatHistoryExportDelta(record.delta)
+      ]);
+    });
+
+    eomHistoryExportCache = {
+      headers: exportHeaders,
+      rows: exportRows,
+      filename: `historia_${new Date().toISOString().slice(0,10)}.csv`
+    };
+  }
+
+  function renderHistoryTableTransposed({ thead, tbody, accounts, accountSummaries, monthRecords, sortState, netWorthAverage, chronologicalMonths }){
+    if(!thead || !tbody) return;
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createHistoryHeaderCell('name', 'Konto', sortState));
+    chronologicalMonths.forEach(ym => {
+      headerRow.appendChild(createHistoryHeaderCell(`month:${ym}`, formatMonthLabel(ym), sortState));
+    });
+    headerRow.appendChild(createHistoryHeaderCell('avg', 'Średnia', sortState));
+    headerRow.appendChild(createHistoryHeaderCell('lastChange', 'Zmiana m/m', sortState));
+    thead.appendChild(headerRow);
+
+    const positiveColor = cssVar('--green', '#22c55e');
+    const negativeColor = cssVar('--red', '#ef4444');
+
+    const rows = accounts.map(acc => {
+      const values = chronologicalMonths.map((ym, idx) => monthRecords[idx].perAccount[acc.id] || { value:null, change:null, prev:null, pct:null });
+      const lastInfo = values[values.length - 1] || { change:null, prev:null, pct:null };
+      return {
+        key: `acc:${acc.id}`,
+        label: acc.name,
+        values,
+        average: accountSummaries[acc.id]?.avg ?? null,
+        lastChange: lastInfo.change,
+        lastPrev: lastInfo.prev,
+        lastPct: lastInfo.pct,
+        isNetWorth: false
+      };
+    });
+
+    const netValues = chronologicalMonths.map((ym, idx) => {
+      const record = monthRecords[idx];
+      return {
+        value: record.netWorth,
+        change: record.delta,
+        prev: record.prevNetWorth,
+        pct: record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null
+      };
+    });
+    const netLast = netValues[netValues.length - 1] || { change:null, prev:null, pct:null };
+    rows.push({
+      key: 'networth',
+      label: 'Majątek netto',
+      values: netValues,
+      average: netWorthAverage,
+      lastChange: netLast.change,
+      lastPrev: netLast.prev,
+      lastPct: netLast.pct,
+      isNetWorth: true
+    });
+
+    const sortedRows = sortHistoryTransposedRows(rows, sortState, chronologicalMonths);
+    const exportHeaders = ['Konto', ...chronologicalMonths.map(formatMonthLabel), 'Średnia', 'Zmiana m/m'];
+    const exportRows = [];
+
+    sortedRows.forEach(row => {
+      const tr = document.createElement('tr');
+      const nameTd = document.createElement('td');
+      nameTd.innerHTML = `<div class="eom-history-value">${row.label}</div>`;
+      tr.appendChild(nameTd);
+
+      row.values.forEach(valueInfo => {
+        const td = createHistoryValueCell(valueInfo, row.isNetWorth ? netWorthAverage : row.average, positiveColor, negativeColor, row.isNetWorth);
+        tr.appendChild(td);
+      });
+
+      const avgTd = document.createElement('td');
+      avgTd.className = 'networth';
+      if(row.average === null || Number.isNaN(row.average)){
+        avgTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        avgTd.innerHTML = `<span class="eom-history-value">${fmt(row.average, state.currency)}</span>`;
+      }
+      tr.appendChild(avgTd);
+
+      const lastTd = document.createElement('td');
+      lastTd.className = 'delta';
+      if(row.lastChange === null || row.lastChange === undefined || Number.isNaN(row.lastChange)){
+        lastTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        lastTd.innerHTML = renderDeltaBadge(row.lastChange);
+        if(row.lastPrev !== null && row.lastPrev !== undefined){
+          const pct = row.lastPct !== null && row.lastPct !== undefined && Number.isFinite(row.lastPct)
+            ? `${row.lastChange >= 0 ? '+' : ''}${row.lastPct.toFixed(1)}%`
+            : '—';
+          lastTd.title = `Zmiana vs poprzedni miesiąc: ${row.lastChange >= 0 ? '+' : ''}${fmt(row.lastChange, state.currency)} (${pct})`;
+        }
+      }
+      tr.appendChild(lastTd);
+
+      if(row.isNetWorth) tr.classList.add('networth-row');
+      tbody.appendChild(tr);
+
+      exportRows.push([
+        row.label,
+        ...row.values.map(valueInfo => formatHistoryExportValue(valueInfo?.value)),
+        formatHistoryExportValue(row.average),
+        formatHistoryExportDelta(row.lastChange)
+      ]);
+    });
+
+    eomHistoryExportCache = {
+      headers: exportHeaders,
+      rows: exportRows,
+      filename: `historia_${new Date().toISOString().slice(0,10)}.csv`
+    };
+  }
+
+  function createHistoryHeaderCell(key, label, sortState){
+    const th = document.createElement('th');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.sortKey = key;
+    if(sortState.key === key){
+      button.dataset.sortDir = sortState.dir === 'asc' ? '▲' : '▼';
+    }
+    th.appendChild(button);
+    return th;
+  }
+
+  function sortHistoryRecords(records, sortState){
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    const key = sortState.key;
+    return records.sort((a, b) => {
+      if(key === 'ym') return a.ym.localeCompare(b.ym) * dir;
+      if(key === 'netWorth') return compareNumericValues(a.netWorth, b.netWorth, dir);
+      if(key === 'delta') return compareNumericValues(a.delta, b.delta, dir);
+      if(typeof key === 'string' && key.startsWith('acc:')){
+        const id = key.slice(4);
+        return compareNumericValues(a.perAccount[id]?.value, b.perAccount[id]?.value, dir);
+      }
+      return 0;
+    });
+  }
+
+  function sortHistoryTransposedRows(rows, sortState, months){
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    const key = sortState.key;
+    return rows.sort((a, b) => {
+      if(a.isNetWorth && !b.isNetWorth) return 1;
+      if(!a.isNetWorth && b.isNetWorth) return -1;
+      if(key === 'name') return a.label.localeCompare(b.label, 'pl', { sensitivity: 'base' }) * dir;
+      if(key === 'avg') return compareNumericValues(a.average, b.average, dir);
+      if(key === 'lastChange') return compareNumericValues(a.lastChange, b.lastChange, dir);
+      if(typeof key === 'string' && key.startsWith('month:')){
+        const ym = key.slice(6);
+        const idx = months.indexOf(ym);
+        if(idx === -1) return 0;
+        return compareNumericValues(a.values[idx]?.value, b.values[idx]?.value, dir);
+      }
+      return 0;
+    });
+  }
+
+  function compareNumericValues(a, b, dir){
+    const aValid = typeof a === 'number' && !Number.isNaN(a);
+    const bValid = typeof b === 'number' && !Number.isNaN(b);
+    if(!aValid && !bValid) return 0;
+    if(!aValid) return 1 * dir;
+    if(!bValid) return -1 * dir;
+    if(a === b) return 0;
+    return a > b ? dir : -dir;
+  }
+
+  function createHistoryValueCell(info, average, positiveColor, negativeColor, isNetWorth){
+    const td = document.createElement('td');
+    const value = info && typeof info.value === 'number' ? info.value : null;
+    if(value === null){
+      td.innerHTML = '<span class="muted">—</span>';
+      return td;
+    }
+    const span = document.createElement('span');
+    span.className = 'eom-history-value';
+    span.textContent = fmt(value, state.currency);
+    td.appendChild(span);
+    td.dataset.value = value;
+
+    if(info && info.change !== null && info.change !== undefined){
+      const change = info.change || 0;
+      const arrow = document.createElement('span');
+      let tone = 'neutral';
+      if(change > 0) tone = 'positive';
+      if(change < 0) tone = 'negative';
+      arrow.className = `eom-history-arrow ${tone}`;
+      arrow.textContent = change > 0 ? '△' : change < 0 ? '▽' : '→';
+      td.appendChild(arrow);
+      if(info.prev !== null && info.prev !== undefined){
+        const pct = info.pct !== null && info.pct !== undefined && Number.isFinite(info.pct)
+          ? `${change >= 0 ? '+' : ''}${info.pct.toFixed(1)}%`
+          : '—';
+        td.title = `Zmiana vs poprzedni miesiąc: ${change >= 0 ? '+' : ''}${fmt(change, state.currency)} (${pct})`;
+      }
+    }
+
+    applyHistoryHeat(td, value, average, positiveColor, negativeColor);
+    if(isNetWorth) td.classList.add('networth');
+    return td;
+  }
+
+  function applyHistoryHeat(cell, value, average, positiveColor, negativeColor){
+    if(value === null || average === null || average === undefined || Number.isNaN(value) || Number.isNaN(average)) return;
+    const diff = value - average;
+    if(Math.abs(diff) < 0.005) return;
+    const tone = diff > 0 ? 'positive' : 'negative';
+    const ratio = Math.min(1.5, Math.abs(diff) / Math.max(Math.abs(average), 1));
+    const alpha = 0.12 + ratio * 0.25;
+    const color = tone === 'positive' ? colorWithAlpha(positiveColor, alpha) : colorWithAlpha(negativeColor, alpha);
+    cell.style.background = color;
+    cell.classList.add(tone);
+  }
+
+  function formatHistoryExportValue(value){
+    if(value === null || value === undefined || Number.isNaN(value)) return '';
+    return fmt(value, state.currency);
+  }
+
+  function formatHistoryExportDelta(delta){
+    if(delta === null || delta === undefined || Number.isNaN(delta)) return '';
+    return `${delta >= 0 ? '+' : ''}${fmt(delta, state.currency)}`;
+  }
+
+  function updateHistoryFooter(container, records, netWorthAverage, totalMonths, accountCount){
+    if(!container){
+      return;
+    }
+    if(!records.length){
+      container.innerHTML = '<span class="muted">Brak danych do podsumowania.</span>';
+      return;
+    }
+    const first = records[0];
+    const last = records[records.length - 1];
+    const change = (typeof first.netWorth === 'number' && typeof last.netWorth === 'number') ? last.netWorth - first.netWorth : null;
+    const pct = change !== null && first.netWorth ? (change / Math.abs(first.netWorth)) * 100 : null;
+    const trendSymbol = change === null ? '→' : change > 0 ? '↗' : change < 0 ? '↘' : '→';
+    const avgDisplay = netWorthAverage === null ? '—' : fmt(netWorthAverage, state.currency);
+    const changeDisplay = change === null ? '—' : `${change >= 0 ? '+' : ''}${fmt(change, state.currency)}${pct !== null && Number.isFinite(pct) ? ` (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : ''}`;
+    const rangeDisplay = `${formatMonthLabel(first.ym)} → ${formatMonthLabel(last.ym)}`;
+    container.innerHTML = `
+      <div>
+        <div class="muted">Średni majątek netto</div>
+        <strong>${avgDisplay}</strong>
+      </div>
+      <div>
+        <div class="muted">Trend ogólny</div>
+        <strong>${trendSymbol} ${changeDisplay}</strong>
+      </div>
+      <div>
+        <div class="muted">Zakres danych</div>
+        <span>${rangeDisplay}</span>
+      </div>
+      <div>
+        <div class="muted">Widoczność</div>
+        <span>Pokazujesz ${records.length} z ${totalMonths} miesięcy · ${accountCount} kont</span>
+      </div>
+    `;
+  }
+
+  function exportEomHistoryCsv(){
+    if(!eomHistoryExportCache || !Array.isArray(eomHistoryExportCache.rows) || !eomHistoryExportCache.rows.length){
+      return;
+    }
+    const headers = eomHistoryExportCache.headers || [];
+    const rows = eomHistoryExportCache.rows || [];
+    const lines = [headers.map(csvEscape).join(';'), ...rows.map(row => row.map(csvEscape).join(';'))];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = eomHistoryExportCache.filename || 'eom-history.csv';
+    document.body.appendChild(a);
+    a.click();
+    requestAnimationFrame(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  function csvEscape(value){
+    if(value === null || value === undefined) return '';
+    const str = String(value).replace(/\r?\n|\r/g, ' ').replace(/"/g, '""');
+    if(/[";,]/.test(str)){
+      return `"${str}"`;
+    }
+    return str;
   }
 
   function renderEomChangeTable(ctx, accountStats){
@@ -6618,15 +7269,74 @@
 
   function renderEOMHistory(){
     const ctx = buildEomContext();
-    const select = document.getElementById('eom-history-months');
-    let limitValue = select ? select.value : '6';
-    if(select && !select.dataset.bound){
-      select.dataset.bound = '1';
-      select.addEventListener('change', renderEOMHistory);
+    const rangeSelect = document.getElementById('eom-history-range');
+    const transposeBtn = document.getElementById('eom-history-transpose');
+    const searchInput = document.getElementById('eom-history-search');
+    const onlyChangesBox = document.getElementById('eom-history-only-changes');
+    const exportBtn = document.getElementById('eom-history-export');
+
+    if(rangeSelect){
+      const desired = eomUiState.historyRange || '6';
+      if(rangeSelect.value !== desired) rangeSelect.value = desired;
+      if(!rangeSelect.dataset.bound){
+        rangeSelect.dataset.bound = '1';
+        rangeSelect.addEventListener('change', event => {
+          eomUiState.historyRange = event.target.value || '6';
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
     }
+
+    if(searchInput){
+      searchInput.value = eomUiState.historySearch || '';
+      if(!searchInput.dataset.bound){
+        searchInput.dataset.bound = '1';
+        searchInput.addEventListener('input', event => {
+          eomUiState.historySearch = event.target.value || '';
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(onlyChangesBox){
+      onlyChangesBox.checked = !!eomUiState.historyOnlyChanges;
+      if(!onlyChangesBox.dataset.bound){
+        onlyChangesBox.dataset.bound = '1';
+        onlyChangesBox.addEventListener('change', event => {
+          eomUiState.historyOnlyChanges = !!event.target.checked;
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(transposeBtn){
+      transposeBtn.dataset.active = eomUiState.historyTranspose ? '1' : '0';
+      transposeBtn.textContent = eomUiState.historyTranspose ? 'Widok standardowy' : 'Transponuj widok';
+      if(!transposeBtn.dataset.bound){
+        transposeBtn.dataset.bound = '1';
+        transposeBtn.addEventListener('click', () => {
+          eomUiState.historyTranspose = !eomUiState.historyTranspose;
+          if(eomUiState.historyTranspose && eomUiState.historySort?.key === 'ym'){
+            eomUiState.historySort = { key:'name', dir:'asc' };
+          }
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(exportBtn && !exportBtn.dataset.bound){
+      exportBtn.dataset.bound = '1';
+      exportBtn.addEventListener('click', exportEomHistoryCsv);
+    }
+
     const months = ctx.months;
     const rangeMonths = getMonthsWithinRange(months, eomUiState.dateRange);
     const baseMonths = rangeMonths.length ? rangeMonths : months;
+    const limitValue = eomUiState.historyRange || '6';
     const monthsToShow = !baseMonths.length
       ? []
       : (limitValue === 'all' ? baseMonths : baseMonths.slice(-Number(limitValue || 6)));
@@ -6634,7 +7344,7 @@
     if(!baseMonths.length){
       renderEomKpis(ctx, []);
       renderEomPerformanceMatrix(ctx, []);
-      renderEomHistoryTable(ctx, []);
+      renderEomHistoryTable(ctx, [], { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
       renderEomChangeTable(ctx, []);
       renderEomMonthlySummary([]);
       renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
@@ -6649,7 +7359,15 @@
 
     renderEomKpis(ctx, accountStats);
     renderEomPerformanceMatrix(ctx, accountStats);
-    renderEomHistoryTable(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
+    renderEomHistoryTable(ctx, monthsToShow, {
+      scenario: eomUiState.scenario,
+      accountTypes: eomUiState.accountTypes,
+      transpose: eomUiState.historyTranspose,
+      search: eomUiState.historySearch,
+      onlyChanges: eomUiState.historyOnlyChanges,
+      sort: eomUiState.historySort,
+      totalMonths: baseMonths.length
+    });
     renderEomChangeTable(ctx, accountStats);
     renderEomMonthlySummary(monthlySummary.filter(row => monthsToShow.includes(row.ym)), { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
     renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
@@ -6675,6 +7393,7 @@
   let analyticsUiState = loadAnalyticsUiState();
   const analyticsCharts={};
   const eomCharts={};
+  let eomHistoryExportCache=null;
   const EOM_UI_STATE_KEY='lifeos_budget_eom_ui_v1';
   const DEFAULT_EOM_UI_STATE={
     accountTypes:[],
@@ -6693,7 +7412,12 @@
     hideZeroAccounts:false,
     expandedAccounts:[],
     compareMonthA:null,
-    compareMonthB:null
+    compareMonthB:null,
+    historyRange:'6',
+    historyTranspose:false,
+    historySearch:'',
+    historyOnlyChanges:false,
+    historySort:{ key:'ym', dir:'desc' }
   };
 
   function loadEomUiState(){
@@ -6715,7 +7439,12 @@
         netWorthRange:eomUiState.netWorthRange,
         netWorthFocusMonth:eomUiState.netWorthFocusMonth,
         compareMonthA:eomUiState.compareMonthA,
-        compareMonthB:eomUiState.compareMonthB
+        compareMonthB:eomUiState.compareMonthB,
+        historyRange:eomUiState.historyRange,
+        historyTranspose:eomUiState.historyTranspose,
+        historySearch:eomUiState.historySearch,
+        historyOnlyChanges:eomUiState.historyOnlyChanges,
+        historySort:eomUiState.historySort
       };
       localStorage.setItem(EOM_UI_STATE_KEY,JSON.stringify(payload));
     }catch(err){
