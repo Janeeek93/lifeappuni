@@ -57,6 +57,74 @@
       gap: 12px;
     }
 
+    .eom-dashboard-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px;
+      margin: 16px 0 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(248, 250, 252, 0.7);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .eom-dashboard-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      flex: 1 1 160px;
+      text-align: center;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .25s ease, color .25s ease, box-shadow .25s ease;
+    }
+
+    .eom-dashboard-tab:hover,
+    .eom-dashboard-tab:focus-visible {
+      outline: none;
+      color: var(--ink);
+      background: rgba(37, 99, 235, 0.16);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+    }
+
+    .eom-dashboard-tab.is-active {
+      background: linear-gradient(135deg, var(--accent), rgba(37, 99, 235, 0.85));
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+    }
+
+    .eom-dashboard-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .eom-dashboard-panel {
+      display: none;
+    }
+
+    .eom-dashboard-panel.is-active {
+      display: block;
+      animation: eomPanelFade 0.35s ease;
+    }
+
+    @keyframes eomPanelFade {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .eom-networth-section {
       margin-top: 18px;
       border: 1px solid rgba(148, 163, 184, 0.4);
@@ -426,9 +494,6 @@
     }
 
     .eom-mom-summary {
-      position: sticky;
-      top: 64px;
-      z-index: 5;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -623,6 +688,15 @@
     }
 
     @media (max-width: 959px) {
+      .eom-dashboard-nav {
+        gap: 6px;
+        padding: 10px;
+      }
+
+      .eom-dashboard-tab {
+        flex: 1 1 calc(50% - 6px);
+      }
+
       .eom-mom-controls {
         flex-direction: column;
         align-items: stretch;
@@ -2269,207 +2343,227 @@
         <div id="eom-insights" class="eom-hero-insights"></div>
       </div>
 
-      <section class="eom-networth-section" id="eom-networth">
-        <div class="eom-networth-header">
-          <div class="eom-networth-title">
-            <div class="title">Trend majątku netto</div>
-            <p class="tiny">Historia wartości portfela z podziałem na główne składniki. Kliknij punkt, aby zobaczyć szczegóły miesiąca.</p>
-          </div>
-          <div class="eom-networth-tabs" id="eom-networth-tabs">
-            <button class="eom-networth-tab" type="button" data-range-tab="3m">3m</button>
-            <button class="eom-networth-tab" type="button" data-range-tab="6m">6m</button>
-            <button class="eom-networth-tab" type="button" data-range-tab="12m">12m</button>
-            <button class="eom-networth-tab" type="button" data-range-tab="all">Wszystkie</button>
-          </div>
-        </div>
-        <div class="eom-networth-chart-shell">
-          <canvas id="eom-networth-chart"></canvas>
-          <div id="eom-networth-empty" class="eom-networth-empty">Brak danych w tym zakresie — dodaj zapisy lub zmień filtry, aby zobaczyć trend majątku netto.</div>
-        </div>
-        <div id="eom-networth-month-card" class="eom-networth-month-card is-empty">Wybierz punkt na wykresie, aby podejrzeć szczegóły miesiąca.</div>
-      </section>
+      <div class="eom-dashboard-nav" id="eom-dashboard-nav" role="tablist" aria-label="Widoki Salda EoM">
+        <button type="button" class="eom-dashboard-tab is-active" id="eom-dashboard-tab-overview" data-panel="overview" role="tab" aria-selected="true" aria-controls="eom-dashboard-overview" tabindex="0">Trend majątku</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-performance" data-panel="performance" role="tab" aria-selected="false" aria-controls="eom-dashboard-performance" tabindex="-1">Wydajność kont</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-accounts" data-panel="accounts" role="tab" aria-selected="false" aria-controls="eom-dashboard-accounts" tabindex="-1">Rejestr sald</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-history" data-panel="history" role="tab" aria-selected="false" aria-controls="eom-dashboard-history" tabindex="-1">Historia</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-comparison" data-panel="comparison" role="tab" aria-selected="false" aria-controls="eom-dashboard-comparison" tabindex="-1">Porównanie m/m</button>
+      </div>
 
-      <section class="eom-performance-matrix" id="eom-performance-matrix">
-        <div class="eom-performance-column">
-          <div class="eom-performance-head">
-            <h4 class="title">🔥 Top Performers</h4>
-            <p class="tiny muted">Największe wzrosty miesiąc do miesiąca. Kliknij kartę, aby przejść do szczegółów.</p>
-          </div>
-          <div class="eom-performance-list" data-zone="top"></div>
-        </div>
-        <div class="eom-performance-column">
-          <div class="eom-performance-head">
-            <h4 class="title">⚠️ Wymagają uwagi</h4>
-            <p class="tiny muted">Największe spadki miesiąc do miesiąca — sprawdź, co ciągnie wynik w dół.</p>
-          </div>
-          <div class="eom-performance-list" data-zone="watch"></div>
-        </div>
-      </section>
-
-      <div class="eom-panel" style="margin-top:16px">
-        <div class="row" style="align-items:flex-end;gap:12px">
-          <div>
-            <div class="title" style="margin-bottom:4px">Rejestr sald</div>
-            <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
-          </div>
-        </div>
-          <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
-            <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
-            <button class="btn soft" type="submit">Dodaj konto</button>
-          </form>
-        <div class="eom-control-bar" id="eom-control-bar">
-          <label class="filter-group">
-            <span class="tiny">Typy kont</span>
-            <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
-            <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
-          </label>
-          <div class="filter-group">
-            <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
-            <div class="row" style="gap:6px;align-items:center">
-              <input type="month" id="eom-date-from" />
-              <span class="tiny muted">→</span>
-              <input type="month" id="eom-date-to" />
+      <div class="eom-dashboard-panels" id="eom-dashboard-panels">
+        <section class="eom-dashboard-panel is-active" data-panel="overview" id="eom-dashboard-overview" role="tabpanel" aria-labelledby="eom-dashboard-tab-overview">
+          <section class="eom-networth-section" id="eom-networth">
+            <div class="eom-networth-header">
+              <div class="eom-networth-title">
+                <div class="title">Trend majątku netto</div>
+                <p class="tiny">Historia wartości portfela z podziałem na główne składniki. Kliknij punkt, aby zobaczyć szczegóły miesiąca.</p>
+              </div>
+              <div class="eom-networth-tabs" id="eom-networth-tabs">
+                <button class="eom-networth-tab" type="button" data-range-tab="3m">3m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="6m">6m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="12m">12m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="all">Wszystkie</button>
+              </div>
             </div>
-            <span class="tiny muted">Określ zakres do analizy trendów.</span>
-          </div>
-          <div class="filter-group">
-            <span class="tiny">Widok danych</span>
-            <div class="row" style="gap:6px;align-items:center">
-              <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
-              <select id="eom-group-by" style="min-width:160px">
-                <option value="type">Grupuj wg typu</option>
-                <option value="status">Grupuj wg statusu</option>
-                <option value="none">Bez grupowania</option>
-              </select>
+            <div class="eom-networth-chart-shell">
+              <canvas id="eom-networth-chart"></canvas>
+              <div id="eom-networth-empty" class="eom-networth-empty">Brak danych w tym zakresie — dodaj zapisy lub zmień filtry, aby zobaczyć trend majątku netto.</div>
             </div>
-            <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
-          </div>
-        </div>
-        <div class="eom-account-toolbar" id="eom-account-toolbar">
-          <div class="controls">
-            <label class="tiny" for="eom-account-sort">Sortowanie
-              <select id="eom-account-sort">
-                <option value="name">Po nazwie A-Z</option>
-                <option value="balance">Po saldzie (najwyższe)</option>
-                <option value="change-up">Zmiana % (wzrost)</option>
-                <option value="change-down">Zmiana % (spadek)</option>
-              </select>
-            </label>
-            <div class="checkboxes" aria-label="Filtry kont">
-              <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
-              <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
-              <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
+            <div id="eom-networth-month-card" class="eom-networth-month-card is-empty">Wybierz punkt na wykresie, aby podejrzeć szczegóły miesiąca.</div>
+          </section>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="performance" id="eom-dashboard-performance" role="tabpanel" aria-labelledby="eom-dashboard-tab-performance" hidden>
+          <section class="eom-performance-matrix" id="eom-performance-matrix">
+            <div class="eom-performance-column">
+              <div class="eom-performance-head">
+                <h4 class="title">🔥 Top Performers</h4>
+                <p class="tiny muted">Największe wzrosty miesiąc do miesiąca. Kliknij kartę, aby przejść do szczegółów.</p>
+              </div>
+              <div class="eom-performance-list" data-zone="top"></div>
             </div>
-          </div>
-          <div class="bulk-actions">
-            <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
-            <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
-          </div>
-          <div class="count" id="eom-account-count">—</div>
-        </div>
-        <div id="eom-grid" class="eom-grid-shell"></div>
-        <div id="eom-heatmap" class="eom-heatmap-shell"></div>
-        <div class="row" style="margin-top:12px">
-          <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
-          <div class="row" style="gap:8px">
-            <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
-            <button id="eom-save" class="btn" type="button">Zapisz salda</button>
-          </div>
-        </div>
-      </div>
+            <div class="eom-performance-column">
+              <div class="eom-performance-head">
+                <h4 class="title">⚠️ Wymagają uwagi</h4>
+                <p class="tiny muted">Największe spadki miesiąc do miesiąca — sprawdź, co ciągnie wynik w dół.</p>
+              </div>
+              <div class="eom-performance-list" data-zone="watch"></div>
+            </div>
+          </section>
+        </section>
 
-      <div class="eom-panel" style="margin-top:16px">
-        <div class="row" style="align-items:flex-start;gap:12px">
-          <div>
-            <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
-            <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
-          </div>
-        </div>
-        <div class="eom-history-controls">
-          <label class="tiny">
-            Pokaż zakres
-            <select id="eom-history-range">
-              <option value="3">3 miesiące</option>
-              <option value="6">6 miesięcy</option>
-              <option value="12">12 miesięcy</option>
-              <option value="all">Wszystkie</option>
-            </select>
-          </label>
-          <label class="tiny">
-            Szukaj konta
-            <input id="eom-history-search" type="search" placeholder="np. Oszczędności" />
-          </label>
-          <label class="tiny eom-history-checkbox">
-            <input type="checkbox" id="eom-history-only-changes" /> Tylko ze zmianami
-          </label>
-          <button class="btn soft" type="button" id="eom-history-transpose" data-active="0">Transponuj widok</button>
-          <button class="btn ghost" type="button" id="eom-history-export">Eksportuj do CSV</button>
-        </div>
-        <div class="eom-history-table-shell">
-          <div class="eom-history-table-scroll">
-            <table id="eom-accounts-history" class="table-modern eom-history-table">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-        <div id="eom-history-footer" class="eom-history-footer"></div>
-        <div style="overflow-x:auto;margin-top:16px">
-          <table id="eom-monthly-summary" class="table-modern table-sortable">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-    <section class="eom-mom-section" id="eom-mom" style="margin-top:16px">
-      <div class="row" style="align-items:flex-end;gap:12px">
-        <div>
-          <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
-          <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
-        </div>
-      </div>
-      <div class="eom-mom-controls">
-        <div class="control-group">
-          <label for="eom-mom-month-a">Miesiąc A</label>
-          <select id="eom-mom-month-a"></select>
-        </div>
-        <div class="control-group">
-          <label for="eom-mom-month-b">Miesiąc B</label>
-          <select id="eom-mom-month-b"></select>
-        </div>
-        <div class="eom-mom-actions">
-          <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
-          <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
-        </div>
-      </div>
-      <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
-      <div id="eom-mom-content" class="eom-mom-content" style="display:none">
-        <div class="eom-mom-summary" id="eom-mom-summary">
-          <div class="eom-mom-summary-main">
-            <span class="label">Δ suma</span>
-            <span class="value neutral" id="eom-mom-summary-value">—</span>
-          </div>
-          <div class="eom-mom-summary-text" id="eom-mom-summary-text"></div>
-          <div class="eom-mom-pills" id="eom-mom-pills"></div>
-        </div>
-        
-        <section class="eom-mom-ranking">
-          <div class="eom-mom-ranking-header">
-            <h4>Ranking zmian per konto</h4>
-            <div class="tiny muted" id="eom-mom-ranking-note"></div>
-          </div>
-          <div class="table-wrapper">
-            <table id="eom-mom-ranking-table" class="table-modern"></table>
+        <section class="eom-dashboard-panel" data-panel="accounts" id="eom-dashboard-accounts" role="tabpanel" aria-labelledby="eom-dashboard-tab-accounts" hidden>
+          <div class="eom-panel" style="margin-top:0">
+            <div class="row" style="align-items:flex-end;gap:12px">
+              <div>
+                <div class="title" style="margin-bottom:4px">Rejestr sald</div>
+                <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
+              </div>
+            </div>
+              <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
+                <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
+                <button class="btn soft" type="submit">Dodaj konto</button>
+              </form>
+            <div class="eom-control-bar" id="eom-control-bar">
+              <label class="filter-group">
+                <span class="tiny">Typy kont</span>
+                <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
+                <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
+              </label>
+              <div class="filter-group">
+                <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
+                <div class="row" style="gap:6px;align-items:center">
+                  <input type="month" id="eom-date-from" />
+                  <span class="tiny muted">→</span>
+                  <input type="month" id="eom-date-to" />
+                </div>
+                <span class="tiny muted">Określ zakres do analizy trendów.</span>
+              </div>
+              <div class="filter-group">
+                <span class="tiny">Widok danych</span>
+                <div class="row" style="gap:6px;align-items:center">
+                  <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
+                  <select id="eom-group-by" style="min-width:160px">
+                    <option value="type">Grupuj wg typu</option>
+                    <option value="status">Grupuj wg statusu</option>
+                    <option value="none">Bez grupowania</option>
+                  </select>
+                </div>
+                <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
+              </div>
+            </div>
+            <div class="eom-account-toolbar" id="eom-account-toolbar">
+              <div class="controls">
+                <label class="tiny" for="eom-account-sort">Sortowanie
+                  <select id="eom-account-sort">
+                    <option value="name">Po nazwie A-Z</option>
+                    <option value="balance">Po saldzie (najwyższe)</option>
+                    <option value="change-up">Zmiana % (wzrost)</option>
+                    <option value="change-down">Zmiana % (spadek)</option>
+                  </select>
+                </label>
+                <div class="checkboxes" aria-label="Filtry kont">
+                  <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
+                  <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
+                  <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
+                </div>
+              </div>
+              <div class="bulk-actions">
+                <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
+                <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
+              </div>
+              <div class="count" id="eom-account-count">—</div>
+            </div>
+            <div id="eom-grid" class="eom-grid-shell"></div>
+            <div id="eom-heatmap" class="eom-heatmap-shell"></div>
+            <div class="row" style="margin-top:12px">
+              <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
+              <div class="row" style="gap:8px">
+                <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
+                <button id="eom-save" class="btn" type="button">Zapisz salda</button>
+              </div>
+            </div>
           </div>
         </section>
-        <section class="eom-mom-auto">
-          <h4>Wnioski automatyczne</h4>
-          <div id="eom-mom-auto-insights" class="eom-mom-auto-list"></div>
+
+        <section class="eom-dashboard-panel" data-panel="history" id="eom-dashboard-history" role="tabpanel" aria-labelledby="eom-dashboard-tab-history" hidden>
+          <div class="eom-panel" style="margin-top:0">
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <div>
+                <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
+                <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
+              </div>
+            </div>
+            <div class="eom-history-controls">
+              <label class="tiny">
+                Pokaż zakres
+                <select id="eom-history-range">
+                  <option value="3">3 miesiące</option>
+                  <option value="6">6 miesięcy</option>
+                  <option value="12">12 miesięcy</option>
+                  <option value="all">Wszystkie</option>
+                </select>
+              </label>
+              <label class="tiny">
+                Szukaj konta
+                <input id="eom-history-search" type="search" placeholder="np. Oszczędności" />
+              </label>
+              <label class="tiny eom-history-checkbox">
+                <input type="checkbox" id="eom-history-only-changes" /> Tylko ze zmianami
+              </label>
+              <button class="btn soft" type="button" id="eom-history-transpose" data-active="0">Transponuj widok</button>
+              <button class="btn ghost" type="button" id="eom-history-export">Eksportuj do CSV</button>
+            </div>
+            <div class="eom-history-table-shell">
+              <div class="eom-history-table-scroll">
+                <table id="eom-accounts-history" class="table-modern eom-history-table">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="eom-history-footer" class="eom-history-footer"></div>
+            <div style="overflow-x:auto;margin-top:16px">
+              <table id="eom-monthly-summary" class="table-modern table-sortable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="comparison" id="eom-dashboard-comparison" role="tabpanel" aria-labelledby="eom-dashboard-tab-comparison" hidden>
+          <section class="eom-mom-section" id="eom-mom" style="margin-top:0">
+            <div class="row" style="align-items:flex-end;gap:12px">
+              <div>
+                <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
+                <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
+              </div>
+            </div>
+            <div class="eom-mom-controls">
+              <div class="control-group">
+                <label for="eom-mom-month-a">Miesiąc A</label>
+                <select id="eom-mom-month-a"></select>
+              </div>
+              <div class="control-group">
+                <label for="eom-mom-month-b">Miesiąc B</label>
+                <select id="eom-mom-month-b"></select>
+              </div>
+              <div class="eom-mom-actions">
+                <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
+                <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
+              </div>
+            </div>
+            <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
+            <div id="eom-mom-content" class="eom-mom-content" style="display:none">
+              <div class="eom-mom-summary" id="eom-mom-summary">
+                <div class="eom-mom-summary-main">
+                  <span class="label">Δ suma</span>
+                  <span class="value neutral" id="eom-mom-summary-value">—</span>
+                </div>
+                <div class="eom-mom-summary-text" id="eom-mom-summary-text"></div>
+                <div class="eom-mom-pills" id="eom-mom-pills"></div>
+              </div>
+
+              <section class="eom-mom-ranking">
+                <div class="eom-mom-ranking-header">
+                  <h4>Ranking zmian per konto</h4>
+                  <div class="tiny muted" id="eom-mom-ranking-note"></div>
+                </div>
+                <div class="table-wrapper">
+                  <table id="eom-mom-ranking-table" class="table-modern"></table>
+                </div>
+              </section>
+              <section class="eom-mom-auto">
+                <h4>Wnioski automatyczne</h4>
+                <div id="eom-mom-auto-insights" class="eom-mom-auto-list"></div>
+              </section>
+            </div>
+          </section>
         </section>
       </div>
     </section>
-  </section>
 
   <!-- Goals -->
     <section id="tab-goals" class="card" style="margin-top:12px;display:none">
@@ -4889,7 +4983,13 @@
           card.addEventListener('click', () => {
             const el = document.getElementById(target);
             if(el){
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              const panel = el.closest('.eom-dashboard-panel');
+              if(panel && panel.dataset.panel){
+                updateEomDashboardView(panel.dataset.panel);
+              }
+              requestAnimationFrame(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
             }
           });
         }
@@ -5539,11 +5639,14 @@
           const accId = trigger.dataset.accountId;
           if(accId){
             eomUiState.focusedAccountId = accId;
+            eomUiState.dashboardView = 'accounts';
             saveEomUiState();
             renderEOM();
             const detail = document.getElementById('eom-grid');
             if(detail){
-              detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              requestAnimationFrame(() => {
+                detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
             }
           }
         }
@@ -5971,6 +6074,39 @@
     applyFocusedAccount();
   }
 
+  function updateEomDashboardView(view){
+    const panels = Array.from(document.querySelectorAll('.eom-dashboard-panel'));
+    if(!panels.length) return;
+    let desired = view || 'overview';
+    if(!panels.some(panel => panel.dataset.panel === desired)){
+      desired = panels[0].dataset.panel || 'overview';
+    }
+    const nav = document.getElementById('eom-dashboard-nav');
+    panels.forEach(panel => {
+      const match = panel.dataset.panel === desired;
+      panel.classList.toggle('is-active', match);
+      if(match){
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', '');
+      }
+    });
+    if(nav){
+      nav.querySelectorAll('[data-panel]').forEach(btn => {
+        const match = btn.dataset.panel === desired;
+        btn.classList.toggle('is-active', match);
+        if(btn.getAttribute('role') === 'tab'){
+          btn.setAttribute('aria-selected', match ? 'true' : 'false');
+          btn.setAttribute('tabindex', match ? '0' : '-1');
+        }
+      });
+    }
+    if(eomUiState.dashboardView !== desired){
+      eomUiState.dashboardView = desired;
+      saveEomUiState();
+    }
+  }
+
   function buildEomAccountPerformanceCard(ctx, stat, options={}){
     const tone = options.tone === 'negative' ? 'negative' : 'positive';
     const scenario = options.scenario || stat.scenario || 'actual';
@@ -6064,10 +6200,14 @@
 
     card.addEventListener('click', () => {
       eomUiState.focusedAccountId = stat.account.id;
+      eomUiState.dashboardView = 'accounts';
+      saveEomUiState();
       renderEOM();
       const target = document.getElementById('eom-grid');
       if(target){
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
       }
     });
 
@@ -6618,6 +6758,21 @@
     }
     const badge = document.getElementById('eom-active-month');
     if(badge) badge.textContent = ym;
+
+    const dashboardNav = document.getElementById('eom-dashboard-nav');
+    if(dashboardNav){
+      if(!dashboardNav.dataset.bound){
+        dashboardNav.dataset.bound = '1';
+        dashboardNav.addEventListener('click', (event) => {
+          const btn = event.target.closest('[data-panel]');
+          if(!btn) return;
+          const next = btn.dataset.panel;
+          if(!next) return;
+          updateEomDashboardView(next);
+        });
+      }
+      updateEomDashboardView(eomUiState.dashboardView || 'overview');
+    }
 
     renderEomComparison(ctx);
 
@@ -7219,6 +7374,7 @@
     filterNegativeOnly:false,
     hideZeroAccounts:false,
     expandedAccounts:[],
+    dashboardView:'overview',
     compareMonthA:null,
     compareMonthB:null,
     historyRange:'6',
@@ -7252,7 +7408,8 @@
         historyTranspose:eomUiState.historyTranspose,
         historySearch:eomUiState.historySearch,
         historyOnlyChanges:eomUiState.historyOnlyChanges,
-        historySort:eomUiState.historySort
+        historySort:eomUiState.historySort,
+        dashboardView:eomUiState.dashboardView
       };
       localStorage.setItem(EOM_UI_STATE_KEY,JSON.stringify(payload));
     }catch(err){
