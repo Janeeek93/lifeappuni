@@ -2029,23 +2029,35 @@
 
     .mom-detail-panel {
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: auto;
+      width: min(1100px, 68vw);
       background: var(--surface);
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      box-shadow: -24px 0 60px rgba(15, 23, 42, 0.22);
       opacity: 0;
-      transform: translateY(18px) scale(0.985);
+      transform: translateX(36px);
       pointer-events: none;
-      transition: opacity .25s ease, transform .25s ease;
+      transition: opacity .28s ease, transform .28s ease;
       z-index: 41;
-      --mom-detail-gutter: clamp(20px, 4vw, 56px);
+      --mom-detail-gutter: clamp(24px, 4vw, 56px);
     }
 
     .mom-detail-panel.is-visible {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateX(0);
       pointer-events: auto;
+    }
+
+    @media (max-width: 960px) {
+      .mom-detail-panel {
+        width: 100%;
+        border-radius: 0;
+      }
     }
 
     body.mom-detail-open {
@@ -2053,18 +2065,23 @@
     }
 
     .mom-detail-header {
+      position: sticky;
+      top: 0;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
-      padding: 28px var(--mom-detail-gutter) 18px;
-      flex-wrap: wrap;
+      padding: 28px var(--mom-detail-gutter) 20px;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      z-index: 2;
     }
 
     .mom-detail-heading {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .mom-detail-eyebrow {
@@ -2076,7 +2093,7 @@
 
     .mom-detail-title {
       margin: 0;
-      font-size: 18px;
+      font-size: 20px;
       color: var(--ink);
     }
 
@@ -2085,51 +2102,12 @@
       color: var(--muted);
     }
 
-    .mom-detail-header-actions {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .mom-detail-sort {
-      display: inline-flex;
-      gap: 6px;
-      padding: 4px;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.18);
-    }
-
-    .mom-detail-sort button {
-      border: none;
-      background: transparent;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      cursor: pointer;
-      color: var(--muted);
-      transition: all .2s ease;
-    }
-
-    .mom-detail-sort button.is-active {
-      background: var(--accent);
-      color: #fff;
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.26);
-    }
-
-    .mom-detail-sort button:not(.is-active):hover {
-      color: var(--ink);
-    }
-
     .mom-detail-close {
       border: none;
-      background: rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.06);
       color: var(--ink);
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: inline-flex;
       align-items: center;
@@ -2142,184 +2120,276 @@
     .mom-detail-close:focus-visible {
       outline: none;
       background: rgba(37, 99, 235, 0.18);
-      color: var(--accent);
+      color: #1d4ed8;
       transform: translateY(-1px);
     }
 
-    .mom-detail-meta {
-      padding: 0 var(--mom-detail-gutter) 26px;
+    .mom-detail-toolbar {
+      padding: 16px var(--mom-detail-gutter) 0;
       display: flex;
-      flex-direction: column;
-      gap: 22px;
-    }
-
-    .mom-detail-overview {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 18px;
-      align-items: stretch;
-    }
-
-    .mom-detail-meta-grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      align-items: stretch;
-    }
-
-    .mom-detail-tile {
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      padding: 18px 20px;
-      background: rgba(248, 250, 252, 0.88);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      min-height: 0;
-    }
-
-    .mom-detail-tile.highlight {
-      background: linear-gradient(145deg, rgba(37, 99, 235, 0.07), rgba(37, 99, 235, 0.02));
-      border-color: rgba(37, 99, 235, 0.22);
-    }
-
-    .mom-detail-tile.positive {
-      border-color: rgba(239, 68, 68, 0.22);
-      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.9));
-    }
-
-    .mom-detail-tile.negative {
-      border-color: rgba(34, 197, 94, 0.22);
-      background: linear-gradient(145deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.9));
-    }
-
-    .mom-detail-tile-label {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .mom-detail-tile-value {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .mom-detail-tile-pair {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      width: 100%;
-    }
-
-    .mom-detail-tile-col {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-start;
-    }
-
-    .mom-detail-tile-col strong {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--ink);
-      line-height: 1.25;
-    }
-
-    .mom-detail-tile-pill {
-      display: inline-flex;
+      justify-content: flex-end;
       align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--muted);
-      background: rgba(148, 163, 184, 0.16);
-      padding: 3px 8px;
+    }
+
+    .mom-detail-sort {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
       border-radius: 999px;
+      background: rgba(148, 163, 184, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     }
 
-    .mom-detail-tile-note {
+    .mom-detail-sort button {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      border-radius: 999px;
       font-size: 12px;
-      line-height: 1.4;
-      color: var(--muted);
-    }
-
-    .mom-detail-cross {
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      padding: 14px 16px 16px;
-      background: rgba(248, 250, 252, 0.85);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .mom-detail-cross.positive {
-      border-color: rgba(239, 68, 68, 0.22);
-      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.92));
-    }
-
-    .mom-detail-cross.neutral {
-      border-color: rgba(148, 163, 184, 0.2);
-    }
-
-    .mom-detail-cross-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 12px;
-    }
-
-    .mom-detail-cross-label {
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .mom-detail-cross-value {
-      font-size: 15px;
       font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mom-detail-cross-bar {
-      position: relative;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.2);
-      overflow: hidden;
-    }
-
-    .mom-detail-cross-bar span {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 10px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.7), rgba(239, 68, 68, 0.4));
-      transform: translateX(-50%);
-      left: var(--mom-cross-position, 0%);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
-    }
-
-    .mom-detail-cross-note {
-      font-size: 12px;
+      letter-spacing: 0.02em;
+      cursor: pointer;
       color: var(--muted);
-      line-height: 1.4;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .mom-detail-sort button.is-active {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.32));
+      color: #1d4ed8;
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .mom-detail-sort button:not(.is-active):hover {
+      color: #1d4ed8;
+      background: rgba(37, 99, 235, 0.12);
+    }
+
+    .mom-detail-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 0 48px;
+    }
+
+    .mom-detail-meta,
+    .mom-detail-body {
+      padding: 0 var(--mom-detail-gutter);
+    }
+
+    .mom-detail-meta {
+      margin-bottom: 28px;
     }
 
     .mom-detail-body {
-      padding: 0 var(--mom-detail-gutter) clamp(32px, 4vw, 56px);
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 32px;
-      align-content: stretch;
-      flex: 1;
+      gap: clamp(28px, 5vw, 42px);
+    }
+
+    .mom-detail-section {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .mom-detail-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .mom-detail-section-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .mom-detail-section-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .mom-detail-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .mom-detail-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .mom-detail-kpi-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+    }
+
+    .mom-detail-kpi-card {
+      --mom-kpi-start: rgba(37, 99, 235, 0.12);
+      --mom-kpi-stop: rgba(37, 99, 235, 0.32);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--mom-kpi-start), var(--mom-kpi-stop));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 16px 32px rgba(15, 23, 42, 0.12);
+    }
+
+    .mom-detail-kpi-card .label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(15, 23, 42, 0.7);
+    }
+
+    .mom-detail-kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .mom-detail-kpi-trend {
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mom-detail-kpi-card.month-a {
+      --mom-kpi-start: rgba(14, 165, 233, 0.16);
+      --mom-kpi-stop: rgba(14, 165, 233, 0.4);
+    }
+
+    .mom-detail-kpi-card.month-b {
+      --mom-kpi-start: rgba(249, 115, 22, 0.16);
+      --mom-kpi-stop: rgba(249, 115, 22, 0.4);
+    }
+
+    .mom-detail-kpi-card.positive {
+      --mom-kpi-start: rgba(34, 197, 94, 0.14);
+      --mom-kpi-stop: rgba(16, 185, 129, 0.38);
+    }
+
+    .mom-detail-kpi-card.negative {
+      --mom-kpi-start: rgba(239, 68, 68, 0.16);
+      --mom-kpi-stop: rgba(239, 68, 68, 0.42);
+    }
+
+    .mom-detail-kpi-card.neutral {
+      --mom-kpi-start: rgba(148, 163, 184, 0.1);
+      --mom-kpi-stop: rgba(148, 163, 184, 0.24);
+    }
+
+    .mom-detail-kpi-trend.positive { color: #047857; }
+    .mom-detail-kpi-trend.negative { color: #b91c1c; }
+    .mom-detail-kpi-trend.neutral { color: var(--muted); }
+
+    .mom-detail-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(248, 250, 252, 0.76);
+    }
+
+    @media (max-width: 1100px) {
+      .mom-detail-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .mom-detail-metric-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+    }
+
+    .mom-detail-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mom-detail-metric-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .mom-detail-metric-values {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+    }
+
+    .mom-detail-metric-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.05);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .mom-detail-metric-chip span {
+      font-weight: 700;
+    }
+
+    .mom-detail-metric-delta {
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .mom-detail-metric-delta.positive { color: #047857; }
+    .mom-detail-metric-delta.negative { color: #b91c1c; }
+    .mom-detail-metric-delta.neutral { color: var(--muted); }
+
+    .mom-detail-highlight {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: linear-gradient(120deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mom-detail-highlight.neutral {
+      background: linear-gradient(120deg, rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0));
+    }
+
+    .mom-detail-highlight-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .mom-detail-highlight-note {
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .mom-detail-calendar {
@@ -3563,23 +3633,25 @@
       </div>
       <div id="mom-detail-backdrop" class="mom-detail-backdrop" hidden></div>
       <aside id="mom-detail-panel" class="mom-detail-panel" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="mom-detail-header">
+        <header class="mom-detail-header">
           <div class="mom-detail-heading">
             <span class="mom-detail-eyebrow">Analiza kategorii</span>
             <h4 class="mom-detail-title" id="mom-detail-title">Szczegóły kategorii</h4>
             <div class="mom-detail-subtitle" id="mom-detail-subtitle">Wybierz kategorię z tabeli, aby zanurzyć się w transakcje.</div>
           </div>
-          <div class="mom-detail-header-actions">
-            <div class="mom-detail-sort" id="mom-detail-sort">
-              <button type="button" class="is-active" data-mom-detail-sort="impact">Największy wpływ</button>
-              <button type="button" data-mom-detail-sort="chron">Chronologicznie</button>
-            </div>
-            <button type="button" class="mom-detail-close" id="mom-detail-close" data-mom-detail-close aria-label="Zamknij szczegóły">✕</button>
+          <button type="button" class="mom-detail-close" id="mom-detail-close" data-mom-detail-close aria-label="Zamknij szczegóły">✕</button>
+        </header>
+        <div class="mom-detail-toolbar" id="mom-detail-toolbar" style="display:none">
+          <div class="mom-detail-sort" id="mom-detail-sort">
+            <button type="button" class="is-active" data-mom-detail-sort="impact">Największy wpływ</button>
+            <button type="button" data-mom-detail-sort="chron">Chronologicznie</button>
           </div>
         </div>
-        <div class="mom-detail-meta" id="mom-detail-meta"></div>
-        <div class="mom-detail-body" id="mom-detail-body">
-          <div class="mom-detail-empty">Wybierz kategorię z tabeli, aby zobaczyć dzienne wydatki w miesiącu A i B.</div>
+        <div class="mom-detail-scroll">
+          <div class="mom-detail-meta" id="mom-detail-meta"></div>
+          <div class="mom-detail-body" id="mom-detail-body">
+            <div class="mom-detail-empty">Wybierz kategorię z tabeli, aby zobaczyć dzienne wydatki w miesiącu A i B.</div>
+          </div>
         </div>
       </aside>
     </section>
@@ -9520,7 +9592,6 @@
     if(!panel || !backdrop) return;
     momDetailScrollRestore=window.scrollY||window.pageYOffset||document.documentElement.scrollTop||0;
     if(document.body) document.body.classList.add('mom-detail-open');
-    window.scrollTo(0,0);
     momDetailOpen=true;
     renderMomDetail();
     panel.classList.add('is-visible');
@@ -9633,6 +9704,8 @@
     const maxDaysA=monthA?daysInYm(monthA):0;
     const maxDaysB=monthB?daysInYm(monthB):0;
     const days=[];
+    const amountsA=[];
+    const amountsB=[];
     for(let day=1; day<=limit; day++){
       const entriesA=mapA.get(day)||[];
       const entriesB=mapB.get(day)||[];
@@ -9653,6 +9726,8 @@
         cumulativeB: 0,
         cumulativeDelta: 0
       });
+      entriesA.forEach(entry=>amountsA.push(Math.abs(entry.amount)));
+      entriesB.forEach(entry=>amountsB.push(Math.abs(entry.amount)));
     }
     let runningA=0;
     let runningB=0;
@@ -9679,6 +9754,17 @@
     const totalB=runningB;
     const avgA=totalCountA>0?totalA/totalCountA:0;
     const avgB=totalCountB>0?totalB/totalCountB:0;
+    const calcMedian=arr=>{
+      if(!arr.length) return 0;
+      const sorted=[...arr].sort((a,b)=>a-b);
+      const mid=Math.floor(sorted.length/2);
+      if(sorted.length%2===1) return sorted[mid];
+      return (sorted[mid-1]+sorted[mid])/2;
+    };
+    const medianA=calcMedian(amountsA);
+    const medianB=calcMedian(amountsB);
+    const maxA=amountsA.length?Math.max(...amountsA):0;
+    const maxB=amountsB.length?Math.max(...amountsB):0;
     return {
       days,
       totalA,
@@ -9688,6 +9774,10 @@
       countB:totalCountB,
       avgA,
       avgB,
+      medianA,
+      medianB,
+      maxA,
+      maxB,
       crossoverDay,
       ledFromStart,
       everLed,
@@ -9724,6 +9814,7 @@
     const subtitleEl=document.getElementById('mom-detail-subtitle');
     const metaEl=document.getElementById('mom-detail-meta');
     const bodyEl=document.getElementById('mom-detail-body');
+    const toolbar=document.getElementById('mom-detail-toolbar');
     if(!titleEl || !subtitleEl || !metaEl || !bodyEl) return;
     updateMomDetailSortButtons();
     const context=momLastContext;
@@ -9732,6 +9823,7 @@
       subtitleEl.textContent='Wybierz miesiące oraz kategorię, aby zobaczyć transakcje.';
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak danych do analizy. Wybierz dwa miesiące do porównania.</div>';
+      if(toolbar) toolbar.style.display='none';
       return;
     }
     const {categories,monthA,monthB,dayLimit}=context;
@@ -9741,76 +9833,82 @@
       subtitleEl.textContent='Kliknij konkretną kategorię z tabeli, aby zobaczyć transakcje.';
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Wybierz kategorię wydatków, aby wejść w szczegóły.</div>';
+      if(toolbar) toolbar.style.display='none';
       return;
     }
     const titleLabel=momCategoryLabel(selected);
     titleEl.textContent=titleLabel;
     subtitleEl.textContent=`${formatYmHuman(monthA)} vs ${formatYmHuman(monthB)} • do dnia ${String(dayLimit).padStart(2,'0')}`;
     const detail=buildMomDetailData(monthA, monthB, selected.id, dayLimit);
+    if(toolbar) toolbar.style.display='';
     const totalDiff=detail.totalA-detail.totalB;
-    const freqDiff=detail.countA-detail.countB;
-    const avgDiff=detail.avgA-detail.avgB;
-    const totalTileClass=['mom-detail-tile','highlight'];
-    if(totalDiff>0) totalTileClass.push('positive');
-    else if(totalDiff<0) totalTileClass.push('negative');
-    const freqTileClass=['mom-detail-tile'];
-    if(freqDiff>0) freqTileClass.push('positive');
-    else if(freqDiff<0) freqTileClass.push('negative');
-    const avgTileClass=['mom-detail-tile'];
-    if(avgDiff>0) avgTileClass.push('positive');
-    else if(avgDiff<0) avgTileClass.push('negative');
-    const formatCountFull=value=>{
-      if(!Number.isFinite(value) || value<=0) return '0';
-      return String(value);
-    };
-    const renderPair=(labelA,valueA,labelB,valueB)=>`
-      <div class="mom-detail-tile-pair">
-        <div class="mom-detail-tile-col"><span class="mom-detail-tile-pill">${labelA}</span><strong>${valueA}</strong></div>
-        <div class="mom-detail-tile-col"><span class="mom-detail-tile-pill">${labelB}</span><strong>${valueB}</strong></div>
-      </div>`;
-    const totalNote=totalDiff>0
-      ? `A wyżej o ${fmt(Math.abs(totalDiff), state.currency)}.`
-      : totalDiff<0
-        ? `A niżej o ${fmt(Math.abs(totalDiff), state.currency)}.`
-        : (detail.totalA>0 || detail.totalB>0)
-          ? 'Poziomy wyrównane.'
-          : 'Brak wydatków.';
+    const dayLimitLabel=String(detail.dayLimit).padStart(2,'0');
     const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
-    const freqNote=!hasTransactions
-      ? 'Brak transakcji.'
-      : freqDiff>0
-        ? `A częściej (+${freqDiff}).`
-        : freqDiff<0
-          ? `A rzadziej (−${Math.abs(freqDiff)}).`
-          : 'Tyle samo transakcji.';
-    const avgNote=!hasTransactions
-      ? 'Średnie pojawią się po transakcjach.'
-      : avgDiff>0
-        ? `A drożej o ${fmt(Math.abs(avgDiff), state.currency)}.`
-        : avgDiff<0
-          ? `A taniej o ${fmt(Math.abs(avgDiff), state.currency)}.`
-          : 'Średnia bez zmian.';
-    let crossoverHtml='';
-    if(detail.everLed && detail.crossoverDay){
-      const crossRatio=Math.max(0, Math.min(100, (detail.crossoverDay/detail.dayLimit)*100));
-      const crossLabel=detail.ledFromStart?'Start prowadzenia':'Moment przekroczenia';
-      const crossNote=detail.ledFromStart
-        ? 'A prowadzi od pierwszego dnia.'
-        : 'Od tego dnia A utrzymuje przewagę nad B.';
-      crossoverHtml=`<div class="mom-detail-cross positive"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">${crossLabel}</span><span class="mom-detail-cross-value">Dzień ${String(detail.crossoverDay).padStart(2,'0')}</span></div><div class="mom-detail-cross-bar"><span style="--mom-cross-position:${crossRatio}%"></span></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
+    const changeTone=totalDiff>0?'negative':totalDiff<0?'positive':'neutral';
+    const changeValue=totalDiff===0?'—':`${totalDiff>0?'+':'−'}${fmt(Math.abs(totalDiff), state.currency)}`;
+    const changeTrend=totalDiff>0?'↗ Wzrost wydatków':'↘ Oszczędności';
+    const percentBase=detail.totalB;
+    let percentTone='neutral';
+    let percentValue='—';
+    let percentTrend='Stabilnie względem miesiąca B';
+    if(percentBase>0){
+      const pct=((detail.totalA-detail.totalB)/percentBase)*100;
+      if(Math.abs(pct)<0.05){
+        percentValue='0,0%';
+        percentTone='neutral';
+        percentTrend='Różnica pomijalna';
+      }else{
+        percentTone=pct>0?'negative':'positive';
+        const sign=pct>0?'+':'−';
+        percentValue=`${sign}${Math.abs(pct).toFixed(1)}%`;
+        percentTrend=pct>0?'↗ Tempo rośnie':'↘ Tempo maleje';
+      }
+    }else if(detail.totalA>0){
+      percentValue='—';
+      percentTone='negative';
+      percentTrend='Brak punktu odniesienia (0 w miesiącu B)';
     }else{
-      const limitSafe=Number.isFinite(detail.dayLimit)?String(detail.dayLimit).padStart(2,'0'):'';
-      const crossNote=limitSafe
-        ? `Do dnia ${limitSafe} A nie przebił wydatków B.`
-        : 'Do wskazanego dnia A nie przebił wydatków B.';
-      crossoverHtml=`<div class="mom-detail-cross neutral"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">Moment przekroczenia</span><span class="mom-detail-cross-value">Nie wystąpił</span></div><div class="mom-detail-cross-bar"></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
+      percentValue='—';
+      percentTone='neutral';
+      percentTrend='Brak transakcji w obu miesiącach';
     }
-    const totalPair=renderPair('A', fmt(detail.totalA,state.currency), 'B', fmt(detail.totalB,state.currency));
-    const countPair=renderPair('A', formatCountFull(detail.countA), 'B', formatCountFull(detail.countB));
-    const avgPair=renderPair('A', hasTransactions?fmt(detail.avgA,state.currency):'—', 'B', hasTransactions?fmt(detail.avgB,state.currency):'—');
-    metaEl.innerHTML=`<div class="mom-detail-overview"><div class="mom-detail-meta-grid"><div class="${totalTileClass.join(' ')}"><span class="mom-detail-tile-label">Łączne wydatki</span><div class="mom-detail-tile-value">${totalPair}</div><p class="mom-detail-tile-note">${totalNote}</p></div><div class="${freqTileClass.join(' ')}"><span class="mom-detail-tile-label">Liczba transakcji</span><div class="mom-detail-tile-value">${countPair}</div><p class="mom-detail-tile-note">${freqNote}</p></div><div class="${avgTileClass.join(' ')}"><span class="mom-detail-tile-label">Średnia wartość</span><div class="mom-detail-tile-value">${avgPair}</div><p class="mom-detail-tile-note">${avgNote}</p></div></div>${crossoverHtml}</div>`;
-    if(detail.days.length===0){
+    const formatCount=value=>Number.isFinite(value)?String(value):'0';
+    const renderChip=(label,value)=>`<span class="mom-detail-metric-chip">${label} <span>${value}</span></span>`;
+    const renderDelta=(delta,unit,preferPositive=false)=>{
+      if(!Number.isFinite(delta) || Math.abs(delta)<(unit==='count'?0.5:0.01)){
+        return '<span class="mom-detail-metric-delta neutral">—</span>';
+      }
+      const isIncrease=delta>0;
+      const tone=isIncrease===preferPositive?'positive':'negative';
+      const arrow=isIncrease?'↗':'↘';
+      const valueText=unit==='currency'?
+        `${isIncrease?'+':'−'}${fmt(Math.abs(delta),state.currency)}`:
+        `${isIncrease?'+':'−'}${Math.abs(Math.round(delta))}${unit==='count'?' trans.':''}`;
+      return `<span class="mom-detail-metric-delta ${tone}">${arrow} ${valueText}</span>`;
+    };
+    const countDelta=detail.countA-detail.countB;
+    const avgDelta=detail.avgA-detail.avgB;
+    const medianA=detail.medianA;
+    const medianB=detail.medianB;
+    const maxA=detail.maxA;
+    const maxB=detail.maxB;
+    let highlightHtml='';
+    if(detail.everLed && detail.crossoverDay){
+      const crossDay=String(detail.crossoverDay).padStart(2,'0');
+      const crossTitle=detail.ledFromStart?'A prowadzi od pierwszego dnia':`Przekroczenie w dniu ${crossDay}`;
+      const crossNote=detail.ledFromStart
+        ? 'Łączne wydatki miesiąca A były wyższe od początku okresu.'
+        : 'Od tego dnia suma wydatków miesiąca A pozostaje wyższa niż w miesiącu B.';
+      highlightHtml=`<div class="mom-detail-highlight"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${crossTitle}</span><span class="mom-detail-highlight-note">${crossNote}</span></div>`;
+    }else{
+      const fallback=Number.isFinite(detail.dayLimit)?`Do dnia ${dayLimitLabel} A nie przebił wydatków B.`:'Miesiąc A nie przekroczył wydatków miesiąca B.';
+      highlightHtml=`<div class="mom-detail-highlight neutral"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${fallback}</span></div>`;
+    }
+    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
+    metaEl.innerHTML=overviewSection;
+    if(!hasTransactions){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
+      if(toolbar) toolbar.style.display='none';
       return;
     }
     const sortedDays=[...detail.days];
@@ -9874,7 +9972,7 @@
     const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
     const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
     const calendarSubtitle=`Do dnia ${String(detail.dayLimit).padStart(2,'0')} • ${humanMonthA} / ${humanMonthB}`;
-    const calendarSection=`<section class="mom-detail-calendar"><div class="mom-detail-calendar-heading"><div class="mom-detail-calendar-title">Kalendarz transakcji</div><div class="mom-detail-calendar-subtitle">${calendarSubtitle}</div></div><div class="mom-detail-calendar-grid">${calendarGridHtml}</div></section>`;
+    const calendarSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Kalendarz transakcji</h5><p class="mom-detail-section-subtitle">${calendarSubtitle}</p></div></div><div class="mom-detail-calendar"><div class="mom-detail-calendar-grid">${calendarGridHtml}</div></div></section>`;
     const daysForList=sortedDays.filter(day=>day.entriesA.length>0 || day.entriesB.length>0);
     const maxImpact=daysForList.reduce((max,day)=>Math.max(max,Math.abs(day.delta)),0);
     const listTitle=momDetailSort==='impact'?'Największe różnice dzienne':'Chronologiczna lista dni';
@@ -9900,7 +9998,7 @@
     const listContent=daysForList.length
       ? `<div class="mom-detail-daylist">${listCards}</div>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
-    const daylistSection=`<section class="mom-detail-daylist-section"><div class="mom-detail-daylist-heading"><div class="mom-detail-daylist-title">${listTitle}</div><div class="mom-detail-daylist-subtitle">${listSubtitle}</div></div>${listContent}</section>`;
+    const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
     bodyEl.innerHTML=`${calendarSection}${daylistSection}`;
     daysForList.forEach((day,idx)=>{
       const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
@@ -9912,7 +10010,8 @@
       el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
       el.style.borderColor=border;
     });
-    bodyEl.scrollTop=0;
+    const scrollWrap=document.querySelector('.mom-detail-scroll');
+    if(scrollWrap) scrollWrap.scrollTop=0;
   }
 
   function renderMomComparison(){
