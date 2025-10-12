@@ -421,58 +421,81 @@
 
     .eom-mom-grid {
       display: grid;
-      gap: 18px;
-      grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) minmax(0, 1fr);
-      align-items: flex-start;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      align-items: stretch;
+      grid-auto-flow: dense;
     }
 
-    .eom-mom-column {
-      background: rgba(248, 250, 252, 0.7);
+    .eom-mom-panel {
       border-radius: 16px;
       border: 1px solid rgba(148, 163, 184, 0.28);
+      background: rgba(248, 250, 252, 0.7);
       padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      min-height: 200px;
+      position: relative;
+      transition: border-color .2s ease, box-shadow .2s ease;
     }
 
-    .eom-mom-column[data-column="delta"] {
-      background: rgba(37, 99, 235, 0.04);
-      border-color: rgba(37, 99, 235, 0.2);
+    .eom-mom-panel:hover {
+      border-color: rgba(37, 99, 235, 0.35);
+      box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
     }
 
-    .eom-mom-column-header {
+    .eom-mom-panel[data-size="wide"] {
+      grid-column: span 2;
+    }
+
+    .eom-mom-panel-header {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
     }
 
-    .eom-mom-column-header .label {
+    .eom-mom-panel-header .label {
       text-transform: uppercase;
-      font-size: 11px;
       letter-spacing: 0.08em;
+      font-size: 11px;
       color: var(--muted);
     }
 
-    .eom-mom-column-header .value {
-      font-size: 22px;
+    .eom-mom-panel-header .value {
+      font-size: clamp(20px, 2.4vw, 28px);
       font-weight: 700;
       color: var(--ink);
       font-variant-numeric: tabular-nums;
     }
 
+    .eom-mom-panel-header .value.ok { color: var(--green); }
+    .eom-mom-panel-header .value.bad { color: var(--red); }
+
+    .eom-mom-panel .tiny {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .eom-mom-month-body {
+      display: grid;
+      grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
     .eom-mom-pie {
-      position: relative;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 8px 0;
+      gap: 8px;
+      min-height: 140px;
     }
 
     .eom-mom-pie canvas {
-      width: 140px !important;
-      height: 140px !important;
+      width: 120px !important;
+      height: 120px !important;
     }
 
     .eom-mom-pie-empty {
@@ -485,7 +508,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 320px;
+      max-height: 260px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -494,10 +517,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       border: 1px solid rgba(148, 163, 184, 0.25);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: #fff;
       transition: box-shadow .2s ease, transform .2s ease;
     }
@@ -571,6 +594,95 @@
       text-transform: uppercase;
     }
 
+    .eom-mom-highlights {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .eom-mom-highlight {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px dashed rgba(148, 163, 184, 0.4);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .eom-mom-highlight .label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .eom-mom-highlight .value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .eom-mom-highlight .value.ok { color: var(--green); }
+    .eom-mom-highlight .value.bad { color: var(--red); }
+    .eom-mom-highlight .value.neutral { color: var(--muted); }
+
+    .eom-mom-highlight .note {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .eom-mom-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .eom-mom-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--accent);
+    }
+
+    .eom-mom-badge.ok {
+      background: rgba(34, 197, 94, 0.16);
+      color: #166534;
+    }
+
+    .eom-mom-badge.bad {
+      background: rgba(239, 68, 68, 0.16);
+      color: #991b1b;
+    }
+
+    .eom-mom-badge.neutral {
+      background: rgba(148, 163, 184, 0.22);
+      color: var(--ink);
+    }
+
+    .eom-mom-tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .eom-mom-tag {
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--ink);
+    }
+
+    .eom-mom-tag.new { background: rgba(34, 197, 94, 0.16); color: #166534; }
+    .eom-mom-tag.closed { background: rgba(239, 68, 68, 0.16); color: #991b1b; }
+
     .eom-mom-empty {
       border: 1px dashed rgba(148, 163, 184, 0.6);
       border-radius: 14px;
@@ -580,74 +692,18 @@
       font-size: 14px;
     }
 
-    .eom-mom-summary-card {
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 16px;
-      padding: 16px;
-      background: rgba(248, 250, 252, 0.8);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .eom-mom-summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-
-    .eom-mom-summary-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 13px;
-    }
-
-    .eom-mom-summary-item .label {
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-    }
-
-    .eom-mom-summary-item .value {
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
-      color: var(--ink);
-    }
-
-    .eom-mom-summary-item .value.ok { color: var(--green); }
-    .eom-mom-summary-item .value.bad { color: var(--red); }
-
-    .eom-mom-summary-item .list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--ink);
-    }
-
-    .eom-mom-summary-item .pill {
-      background: rgba(15, 23, 42, 0.06);
-      color: var(--ink);
-      font-weight: 500;
-    }
-
     @media (max-width: 1024px) {
-      .eom-mom-grid {
+      .eom-mom-panel[data-size="wide"] {
+        grid-column: span 1;
+      }
+
+      .eom-mom-month-body {
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .eom-mom-column[data-column="delta"] {
-        order: 3;
-      }
-
-      .eom-mom-column[data-column="b"] {
-        order: 2;
-      }
-
-      .eom-mom-column[data-column="a"] {
-        order: 1;
+      .eom-mom-pie {
+        flex-direction: row;
+        justify-content: flex-start;
       }
     }
 
@@ -2474,39 +2530,56 @@
       </div>
       <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
       <div id="eom-mom-grid" class="eom-mom-grid" style="display:none">
-        <div class="eom-mom-column" data-column="a">
-          <div class="eom-mom-column-header">
-            <div class="label">Miesiąc A</div>
+        <section class="eom-mom-panel" data-panel="a" data-size="wide">
+          <div class="eom-mom-panel-header">
+            <span class="label">Miesiąc A</span>
             <div class="value" id="eom-mom-total-a">—</div>
-            <div class="tiny muted" id="eom-mom-label-a"></div>
           </div>
-          <div class="eom-mom-pie">
-            <canvas id="eom-mom-pie-a"></canvas>
-            <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-a" style="display:none">Brak danych</div>
+          <div class="tiny" id="eom-mom-label-a"></div>
+          <div class="eom-mom-month-body">
+            <div class="eom-mom-pie">
+              <canvas id="eom-mom-pie-a"></canvas>
+              <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-a" style="display:none">Brak danych</div>
+            </div>
+            <div class="eom-mom-list" id="eom-mom-list-a"></div>
           </div>
-          <div class="eom-mom-list" id="eom-mom-list-a"></div>
-        </div>
-        <div class="eom-mom-column" data-column="delta">
-          <div class="eom-mom-column-header">
-            <div class="label">Zmiana</div>
-            <div class="tiny muted">Saldo A vs B</div>
+        </section>
+        <section class="eom-mom-panel" data-panel="b" data-size="wide">
+          <div class="eom-mom-panel-header">
+            <span class="label">Miesiąc B</span>
+            <div class="value" id="eom-mom-total-b">—</div>
+          </div>
+          <div class="tiny" id="eom-mom-label-b"></div>
+          <div class="eom-mom-month-body">
+            <div class="eom-mom-pie">
+              <canvas id="eom-mom-pie-b"></canvas>
+              <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-b" style="display:none">Brak danych</div>
+            </div>
+            <div class="eom-mom-list" id="eom-mom-list-b"></div>
+          </div>
+        </section>
+        <section class="eom-mom-panel" data-panel="delta">
+          <div class="eom-mom-panel-header">
+            <span class="label">Zmiany</span>
+            <div class="tiny">Największe ruchy miesiąc po miesiącu</div>
           </div>
           <div class="eom-mom-list" id="eom-mom-list-delta"></div>
-        </div>
-        <div class="eom-mom-column" data-column="b">
-          <div class="eom-mom-column-header">
-            <div class="label">Miesiąc B</div>
-            <div class="value" id="eom-mom-total-b">—</div>
-            <div class="tiny muted" id="eom-mom-label-b"></div>
+        </section>
+        <section class="eom-mom-panel" data-panel="diff">
+          <div class="eom-mom-panel-header">
+            <span class="label">Różnica w miesiącach</span>
+            <div class="tiny">Kluczowe wnioski z porównania</div>
           </div>
-          <div class="eom-mom-pie">
-            <canvas id="eom-mom-pie-b"></canvas>
-            <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-b" style="display:none">Brak danych</div>
+          <div class="eom-mom-highlights" id="eom-mom-diff-card"></div>
+        </section>
+        <section class="eom-mom-panel" data-panel="avg">
+          <div class="eom-mom-panel-header">
+            <span class="label">Średnio miesięczna zmiana</span>
+            <div class="tiny">Jak wypada tempo wzrostu</div>
           </div>
-          <div class="eom-mom-list" id="eom-mom-list-b"></div>
-        </div>
+          <div class="eom-mom-highlights" id="eom-mom-avg-card"></div>
+        </section>
       </div>
-      <div id="eom-mom-summary" class="eom-mom-summary-card" style="display:none"></div>
     </section>
   </section>
 
@@ -5563,7 +5636,24 @@
     const runBtn = document.getElementById('eom-mom-run');
     const emptyEl = document.getElementById('eom-mom-empty');
     const grid = document.getElementById('eom-mom-grid');
-    const summaryEl = document.getElementById('eom-mom-summary');
+    if(grid && !grid.dataset.bound){
+      grid.dataset.bound = '1';
+      grid.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-account-id]');
+        if(!target) return;
+        const accId = target.dataset.accountId;
+        if(!accId) return;
+        eomUiState.focusedAccountId = accId;
+        saveEomUiState();
+        renderEOM();
+        const detail = document.getElementById('eom-grid');
+        if(detail){
+          detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+    const diffCard = document.getElementById('eom-mom-diff-card');
+    const avgCard = document.getElementById('eom-mom-avg-card');
     const totalAEl = document.getElementById('eom-mom-total-a');
     const totalBEl = document.getElementById('eom-mom-total-b');
     const labelAEl = document.getElementById('eom-mom-label-a');
@@ -5652,7 +5742,8 @@
         emptyEl.style.display = 'block';
       }
       if(grid) grid.style.display = 'none';
-      if(summaryEl) summaryEl.style.display = 'none';
+      if(diffCard) diffCard.innerHTML = '';
+      if(avgCard) avgCard.innerHTML = '';
       destroyEomChart('momPieA');
       destroyEomChart('momPieB');
     };
@@ -5691,6 +5782,13 @@
       if(value > 0) return `+${formatted}`;
       if(value < 0) return `-${formatted}`;
       return formatted;
+    };
+
+    const describeMonths = (count) => {
+      if(!Number.isFinite(count) || count <= 0) return '0 miesięcy';
+      if(count === 1) return '1 miesiąc';
+      if(count >= 2 && count <= 4) return `${count} miesiące`;
+      return `${count} miesięcy`;
     };
 
     const totalA = sumBalances(balancesA);
@@ -5749,7 +5847,7 @@
     const makeListItem = (value, account) => {
       const tone = value > 0 ? 'ok' : value < 0 ? 'bad' : 'neutral';
       return `
-        <div class="eom-mom-row">
+        <div class="eom-mom-row" data-account-id="${account.id}">
           <div class="meta">
             <span class="name">${account.name}</span>
           </div>
@@ -5784,7 +5882,7 @@
             if(item.status === 'closed') notes.push('Zamknięte po miesiącu B');
             if(item.deltaPct !== null && Math.abs(item.deltaPct) < 1) notes.push('Stabilne (<1%)');
             return `
-              <div class="eom-mom-row">
+              <div class="eom-mom-row" data-account-id="${item.account.id}">
                 <div class="meta">
                   <span class="name">${item.account.name}</span>
                   <span class="sub">${subtitle}</span>
@@ -5896,31 +5994,100 @@
     const newAccounts = rows.filter(row => row.status === 'new').map(row => row.account.name);
     const closedAccounts = rows.filter(row => row.status === 'closed').map(row => row.account.name);
 
-    if(summaryEl){
-      summaryEl.style.display = 'flex';
-      summaryEl.innerHTML = `
-        <div class="eom-mom-summary-item">
-          <span class="label">Całkowita zmiana</span>
+    if(diffCard){
+      const monthsApart = (() => {
+        if(!monthA || !monthB) return 0;
+        const [ay, am] = monthA.split('-').map(Number);
+        const [by, bm] = monthB.split('-').map(Number);
+        if(!Number.isFinite(ay) || !Number.isFinite(am) || !Number.isFinite(by) || !Number.isFinite(bm)) return 0;
+        return Math.abs(((ay * 12) + (am || 0)) - ((by * 12) + (bm || 0)));
+      })();
+      const monthsLabel = monthsApart === 0
+        ? 'Ten sam miesiąc'
+        : `Różnica ${describeMonths(monthsApart)}`;
+      const movers = [];
+      if(topIncrease){
+        movers.push(`<span class="eom-mom-badge ok" data-account-id="${topIncrease.account.id}">Top wzrost: ${topIncrease.account.name} ${formatSigned(topIncrease.delta)}</span>`);
+      }
+      if(topDecrease){
+        movers.push(`<span class="eom-mom-badge bad" data-account-id="${topDecrease.account.id}">Top spadek: ${topDecrease.account.name} ${formatSigned(topDecrease.delta)}</span>`);
+      }
+      const accountChanges = [];
+      if(newAccounts.length){
+        accountChanges.push(`<div class="note">Nowe w miesiącu A</div><div class="eom-mom-tag-list">${newAccounts.map(name => `<span class="eom-mom-tag new">${name}</span>`).join('')}</div>`);
+      }
+      if(closedAccounts.length){
+        accountChanges.push(`<div class="note">Zamknięte od miesiąca B</div><div class="eom-mom-tag-list">${closedAccounts.map(name => `<span class="eom-mom-tag closed">${name}</span>`).join('')}</div>`);
+      }
+      diffCard.innerHTML = `
+        <div class="eom-mom-highlight">
+          <span class="label">Okres porównania</span>
+          <span class="value neutral">${formatMonthLabel(monthA)} vs ${formatMonthLabel(monthB)}</span>
+          <span class="note">${monthsLabel}</span>
+        </div>
+        <div class="eom-mom-highlight">
+          <span class="label">Całkowita różnica</span>
           <span class="value ${totalTone}">${totalLabel}${pctLabel}</span>
         </div>
-        <div class="eom-mom-summary-grid">
-          <div class="eom-mom-summary-item">
-            <span class="label">Top wzrost</span>
-            <span class="value ${topIncrease ? 'ok' : 'neutral'}">${topIncrease ? `${topIncrease.account.name} ${formatSigned(topIncrease.delta)}` : '—'}</span>
-          </div>
-          <div class="eom-mom-summary-item">
-            <span class="label">Top spadek</span>
-            <span class="value ${topDecrease ? 'bad' : 'neutral'}">${topDecrease ? `${topDecrease.account.name} ${formatSigned(topDecrease.delta)}` : '—'}</span>
-          </div>
-          <div class="eom-mom-summary-item">
-            <span class="label">Nowe konta</span>
-            <div class="list">${newAccounts.length ? newAccounts.map(name => `<span class="pill">${name}</span>`).join('') : '<span class="muted">Brak</span>'}</div>
-          </div>
-          <div class="eom-mom-summary-item">
-            <span class="label">Zamknięte konta</span>
-            <div class="list">${closedAccounts.length ? closedAccounts.map(name => `<span class="pill">${name}</span>`).join('') : '<span class="muted">Brak</span>'}</div>
-          </div>
+        ${movers.length ? `<div class="eom-mom-badges">${movers.join('')}</div>` : ''}
+        ${accountChanges.length ? `<div class="eom-mom-highlight"><span class="label">Zmiany w portfelu</span>${accountChanges.join('')}</div>` : ''}
+      `;
+    }
+
+    if(avgCard){
+      const toIndex = (ym) => {
+        if(!ym) return null;
+        const [y, m] = ym.split('-').map(Number);
+        if(!Number.isFinite(y) || !Number.isFinite(m)) return null;
+        return y * 12 + (m || 0);
+      };
+      const idxA = toIndex(monthA);
+      const idxB = toIndex(monthB);
+      const spanMonths = (idxA !== null && idxB !== null) ? Math.max(1, Math.abs(idxA - idxB)) : null;
+      const avgPerMonth = spanMonths ? totalDelta / spanMonths : null;
+      const avgTone = avgPerMonth > 0 ? 'ok' : avgPerMonth < 0 ? 'bad' : 'neutral';
+      const avgLabel = avgPerMonth !== null ? formatSigned(avgPerMonth) : '—';
+
+      const netSeries = (ctx.netWorthByMonth || [])
+        .filter(item => Number.isFinite(item.total))
+        .sort((a,b) => a.ym.localeCompare(b.ym));
+      const netDiffs = [];
+      for(let i=1;i<netSeries.length;i++){
+        netDiffs.push(netSeries[i].total - netSeries[i-1].total);
+      }
+      const historicalAvg = netDiffs.length ? netDiffs.reduce((sum,val)=>sum+val,0) / netDiffs.length : null;
+      const historicalTone = historicalAvg > 0 ? 'ok' : historicalAvg < 0 ? 'bad' : 'neutral';
+      const historicalLabel = historicalAvg !== null ? formatSigned(historicalAvg) : '—';
+      const last3 = netDiffs.slice(-3);
+      const last3Avg = last3.length ? last3.reduce((sum,val)=>sum+val,0) / last3.length : null;
+      const last3Tone = last3Avg > 0 ? 'ok' : last3Avg < 0 ? 'bad' : 'neutral';
+      const last3Label = last3Avg !== null ? formatSigned(last3Avg) : '—';
+      const vsHistorical = (avgPerMonth !== null && historicalAvg !== null)
+        ? avgPerMonth - historicalAvg
+        : null;
+      const vsTone = vsHistorical > 0 ? 'ok' : vsHistorical < 0 ? 'bad' : 'neutral';
+      avgCard.innerHTML = `
+        <div class="eom-mom-highlight">
+          <span class="label">Średnio na miesiąc (A → B)</span>
+          <span class="value ${avgTone}">${avgLabel}</span>
+          <span class="note">${spanMonths ? `Na przestrzeni ${describeMonths(spanMonths)}` : 'Wybierz inne miesiące, aby policzyć tempo.'}</span>
         </div>
+        <div class="eom-mom-highlight">
+          <span class="label">Średnia historyczna</span>
+          <span class="value ${historicalTone}">${historicalLabel}</span>
+          <span class="note">Bazuje na wszystkich zapisanych miesiącach</span>
+        </div>
+        ${last3.length ? `
+          <div class="eom-mom-highlight">
+            <span class="label">Ostatnie 3 miesiące</span>
+            <span class="value ${last3Tone}">${last3Label}</span>
+          </div>
+        ` : ''}
+        ${vsHistorical !== null ? `
+          <div class="eom-mom-badges">
+            <span class="eom-mom-badge ${vsTone}">vs historycznie: ${formatSigned(vsHistorical)}</span>
+          </div>
+        ` : ''}
       `;
     }
   }
