@@ -57,21 +57,914 @@
       gap: 12px;
     }
 
+    .eom-dashboard-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px;
+      margin: 16px 0 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(248, 250, 252, 0.7);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+
+    .eom-dashboard-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      flex: 1 1 160px;
+      text-align: center;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .25s ease, color .25s ease, box-shadow .25s ease;
+    }
+
+    .eom-dashboard-tab:hover,
+    .eom-dashboard-tab:focus-visible {
+      outline: none;
+      color: var(--ink);
+      background: rgba(37, 99, 235, 0.16);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+    }
+
+    .eom-dashboard-tab.is-active {
+      background: linear-gradient(135deg, var(--accent), rgba(37, 99, 235, 0.85));
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+    }
+
+    .eom-dashboard-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .eom-dashboard-panel {
+      display: none;
+    }
+
+    .eom-dashboard-panel.is-active {
+      display: block;
+      animation: eomPanelFade 0.35s ease;
+    }
+
+    @keyframes eomPanelFade {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .eom-networth-section {
+      margin-top: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 20px;
+      background: var(--surface);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .eom-networth-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .eom-networth-title {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .eom-networth-title .title {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .eom-networth-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+    }
+
+    .eom-networth-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .eom-networth-tab:hover {
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--accent);
+    }
+
+    .eom-networth-tab.is-active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .eom-networth-chart-shell {
+      position: relative;
+      height: 400px;
+      width: 100%;
+      border-radius: 18px;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.4), rgba(248, 250, 252, 0.8));
+    }
+
+    .eom-networth-chart-shell canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .eom-networth-empty {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.55), rgba(248, 250, 252, 0.85));
+    }
+
+    .eom-networth-empty.is-visible {
+      display: flex;
+    }
+
+    .eom-history-controls {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .eom-history-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #eom-history-range {
+      min-width: 160px;
+    }
+
+    #eom-history-search {
+      min-width: 200px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .eom-history-checkbox {
+      flex-direction: row !important;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .eom-history-checkbox input {
+      transform: translateY(1px);
+    }
+
+    .eom-history-table-shell {
+      margin-top: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.35), rgba(248, 250, 252, 0.75));
+      position: relative;
+    }
+
+    .eom-history-table-scroll {
+      max-height: 500px;
+      overflow: auto;
+      border-radius: inherit;
+    }
+
+    .eom-history-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .eom-history-table thead th {
+      position: sticky;
+      top: 0;
+      background: rgba(248, 250, 252, 0.95);
+      backdrop-filter: blur(6px);
+      z-index: 5;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 700;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .eom-history-table thead th button {
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eom-history-table th, .eom-history-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .eom-history-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .eom-history-table td {
+      position: relative;
+      background-clip: padding-box;
+      transition: background-color .2s ease, box-shadow .2s ease;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-history-table td:hover {
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-history-value {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .eom-history-arrow {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .eom-history-arrow.positive { color: var(--green); }
+    .eom-history-arrow.negative { color: var(--red); }
+    .eom-history-arrow.neutral { color: var(--muted); }
+
+    .eom-history-table td.positive {
+      color: var(--ink);
+    }
+
+    .eom-history-table td.negative {
+      color: var(--ink);
+    }
+
+    .eom-history-table td.networth {
+      font-weight: 700;
+    }
+
+    .eom-history-table td.delta {
+      font-weight: 600;
+    }
+
+    .eom-history-table thead button[data-sort-dir]::after {
+      content: attr(data-sort-dir);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .eom-history-footer {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(37, 99, 235, 0.08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      color: var(--ink);
+    }
+
+    .eom-history-footer strong {
+      font-size: 18px;
+    }
+
+    .eom-history-footer .muted {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .eom-networth-month-card {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(248, 250, 252, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .eom-networth-month-card:hover {
+      border-color: rgba(37, 99, 235, 0.4);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .eom-networth-month-card.is-empty {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: var(--muted);
+      min-height: 110px;
+    }
+
+    .eom-networth-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .eom-networth-card-month {
+      font-size: 13px;
+      color: var(--ink);
+      letter-spacing: 0.04em;
+    }
+
+    .eom-networth-card-total {
+      font-size: clamp(28px, 3.4vw, 36px);
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-mom-section {
+      margin-top: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 18px;
+      background: var(--surface);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .eom-mom-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .eom-mom-controls .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 170px;
+    }
+
+    .eom-mom-controls label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .eom-mom-controls select {
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      padding: 8px 12px;
+      font-size: 14px;
+      background: rgba(248, 250, 252, 0.75);
+      color: var(--ink);
+    }
+
+    .eom-mom-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .eom-mom-content {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .eom-mom-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(248, 250, 252, 0.95);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .eom-mom-summary-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .eom-mom-summary-main .label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .eom-mom-summary-main .value {
+      font-size: clamp(24px, 2.8vw, 34px);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-mom-summary-main .value.positive { color: var(--green); }
+    .eom-mom-summary-main .value.negative { color: var(--red); }
+    .eom-mom-summary-main .value.neutral { color: var(--muted); }
+
+    .eom-mom-summary-text {
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .eom-mom-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .eom-mom-ranking {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(248, 250, 252, 0.85);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .eom-mom-ranking-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .eom-mom-ranking-header h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .eom-mom-ranking .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .eom-mom-ranking table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .eom-mom-ranking tbody tr {
+      cursor: pointer;
+      transition: background-color .2s ease;
+    }
+
+    .eom-mom-ranking tbody tr:hover,
+    .eom-mom-ranking tbody tr.is-highlighted {
+      background: rgba(37, 99, 235, 0.08);
+    }
+
+    .eom-mom-change-bar {
+      position: relative;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      overflow: hidden;
+    }
+
+    .eom-mom-change-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform-origin: left center;
+      transform: scaleX(var(--delta-progress, 0));
+      background: rgba(34, 197, 94, 0.18);
+      z-index: 0;
+      transition: transform .3s ease;
+    }
+
+    .eom-mom-change-bar.negative::before {
+      background: rgba(239, 68, 68, 0.18);
+      transform-origin: right center;
+    }
+
+    .eom-mom-change-bar span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eom-mom-change-bar.negative span { color: var(--red); }
+    .eom-mom-change-bar.positive span { color: var(--green); }
+    .eom-mom-change-bar.neutral span { color: var(--muted); }
+
+    .eom-mom-auto {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(248, 250, 252, 0.85);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .eom-mom-auto h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .eom-mom-auto-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .eom-mom-auto-card {
+      border-radius: 14px;
+      border-left: 4px solid rgba(148, 163, 184, 0.4);
+      background: rgba(255, 255, 255, 0.75);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: box-shadow .2s ease, transform .2s ease;
+    }
+
+    .eom-mom-auto-card .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .eom-mom-auto-card .description {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .eom-mom-auto-card.success { border-left-color: rgba(34, 197, 94, 0.65); }
+    .eom-mom-auto-card.warning { border-left-color: rgba(249, 115, 22, 0.75); }
+    .eom-mom-auto-card.danger { border-left-color: rgba(239, 68, 68, 0.75); }
+    .eom-mom-auto-card.info { border-left-color: rgba(59, 130, 246, 0.7); }
+
+    .insight-pill.positive { background: rgba(34, 197, 94, 0.16); color: #166534; border-color: rgba(34, 197, 94, 0.38); }
+    .insight-pill.negative { background: rgba(239, 68, 68, 0.16); color: #991b1b; border-color: rgba(239, 68, 68, 0.38); }
+    .insight-pill.info { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; border-color: rgba(59, 130, 246, 0.32); }
+    .insight-pill.warning { background: rgba(249, 115, 22, 0.16); color: #b45309; border-color: rgba(249, 115, 22, 0.32); }
+    .insight-pill.is-highlighted { border-color: rgba(37, 99, 235, 0.6); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18); }
+    .eom-mom-auto-card.is-highlighted { box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+
+    .eom-mom-empty {
+      text-align: center;
+      padding: 28px 16px;
+      border-radius: 14px;
+      border: 1px dashed rgba(148, 163, 184, 0.4);
+      color: var(--muted);
+      background: rgba(248, 250, 252, 0.7);
+    }
+
+    @media (max-width: 959px) {
+      .eom-dashboard-nav {
+        gap: 6px;
+        padding: 10px;
+      }
+
+      .eom-dashboard-tab {
+        flex: 1 1 calc(50% - 6px);
+      }
+
+      .eom-mom-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .eom-mom-actions {
+        justify-content: flex-start;
+      }
+
+      .eom-mom-summary {
+        position: static;
+      }
+    }
+
+    
+
+    .eom-networth-card-delta {
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-networth-card-delta.positive { color: var(--green); }
+    .eom-networth-card-delta.negative { color: var(--red); }
+    .eom-networth-card-delta.neutral { color: var(--muted); }
+
+    .eom-networth-card-split {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .eom-networth-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .eom-networth-card-list > span {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .eom-networth-card-list ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .eom-networth-card-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.14);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-networth-card-list li.positive {
+      background: rgba(34, 197, 94, 0.14);
+      color: #166534;
+    }
+
+    .eom-networth-card-list li.negative {
+      background: rgba(239, 68, 68, 0.14);
+      color: #991b1b;
+    }
+
+    .eom-networth-card-list li span:last-child {
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .eom-networth-section {
+        padding: 16px;
+        gap: 14px;
+      }
+
+      .eom-networth-chart-shell {
+        height: 280px;
+      }
+
+      .eom-networth-month-card {
+        padding: 14px;
+      }
+    }
+
     .eom-hero-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 12px;
     }
 
+    .eom-performance-matrix {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .eom-performance-column {
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .eom-performance-head {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eom-performance-head .title {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .eom-performance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .eom-performance-empty {
+      border: 1px dashed rgba(148, 163, 184, 0.5);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      background: rgba(241, 245, 249, 0.45);
+    }
+
+    .eom-account-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-left-width: 4px;
+      padding: 14px 16px;
+      text-align: left;
+      background: var(--card);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      font: inherit;
+    }
+
+    .eom-account-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      border-color: var(--accent);
+    }
+
+    .eom-account-card.positive {
+      border-left-color: var(--green);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(240, 253, 244, 0.65));
+    }
+
+    .eom-account-card.negative {
+      border-left-color: var(--red);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.12), rgba(254, 242, 242, 0.7));
+    }
+
+    .eom-account-card.is-focused {
+      border-color: var(--accent);
+      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-account-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .eom-account-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .eom-account-delta {
+      font-weight: 600;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-delta.positive { color: var(--green); }
+    .eom-account-delta.negative { color: var(--red); }
+    .eom-account-delta.attention { color: var(--orange); }
+
+    .eom-account-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-alert {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(248, 113, 113, 0.14);
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .eom-account-card.positive .eom-account-alert {
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--green);
+    }
+
+    .eom-account-spark {
+      display: flex;
+      align-items: center;
+    }
+
+    .eom-account-spark canvas {
+      width: 100%;
+      height: 30px;
+      display: block;
+    }
+
+    .eom-account-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+    }
+
+    @media (max-width: 900px) {
+      .eom-performance-matrix {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .eom-kpi-card {
       position: relative;
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-radius: 18px;
       background: var(--card);
       border: 1px solid rgba(148, 163, 184, 0.35);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       cursor: pointer;
       transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
       opacity: 0;
@@ -112,19 +1005,19 @@
     }
 
     .eom-kpi-icon {
-      font-size: 22px;
+      font-size: 20px;
       line-height: 1;
     }
 
     .eom-kpi-value {
-      font-size: clamp(28px, 3vw, 34px);
+      font-size: clamp(24px, 2.6vw, 30px);
       font-weight: 700;
       color: inherit;
       font-variant-numeric: tabular-nums;
     }
 
     .eom-kpi-meta {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
       display: flex;
       flex-direction: column;
@@ -139,7 +1032,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .eom-kpi-trend.positive {
@@ -370,146 +1263,84 @@
       min-width: 180px;
     }
 
-    .eom-scenario-toggle {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .eom-scenario-toggle .btn {
-      padding: 6px 10px;
-      font-size: 13px;
-    }
-
-    .eom-scenario-toggle .btn.active {
-      background: var(--ink);
-      color: #fff;
-      border-color: var(--ink);
-    }
-
     .eom-grid-shell {
       margin-top: 16px;
       border: 1px solid rgba(148, 163, 184, 0.4);
       border-radius: 16px;
-      overflow: hidden;
       background: var(--surface);
+      overflow: hidden;
     }
 
-    .eom-grid-header,
-    .eom-grid-row {
-      display: grid;
-      grid-template-columns: minmax(180px, 1.8fr) minmax(120px, 1.2fr) minmax(140px, 1.4fr) minmax(120px, 1.1fr) minmax(140px, 1.3fr);
-      align-items: center;
-      gap: 12px;
+    .eom-account-toolbar {
+      margin-top: 12px;
       padding: 12px 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 14px;
+      background: var(--surface);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .eom-grid-header {
-      background: rgba(148, 163, 184, 0.15);
-      font-size: 13px;
+    .eom-account-toolbar .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+    }
+
+    .eom-account-toolbar label.tiny {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--muted);
     }
 
-    .eom-grid-header button {
+    .eom-account-toolbar select,
+    .eom-account-toolbar .checkboxes {
+      font-size: 13px;
+    }
+
+    .eom-account-toolbar .checkboxes {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .eom-account-toolbar .checkboxes label {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--ink);
       cursor: pointer;
-      padding: 0;
     }
 
-    .eom-grid-body {
+    .eom-account-toolbar .bulk-actions {
       display: flex;
-      flex-direction: column;
-    }
-
-    .eom-grid-group {
-      border-top: 1px solid rgba(148, 163, 184, 0.25);
-    }
-
-    .eom-grid-group:first-child {
-      border-top: none;
-    }
-
-    .eom-grid-group-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px 4px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .eom-grid-row {
-      border-top: 1px solid rgba(148, 163, 184, 0.15);
-      transition: background .2s ease, transform .2s ease;
-    }
-
-    .eom-grid-row:hover {
-      background: rgba(226, 232, 240, 0.35);
-      transform: translateX(2px);
-    }
-
-    .eom-grid-row.is-focused {
-      box-shadow: inset 2px 0 0 var(--blue);
-      background: rgba(59, 130, 246, 0.08);
-    }
-
-    .eom-grid-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 13px;
-    }
-
-    .eom-grid-cell strong {
-      font-size: 14px;
-      line-height: 1.2;
-    }
-
-    .eom-grid-cell .tiny {
-      line-height: 1.2;
-    }
-
-    .eom-grid-row input[type="text"],
-    .eom-grid-row input[type="number"],
-    .eom-grid-row input[type="decimal"],
-    .eom-grid-row input[type="date"],
-    .eom-grid-row input[type="month"],
-    .eom-grid-row input[type="email"],
-    .eom-grid-row input[type="tel"],
-    .eom-grid-row input[type="search"],
-    .eom-grid-row input[type="time"],
-    .eom-grid-row input[type="datetime-local"] {
-      width: 100%;
-    }
-
-    .eom-grid-row input[data-id] {
-      background: #fff;
-    }
-
-    .eom-grid-row .btn.danger {
-      justify-self: flex-start;
-    }
-
-    .eom-sparkline {
-      display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
     }
 
-    .eom-sparkline canvas {
-      width: 120px;
-      height: 32px;
+    .eom-account-toolbar .count {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .eom-account-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      max-height: unset;
+      overflow: visible;
     }
 
     .eom-grid-empty {
@@ -517,6 +1348,223 @@
       text-align: center;
       font-size: 14px;
       color: var(--muted);
+    }
+
+    .eom-account-item {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      background: var(--card);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      position: relative;
+    }
+
+    .eom-account-item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .eom-account-item.is-priority {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-account-item.is-focused {
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    }
+
+    .eom-account-item.is-debt {
+      border-color: rgba(220, 38, 38, 0.45);
+      background: linear-gradient(120deg, rgba(248, 113, 113, 0.08), rgba(248, 250, 252, 0.85));
+    }
+
+    .eom-account-item.is-dormant {
+      opacity: 0.7;
+    }
+
+    .eom-account-header {
+      width: 100%;
+      border: none;
+      background: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(140px, auto) minmax(120px, auto) 28px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 18px;
+      cursor: pointer;
+    }
+
+    .eom-account-header:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .eom-account-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .eom-account-title strong {
+      font-size: 16px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .eom-account-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-balance {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-trend {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .eom-account-trend .arrow.up { color: var(--green); }
+    .eom-account-trend .arrow.down { color: var(--red); }
+    .eom-account-trend .arrow.flat { color: var(--muted); }
+    .eom-account-trend.up { color: var(--green); }
+    .eom-account-trend.down { color: var(--red); }
+    .eom-account-trend.flat { color: var(--muted); }
+
+    .eom-account-toggle-icon {
+      font-size: 18px;
+      color: var(--muted);
+      transition: transform .2s ease;
+    }
+
+    .eom-account-item.is-expanded .eom-account-toggle-icon {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+
+    .eom-account-body {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .3s ease;
+    }
+
+    .eom-account-item.is-expanded .eom-account-body {
+      max-height: 500px;
+    }
+
+    .eom-account-body-inner {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1.2fr) minmax(200px, 1fr);
+      gap: 18px;
+    }
+
+    .eom-account-body-inner > div {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .eom-account-spark-large canvas {
+      width: 100%;
+      height: 60px;
+    }
+
+    .eom-account-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(226, 232, 240, 0.35);
+    }
+
+    .eom-account-stats div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-stats div strong {
+      font-size: 14px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-change {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .eom-account-change .delta {
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-change .delta.positive { color: var(--green); }
+    .eom-account-change .delta.negative { color: var(--red); }
+    .eom-account-change .delta.neutral { color: var(--muted); }
+
+    .eom-account-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .eom-account-body-inner .tiny.muted {
+      line-height: 1.2;
+    }
+
+    .eom-account-item .tooltip-target {
+      position: relative;
+    }
+
+    @media (max-width: 960px) {
+      .eom-account-header {
+        grid-template-columns: minmax(0, 1fr) minmax(100px, auto) minmax(90px, auto) 24px;
+      }
+      .eom-account-body-inner {
+        grid-template-columns: 1fr;
+      }
+      .eom-account-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .eom-account-toolbar .count {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .eom-account-toolbar {
+        padding: 12px;
+      }
+      .eom-account-header {
+        padding: 12px 14px;
+      }
+      .eom-account-balance {
+        font-size: 16px;
+      }
+      .eom-account-item.is-expanded .eom-account-body {
+        max-height: 620px;
+      }
     }
 
     .eom-pivot-table {
@@ -824,6 +1872,8 @@
       background: var(--surface);
       margin-right: 6px;
       margin-top: 4px;
+      cursor: pointer;
+      transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
     }
 
     .insight-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -1293,119 +2343,229 @@
         <div id="eom-insights" class="eom-hero-insights"></div>
       </div>
 
-      <div class="grid g-2" style="margin-top:16px;gap:16px">
-        <div class="eom-panel">
-          <div class="row" style="align-items:flex-end;gap:12px">
-            <div>
-              <div class="title" style="margin-bottom:4px">Rejestr sald</div>
-              <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
-            </div>
-          </div>
-          <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
-            <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
-            <button class="btn soft" type="submit">Dodaj konto</button>
-          </form>
-          <div class="eom-control-bar" id="eom-control-bar">
-            <label class="filter-group">
-              <span class="tiny">Typy kont</span>
-              <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
-              <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
-            </label>
-            <label class="filter-group">
-              <span class="tiny">Status salda</span>
-              <select id="eom-account-filter" style="min-width:180px">
-                <option value="all">Wszystkie konta</option>
-                <option value="positive">Saldo dodatnie</option>
-                <option value="negative">Saldo ujemne</option>
-                <option value="volatile">Najbardziej zmienne</option>
-              </select>
-            </label>
-            <div class="filter-group">
-              <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
-              <div class="row" style="gap:6px;align-items:center">
-                <input type="month" id="eom-date-from" />
-                <span class="tiny muted">→</span>
-                <input type="month" id="eom-date-to" />
-              </div>
-              <span class="tiny muted">Określ zakres do analizy trendów.</span>
-            </div>
-            <div class="filter-group">
-              <span class="tiny">Scenariusz</span>
-              <div class="eom-scenario-toggle" id="eom-scenario-toggle">
-                <button class="btn soft" type="button" data-scenario="actual">Realny</button>
-                <button class="btn soft" type="button" data-scenario="optimistic">Optymistyczny</button>
-                <button class="btn soft" type="button" data-scenario="stress">Stresowy</button>
-              </div>
-            </div>
-            <div class="filter-group">
-              <span class="tiny">Widok danych</span>
-              <div class="row" style="gap:6px;align-items:center">
-                <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
-                <select id="eom-group-by" style="min-width:160px">
-                  <option value="type">Grupuj wg typu</option>
-                  <option value="status">Grupuj wg statusu</option>
-                  <option value="none">Bez grupowania</option>
-                </select>
-              </div>
-              <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
-            </div>
-          </div>
-          <div id="eom-grid" class="eom-grid-shell"></div>
-          <div id="eom-heatmap" class="eom-heatmap-shell"></div>
-          <div class="row" style="margin-top:12px">
-            <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
-            <div class="row" style="gap:8px">
-              <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
-              <button id="eom-save" class="btn" type="button">Zapisz salda</button>
-            </div>
-          </div>
-        </div>
-        <div class="eom-panel">
-          <div class="title" style="margin-bottom:4px">Trendy majątku</div>
-          <p class="tiny">Zobacz, jak zmienia się łączny majątek netto oraz które konta odpowiadają za największe ruchy.</p>
-          <div class="chart-box tall"><canvas id="eom-networth-chart"></canvas></div>
-          <div class="chart-box tall" style="margin-top:16px"><canvas id="eom-accounts-chart"></canvas></div>
-          <div style="margin-top:16px;overflow-x:auto">
-            <table id="eom-change-table" class="table-modern table-sortable">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
+      <div class="eom-dashboard-nav" id="eom-dashboard-nav" role="tablist" aria-label="Widoki Salda EoM">
+        <button type="button" class="eom-dashboard-tab is-active" id="eom-dashboard-tab-overview" data-panel="overview" role="tab" aria-selected="true" aria-controls="eom-dashboard-overview" tabindex="0">Trend majątku</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-performance" data-panel="performance" role="tab" aria-selected="false" aria-controls="eom-dashboard-performance" tabindex="-1">Wydajność kont</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-accounts" data-panel="accounts" role="tab" aria-selected="false" aria-controls="eom-dashboard-accounts" tabindex="-1">Rejestr sald</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-history" data-panel="history" role="tab" aria-selected="false" aria-controls="eom-dashboard-history" tabindex="-1">Historia</button>
+        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-comparison" data-panel="comparison" role="tab" aria-selected="false" aria-controls="eom-dashboard-comparison" tabindex="-1">Porównanie m/m</button>
       </div>
 
-      <div class="eom-panel" style="margin-top:16px">
-        <div class="row" style="align-items:flex-end;gap:12px">
-          <div>
-            <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
-            <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
+      <div class="eom-dashboard-panels" id="eom-dashboard-panels">
+        <section class="eom-dashboard-panel is-active" data-panel="overview" id="eom-dashboard-overview" role="tabpanel" aria-labelledby="eom-dashboard-tab-overview">
+          <section class="eom-networth-section" id="eom-networth">
+            <div class="eom-networth-header">
+              <div class="eom-networth-title">
+                <div class="title">Trend majątku netto</div>
+                <p class="tiny">Historia wartości portfela z podziałem na główne składniki. Kliknij punkt, aby zobaczyć szczegóły miesiąca.</p>
+              </div>
+              <div class="eom-networth-tabs" id="eom-networth-tabs">
+                <button class="eom-networth-tab" type="button" data-range-tab="3m">3m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="6m">6m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="12m">12m</button>
+                <button class="eom-networth-tab" type="button" data-range-tab="all">Wszystkie</button>
+              </div>
+            </div>
+            <div class="eom-networth-chart-shell">
+              <canvas id="eom-networth-chart"></canvas>
+              <div id="eom-networth-empty" class="eom-networth-empty">Brak danych w tym zakresie — dodaj zapisy lub zmień filtry, aby zobaczyć trend majątku netto.</div>
+            </div>
+            <div id="eom-networth-month-card" class="eom-networth-month-card is-empty">Wybierz punkt na wykresie, aby podejrzeć szczegóły miesiąca.</div>
+          </section>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="performance" id="eom-dashboard-performance" role="tabpanel" aria-labelledby="eom-dashboard-tab-performance" hidden>
+          <section class="eom-performance-matrix" id="eom-performance-matrix">
+            <div class="eom-performance-column">
+              <div class="eom-performance-head">
+                <h4 class="title">🔥 Top Performers</h4>
+                <p class="tiny muted">Największe wzrosty miesiąc do miesiąca. Kliknij kartę, aby przejść do szczegółów.</p>
+              </div>
+              <div class="eom-performance-list" data-zone="top"></div>
+            </div>
+            <div class="eom-performance-column">
+              <div class="eom-performance-head">
+                <h4 class="title">⚠️ Wymagają uwagi</h4>
+                <p class="tiny muted">Największe spadki miesiąc do miesiąca — sprawdź, co ciągnie wynik w dół.</p>
+              </div>
+              <div class="eom-performance-list" data-zone="watch"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="accounts" id="eom-dashboard-accounts" role="tabpanel" aria-labelledby="eom-dashboard-tab-accounts" hidden>
+          <div class="eom-panel" style="margin-top:0">
+            <div class="row" style="align-items:flex-end;gap:12px">
+              <div>
+                <div class="title" style="margin-bottom:4px">Rejestr sald</div>
+                <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
+              </div>
+            </div>
+              <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
+                <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
+                <button class="btn soft" type="submit">Dodaj konto</button>
+              </form>
+            <div class="eom-control-bar" id="eom-control-bar">
+              <label class="filter-group">
+                <span class="tiny">Typy kont</span>
+                <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
+                <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
+              </label>
+              <div class="filter-group">
+                <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
+                <div class="row" style="gap:6px;align-items:center">
+                  <input type="month" id="eom-date-from" />
+                  <span class="tiny muted">→</span>
+                  <input type="month" id="eom-date-to" />
+                </div>
+                <span class="tiny muted">Określ zakres do analizy trendów.</span>
+              </div>
+              <div class="filter-group">
+                <span class="tiny">Widok danych</span>
+                <div class="row" style="gap:6px;align-items:center">
+                  <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
+                  <select id="eom-group-by" style="min-width:160px">
+                    <option value="type">Grupuj wg typu</option>
+                    <option value="status">Grupuj wg statusu</option>
+                    <option value="none">Bez grupowania</option>
+                  </select>
+                </div>
+                <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
+              </div>
+            </div>
+            <div class="eom-account-toolbar" id="eom-account-toolbar">
+              <div class="controls">
+                <label class="tiny" for="eom-account-sort">Sortowanie
+                  <select id="eom-account-sort">
+                    <option value="name">Po nazwie A-Z</option>
+                    <option value="balance">Po saldzie (najwyższe)</option>
+                    <option value="change-up">Zmiana % (wzrost)</option>
+                    <option value="change-down">Zmiana % (spadek)</option>
+                  </select>
+                </label>
+                <div class="checkboxes" aria-label="Filtry kont">
+                  <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
+                  <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
+                  <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
+                </div>
+              </div>
+              <div class="bulk-actions">
+                <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
+                <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
+              </div>
+              <div class="count" id="eom-account-count">—</div>
+            </div>
+            <div id="eom-grid" class="eom-grid-shell"></div>
+            <div id="eom-heatmap" class="eom-heatmap-shell"></div>
+            <div class="row" style="margin-top:12px">
+              <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
+              <div class="row" style="gap:8px">
+                <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
+                <button id="eom-save" class="btn" type="button">Zapisz salda</button>
+              </div>
+            </div>
           </div>
-          <label class="tiny" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-            Zakres miesięcy
-            <select id="eom-history-months" style="min-width:160px">
-              <option value="3">3 miesiące</option>
-              <option value="6" selected>6 miesięcy</option>
-              <option value="12">12 miesięcy</option>
-              <option value="all">Wszystkie</option>
-            </select>
-          </label>
-        </div>
-        <div style="overflow-x:auto;margin-top:12px">
-          <table id="eom-accounts-history" class="table-modern">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div style="overflow-x:auto;margin-top:16px">
-          <table id="eom-monthly-summary" class="table-modern table-sortable">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="history" id="eom-dashboard-history" role="tabpanel" aria-labelledby="eom-dashboard-tab-history" hidden>
+          <div class="eom-panel" style="margin-top:0">
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <div>
+                <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
+                <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
+              </div>
+            </div>
+            <div class="eom-history-controls">
+              <label class="tiny">
+                Pokaż zakres
+                <select id="eom-history-range">
+                  <option value="3">3 miesiące</option>
+                  <option value="6">6 miesięcy</option>
+                  <option value="12">12 miesięcy</option>
+                  <option value="all">Wszystkie</option>
+                </select>
+              </label>
+              <label class="tiny">
+                Szukaj konta
+                <input id="eom-history-search" type="search" placeholder="np. Oszczędności" />
+              </label>
+              <label class="tiny eom-history-checkbox">
+                <input type="checkbox" id="eom-history-only-changes" /> Tylko ze zmianami
+              </label>
+              <button class="btn soft" type="button" id="eom-history-transpose" data-active="0">Transponuj widok</button>
+              <button class="btn ghost" type="button" id="eom-history-export">Eksportuj do CSV</button>
+            </div>
+            <div class="eom-history-table-shell">
+              <div class="eom-history-table-scroll">
+                <table id="eom-accounts-history" class="table-modern eom-history-table">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+            <div id="eom-history-footer" class="eom-history-footer"></div>
+            <div style="overflow-x:auto;margin-top:16px">
+              <table id="eom-monthly-summary" class="table-modern table-sortable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="eom-dashboard-panel" data-panel="comparison" id="eom-dashboard-comparison" role="tabpanel" aria-labelledby="eom-dashboard-tab-comparison" hidden>
+          <section class="eom-mom-section" id="eom-mom" style="margin-top:0">
+            <div class="row" style="align-items:flex-end;gap:12px">
+              <div>
+                <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
+                <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
+              </div>
+            </div>
+            <div class="eom-mom-controls">
+              <div class="control-group">
+                <label for="eom-mom-month-a">Miesiąc A</label>
+                <select id="eom-mom-month-a"></select>
+              </div>
+              <div class="control-group">
+                <label for="eom-mom-month-b">Miesiąc B</label>
+                <select id="eom-mom-month-b"></select>
+              </div>
+              <div class="eom-mom-actions">
+                <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
+                <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
+              </div>
+            </div>
+            <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
+            <div id="eom-mom-content" class="eom-mom-content" style="display:none">
+              <div class="eom-mom-summary" id="eom-mom-summary">
+                <div class="eom-mom-summary-main">
+                  <span class="label">Δ suma</span>
+                  <span class="value neutral" id="eom-mom-summary-value">—</span>
+                </div>
+                <div class="eom-mom-summary-text" id="eom-mom-summary-text"></div>
+                <div class="eom-mom-pills" id="eom-mom-pills"></div>
+              </div>
+
+              <section class="eom-mom-ranking">
+                <div class="eom-mom-ranking-header">
+                  <h4>Ranking zmian per konto</h4>
+                  <div class="tiny muted" id="eom-mom-ranking-note"></div>
+                </div>
+                <div class="table-wrapper">
+                  <table id="eom-mom-ranking-table" class="table-modern"></table>
+                </div>
+              </section>
+              <section class="eom-mom-auto">
+                <h4>Wnioski automatyczne</h4>
+                <div id="eom-mom-auto-insights" class="eom-mom-auto-list"></div>
+              </section>
+            </div>
+          </section>
+        </section>
       </div>
     </section>
 
-    <!-- Goals -->
+  <!-- Goals -->
     <section id="tab-goals" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Cele oszczędnościowe</h3>
       <form id="goal-form" class="grid g-4" style="margin-bottom:8px">
@@ -3073,6 +4233,18 @@
     return Object.values(map || {}).reduce((sum, val) => sum + (Number(val) || 0), 0);
   }
 
+  const MONTH_NAMES_PL=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+
+  function formatMonthLabel(ym){
+    if(!ym || typeof ym!=='string') return ym || '—';
+    const parts=ym.split('-');
+    if(parts.length!==2) return ym;
+    const [year,month]=parts;
+    const idx=Number(month)-1;
+    const name=MONTH_NAMES_PL[idx] || month;
+    return `${name} ${year}`;
+  }
+
   function buildEomContext(){
     const accounts = b().accounts || [];
     const entries = (b().eom || []).map(entry => ({
@@ -3193,8 +4365,18 @@
     return filtered.map(item => ({ ym:item.ym, value:item.balance }));
   }
 
-  function renderSparkline(canvas, points){
-    if(!canvas || !points.length) return;
+  function renderSparkline(canvas, points, options={}){
+    if(!canvas || !points.length){
+      if(canvas){
+        const ctx2d = canvas.getContext('2d');
+        if(ctx2d){
+          const width = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+          const height = canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+          ctx2d.clearRect(0,0,width,height);
+        }
+      }
+      return;
+    }
     const ctx2d = canvas.getContext('2d');
     const width = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
     const height = canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -3204,8 +4386,11 @@
     const max = Math.max(...values);
     const range = max - min || 1;
     const step = width / Math.max(points.length - 1, 1);
-    ctx2d.lineWidth = 2 * (window.devicePixelRatio || 1);
-    ctx2d.strokeStyle = '#2563eb';
+    const color = options.color || '#2563eb';
+    const fill = options.fill !== undefined ? options.fill : 'rgba(37, 99, 235, 0.18)';
+    const lineWidth = (options.lineWidth ?? 2) * (window.devicePixelRatio || 1);
+    ctx2d.lineWidth = lineWidth;
+    ctx2d.strokeStyle = color;
     ctx2d.beginPath();
     points.forEach((pt, idx) => {
       const x = idx * step;
@@ -3214,11 +4399,13 @@
       else ctx2d.lineTo(x, y);
     });
     ctx2d.stroke();
-    ctx2d.fillStyle = 'rgba(37, 99, 235, 0.18)';
-    ctx2d.lineTo(width, height);
-    ctx2d.lineTo(0, height);
-    ctx2d.closePath();
-    ctx2d.fill();
+    if(fill){
+      ctx2d.fillStyle = fill;
+      ctx2d.lineTo(width, height);
+      ctx2d.lineTo(0, height);
+      ctx2d.closePath();
+      ctx2d.fill();
+    }
   }
 
   function monthsForSparkline(ctx, range){
@@ -3226,139 +4413,185 @@
     return months.length ? months : ctx.months.slice(-6);
   }
 
-  function renderEomInteractiveGrid(ctx, rows, options){
+  function renderEomInteractiveGrid(ctx, rows, options={}){
     const container = document.getElementById('eom-grid');
-    if(!container) return { inputs:[], updateTotal:()=>{} };
+    if(!container) return { inputs:[], refreshSparklines:()=>{} };
     container.innerHTML = '';
+    container.className = 'eom-grid-shell';
+
+    const totalAccounts = (ctx.accounts || []).length;
+    const countEl = document.getElementById('eom-account-count');
+    if(countEl){
+      const visible = rows.length;
+      countEl.textContent = totalAccounts
+        ? `Pokazujesz ${visible} z ${totalAccounts} kont`
+        : `Pokazujesz ${visible} kont`;
+    }
+
     if(!rows.length){
       container.innerHTML = '<div class="eom-grid-empty">Brak kont spełniających kryteria. Dodaj nowe konto lub zmień filtry.</div>';
-      return { inputs:[], updateTotal:()=>{} };
+      return { inputs:[], refreshSparklines:()=>{} };
     }
 
-    const { sort, scenario, focusedAccountId } = options;
-    const header = document.createElement('div');
-    header.className = 'eom-grid-header';
-    const columns = [
-      { key:'name', label:'Konto', sortable:true },
-      { key:'previous', label:'Poprzedni zapis', sortable:true },
-      { key:'current', label:`Saldo (${ctx.workingYm})`, sortable:false },
-      { key:'delta', label:'Zmiana', sortable:true },
-      { key:'trend', label:'Trend', sortable:false }
-    ];
-    header.innerHTML = columns.map(col => {
-      if(!col.sortable){
-        return `<div>${col.label}</div>`;
-      }
-      const active = sort.field === col.key;
-      const icon = active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕';
-      return `<div><button type="button" data-sort="${col.key}">${col.label} ${icon}</button></div>`;
-    }).join('');
-    container.appendChild(header);
-
-    const body = document.createElement('div');
-    body.className = 'eom-grid-body';
-    container.appendChild(body);
-
-    const sortRows = [...rows];
-    sortRows.sort((a,b) => {
-      const dir = sort.dir === 'asc' ? 1 : -1;
-      switch(sort.field){
-        case 'name': return a.acc.name.localeCompare(b.acc.name, 'pl', { sensitivity:'base' }) * dir;
-        case 'previous': return ((a.previousAdjusted ?? -Infinity) - (b.previousAdjusted ?? -Infinity)) * dir;
-        case 'delta': return ((a.deltaAdjusted ?? 0) - (b.deltaAdjusted ?? 0)) * dir;
-        default: return 0;
+    const sortKey = eomUiState.accountSort || 'balance';
+    const sortedRows = [...rows];
+    sortedRows.sort((a,b) => {
+      switch(sortKey){
+        case 'name':
+          return a.acc.name.localeCompare(b.acc.name, 'pl', { sensitivity:'base' });
+        case 'change-up':
+          return ((b.deltaPct ?? -Infinity) - (a.deltaPct ?? -Infinity));
+        case 'change-down':
+          return ((a.deltaPct ?? Infinity) - (b.deltaPct ?? Infinity));
+        case 'balance':
+        default:
+          return ((b.adjustedCurrent ?? b.currentValue ?? 0) - (a.adjustedCurrent ?? a.currentValue ?? 0));
       }
     });
 
-    const groups = {};
-    for(const row of sortRows){
-      const key = row.groupKey || 'inne';
-      if(!groups[key]) groups[key] = [];
-      groups[key].push(row);
-    }
+    const expandedSet = new Set(Array.isArray(eomUiState.expandedAccounts) ? eomUiState.expandedAccounts : []);
+    const focusId = options.focusedAccountId || null;
+
+    const prioritySet = (() => {
+      const ranked = [...sortedRows]
+        .filter(row => Number.isFinite(row.deltaAdjusted) && Math.abs(row.deltaAdjusted || 0) >= 0.005)
+        .sort((a,b) => Math.abs((b.deltaAdjusted ?? 0)) - Math.abs((a.deltaAdjusted ?? 0)));
+      return new Set(ranked.slice(0, Math.min(3, ranked.length)).map(row => row.acc.id));
+    })();
+
+    const accordion = document.createElement('div');
+    accordion.className = 'eom-account-accordion';
+    container.appendChild(accordion);
 
     const inputs = [];
+    const sparkTargets = [];
 
-    Object.entries(groups).forEach(([group, items]) => {
-      const section = document.createElement('div');
-      section.className = 'eom-grid-group';
-      const total = items.reduce((sum, item) => sum + (item.currentValue ?? 0), 0);
-      const scenarioTotal = items.reduce((sum, item) => {
-        if(item.currentValue === null || item.currentValue === undefined) return sum;
-        const adjusted = applyScenarioToValue(item.currentValue, scenario) ?? 0;
-        return sum + adjusted;
-      }, 0);
-      const headerEl = document.createElement('div');
-      headerEl.className = 'eom-grid-group-header';
-      const scenarioInfo = scenario !== 'actual' ? ` · ${fmt(scenarioTotal, state.currency)} ${EOM_SCENARIOS[scenario]?.label || ''}` : '';
-      headerEl.innerHTML = `<span>${group}</span><span class="tiny muted">${fmt(total, state.currency)}${scenarioInfo}</span>`;
-      section.appendChild(headerEl);
+    sortedRows.forEach(row => {
+      const isExpanded = expandedSet.has(row.acc.id);
+      const card = document.createElement('article');
+      card.className = 'eom-account-item';
+      if(prioritySet.has(row.acc.id)) card.classList.add('is-priority');
+      if(Number.isFinite(row.adjustedCurrent) && row.adjustedCurrent < 0) card.classList.add('is-debt');
+      if(row.isDormant) card.classList.add('is-dormant');
+      if(focusId && focusId === row.acc.id) card.classList.add('is-focused');
+      if(isExpanded) card.classList.add('is-expanded');
+      card.dataset.accountId = row.acc.id;
+      card.title = `${row.acc.name}: ${row.displayBalance}${row.deltaDisplay && row.deltaDisplay !== '—' ? ` | Δ ${row.deltaDisplay}` : ''}`;
 
-      items.forEach(item => {
-        const rowEl = document.createElement('div');
-        rowEl.className = 'eom-grid-row';
-        if(focusedAccountId && focusedAccountId === item.acc.id){
-          rowEl.classList.add('is-focused');
-        }
-        rowEl.innerHTML = `
-          <div class="eom-grid-cell">
-            <strong>${item.acc.name}</strong>
-            <span class="tiny muted">${item.typeLabel}</span>
-          </div>
-          <div class="eom-grid-cell">
-            ${item.previousLabel}
-          </div>
-          <div class="eom-grid-cell">
-            <input inputmode="decimal" data-id="${item.acc.id}" value="${item.currentInput}" placeholder="0,00" />
-            <span class="tiny muted">${scenario ? `Scenariusz: ${EOM_SCENARIOS[scenario]?.label || ''}` : ''}</span>
-          </div>
-          <div class="eom-grid-cell" data-delta="${item.acc.id}">
-            ${item.deltaLabel}
-          </div>
-          <div class="eom-grid-cell">
-            <div class="eom-sparkline">
-              <canvas data-spark="${item.acc.id}"></canvas>
-              <button class="btn ghost" type="button" data-drill="${item.acc.id}">Szczegóły</button>
+      const trendTone = row.trendDirection === 'up' ? 'up' : row.trendDirection === 'down' ? 'down' : 'flat';
+      const deltaTone = row.trendDirection === 'up' ? 'positive' : row.trendDirection === 'down' ? 'negative' : 'neutral';
+      const deltaText = row.deltaPctDisplay && row.deltaPctDisplay !== '—'
+        ? `${row.deltaDisplay} <span class="tiny muted">(${row.deltaPctDisplay})</span>`
+        : row.deltaDisplay;
+
+      const headerBtn = document.createElement('button');
+      headerBtn.type = 'button';
+      headerBtn.className = 'eom-account-header';
+      headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+      headerBtn.innerHTML = `
+        <div class="eom-account-title">
+          <strong>${row.acc.name}</strong>
+          <span>${row.subtitle}</span>
+        </div>
+        <div class="eom-account-balance" data-balance="${row.acc.id}">${row.displayBalance}</div>
+        <div class="eom-account-trend ${trendTone}" data-delta="${row.acc.id}" data-role="header">
+          <span class="arrow ${trendTone}">${row.trendArrow}</span>
+          <span>${deltaText}</span>
+        </div>
+        <span class="eom-account-toggle-icon">${isExpanded ? '▲' : '▼'}</span>
+      `;
+      card.appendChild(headerBtn);
+
+      const body = document.createElement('div');
+      body.className = 'eom-account-body';
+      const recordDisplay = row.recordEntry ? fmt(row.recordEntry.value, state.currency) : '—';
+      const recordDate = row.recordEntry?.ym || '—';
+      const minDisplay = row.minEntry ? fmt(row.minEntry.value, state.currency) : '—';
+      const minDate = row.minEntry?.ym || '—';
+      const avgDisplay = row.averageSix !== null && row.averageSix !== undefined ? fmt(row.averageSix, state.currency) : '—';
+      const rangeHint = row.sparklinePoints.length
+        ? `Zakres danych: ${row.sparklinePoints[0].ym} → ${row.sparklinePoints[row.sparklinePoints.length - 1].ym}`
+        : 'Brak danych historycznych w wybranym zakresie.';
+      body.innerHTML = `
+        <div class="eom-account-body-inner">
+          <div>
+            <div class="eom-account-spark-large">
+              <canvas data-big-spark="${row.acc.id}"></canvas>
+            </div>
+            <div class="tiny muted">${rangeHint}</div>
+            <div class="eom-account-stats">
+              <div><span>Rekord</span><strong>${recordDisplay}</strong><span>${recordDate}</span></div>
+              <div><span>Najniższa</span><strong>${minDisplay}</strong><span>${minDate}</span></div>
+              <div><span>Średnia (6M)</span><strong>${avgDisplay}</strong><span>${row.sparklinePoints.length >= 6 ? 'Ostatnie 6 miesięcy' : 'Wszystkie dostępne'}</span></div>
             </div>
           </div>
-        `;
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn danger';
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Usuń';
-        removeBtn.dataset.del = item.acc.id;
-        rowEl.appendChild(removeBtn);
-        section.appendChild(rowEl);
+          <div>
+            <div class="eom-account-change">
+              <div class="delta ${deltaTone}" data-delta="${row.acc.id}" data-role="detail">${row.deltaDisplay}${row.deltaPctDisplay && row.deltaPctDisplay !== '—' ? ` (${row.deltaPctDisplay})` : ''}</div>
+              <div class="tiny muted">Poprzedni miesiąc: ${row.previousDisplay}</div>
+              <p class="tiny">${row.trendDescription}</p>
+            </div>
+            <div class="eom-account-actions">
+              <label class="tiny" for="eom-input-${row.acc.id}">Aktualizuj saldo</label>
+              <input id="eom-input-${row.acc.id}" inputmode="decimal" data-id="${row.acc.id}" value="${row.currentInput}" placeholder="0,00" />
+              <button class="btn ghost" type="button" data-drill="${row.acc.id}">Historia</button>
+              <button class="btn danger" type="button" data-del="${row.acc.id}">Usuń</button>
+            </div>
+          </div>
+        </div>
+      `;
+      card.appendChild(body);
+      accordion.appendChild(card);
 
-        const input = rowEl.querySelector('input[data-id]');
-        if(input) inputs.push(input);
-      });
+      const input = body.querySelector('input[data-id]');
+      if(input) inputs.push(input);
+      const sparkCanvas = body.querySelector('canvas[data-big-spark]');
+      if(sparkCanvas){
+        sparkTargets.push({ canvas: sparkCanvas, row });
+      }
 
-      body.appendChild(section);
+      if(isExpanded){
+        requestAnimationFrame(() => {
+          body.style.maxHeight = `${body.scrollHeight}px`;
+        });
+      } else {
+        body.style.maxHeight = '0px';
+      }
     });
 
-    header.querySelectorAll('button[data-sort]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.sort;
-        if(sort.field === key){
-          eomUiState.gridSort.dir = sort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-          eomUiState.gridSort.field = key;
-          eomUiState.gridSort.dir = key === 'name' ? 'asc' : 'desc';
+    if(!accordion.dataset.bound){
+      accordion.dataset.bound = '1';
+      accordion.addEventListener('click', event => {
+        const header = event.target.closest('.eom-account-header');
+        if(!header || !accordion.contains(header)) return;
+        const card = header.closest('.eom-account-item');
+        if(!card) return;
+        const body = card.querySelector('.eom-account-body');
+        const accountId = card.dataset.accountId;
+        const isExpanded = card.classList.toggle('is-expanded');
+        header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+        const icon = header.querySelector('.eom-account-toggle-icon');
+        if(icon) icon.textContent = isExpanded ? '▲' : '▼';
+        const nextSet = new Set(Array.isArray(eomUiState.expandedAccounts) ? eomUiState.expandedAccounts : []);
+        if(isExpanded) nextSet.add(accountId); else nextSet.delete(accountId);
+        eomUiState.expandedAccounts = Array.from(nextSet);
+        if(body){
+          if(isExpanded){
+            body.style.maxHeight = `${body.scrollHeight}px`;
+          } else {
+            body.style.maxHeight = '0px';
+          }
         }
-        renderEOM();
-        renderEOMHistory();
       });
-    });
+    }
 
     return {
       inputs,
       refreshSparklines(){
-        rows.forEach(item => {
-          const canvas = container.querySelector(`canvas[data-spark="${item.acc.id}"]`);
-          if(canvas){
-            renderSparkline(canvas, item.sparklinePoints || []);
-          }
+        sparkTargets.forEach(target => {
+          const color = target.row?.sparkColor || '#2563eb';
+          const points = target.row?.sparklinePoints || [];
+          renderSparkline(target.canvas, points, { color, fill: withAlpha(color, 0.16) });
         });
       }
     };
@@ -3368,6 +4601,14 @@
     const container = document.getElementById('eom-grid');
     if(!container) return { inputs:[], refreshSparklines:()=>{} };
     container.innerHTML = '';
+    const countEl = document.getElementById('eom-account-count');
+    if(countEl){
+      const totalAccounts = (ctx.accounts || []).length;
+      const visible = rows.length;
+      countEl.textContent = totalAccounts
+        ? `Pokazujesz ${visible} z ${totalAccounts} kont`
+        : `Pokazujesz ${visible} kont`;
+    }
     if(!rows.length){
       container.innerHTML = '<div class="eom-grid-empty">Brak danych do zbudowania tabeli przestawnej.</div>';
       return { inputs:[], refreshSparklines:()=>{} };
@@ -3586,7 +4827,6 @@
     }
 
     const scenario = eomUiState.scenario || 'actual';
-    const scenarioLabel = EOM_SCENARIOS[scenario]?.label || 'Realny';
     const typeFilter = new Set(eomUiState.accountTypes || []);
     const relevantAccounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
     if(!relevantAccounts.length){
@@ -3679,11 +4919,11 @@
         label: 'Majątek netto',
         value: fmt(netWorth, state.currency),
         trend: hasDelta ? { className: deltaClass, text: `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta), state.currency)}${deltaPct !== null ? ` (${delta > 0 ? '+' : ''}${deltaPct.toFixed(1)}%)` : ''}` } : { className: 'neutral', text: 'Stabilnie m/m' },
-        meta: [ `${focusLabel}`, `Scenariusz: ${scenarioLabel}` ]
+        meta: [ `${focusLabel}` ]
       },
       {
         id: 'mom-change',
-        target: 'eom-accounts-chart',
+        target: 'eom-mom',
         primary: false,
         icon: '📈',
         label: 'Zmiana m/m',
@@ -3743,7 +4983,13 @@
           card.addEventListener('click', () => {
             const el = document.getElementById(target);
             if(el){
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              const panel = el.closest('.eom-dashboard-panel');
+              if(panel && panel.dataset.panel){
+                updateEomDashboardView(panel.dataset.panel);
+              }
+              requestAnimationFrame(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
             }
           });
         }
@@ -3770,156 +5016,1275 @@
 
   function renderEomHistoryTable(ctx, monthsToShow, options={}){
     const table = document.getElementById('eom-accounts-history');
+    const footer = document.getElementById('eom-history-footer');
+    const scrollShell = document.querySelector('.eom-history-table-scroll');
+    const exportBtn = document.getElementById('eom-history-export');
+    eomHistoryExportCache = null;
     if(!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if(thead) thead.innerHTML = '';
     if(tbody) tbody.innerHTML = '';
-    if(!monthsToShow.length){
-      if(tbody) tbody.innerHTML = `<tr><td class="muted" style="text-align:center;padding:16px;">Brak danych historycznych do wyświetlenia.</td></tr>`;
-      return;
-    }
-    if(!thead || !tbody) return;
+    if(footer) footer.innerHTML = '';
+    if(scrollShell) scrollShell.scrollTop = 0;
+    if(exportBtn) exportBtn.disabled = true;
+
     const scenario = options.scenario || 'actual';
     const typeFilter = new Set(Array.isArray(options.accountTypes) ? options.accountTypes : []);
-    const accounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
-    if(!accounts.length){
-      if(tbody) tbody.innerHTML = `<tr><td class="muted" style="text-align:center;padding:16px;">Brak kont spełniających filtr typów.</td></tr>`;
+    let accounts = ctx.accounts
+      .filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pl', { sensitivity: 'base' }));
+    const searchTerm = (options.search || '').trim().toLowerCase();
+    if(searchTerm){
+      accounts = accounts.filter(acc => acc.name.toLowerCase().includes(searchTerm));
+    }
+
+    const emptyRow = '<tr><td class="muted" style="text-align:center;padding:16px;">Brak danych historycznych do wyświetlenia.</td></tr>';
+    if(!monthsToShow.length){
+      if(tbody) tbody.innerHTML = emptyRow;
+      if(footer) footer.innerHTML = '<span class="muted">Brak danych historycznych. Dodaj transakcje, aby rozpocząć analizę.</span>';
       return;
     }
-    let header = '<tr><th>Miesiąc</th>';
-    for(const acc of accounts){ header += `<th>${acc.name}</th>`; }
-    header += '<th>Majątek netto</th><th>Zmiana m/m</th></tr>';
-    thead.innerHTML = header;
-    let prevNetWorth = null;
-    for(const ym of monthsToShow){
-      const balances = ctx.monthBalances[ym] || {};
-      const prevMonth = ctx.months.filter(m => m < ym).pop() || null;
-      const prevBalances = prevMonth ? (ctx.monthBalances[prevMonth] || {}) : {};
-      let row = `<td><b>${ym}</b></td>`;
-      for(const acc of accounts){
-        const value = balances[acc.id];
-        if(value === undefined){
-          row += '<td class="muted">—</td>';
-        } else {
-          const adjusted = applyScenarioToValue(value, scenario);
-          const prevVal = prevBalances[acc.id];
-          const prevAdjusted = prevVal === undefined ? undefined : applyScenarioToValue(prevVal, scenario);
-          let change = '';
-          if(prevAdjusted !== undefined){
-            const diff = adjusted - prevAdjusted;
-            if(Math.abs(diff) >= 0.005){
-              change = `<br><span class="tiny ${diff >= 0 ? 'ok' : 'bad'}">${diff >= 0 ? '+' : ''}${fmt(diff, state.currency)}</span>`;
-            }
-          }
-          row += `<td>${fmt(adjusted, state.currency)}${change}</td>`;
-        }
-      }
-      const netWorth = accounts.reduce((sum, acc) => {
-        const value = balances[acc.id];
-        if(value === undefined) return sum;
-        const adjusted = applyScenarioToValue(value, scenario);
-        return sum + (adjusted ?? 0);
-      }, 0);
-      const prevWorthRaw = accounts.reduce((sum, acc) => {
-        const prevVal = prevBalances[acc.id];
-        if(prevVal === undefined) return sum;
-        const adjusted = applyScenarioToValue(prevVal, scenario);
-        return sum + (adjusted ?? 0);
-      }, 0);
-      const deltaTotal = prevNetWorth !== null ? netWorth - prevNetWorth : (prevMonth ? netWorth - prevWorthRaw : null);
-      row += `<td><b>${fmt(netWorth, state.currency)}</b></td>`;
-      row += `<td>${deltaTotal === null ? '<span class="muted">—</span>' : renderDeltaBadge(deltaTotal)}</td>`;
-      const tr = document.createElement('tr');
-      tr.innerHTML = row;
-      tbody.appendChild(tr);
-      prevNetWorth = netWorth;
+
+    if(!accounts.length){
+      if(tbody) tbody.innerHTML = '<tr><td class="muted" style="text-align:center;padding:16px;">Brak kont spełniających bieżące filtry lub wyszukiwanie.</td></tr>';
+      if(footer) footer.innerHTML = '<span class="muted">Dostosuj filtry, aby zobaczyć dane historyczne.</span>';
+      return;
+    }
+
+    const chronologicalMonths = [...monthsToShow].sort((a, b) => a.localeCompare(b));
+    const initialAccountIds = accounts.map(acc => acc.id);
+    let monthRecords = buildHistoryMonthRecords(ctx, chronologicalMonths, initialAccountIds, scenario);
+    let accountSummaries = computeHistoryAccountSummaries(monthRecords, initialAccountIds);
+
+    if(options.onlyChanges){
+      accounts = accounts.filter(acc => accountSummaries[acc.id]?.hasChange);
+    }
+
+    if(!accounts.length){
+      if(tbody) tbody.innerHTML = '<tr><td class="muted" style="text-align:center;padding:16px;">Żadne konto nie wykazuje zmian w wybranym zakresie.</td></tr>';
+      if(footer) footer.innerHTML = '<span class="muted">Zmień filtr lub zakres, by zobaczyć ruchy na kontach.</span>';
+      return;
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+    monthRecords = buildHistoryMonthRecords(ctx, chronologicalMonths, accountIds, scenario);
+    accountSummaries = computeHistoryAccountSummaries(monthRecords, accountIds);
+    const netWorthAverage = computeNetWorthAverage(monthRecords);
+    const totalMonths = Number.isFinite(options.totalMonths) ? options.totalMonths : ctx.months.length;
+    const sortState = normalizeHistorySort(options.sort, options.transpose);
+
+    if(!table.dataset.historySortBound){
+      table.dataset.historySortBound = '1';
+      table.addEventListener('click', event => {
+        const button = event.target.closest('button[data-sort-key]');
+        if(!button) return;
+        const key = button.dataset.sortKey;
+        if(!key) return;
+        const transposeMode = !!eomUiState.historyTranspose;
+        const prev = eomUiState.historySort || { key: transposeMode ? 'name' : 'ym', dir: transposeMode ? 'asc' : 'desc' };
+        let dir = 'desc';
+        if(prev.key === key){
+          dir = prev.dir === 'asc' ? 'desc' : 'asc';
+        } else if(key === 'name' || key === 'avg'){ dir = 'asc'; }
+        else if(key === 'ym'){ dir = 'desc'; }
+        else { dir = 'desc'; }
+        eomUiState.historySort = { key, dir };
+        saveEomUiState();
+        renderEOMHistory();
+      });
+    }
+
+    if(options.transpose){
+      renderHistoryTableTransposed({
+        thead,
+        tbody,
+        accounts,
+        accountSummaries,
+        monthRecords,
+        sortState,
+        netWorthAverage,
+        chronologicalMonths
+      });
+    } else {
+      renderHistoryTableStandard({
+        thead,
+        tbody,
+        accounts,
+        accountSummaries,
+        monthRecords,
+        sortState,
+        netWorthAverage
+      });
+    }
+
+    updateHistoryFooter(footer, monthRecords, netWorthAverage, totalMonths, accounts.length);
+    if(exportBtn && eomHistoryExportCache && Array.isArray(eomHistoryExportCache.rows) && eomHistoryExportCache.rows.length){
+      exportBtn.disabled = false;
     }
   }
 
-  function renderEomChangeTable(ctx, accountStats){
-    const table = document.getElementById('eom-change-table');
-    if(!table) return;
-    const thead = table.querySelector('thead');
-    const tbody = table.querySelector('tbody');
-    if(thead) thead.innerHTML = '';
-    if(tbody) tbody.innerHTML = '';
-    if(!accountStats.length){
-      if(tbody) tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center;padding:16px;">Brak historii kont do analizy.</td></tr>`;
-      return;
+  function normalizeHistorySort(sort, transpose){
+    const fallback = transpose ? { key:'name', dir:'asc' } : { key:'ym', dir:'desc' };
+    if(!sort || !sort.key) return { ...fallback };
+    const dir = sort.dir === 'asc' ? 'asc' : 'desc';
+    if(transpose){
+      if(sort.key === 'name' || sort.key === 'avg' || sort.key === 'lastChange' || (typeof sort.key === 'string' && sort.key.startsWith('month:'))){
+        return { key: sort.key, dir };
+      }
+      return { ...fallback };
     }
-    if(!thead || !tbody) return;
-    const sortState = eomUiState.changeSort;
-    const cols = [
-      { label:'Konto', key:'name' },
-      { label:`Saldo (${ctx.focusMonth || ctx.workingYm})`, key:'current' },
-      { label:ctx.focusPrevMonth ? `Poprzednio (${ctx.focusPrevMonth})` : 'Poprzednio', key:'previous' },
-      { label:'Zmiana m/m', key:'delta' },
-      { label:'Zmiana %', key:'deltaPct' },
-      { label:'vs średnia 3m', key:'trendVsAvg' },
-      { label:'Rekord', key:'max' }
-    ];
-    thead.innerHTML = '<tr>' + cols.map(col => {
-      const active = sortState.field === col.key;
-      const indicator = active ? `<span class="sort-indicator">${sortState.dir === 'asc' ? '▲' : '▼'}</span>` : '';
-      return `<th data-sort="${col.key}">${col.label}${indicator}</th>`;
-    }).join('') + '</tr>';
+    if(sort.key === 'ym' || sort.key === 'netWorth' || sort.key === 'delta' || (typeof sort.key === 'string' && sort.key.startsWith('acc:'))){
+      return { key: sort.key, dir };
+    }
+    return { ...fallback };
+  }
 
-    const rows = accountStats.map(stat => ({
-      ...stat,
-      name: stat.account.name,
-      maxScenario: stat.maxEntry ? applyScenarioToValue(stat.maxEntry.balance, stat.scenario) : null
-    }));
+  function buildHistoryMonthRecords(ctx, months, accountIds, scenario){
+    return months.map((ym, idx) => {
+      const balances = ctx.monthBalances[ym] || {};
+      const prevYm = idx > 0 ? months[idx - 1] : null;
+      const prevBalances = prevYm ? (ctx.monthBalances[prevYm] || {}) : null;
+      const perAccount = {};
+      let netWorth = 0;
+      let prevNetWorth = prevYm ? 0 : null;
+      for(const id of accountIds){
+        const currentRaw = balances[id];
+        const current = currentRaw === undefined ? null : applyScenarioToValue(currentRaw, scenario);
+        const prevRaw = prevBalances ? prevBalances[id] : undefined;
+        const previous = prevRaw === undefined || prevRaw === null ? null : applyScenarioToValue(prevRaw, scenario);
+        let change = current !== null && previous !== null ? current - previous : null;
+        if(change !== null && Math.abs(change) < 0.005) change = 0;
+        const pct = change !== null && previous !== null && previous !== 0 ? (change / Math.abs(previous)) * 100 : null;
+        perAccount[id] = { value: current, prev: previous, change, pct };
+        if(typeof current === 'number') netWorth += current;
+        if(prevYm && typeof previous === 'number') prevNetWorth += previous;
+      }
+      const delta = prevYm ? netWorth - (prevNetWorth ?? 0) : null;
+      return { ym, perAccount, netWorth, prevNetWorth: prevYm ? prevNetWorth : null, delta };
+    });
+  }
 
-    rows.sort((a,b) => {
-      const dir = sortState.dir === 'asc' ? 1 : -1;
-      const key = sortState.field;
-      if(key === 'name') return a.name.localeCompare(b.name, 'pl', { sensitivity:'base' }) * dir;
-      const mapValue = (row) => {
-        switch(key){
-          case 'current': return row.current ?? -Infinity;
-          case 'previous': return row.previous ?? -Infinity;
-          case 'delta': return row.delta ?? 0;
-          case 'deltaPct': return row.deltaPct ?? -Infinity;
-          case 'trendVsAvg': return row.trendVsAvg ?? -Infinity;
-          case 'max': return (row.maxScenario ?? row.maxEntry?.balance ?? -Infinity);
-          default: return row[key] ?? 0;
+  function computeHistoryAccountSummaries(records, accountIds){
+    const summaries = {};
+    for(const id of accountIds){
+      let sum = 0;
+      let count = 0;
+      let hasChange = false;
+      for(const record of records){
+        const info = record.perAccount[id];
+        if(!info) continue;
+        if(typeof info.value === 'number'){ sum += info.value; count += 1; }
+        if(info.change !== null && info.change !== undefined && Math.abs(info.change) >= 0.005){
+          hasChange = true;
         }
+      }
+      summaries[id] = { avg: count ? sum / count : null, hasChange };
+    }
+    return summaries;
+  }
+
+  function computeNetWorthAverage(records){
+    const values = records
+      .map(record => typeof record.netWorth === 'number' ? record.netWorth : null)
+      .filter(value => value !== null && !Number.isNaN(value));
+    if(!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  function renderHistoryTableStandard({ thead, tbody, accounts, accountSummaries, monthRecords, sortState, netWorthAverage }){
+    if(!thead || !tbody) return;
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createHistoryHeaderCell('ym', 'Miesiąc', sortState));
+    accounts.forEach(acc => {
+      headerRow.appendChild(createHistoryHeaderCell(`acc:${acc.id}`, acc.name, sortState));
+    });
+    headerRow.appendChild(createHistoryHeaderCell('netWorth', 'Majątek netto', sortState));
+    headerRow.appendChild(createHistoryHeaderCell('delta', 'Zmiana m/m', sortState));
+    thead.appendChild(headerRow);
+
+    const records = sortHistoryRecords([...monthRecords], sortState);
+    const positiveColor = cssVar('--green', '#22c55e');
+    const negativeColor = cssVar('--red', '#ef4444');
+    const exportHeaders = ['Miesiąc', ...accounts.map(acc => acc.name), 'Majątek netto', 'Zmiana m/m'];
+    const exportRows = [];
+
+    records.forEach(record => {
+      const tr = document.createElement('tr');
+      const monthTd = document.createElement('td');
+      monthTd.innerHTML = `<div class="eom-history-value">${formatMonthLabel(record.ym)}</div><div class="tiny muted">${record.ym}</div>`;
+      monthTd.dataset.value = record.ym;
+      tr.appendChild(monthTd);
+
+      accounts.forEach(acc => {
+        const summary = accountSummaries[acc.id] || {};
+        const info = record.perAccount[acc.id] || { value:null, change:null, prev:null, pct:null };
+        const td = createHistoryValueCell(info, summary.avg, positiveColor, negativeColor, false);
+        tr.appendChild(td);
+      });
+
+      const netInfo = {
+        value: record.netWorth,
+        change: record.delta,
+        prev: record.prevNetWorth,
+        pct: record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null
       };
-      const av = mapValue(a);
-      const bv = mapValue(b);
-      if(av === bv) return a.name.localeCompare(b.name, 'pl', { sensitivity:'base' }) * dir;
-      return (av - bv) * dir;
+      const netTd = createHistoryValueCell(netInfo, netWorthAverage, positiveColor, negativeColor, true);
+      netTd.classList.add('networth');
+      tr.appendChild(netTd);
+
+      const deltaTd = document.createElement('td');
+      deltaTd.className = 'delta';
+      if(record.delta === null || Number.isNaN(record.delta)){
+        deltaTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        deltaTd.innerHTML = renderDeltaBadge(record.delta);
+        const pct = record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null;
+        if(pct !== null && Number.isFinite(pct)){
+          deltaTd.title = `Zmiana m/m: ${record.delta >= 0 ? '+' : ''}${fmt(record.delta, state.currency)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
+        }
+      }
+      deltaTd.dataset.value = record.delta ?? '';
+      tr.appendChild(deltaTd);
+
+      tbody.appendChild(tr);
+
+      exportRows.push([
+        formatMonthLabel(record.ym),
+        ...accounts.map(acc => formatHistoryExportValue(record.perAccount[acc.id]?.value)),
+        formatHistoryExportValue(record.netWorth),
+        formatHistoryExportDelta(record.delta)
+      ]);
     });
 
-    tbody.innerHTML = rows.map(row => {
-      const currentHtml = row.current === null
-        ? '<span class="muted">—</span>'
-        : `${fmt(row.current, state.currency)}${row.currentYm && row.currentYm !== ctx.focusMonth ? `<br><span class="tiny muted">${row.currentYm}</span>` : ''}`;
-      const previousHtml = row.previous === null
-        ? '<span class="muted">—</span>'
-        : `${fmt(row.previous, state.currency)}${row.previousYm ? `<br><span class="tiny muted">${row.previousYm}</span>` : ''}`;
-      const deltaHtml = row.delta === null ? '<span class="muted">—</span>' : renderDeltaBadge(row.delta);
-      const pctHtml = row.deltaPct === null ? '<span class="muted">—</span>' : `<span class="${row.deltaPct >= 0 ? 'ok' : 'bad'}">${row.deltaPct >= 0 ? '+' : ''}${row.deltaPct.toFixed(1)}%</span>`;
-      const avgHtml = row.trendVsAvg === null ? '<span class="muted">—</span>' : renderDeltaBadge(row.trendVsAvg);
-      const maxHtml = row.maxEntry
-        ? `${fmt(row.maxScenario ?? row.maxEntry.balance, state.currency)}<br><span class="tiny muted">${row.maxEntry.ym}</span>`
-        : '<span class="muted">—</span>';
-      const focusClass = eomUiState.focusedAccountId === row.account.id ? ' class="focused"' : '';
-      return `<tr${focusClass}><td>${row.name}</td><td>${currentHtml}</td><td>${previousHtml}</td><td>${deltaHtml}</td><td>${pctHtml}</td><td>${avgHtml}</td><td>${maxHtml}</td></tr>`;
-    }).join('');
+    eomHistoryExportCache = {
+      headers: exportHeaders,
+      rows: exportRows,
+      filename: `historia_${new Date().toISOString().slice(0,10)}.csv`
+    };
+  }
 
-    thead.querySelectorAll('th[data-sort]').forEach(th => {
-      const key = th.dataset.sort;
-      th.onclick = () => {
-        if(eomUiState.changeSort.field === key){
-          eomUiState.changeSort.dir = eomUiState.changeSort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-          eomUiState.changeSort.field = key;
-          eomUiState.changeSort.dir = key === 'name' ? 'asc' : 'desc';
-        }
-        renderEOMHistory();
+  function renderHistoryTableTransposed({ thead, tbody, accounts, accountSummaries, monthRecords, sortState, netWorthAverage, chronologicalMonths }){
+    if(!thead || !tbody) return;
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createHistoryHeaderCell('name', 'Konto', sortState));
+    chronologicalMonths.forEach(ym => {
+      headerRow.appendChild(createHistoryHeaderCell(`month:${ym}`, formatMonthLabel(ym), sortState));
+    });
+    headerRow.appendChild(createHistoryHeaderCell('avg', 'Średnia', sortState));
+    headerRow.appendChild(createHistoryHeaderCell('lastChange', 'Zmiana m/m', sortState));
+    thead.appendChild(headerRow);
+
+    const positiveColor = cssVar('--green', '#22c55e');
+    const negativeColor = cssVar('--red', '#ef4444');
+
+    const rows = accounts.map(acc => {
+      const values = chronologicalMonths.map((ym, idx) => monthRecords[idx].perAccount[acc.id] || { value:null, change:null, prev:null, pct:null });
+      const lastInfo = values[values.length - 1] || { change:null, prev:null, pct:null };
+      return {
+        key: `acc:${acc.id}`,
+        label: acc.name,
+        values,
+        average: accountSummaries[acc.id]?.avg ?? null,
+        lastChange: lastInfo.change,
+        lastPrev: lastInfo.prev,
+        lastPct: lastInfo.pct,
+        isNetWorth: false
       };
+    });
+
+    const netValues = chronologicalMonths.map((ym, idx) => {
+      const record = monthRecords[idx];
+      return {
+        value: record.netWorth,
+        change: record.delta,
+        prev: record.prevNetWorth,
+        pct: record.prevNetWorth ? (record.delta / Math.abs(record.prevNetWorth)) * 100 : null
+      };
+    });
+    const netLast = netValues[netValues.length - 1] || { change:null, prev:null, pct:null };
+    rows.push({
+      key: 'networth',
+      label: 'Majątek netto',
+      values: netValues,
+      average: netWorthAverage,
+      lastChange: netLast.change,
+      lastPrev: netLast.prev,
+      lastPct: netLast.pct,
+      isNetWorth: true
+    });
+
+    const sortedRows = sortHistoryTransposedRows(rows, sortState, chronologicalMonths);
+    const exportHeaders = ['Konto', ...chronologicalMonths.map(formatMonthLabel), 'Średnia', 'Zmiana m/m'];
+    const exportRows = [];
+
+    sortedRows.forEach(row => {
+      const tr = document.createElement('tr');
+      const nameTd = document.createElement('td');
+      nameTd.innerHTML = `<div class="eom-history-value">${row.label}</div>`;
+      tr.appendChild(nameTd);
+
+      row.values.forEach(valueInfo => {
+        const td = createHistoryValueCell(valueInfo, row.isNetWorth ? netWorthAverage : row.average, positiveColor, negativeColor, row.isNetWorth);
+        tr.appendChild(td);
+      });
+
+      const avgTd = document.createElement('td');
+      avgTd.className = 'networth';
+      if(row.average === null || Number.isNaN(row.average)){
+        avgTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        avgTd.innerHTML = `<span class="eom-history-value">${fmt(row.average, state.currency)}</span>`;
+      }
+      tr.appendChild(avgTd);
+
+      const lastTd = document.createElement('td');
+      lastTd.className = 'delta';
+      if(row.lastChange === null || row.lastChange === undefined || Number.isNaN(row.lastChange)){
+        lastTd.innerHTML = '<span class="muted">—</span>';
+      } else {
+        lastTd.innerHTML = renderDeltaBadge(row.lastChange);
+        if(row.lastPrev !== null && row.lastPrev !== undefined){
+          const pct = row.lastPct !== null && row.lastPct !== undefined && Number.isFinite(row.lastPct)
+            ? `${row.lastChange >= 0 ? '+' : ''}${row.lastPct.toFixed(1)}%`
+            : '—';
+          lastTd.title = `Zmiana vs poprzedni miesiąc: ${row.lastChange >= 0 ? '+' : ''}${fmt(row.lastChange, state.currency)} (${pct})`;
+        }
+      }
+      tr.appendChild(lastTd);
+
+      if(row.isNetWorth) tr.classList.add('networth-row');
+      tbody.appendChild(tr);
+
+      exportRows.push([
+        row.label,
+        ...row.values.map(valueInfo => formatHistoryExportValue(valueInfo?.value)),
+        formatHistoryExportValue(row.average),
+        formatHistoryExportDelta(row.lastChange)
+      ]);
+    });
+
+    eomHistoryExportCache = {
+      headers: exportHeaders,
+      rows: exportRows,
+      filename: `historia_${new Date().toISOString().slice(0,10)}.csv`
+    };
+  }
+
+  function createHistoryHeaderCell(key, label, sortState){
+    const th = document.createElement('th');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.dataset.sortKey = key;
+    if(sortState.key === key){
+      button.dataset.sortDir = sortState.dir === 'asc' ? '▲' : '▼';
+    }
+    th.appendChild(button);
+    return th;
+  }
+
+  function sortHistoryRecords(records, sortState){
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    const key = sortState.key;
+    return records.sort((a, b) => {
+      if(key === 'ym') return a.ym.localeCompare(b.ym) * dir;
+      if(key === 'netWorth') return compareNumericValues(a.netWorth, b.netWorth, dir);
+      if(key === 'delta') return compareNumericValues(a.delta, b.delta, dir);
+      if(typeof key === 'string' && key.startsWith('acc:')){
+        const id = key.slice(4);
+        return compareNumericValues(a.perAccount[id]?.value, b.perAccount[id]?.value, dir);
+      }
+      return 0;
+    });
+  }
+
+  function sortHistoryTransposedRows(rows, sortState, months){
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    const key = sortState.key;
+    return rows.sort((a, b) => {
+      if(a.isNetWorth && !b.isNetWorth) return 1;
+      if(!a.isNetWorth && b.isNetWorth) return -1;
+      if(key === 'name') return a.label.localeCompare(b.label, 'pl', { sensitivity: 'base' }) * dir;
+      if(key === 'avg') return compareNumericValues(a.average, b.average, dir);
+      if(key === 'lastChange') return compareNumericValues(a.lastChange, b.lastChange, dir);
+      if(typeof key === 'string' && key.startsWith('month:')){
+        const ym = key.slice(6);
+        const idx = months.indexOf(ym);
+        if(idx === -1) return 0;
+        return compareNumericValues(a.values[idx]?.value, b.values[idx]?.value, dir);
+      }
+      return 0;
+    });
+  }
+
+  function compareNumericValues(a, b, dir){
+    const aValid = typeof a === 'number' && !Number.isNaN(a);
+    const bValid = typeof b === 'number' && !Number.isNaN(b);
+    if(!aValid && !bValid) return 0;
+    if(!aValid) return 1 * dir;
+    if(!bValid) return -1 * dir;
+    if(a === b) return 0;
+    return a > b ? dir : -dir;
+  }
+
+  function createHistoryValueCell(info, average, positiveColor, negativeColor, isNetWorth){
+    const td = document.createElement('td');
+    const value = info && typeof info.value === 'number' ? info.value : null;
+    if(value === null){
+      td.innerHTML = '<span class="muted">—</span>';
+      return td;
+    }
+    const span = document.createElement('span');
+    span.className = 'eom-history-value';
+    span.textContent = fmt(value, state.currency);
+    td.appendChild(span);
+    td.dataset.value = value;
+
+    if(info && info.change !== null && info.change !== undefined){
+      const change = info.change || 0;
+      const arrow = document.createElement('span');
+      let tone = 'neutral';
+      if(change > 0) tone = 'positive';
+      if(change < 0) tone = 'negative';
+      arrow.className = `eom-history-arrow ${tone}`;
+      arrow.textContent = change > 0 ? '△' : change < 0 ? '▽' : '→';
+      td.appendChild(arrow);
+      if(info.prev !== null && info.prev !== undefined){
+        const pct = info.pct !== null && info.pct !== undefined && Number.isFinite(info.pct)
+          ? `${change >= 0 ? '+' : ''}${info.pct.toFixed(1)}%`
+          : '—';
+        td.title = `Zmiana vs poprzedni miesiąc: ${change >= 0 ? '+' : ''}${fmt(change, state.currency)} (${pct})`;
+      }
+    }
+
+    applyHistoryHeat(td, value, average, positiveColor, negativeColor);
+    if(isNetWorth) td.classList.add('networth');
+    return td;
+  }
+
+  function applyHistoryHeat(cell, value, average, positiveColor, negativeColor){
+    if(value === null || average === null || average === undefined || Number.isNaN(value) || Number.isNaN(average)) return;
+    const diff = value - average;
+    if(Math.abs(diff) < 0.005) return;
+    const tone = diff > 0 ? 'positive' : 'negative';
+    const ratio = Math.min(1.5, Math.abs(diff) / Math.max(Math.abs(average), 1));
+    const alpha = 0.12 + ratio * 0.25;
+    const color = tone === 'positive' ? colorWithAlpha(positiveColor, alpha) : colorWithAlpha(negativeColor, alpha);
+    cell.style.background = color;
+    cell.classList.add(tone);
+  }
+
+  function formatHistoryExportValue(value){
+    if(value === null || value === undefined || Number.isNaN(value)) return '';
+    return fmt(value, state.currency);
+  }
+
+  function formatHistoryExportDelta(delta){
+    if(delta === null || delta === undefined || Number.isNaN(delta)) return '';
+    return `${delta >= 0 ? '+' : ''}${fmt(delta, state.currency)}`;
+  }
+
+  function updateHistoryFooter(container, records, netWorthAverage, totalMonths, accountCount){
+    if(!container){
+      return;
+    }
+    if(!records.length){
+      container.innerHTML = '<span class="muted">Brak danych do podsumowania.</span>';
+      return;
+    }
+    const first = records[0];
+    const last = records[records.length - 1];
+    const change = (typeof first.netWorth === 'number' && typeof last.netWorth === 'number') ? last.netWorth - first.netWorth : null;
+    const pct = change !== null && first.netWorth ? (change / Math.abs(first.netWorth)) * 100 : null;
+    const trendSymbol = change === null ? '→' : change > 0 ? '↗' : change < 0 ? '↘' : '→';
+    const avgDisplay = netWorthAverage === null ? '—' : fmt(netWorthAverage, state.currency);
+    const changeDisplay = change === null ? '—' : `${change >= 0 ? '+' : ''}${fmt(change, state.currency)}${pct !== null && Number.isFinite(pct) ? ` (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)` : ''}`;
+    const rangeDisplay = `${formatMonthLabel(first.ym)} → ${formatMonthLabel(last.ym)}`;
+    container.innerHTML = `
+      <div>
+        <div class="muted">Średni majątek netto</div>
+        <strong>${avgDisplay}</strong>
+      </div>
+      <div>
+        <div class="muted">Trend ogólny</div>
+        <strong>${trendSymbol} ${changeDisplay}</strong>
+      </div>
+      <div>
+        <div class="muted">Zakres danych</div>
+        <span>${rangeDisplay}</span>
+      </div>
+      <div>
+        <div class="muted">Widoczność</div>
+        <span>Pokazujesz ${records.length} z ${totalMonths} miesięcy · ${accountCount} kont</span>
+      </div>
+    `;
+  }
+
+  function exportEomHistoryCsv(){
+    if(!eomHistoryExportCache || !Array.isArray(eomHistoryExportCache.rows) || !eomHistoryExportCache.rows.length){
+      return;
+    }
+    const headers = eomHistoryExportCache.headers || [];
+    const rows = eomHistoryExportCache.rows || [];
+    const lines = [headers.map(csvEscape).join(';'), ...rows.map(row => row.map(csvEscape).join(';'))];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = eomHistoryExportCache.filename || 'eom-history.csv';
+    document.body.appendChild(a);
+    a.click();
+    requestAnimationFrame(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  function csvEscape(value){
+    if(value === null || value === undefined) return '';
+    const str = String(value).replace(/\r?\n|\r/g, ' ').replace(/"/g, '""');
+    if(/[";,]/.test(str)){
+      return `"${str}"`;
+    }
+    return str;
+  }
+
+  function renderEomPerformanceMatrix(ctx, accountStats){
+    const container = document.getElementById('eom-performance-matrix');
+    if(!container) return;
+    const topZone = container.querySelector('[data-zone="top"]');
+    const watchZone = container.querySelector('[data-zone="watch"]');
+    if(!topZone || !watchZone) return;
+
+    topZone.innerHTML = '';
+    watchZone.innerHTML = '';
+
+    if(!ctx.months.length){
+      topZone.innerHTML = '<div class="eom-performance-empty">Dodaj pierwsze salda, aby zobaczyć ranking kont.</div>';
+      watchZone.innerHTML = '<div class="eom-performance-empty">✅ Wszystko pod kontrolą</div>';
+      return;
+    }
+
+    const scenario = eomUiState.scenario || 'actual';
+    const topAccounts = accountStats
+      .filter(stat => Number.isFinite(stat.delta) && stat.delta > 0)
+      .sort((a,b) => (b.delta || 0) - (a.delta || 0))
+      .slice(0, 5);
+
+    if(!topAccounts.length){
+      topZone.innerHTML = '<div class="eom-performance-empty">Wszystkie konta stabilne</div>';
+    } else {
+      topAccounts.forEach(stat => {
+        const card = buildEomAccountPerformanceCard(ctx, stat, { tone: 'positive', scenario });
+        topZone.appendChild(card);
+      });
+    }
+
+    const watchCandidates = accountStats
+      .filter(stat => Number.isFinite(stat.delta) && stat.delta < 0)
+      .map(stat => ({
+        stat,
+        magnitude: Math.abs(stat.delta ?? 0),
+        pct: Math.abs(stat.deltaPct ?? 0),
+        alert: detectEomAccountAlert(stat, scenario)
+      }))
+      .sort((a,b) => {
+        if(a.magnitude !== b.magnitude) return b.magnitude - a.magnitude;
+        if(a.pct !== b.pct) return b.pct - a.pct;
+        return a.stat.account.name.localeCompare(b.stat.account.name, 'pl', { sensitivity:'base' });
+      });
+
+    const watchList = watchCandidates.slice(0, 5);
+    if(!watchList.length){
+      watchZone.innerHTML = '<div class="eom-performance-empty">✅ Wszystko pod kontrolą</div>';
+    } else {
+      watchList.forEach(item => {
+        const card = buildEomAccountPerformanceCard(ctx, item.stat, { tone: 'negative', scenario, alert: item.alert });
+        watchZone.appendChild(card);
+      });
+    }
+
+    requestAnimationFrame(() => {
+      container.querySelectorAll('canvas[data-spark]').forEach(canvas => {
+        const raw = canvas.dataset.values || '';
+        const values = raw ? raw.split(',').map(Number).filter(val => Number.isFinite(val)) : [];
+        const color = canvas.dataset.color || 'var(--accent)';
+        drawMiniSparkline(canvas, values, { color });
+      });
+    });
+  }
+
+  function renderEomComparison(ctx){
+    const section = document.getElementById('eom-mom');
+    if(!section) return;
+    const selectA = document.getElementById('eom-mom-month-a');
+    const selectB = document.getElementById('eom-mom-month-b');
+    const swapBtn = document.getElementById('eom-mom-swap');
+    const runBtn = document.getElementById('eom-mom-run');
+    const emptyEl = document.getElementById('eom-mom-empty');
+    const content = document.getElementById('eom-mom-content');
+    const summaryValue = document.getElementById('eom-mom-summary-value');
+    const summaryText = document.getElementById('eom-mom-summary-text');
+    const pillsContainer = document.getElementById('eom-mom-pills');
+    const rankingTable = document.getElementById('eom-mom-ranking-table');
+    const rankingNote = document.getElementById('eom-mom-ranking-note');
+    const autoList = document.getElementById('eom-mom-auto-insights');
+
+    if(content && !content.dataset.bound){
+      content.dataset.bound = '1';
+      content.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-account-id]');
+        if(trigger){
+          const accId = trigger.dataset.accountId;
+          if(accId){
+            eomUiState.focusedAccountId = accId;
+            eomUiState.dashboardView = 'accounts';
+            saveEomUiState();
+            renderEOM();
+            const detail = document.getElementById('eom-grid');
+            if(detail){
+              requestAnimationFrame(() => {
+                detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
+            }
+          }
+        }
+      });
+    }
+
+    const months = Array.from(new Set([...(ctx.months || []), ctx.workingYm].filter(Boolean))).sort();
+    const monthsDesc = [...months].sort((a,b) => b.localeCompare(a));
+
+    const ensureMonth = (key, fallbackIndex) => {
+      if(!months.length) return null;
+      if(key && months.includes(key)) return key;
+      if(typeof fallbackIndex === 'number' && months[fallbackIndex]) return months[fallbackIndex];
+      return months[months.length - 1];
+    };
+
+    if(!eomUiState.compareMonthA || !months.includes(eomUiState.compareMonthA)){
+      const workingIdx = months.indexOf(ctx.workingYm);
+      eomUiState.compareMonthA = ensureMonth(ctx.workingYm, workingIdx >= 0 ? workingIdx : months.length - 1);
+    }
+    if(!eomUiState.compareMonthB || !months.includes(eomUiState.compareMonthB) || eomUiState.compareMonthB === eomUiState.compareMonthA){
+      const idxA = months.indexOf(eomUiState.compareMonthA);
+      const prev = idxA > 0 ? months[idxA - 1] : months.find(ym => ym !== eomUiState.compareMonthA) || null;
+      eomUiState.compareMonthB = prev;
+    }
+
+    const populateSelect = (select, value) => {
+      if(!select) return;
+      select.innerHTML = monthsDesc.map(ym => `<option value="${ym}">${formatMonthLabel(ym)}</option>`).join('');
+      select.value = value && months.includes(value) ? value : '';
+      if(!select.value && monthsDesc.length){
+        select.value = monthsDesc[0];
+      }
+    };
+
+    populateSelect(selectA, eomUiState.compareMonthA);
+    populateSelect(selectB, eomUiState.compareMonthB);
+
+    if(selectA && !selectA.dataset.bound){
+      selectA.dataset.bound = '1';
+      selectA.addEventListener('change', (e) => {
+        eomUiState.compareMonthA = e.target.value || null;
+        saveEomUiState();
+        renderEOM();
+      });
+    }
+    if(selectB && !selectB.dataset.bound){
+      selectB.dataset.bound = '1';
+      selectB.addEventListener('change', (e) => {
+        eomUiState.compareMonthB = e.target.value || null;
+        saveEomUiState();
+        renderEOM();
+      });
+    }
+    if(swapBtn && !swapBtn.dataset.bound){
+      swapBtn.dataset.bound = '1';
+      swapBtn.addEventListener('click', () => {
+        const nextA = eomUiState.compareMonthB;
+        const nextB = eomUiState.compareMonthA;
+        eomUiState.compareMonthA = nextA;
+        eomUiState.compareMonthB = nextB;
+        saveEomUiState();
+        renderEOM();
+      });
+    }
+    if(runBtn && !runBtn.dataset.bound){
+      runBtn.dataset.bound = '1';
+      runBtn.addEventListener('click', () => {
+        renderEOM();
+      });
+    }
+
+    const monthA = eomUiState.compareMonthA && months.includes(eomUiState.compareMonthA)
+      ? eomUiState.compareMonthA
+      : null;
+    const monthB = eomUiState.compareMonthB && months.includes(eomUiState.compareMonthB)
+      ? eomUiState.compareMonthB
+      : null;
+
+    const showEmpty = (message) => {
+      if(emptyEl){
+        emptyEl.textContent = message;
+        emptyEl.style.display = 'block';
+      }
+      if(content) content.style.display = 'none';
+      if(pillsContainer) pillsContainer.innerHTML = '';
+      if(summaryText) summaryText.textContent = '';
+      if(summaryValue){
+        summaryValue.textContent = '—';
+        summaryValue.className = 'value neutral';
+      }
+      if(rankingTable) rankingTable.innerHTML = '';
+      if(rankingNote) rankingNote.textContent = '';
+      if(autoList) autoList.innerHTML = '';
+    };
+
+    const hideEmpty = () => {
+      if(emptyEl) emptyEl.style.display = 'none';
+      if(content) content.style.display = 'flex';
+    };
+
+    if(!months.length){
+      showEmpty('Dodaj co najmniej dwa zapisy, aby skorzystać z porównania.');
+      return;
+    }
+
+    if(!monthA || !monthB){
+      showEmpty('Wybierz dwa miesiące do porównania.');
+      return;
+    }
+
+    if(monthA === monthB){
+      showEmpty('Wybierz różne miesiące, aby zobaczyć porównanie.');
+      return;
+    }
+
+    hideEmpty();
+
+    const balancesA = ctx.monthBalances[monthA] || {};
+    const balancesB = ctx.monthBalances[monthB] || {};
+    const accountMap = new Map((ctx.accounts || []).map(acc => [acc.id, acc]));
+
+    const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+    const formatSigned = (value) => {
+      if(value === null || value === undefined) return '—';
+      if(Math.abs(value) < 0.0005) return fmt(0, state.currency);
+      const formatted = fmt(Math.abs(value), state.currency);
+      if(value > 0) return `+${formatted}`;
+      if(value < 0) return `-${formatted}`;
+      return formatted;
+    };
+    const formatPercent = (value) => {
+      if(value === null || value === undefined || Number.isNaN(value)) return '—';
+      if(Math.abs(value) < 0.0005) return '0.0%';
+      return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
+    };
+    const describeMonths = (count) => {
+      if(!Number.isFinite(count) || count <= 0) return '0 miesięcy';
+      if(count === 1) return '1 miesiąc';
+      if(count >= 2 && count <= 4) return `${count} miesiące`;
+      return `${count} miesięcy`;
+    };
+    const sumBalances = (balances) => {
+      return Object.values(balances || {}).reduce((sum, value) => {
+        const num = Number(value);
+        if(Number.isFinite(num)) return sum + num;
+        return sum;
+      }, 0);
+    };
+
+    const allIds = new Set([...Object.keys(balancesA || {}), ...Object.keys(balancesB || {})]);
+    const rows = [];
+    allIds.forEach(id => {
+      const hasA = hasOwn(balancesA, id);
+      const hasB = hasOwn(balancesB, id);
+      if(!hasA && !hasB) return;
+      const valueA = hasA ? Number(balancesA[id]) : null;
+      const valueB = hasB ? Number(balancesB[id]) : null;
+      const delta = (valueA ?? 0) - (valueB ?? 0);
+      const baseForPct = hasB && valueB !== 0
+        ? Math.abs(valueB)
+        : (hasA && valueA !== 0 ? Math.abs(valueA) : null);
+      const deltaPct = baseForPct ? (delta / baseForPct) * 100 : null;
+      let tone = 'neutral';
+      if(Math.abs(delta) < 0.005){
+        tone = 'neutral';
+      } else if(deltaPct !== null && Math.abs(deltaPct) < 1){
+        tone = 'neutral';
+      } else if(delta > 0){
+        tone = 'positive';
+      } else if(delta < 0){
+        tone = 'negative';
+      }
+      const status = hasA && !hasB ? 'new' : (!hasA && hasB ? 'closed' : 'existing');
+      if(status !== 'existing'){
+        tone = delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral';
+      }
+      const account = accountMap.get(id) || { id, name:`Konto ${id.slice(-4)}` };
+      rows.push({
+        account,
+        id,
+        hasA,
+        hasB,
+        valueA: hasA ? valueA : null,
+        valueB: hasB ? valueB : null,
+        delta,
+        deltaPct,
+        tone,
+        status
+      });
+    });
+
+    const totalA = sumBalances(balancesA);
+    const totalB = sumBalances(balancesB);
+    const totalDelta = totalA - totalB;
+    const totalPct = totalB ? (totalDelta / Math.abs(totalB)) * 100 : (totalA ? null : 0);
+    const totalTone = totalDelta > 0 ? 'positive' : totalDelta < 0 ? 'negative' : 'neutral';
+
+    const toIndex = (ym) => {
+      if(!ym) return null;
+      const [y, m] = ym.split('-').map(Number);
+      if(!Number.isFinite(y) || !Number.isFinite(m)) return null;
+      return y * 12 + (m || 0);
+    };
+    const idxA = toIndex(monthA);
+    const idxB = toIndex(monthB);
+    const spanMonths = (idxA !== null && idxB !== null) ? Math.max(1, Math.abs(idxA - idxB)) : null;
+    const avgPerMonth = spanMonths ? totalDelta / spanMonths : null;
+
+    if(summaryValue){
+      summaryValue.textContent = formatSigned(totalDelta);
+      summaryValue.className = `value ${totalTone}`;
+    }
+    if(summaryText){
+      const pctText = Number.isFinite(totalPct) ? formatPercent(totalPct) : null;
+      let message = '';
+      if(Math.abs(totalDelta) < 0.005){
+        message = `Saldo w miesiącu ${formatMonthLabel(monthA)} jest na tym samym poziomie co w ${formatMonthLabel(monthB)}.`;
+      } else {
+        const directionWord = totalDelta > 0 ? 'WYŻSZE' : 'NIŻSZE';
+        const pctPart = pctText ? ` (${pctText})` : '';
+        message = `Saldo w miesiącu ${formatMonthLabel(monthA)} jest o ${formatSigned(totalDelta)}${pctPart} ${directionWord} niż w ${formatMonthLabel(monthB)}.`;
+      }
+      if(spanMonths && spanMonths > 0){
+        message += ` Okres między zapisami: ${describeMonths(spanMonths)}.`;
+      }
+      if(avgPerMonth !== null){
+        message += ` Średnio na miesiąc: ${formatSigned(avgPerMonth)}.`;
+      }
+      summaryText.textContent = message;
+    }
+    const rowsByMagnitude = [...rows].sort((a,b) => Math.abs((b.delta ?? 0)) - Math.abs((a.delta ?? 0)));
+    const topIncrease = rows.filter(row => (row.delta ?? 0) > 0.005).sort((a,b) => (b.delta ?? 0) - (a.delta ?? 0))[0] || null;
+    const topDecrease = rows.filter(row => (row.delta ?? 0) < -0.005).sort((a,b) => (a.delta ?? 0) - (b.delta ?? 0))[0] || null;
+    const newAccounts = rows.filter(row => row.status === 'new');
+    const closedAccounts = rows.filter(row => row.status === 'closed');
+    const totalMagnitude = rows.reduce((sum, item) => sum + Math.abs(item.delta ?? 0), 0);
+    const topThree = rowsByMagnitude.slice(0, 3);
+    const topShare = totalMagnitude > 0 ? (topThree.reduce((sum, item) => sum + Math.abs(item.delta ?? 0), 0) / totalMagnitude) * 100 : 0;
+
+    const insightPills = [];
+    if(topIncrease){
+      insightPills.push({ label: `Największy wzrost: ${topIncrease.account.name} ${formatSigned(topIncrease.delta)}`, tone: 'positive', accountId: topIncrease.account.id });
+    }
+    if(topDecrease){
+      insightPills.push({ label: `Największy spadek: ${topDecrease.account.name} ${formatSigned(topDecrease.delta)}`, tone: 'negative', accountId: topDecrease.account.id });
+    }
+    if(topThree.length && totalMagnitude > 0){
+      insightPills.push({ label: `TOP 3 odpowiadają za ${topShare.toFixed(1)}% zmiany`, tone: 'info' });
+    }
+    if(pillsContainer){
+      pillsContainer.innerHTML = insightPills.length
+        ? insightPills.map(pill => {
+            const attrs = pill.accountId ? ` data-account-id="${pill.accountId}"` : '';
+            return `<button type="button" class="insight-pill ${pill.tone}"${attrs}>${pill.label}</button>`;
+          }).join('')
+        : '<span class="tiny muted">Brak wyróżnionych zmian.</span>';
+    }
+
+    const maxMagnitude = rows.reduce((max, row) => Math.max(max, Math.abs(row.delta ?? 0)), 0) || 1;
+    const biggestChange = rows.reduce((best, item) => {
+      const magnitude = Math.abs(item.delta ?? 0);
+      if(!best || magnitude > Math.abs(best.delta ?? 0)) return item;
+      return best;
+    }, null);
+    if(biggestChange && Math.abs(biggestChange.delta || 0) >= 0.005){
+      biggestChange.isBiggest = true;
+    }
+
+    if(rankingTable){
+      if(!rows.length){
+        rankingTable.innerHTML = '<tbody><tr><td class="muted" style="text-align:center;padding:12px;">Brak danych do rankingu.</td></tr></tbody>';
+      } else {
+        const head = `<thead><tr><th>Konto</th><th>${formatMonthLabel(monthA)}</th><th>${formatMonthLabel(monthB)}</th><th>Δ PLN</th><th>Δ %</th></tr></thead>`;
+        const body = rowsByMagnitude.map(row => {
+          const tone = row.delta > 0 ? 'positive' : row.delta < 0 ? 'negative' : 'neutral';
+          const progress = Math.min(1, Math.abs(row.delta ?? 0) / maxMagnitude);
+          const deltaBar = `<div class=\"eom-mom-change-bar ${tone}\" style=\"--delta-progress:${progress.toFixed(3)}\"><span>${formatSigned(row.delta)}</span></div>`;
+          const statusNote = row.status === 'new'
+            ? `<div class=\"tiny muted\">Nowe w ${formatMonthLabel(monthA)}</div>`
+            : row.status === 'closed'
+              ? `<div class=\"tiny muted\">Zamknięte po ${formatMonthLabel(monthB)}</div>`
+              : '';
+          const biggest = row.isBiggest ? '<div class="tiny muted">Największa zmiana</div>' : '';
+          const valueA = row.hasA ? fmt(row.valueA, state.currency) : '<span class="muted">—</span>';
+          const valueB = row.hasB ? fmt(row.valueB, state.currency) : '<span class="muted">—</span>';
+          const deltaPctCell = row.deltaPct !== null ? formatPercent(row.deltaPct) : '—';
+          return `
+            <tr data-account-id="${row.account.id}">
+              <td><div>${row.account.name}</div>${statusNote}</td>
+              <td>${valueA}</td>
+              <td>${valueB}</td>
+              <td>${deltaBar}${biggest}</td>
+              <td>${deltaPctCell}</td>
+            </tr>
+          `;
+        }).join('');
+        rankingTable.innerHTML = head + `<tbody>${body}</tbody>`;
+      }
+    }
+    if(rankingNote){
+      rankingNote.textContent = rows.length
+        ? `Pokazujesz ${rows.length} kont (nowe: ${newAccounts.length}, zamknięte: ${closedAccounts.length}).`
+        : '';
+    }
+
+    const netSeries = (ctx.netWorthByMonth || [])
+      .filter(item => Number.isFinite(item.total))
+      .sort((a,b) => a.ym.localeCompare(b.ym));
+    const netDiffs = [];
+    for(let i=1;i<netSeries.length;i++){
+      netDiffs.push(netSeries[i].total - netSeries[i-1].total);
+    }
+    const historicalAvg = netDiffs.length ? netDiffs.reduce((sum,val)=>sum+val,0) / netDiffs.length : null;
+    const last3 = netDiffs.slice(-3);
+    const last3Avg = last3.length ? last3.reduce((sum,val)=>sum+val,0) / last3.length : null;
+    const vsHistorical = (avgPerMonth !== null && historicalAvg !== null)
+      ? avgPerMonth - historicalAvg
+      : null;
+
+    const autoInsights = [];
+    const totalPctText = Number.isFinite(totalPct) ? formatPercent(totalPct) : null;
+    autoInsights.push({
+      icon: totalDelta > 0 ? '📈' : totalDelta < 0 ? '📉' : '🟰',
+      title: totalDelta === 0 ? 'Portfel bez zmian' : `Całkowita zmiana ${formatSigned(totalDelta)}`,
+      description: totalDelta === 0
+        ? `Saldo w ${formatMonthLabel(monthA)} jest takie samo jak w ${formatMonthLabel(monthB)}.`
+        : `Portfel jest ${totalDelta > 0 ? 'wyższy' : 'niższy'} o ${formatSigned(totalDelta)}${totalPctText ? ` (${totalPctText})` : ''} względem ${formatMonthLabel(monthB)}.`,
+      severity: totalDelta > 0 ? 'success' : totalDelta < 0 ? 'danger' : 'info'
+    });
+    if(topIncrease){
+      autoInsights.push({
+        icon: '⭐',
+        title: `Największy wzrost: ${topIncrease.account.name}`,
+        description: `${formatSigned(topIncrease.delta)} vs ${formatMonthLabel(monthB)}.`,
+        severity: 'success',
+        accountId: topIncrease.account.id
+      });
+    }
+    if(topDecrease){
+      autoInsights.push({
+        icon: '⚠️',
+        title: `Największy spadek: ${topDecrease.account.name}`,
+        description: `${formatSigned(topDecrease.delta)} vs ${formatMonthLabel(monthB)}.`,
+        severity: 'danger',
+        accountId: topDecrease.account.id
+      });
+    }
+    if(topThree.length && totalMagnitude > 0){
+      autoInsights.push({
+        icon: '📊',
+        title: 'Największe kontrybutory zmiany',
+        description: `${topThree.map(row => row.account.name).join(', ')} odpowiada za ${topShare.toFixed(1)}% całkowitej zmiany.`,
+        severity: 'info'
+      });
+    }
+    if(newAccounts.length){
+      autoInsights.push({
+        icon: '🆕',
+        title: 'Nowe konta w miesiącu A',
+        description: newAccounts.map(row => row.account.name).slice(0, 4).join(', '),
+        severity: 'info'
+      });
+    }
+    if(closedAccounts.length){
+      autoInsights.push({
+        icon: '📁',
+        title: 'Zamknięte od miesiąca B',
+        description: closedAccounts.map(row => row.account.name).slice(0, 4).join(', '),
+        severity: 'warning'
+      });
+    }
+    if(avgPerMonth !== null){
+      autoInsights.push({
+        icon: '⏱️',
+        title: 'Średnio miesięczna zmiana',
+        description: `Tempo wynosi ${formatSigned(avgPerMonth)} na ${spanMonths ? describeMonths(spanMonths) : 'wybrany okres'}.`,
+        severity: avgPerMonth > 0 ? 'success' : avgPerMonth < 0 ? 'danger' : 'info'
+      });
+    }
+    if(last3Avg !== null){
+      autoInsights.push({
+        icon: '📅',
+        title: 'Ostatnie 3 miesiące',
+        description: `Średnio ${formatSigned(last3Avg)} na miesiąc w ostatnich 3 zapisach.`,
+        severity: last3Avg > 0 ? 'success' : last3Avg < 0 ? 'danger' : 'info'
+      });
+    }
+    if(vsHistorical !== null){
+      autoInsights.push({
+        icon: '📐',
+        title: 'Porównanie do historii',
+        description: `Tempo jest ${vsHistorical > 0 ? 'wyższe' : 'niższe'} o ${formatSigned(vsHistorical)} względem średniej historycznej ${historicalAvg !== null ? formatSigned(historicalAvg) : '—'}.`,
+        severity: vsHistorical > 0 ? 'success' : vsHistorical < 0 ? 'warning' : 'info'
+      });
+    }
+
+    if(autoList){
+      const finalAuto = autoInsights.slice(0, 8);
+      autoList.innerHTML = finalAuto.length
+        ? finalAuto.map(item => {
+            const attrs = item.accountId ? ` data-account-id="${item.accountId}"` : '';
+            return `
+              <div class="eom-mom-auto-card ${item.severity}"${attrs}>
+                <div class="title"><span>${item.icon}</span><span>${item.title}</span></div>
+                <div class="description">${item.description}</div>
+              </div>
+            `;
+          }).join('')
+        : '<div class="muted" style="padding:12px;text-align:center;">Brak dodatkowych wniosków dla wybranych miesięcy.</div>';
+    }
+
+    const applyFocusedAccount = () => {
+      if(!content) return;
+      const focusId = eomUiState.focusedAccountId;
+      content.querySelectorAll('[data-account-id]').forEach(el => {
+        if(focusId && el.dataset.accountId === focusId){
+          el.classList.add('is-highlighted');
+        } else {
+          el.classList.remove('is-highlighted');
+        }
+      });
+    };
+
+    applyFocusedAccount();
+  }
+
+  function updateEomDashboardView(view){
+    const panels = Array.from(document.querySelectorAll('.eom-dashboard-panel'));
+    if(!panels.length) return;
+    let desired = view || 'overview';
+    if(!panels.some(panel => panel.dataset.panel === desired)){
+      desired = panels[0].dataset.panel || 'overview';
+    }
+    const nav = document.getElementById('eom-dashboard-nav');
+    panels.forEach(panel => {
+      const match = panel.dataset.panel === desired;
+      panel.classList.toggle('is-active', match);
+      if(match){
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', '');
+      }
+    });
+    if(nav){
+      nav.querySelectorAll('[data-panel]').forEach(btn => {
+        const match = btn.dataset.panel === desired;
+        btn.classList.toggle('is-active', match);
+        if(btn.getAttribute('role') === 'tab'){
+          btn.setAttribute('aria-selected', match ? 'true' : 'false');
+          btn.setAttribute('tabindex', match ? '0' : '-1');
+        }
+      });
+    }
+    if(eomUiState.dashboardView !== desired){
+      eomUiState.dashboardView = desired;
+      saveEomUiState();
+    }
+  }
+
+  function buildEomAccountPerformanceCard(ctx, stat, options={}){
+    const tone = options.tone === 'negative' ? 'negative' : 'positive';
+    const scenario = options.scenario || stat.scenario || 'actual';
+    const alertText = options.alert || detectEomAccountAlert(stat, scenario);
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `eom-account-card ${tone}`;
+    if(eomUiState.focusedAccountId === stat.account.id){
+      card.classList.add('is-focused');
+    }
+    card.dataset.accountId = stat.account.id;
+
+    const deltaLabel = Number.isFinite(stat.delta)
+      ? `${stat.delta >= 0 ? '+' : ''}${fmt(stat.delta, state.currency)}`
+      : '—';
+    const pctLabel = Number.isFinite(stat.deltaPct)
+      ? `${stat.deltaPct >= 0 ? '+' : ''}${stat.deltaPct.toFixed(1)}%`
+      : '—';
+    const currentLabel = Number.isFinite(stat.current)
+      ? fmt(stat.current, state.currency)
+      : (Number.isFinite(stat.previous) ? fmt(stat.previous, state.currency) : '—');
+    const previousLabel = Number.isFinite(stat.previous)
+      ? fmt(stat.previous, state.currency)
+      : '—';
+    const monthLabel = stat.currentYm || stat.previousYm || ctx.focusMonth || '';
+
+    const header = document.createElement('div');
+    header.className = 'eom-account-card-header';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'eom-account-name';
+    nameEl.textContent = stat.account.name;
+    header.appendChild(nameEl);
+    const deltaEl = document.createElement('span');
+    const deltaClass = tone === 'negative'
+      ? (Number.isFinite(stat.delta) && stat.delta < 0 ? 'negative' : 'attention')
+      : (Number.isFinite(stat.delta) && stat.delta < 0 ? 'negative' : 'positive');
+    deltaEl.className = `eom-account-delta ${deltaClass}`;
+    deltaEl.textContent = deltaLabel;
+    header.appendChild(deltaEl);
+    card.appendChild(header);
+
+    const meta = document.createElement('div');
+    meta.className = 'eom-account-meta';
+    const pctEl = document.createElement('span');
+    pctEl.textContent = pctLabel;
+    meta.appendChild(pctEl);
+    const balanceEl = document.createElement('span');
+    balanceEl.className = 'tiny muted';
+    balanceEl.textContent = `Saldo: ${currentLabel}${monthLabel ? ` (${monthLabel})` : ''}`;
+    meta.appendChild(balanceEl);
+    card.appendChild(meta);
+
+    if(alertText){
+      const badge = document.createElement('span');
+      badge.className = 'eom-account-alert';
+      badge.textContent = alertText;
+      card.appendChild(badge);
+    }
+
+    const sparkWrap = document.createElement('div');
+    sparkWrap.className = 'eom-account-spark';
+    const canvas = document.createElement('canvas');
+    canvas.dataset.spark = stat.account.id;
+    let values = (stat.history || [])
+      .slice(-6)
+      .map(item => {
+        const adjusted = applyScenarioToValue(item.balance, scenario);
+        return typeof adjusted === 'number' && Number.isFinite(adjusted) ? adjusted : null;
+      })
+      .filter(val => val !== null);
+    if(!values.length){
+      const fallback = Number.isFinite(stat.current)
+        ? stat.current
+        : (Number.isFinite(stat.previous) ? stat.previous : 0);
+      values = [fallback, fallback];
+    } else if(values.length === 1){
+      values = [values[0], values[0]];
+    }
+    canvas.dataset.values = values.map(val => Number(val.toFixed(2))).join(',');
+    canvas.dataset.color = tone === 'negative' ? 'var(--red)' : 'var(--green)';
+    sparkWrap.appendChild(canvas);
+    card.appendChild(sparkWrap);
+
+    card.title = [
+      `Konto: ${stat.account.name}`,
+      `Aktualne saldo: ${currentLabel}${monthLabel ? ` (${monthLabel})` : ''}`,
+      `Poprzednio: ${previousLabel}${stat.previousYm ? ` (${stat.previousYm})` : ''}`,
+      `Zmiana m/m: ${deltaLabel}${pctLabel !== '—' ? ` (${pctLabel})` : ''}`
+    ].join('\n');
+
+    card.addEventListener('click', () => {
+      eomUiState.focusedAccountId = stat.account.id;
+      eomUiState.dashboardView = 'accounts';
+      saveEomUiState();
+      renderEOM();
+      const target = document.getElementById('eom-grid');
+      if(target){
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    });
+
+    return card;
+  }
+
+  function detectEomAccountAlert(stat, scenario){
+    const history = stat.history || [];
+    let worseningDebt = 0;
+    for(let i = Math.max(1, history.length - 3); i < history.length; i++){
+      const prevEntry = history[i - 1];
+      const currentEntry = history[i];
+      const prevVal = prevEntry ? applyScenarioToValue(prevEntry.balance, scenario) : null;
+      const currVal = currentEntry ? applyScenarioToValue(currentEntry.balance, scenario) : null;
+      if(typeof prevVal === 'number' && typeof currVal === 'number' && prevVal < 0 && currVal < 0 && currVal < prevVal){
+        worseningDebt += 1;
+      } else {
+        worseningDebt = 0;
+      }
+    }
+    if(worseningDebt >= 3){
+      return 'Dług rośnie 3 mies.';
+    }
+    if(stat.deltaPct !== null && Math.abs(stat.deltaPct) >= 50){
+      return stat.deltaPct > 0 ? 'Skok >50%' : 'Spadek >50%';
+    }
+    return null;
+  }
+
+  function drawMiniSparkline(canvas, values, options={}){
+    if(!canvas) return;
+    const ctx2d = canvas.getContext('2d');
+    if(!ctx2d) return;
+    const width = canvas.clientWidth || 120;
+    const height = canvas.clientHeight || 30;
+    const ratio = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    ctx2d.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx2d.clearRect(0, 0, width, height);
+
+    if(!values.length){
+      ctx2d.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+      ctx2d.lineWidth = 1.5;
+      ctx2d.beginPath();
+      ctx2d.moveTo(0, height / 2);
+      ctx2d.lineTo(width, height / 2);
+      ctx2d.stroke();
+      return;
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const step = values.length > 1 ? width / (values.length - 1) : width;
+
+    ctx2d.lineWidth = 2;
+    ctx2d.lineJoin = 'round';
+    ctx2d.lineCap = 'round';
+    ctx2d.strokeStyle = options.color || 'var(--accent)';
+    ctx2d.beginPath();
+    values.forEach((val, idx) => {
+      const ratioY = range === 0 ? 0.5 : (val - min) / range;
+      const x = idx * step;
+      const y = height - ratioY * (height - 6) - 3;
+      if(idx === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+    });
+    ctx2d.stroke();
+
+    ctx2d.fillStyle = options.pointColor || ctx2d.strokeStyle;
+    values.forEach((val, idx) => {
+      const ratioY = range === 0 ? 0.5 : (val - min) / range;
+      const x = idx * step;
+      const y = height - ratioY * (height - 6) - 3;
+      ctx2d.beginPath();
+      ctx2d.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx2d.fill();
     });
   }
 
@@ -3927,8 +6292,6 @@
     const table = document.getElementById('eom-monthly-summary');
     if(!table) return;
     const scenarioKey = options.scenario || 'actual';
-    table.dataset.scenario = scenarioKey;
-    table.title = `Scenariusz: ${(EOM_SCENARIOS[scenarioKey]?.label) || 'Realny'}`;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if(thead) thead.innerHTML = '';
@@ -4003,146 +6366,384 @@
     });
   }
 
-  function renderEomNetWorthChart(ctx, monthsToShow, options={}){
+  function cssVar(name, fallback=''){
+    try{
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name);
+      return value ? value.trim() : fallback;
+    }catch(err){
+      return fallback;
+    }
+  }
+
+  function colorWithAlpha(color, alpha){
+    if(color === undefined || color === null){
+      return `rgba(37,99,235,${alpha})`;
+    }
+    const value = String(color).trim();
+    if(value.startsWith('#')) return withAlpha(value, alpha);
+    if(value.startsWith('rgba')){
+      const parts = value.replace(/rgba\(|\)/g,'').split(',').map(p=>p.trim()).slice(0,3);
+      if(parts.length===3) return `rgba(${parts[0]},${parts[1]},${parts[2]},${alpha})`;
+      return value;
+    }
+    if(value.startsWith('rgb')){
+      const parts = value.replace(/rgb\(|\)/g,'').split(',').map(p=>p.trim()).slice(0,3);
+      if(parts.length===3) return `rgba(${parts[0]},${parts[1]},${parts[2]},${alpha})`;
+      return value;
+    }
+    if(value.startsWith('hsl') && value.includes('/')){
+      return value.replace(/\/[^)]+\)/, `/ ${alpha})`);
+    }
+    if(value.startsWith('hsl')){
+      return `${value.replace(/\)$/, '')} / ${alpha})`;
+    }
+    return value;
+  }
+
+  function updateNetWorthRangeTabs(activeRange){
+    const tabs = document.querySelectorAll('[data-range-tab]');
+    tabs.forEach(tab => {
+      const value = tab.dataset.rangeTab;
+      tab.classList.toggle('is-active', value === activeRange);
+      if(!tab.dataset.bound){
+        tab.dataset.bound = '1';
+        tab.addEventListener('click', () => {
+          const next = tab.dataset.rangeTab;
+          if(!next || next === eomUiState.netWorthRange) return;
+          eomUiState.netWorthRange = next;
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    });
+  }
+
+  function renderNetWorthMonthCard(detail){
+    const container = document.getElementById('eom-networth-month-card');
+    if(!container) return;
+    if(!detail){
+      container.classList.add('is-empty');
+      container.innerHTML = 'Brak danych dla tego zakresu. Dodaj zapisy lub zmodyfikuj filtry, aby zobaczyć szczegóły.';
+      return;
+    }
+    container.classList.remove('is-empty');
+    const deltaClass = detail.delta === null ? 'neutral' : detail.delta > 0 ? 'positive' : detail.delta < 0 ? 'negative' : 'neutral';
+    const deltaText = detail.delta === null
+      ? 'Brak danych porównawczych'
+      : `${detail.delta > 0 ? '+' : ''}${fmt(detail.delta, state.currency)}${detail.deltaPct !== null ? ` (${detail.deltaPct > 0 ? '+' : ''}${detail.deltaPct.toFixed(1)}%)` : ''}`;
+    const prevLine = detail.prevMonth ? `<span class="muted">vs ${detail.prevMonth}</span>` : '';
+    const holdingsHtml = detail.topHoldings.length
+      ? detail.topHoldings.map(item => `<li${item.value < 0 ? ' class="negative"' : ''}><span>${item.account.name}${item.share ? ` <span class="tiny muted">${item.share.toFixed(1)}%</span>` : ''}</span><span>${fmt(item.value, state.currency)}</span></li>`).join('')
+      : '<li class="muted">Brak danych o kontach</li>';
+    const moversHtml = detail.topMovers.length
+      ? detail.topMovers.map(item => `<li class="${item.delta >= 0 ? 'positive' : 'negative'}"><span>${item.account.name}</span><span>${item.delta >= 0 ? '+' : ''}${fmt(item.delta, state.currency)}</span></li>`).join('')
+      : '<li class="muted">Brak znaczących zmian m/m</li>';
+    container.innerHTML = `
+      <div class="eom-networth-card-header">
+        <span>Okres</span>
+        <span class="eom-networth-card-month">${detail.ym}</span>
+      </div>
+      <div class="eom-networth-card-total">${fmt(detail.total, state.currency)}</div>
+      <div class="eom-networth-card-delta ${deltaClass}">
+        <span>${deltaText}</span>
+        ${prevLine}
+      </div>
+      <div class="eom-networth-card-split">
+        <span>Aktywa: <strong>${fmt(detail.assets, state.currency)}</strong></span>
+        <span>Długi: <strong>${fmt(Math.abs(detail.debt), state.currency)}</strong> (${detail.debtShare.toFixed(1)}%)</span>
+      </div>
+      <div class="eom-networth-card-list">
+        <span>Największe składniki</span>
+        <ul>${holdingsHtml}</ul>
+      </div>
+      <div class="eom-networth-card-list">
+        <span>Najmocniejsze ruchy m/m</span>
+        <ul>${moversHtml}</ul>
+      </div>
+    `;
+  }
+
+  function updateNetWorthHighlight(chart, focusMonth){
+    if(!chart) return;
+    const dataset = chart.data?.datasets?.[0];
+    if(!dataset) return;
+    const details = chart.__details || [];
+    const accent = cssVar('--accent','#2563eb');
+    const ink = cssVar('--ink','#0f172a');
+    const green = cssVar('--green','#22c55e');
+    const red = cssVar('--red','#ef4444');
+    dataset.pointRadius = details.map(detail => {
+      const base = detail.isMax || detail.isMin ? 6 : 4;
+      return detail.ym === focusMonth ? Math.max(base, 7) : base;
+    });
+    dataset.pointHoverRadius = dataset.pointRadius.map(r => r + 2);
+    dataset.pointBackgroundColor = details.map(detail => {
+      if(detail.ym === focusMonth) return accent || '#2563eb';
+      if(detail.isMax) return green || '#22c55e';
+      if(detail.isMin) return red || '#ef4444';
+      return ink || '#0f172a';
+    });
+    dataset.pointBorderColor = details.map(detail => {
+      if(detail.ym === focusMonth) return colorWithAlpha(accent || '#2563eb', 0.75);
+      if(detail.isMax) return colorWithAlpha(green || '#22c55e', 0.45);
+      if(detail.isMin) return colorWithAlpha(red || '#ef4444', 0.45);
+      return colorWithAlpha(accent || '#2563eb', 0.25);
+    });
+    dataset.pointBorderWidth = details.map(detail => detail.ym === focusMonth ? 3 : (detail.isMax || detail.isMin ? 2 : 1.5));
+    chart.update('none');
+  }
+
+  function setNetWorthFocus(month, chart, persist=true){
+    if(!chart){
+      renderNetWorthMonthCard(null);
+      return;
+    }
+    const details = chart.__details || [];
+    const detail = details.find(item => item.ym === month) || details[details.length - 1] || null;
+    eomUiState.netWorthFocusMonth = detail ? detail.ym : null;
+    if(persist) saveEomUiState();
+    updateNetWorthHighlight(chart, eomUiState.netWorthFocusMonth);
+    renderNetWorthMonthCard(detail);
+  }
+
+  function renderEomNetWorthChart(ctx, options={}){
     const canvas = document.getElementById('eom-networth-chart');
-    if(!canvas) return;
+    const emptyState = document.getElementById('eom-networth-empty');
+    updateNetWorthRangeTabs(eomUiState.netWorthRange || '6m');
+    if(!canvas){
+      destroyEomChart('netWorth');
+      renderNetWorthMonthCard(null);
+      return;
+    }
     destroyEomChart('netWorth');
-    if(!monthsToShow.length) return;
     const scenario = options.scenario || 'actual';
     const typeFilter = new Set(Array.isArray(options.accountTypes) ? options.accountTypes : []);
     const relevantAccounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
-    if(!relevantAccounts.length) return;
-    const labels = monthsToShow;
-    const breakdown = labels.map(ym => {
-      let positive = 0;
-      let negative = 0;
+    const baseMonths = getMonthsWithinRange(ctx.months, eomUiState.dateRange);
+    const months = baseMonths.length ? baseMonths : ctx.months;
+    const rangeKey = eomUiState.netWorthRange || '6m';
+    let labels = months.slice();
+    if(rangeKey !== 'all'){
+      const limit = Number(rangeKey.replace('m','')) || 6;
+      labels = labels.slice(-limit);
+    }
+    if(!labels.length || !relevantAccounts.length){
+      if(emptyState) emptyState.classList.add('is-visible');
+      renderNetWorthMonthCard(null);
+      return;
+    }
+    if(emptyState) emptyState.classList.remove('is-visible');
+
+    const netWorthForMonth = (ym) => {
+      if(!ym) return null;
+      const balances = ctx.monthBalances[ym] || {};
+      let sum = 0;
+      let hasAny = false;
       for(const acc of relevantAccounts){
-        const value = ctx.monthBalances[ym]?.[acc.id];
+        const value = balances[acc.id];
         if(value === undefined) continue;
-        const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-        if(adjusted >= 0) positive += adjusted; else negative += adjusted;
+        const adjusted = applyScenarioToValue(value, scenario);
+        if(typeof adjusted !== 'number' || Number.isNaN(adjusted)) continue;
+        sum += adjusted;
+        hasAny = true;
       }
-      return { positive, negative };
+      if(!hasAny) return null;
+      return Number(sum.toFixed(2));
+    };
+
+    const details = labels.map(ym => {
+      const total = netWorthForMonth(ym);
+      if(total === null) return null;
+      const prevMonth = ctx.months.filter(m => m < ym).pop() || null;
+      const prevTotal = prevMonth ? netWorthForMonth(prevMonth) : null;
+      const delta = prevTotal !== null && prevTotal !== undefined ? Number((total - prevTotal).toFixed(2)) : null;
+      const deltaPct = delta !== null && prevTotal ? (delta / Math.abs(prevTotal)) * 100 : null;
+      const breakdown = [];
+      let assets = 0;
+      let debt = 0;
+      const balances = ctx.monthBalances[ym] || {};
+      const prevBalances = prevMonth ? (ctx.monthBalances[prevMonth] || {}) : {};
+      for(const acc of relevantAccounts){
+        const raw = balances[acc.id];
+        if(raw === undefined) continue;
+        const value = applyScenarioToValue(raw, scenario);
+        if(typeof value !== 'number' || Number.isNaN(value)) continue;
+        const prevRaw = prevBalances[acc.id];
+        const prevVal = prevRaw === undefined ? null : applyScenarioToValue(prevRaw, scenario);
+        const deltaAcc = prevVal === null || prevVal === undefined ? value : Number((value - prevVal).toFixed(2));
+        if(value >= 0) assets += value; else debt += value;
+        breakdown.push({ account: acc, value, delta: deltaAcc, previous: prevVal });
+      }
+      const shareBase = assets + Math.abs(debt);
+      const topHoldings = breakdown.length
+        ? [...breakdown].sort((a,b) => Math.abs(b.value) - Math.abs(a.value)).slice(0,3).map(item => ({
+            account:item.account,
+            value:item.value,
+            share: shareBase ? (Math.abs(item.value) / shareBase) * 100 : 0
+          }))
+        : [];
+      const movers = breakdown.filter(item => item.delta !== null && item.delta !== undefined && Math.abs(item.delta) >= 0.005);
+      const topMovers = movers.length
+        ? [...movers].sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0,3)
+        : [];
+      const debtShare = shareBase ? (Math.abs(debt) / shareBase) * 100 : 0;
+      return {
+        ym,
+        total,
+        prevMonth,
+        delta,
+        deltaPct,
+        assets: Number(assets.toFixed(2)),
+        debt: Number(debt.toFixed(2)),
+        debtShare,
+        topHoldings,
+        topMovers,
+        breakdown
+      };
+    }).filter(Boolean);
+
+    if(!details.length){
+      renderNetWorthMonthCard(null);
+      return;
+    }
+
+    const maxDetail = details.reduce((best, item) => (!best || item.total > best.total) ? item : best, null);
+    const minDetail = details.reduce((worst, item) => (!worst || item.total < worst.total) ? item : worst, null);
+    details.forEach(detail => {
+      detail.isMax = !!(maxDetail && detail.ym === maxDetail.ym);
+      detail.isMin = !!(minDetail && detail.ym === minDetail.ym);
+      const holdings = detail.topHoldings.length
+        ? detail.topHoldings
+        : [...detail.breakdown].sort((a,b) => Math.abs(b.value) - Math.abs(a.value)).slice(0,3).map(item => ({ account:item.account, value:item.value, share:0 }));
+      detail.tooltipHoldings = holdings.map(item => ({ account:item.account, value:item.value, share:item.share ?? 0 }));
     });
-    const data = breakdown.map(item => item.positive + item.negative);
-    const maxValue = Math.max(...data);
-    const minValue = Math.min(...data);
-    const pointColors = data.map(val => val === maxValue ? '#22c55e' : (val === minValue ? '#ef4444' : '#0f172a'));
-    const pointRadius = data.map(val => (val === maxValue || val === minValue) ? 5 : 3);
-    eomCharts.netWorth = new Chart(canvas.getContext('2d'), {
+
+    const accent = cssVar('--accent','#2563eb');
+    const ink = cssVar('--ink','#0f172a');
+    const green = cssVar('--green','#22c55e');
+    const red = cssVar('--red','#ef4444');
+    const datasetColor = accent || '#2563eb';
+    const data = details.map(detail => detail.total);
+    const ctx2d = canvas.getContext('2d');
+
+    eomCharts.netWorth = new Chart(ctx2d, {
       type:'line',
       data:{
-        labels,
+        labels: details.map(detail => detail.ym),
         datasets:[{
           label:`Majątek netto (${EOM_SCENARIOS[scenario]?.label || 'Realny'})`,
           data,
-          borderColor:'#0f172a',
-          backgroundColor:'rgba(15,23,42,0.12)',
-          borderWidth:2,
           tension:0.35,
+          borderWidth:2.5,
+          borderColor: datasetColor,
           fill:true,
-          pointRadius,
-          pointBackgroundColor: pointColors
+          pointHitRadius:14,
+          pointHoverBorderWidth:3,
+          pointRadius: details.map(detail => detail.isMax || detail.isMin ? 6 : 4),
+          pointHoverRadius: details.map(detail => detail.isMax || detail.isMin ? 7 : 6),
+          pointBackgroundColor: details.map(detail => detail.isMax ? (green || '#22c55e') : detail.isMin ? (red || '#ef4444') : (ink || '#0f172a')),
+          pointBorderColor: details.map(detail => colorWithAlpha(datasetColor, detail.isMax || detail.isMin ? 0.45 : 0.25)),
+          pointBorderWidth: details.map(detail => detail.isMax || detail.isMin ? 2 : 1.5),
+          backgroundColor: (ctxGradient) => {
+            const chartArea = ctxGradient.chart.chartArea;
+            if(!chartArea){
+              return colorWithAlpha(datasetColor, 0.16);
+            }
+            const gradient = ctxGradient.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            gradient.addColorStop(0, colorWithAlpha(datasetColor, 0.28));
+            gradient.addColorStop(1, colorWithAlpha(datasetColor, 0));
+            return gradient;
+          }
         }]
       },
       options:{
         responsive:true,
         maintainAspectRatio:false,
+        interaction:{ mode:'nearest', intersect:false },
         plugins:{
           legend:{ display:false },
           tooltip:{
+            displayColors:false,
             callbacks:{
+              title: items => items[0]?.label ? `Miesiąc ${items[0].label}` : '',
               label: context => `${fmt(context.parsed.y, state.currency)}`,
-              afterLabel: context => {
-                const info = breakdown[context.dataIndex];
-                const denom = info.positive + Math.abs(info.negative);
-                const debtShare = denom ? (Math.abs(info.negative) / denom) * 100 : 0;
-                return ` Aktywa: ${fmt(info.positive, state.currency)} | Długi: ${fmt(Math.abs(info.negative), state.currency)} (${debtShare.toFixed(1)}%)`;
+              afterBody: items => {
+                if(!items.length) return [];
+                const detail = details[items[0].dataIndex];
+                if(!detail || !detail.tooltipHoldings.length) return [];
+                const lines = detail.tooltipHoldings.map(item => ` ${item.account.name}: ${fmt(item.value, state.currency)}${item.share ? ` (${item.share.toFixed(1)}%)` : ''}`);
+                return ['Top konta:'].concat(lines);
+              },
+              footer: items => {
+                if(!items.length) return '';
+                const detail = details[items[0].dataIndex];
+                if(!detail || detail.delta === null) return '';
+                const sign = detail.delta > 0 ? '+' : '';
+                const pct = detail.deltaPct !== null ? ` (${detail.deltaPct > 0 ? '+' : ''}${detail.deltaPct.toFixed(1)}%)` : '';
+                return `Δ m/m: ${sign}${fmt(detail.delta, state.currency)}${pct}`;
               }
             }
           }
         },
+        layout:{ padding:{ top:8, right:12, bottom:8, left:12 } },
         scales:{
-          y:{ ticks:{ callback: currencyTicks } }
+          x:{
+            grid:{ display:false },
+            ticks:{ maxRotation:0 }
+          },
+          y:{
+            ticks:{ callback: currencyTicks },
+            grid:{ drawBorder:false, color: colorWithAlpha(ink || '#0f172a', 0.08) }
+          }
         },
-        onClick: (evt, elements) => {
+        onHover:(evt, elements)=>{
+          const target = evt?.native?.target;
+          if(target){
+            target.style.cursor = elements.length ? 'pointer' : 'default';
+          }
+        },
+        onClick:(evt)=>{
+          const chart = eomCharts.netWorth;
+          if(!chart) return;
+          const elements = chart.getElementsAtEventForMode(evt,'nearest',{ intersect:false },true);
           if(!elements.length) return;
           const idx = elements[0].index;
-          const month = labels[idx];
-          if(month){
-            eomUiState.dateRange.from = month;
-            eomUiState.dateRange.to = month;
-            renderEOM();
-            renderEOMHistory();
+          const detail = details[idx];
+          if(detail){
+            setNetWorthFocus(detail.ym, chart, true);
           }
         }
       }
     });
-  }
 
-  function renderEomAccountsChart(ctx, monthsToShow, options={}){
-    const canvas = document.getElementById('eom-accounts-chart');
-    if(!canvas) return;
-    destroyEomChart('accounts');
-    if(!monthsToShow.length) return;
-    const scenario = options.scenario || 'actual';
-    const typeFilter = new Set(Array.isArray(options.accountTypes) ? options.accountTypes : []);
-    const focusId = options.focus || null;
-    const ranked = ctx.accounts
-      .filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)))
-      .map(acc => ({
-        acc,
-        value: Math.abs(ctx.focusBalances[acc.id] ?? 0)
-      }))
-      .sort((a,b) => b.value - a.value)
-      .slice(0, 6);
-    if(!ranked.length) return;
-    const datasets = ranked.map((item, idx) => {
-      const history = ctx.accountHistory[item.acc.id] || [];
-      return {
-        label: item.acc.name,
-        data: monthsToShow.map(ym => {
-          const entry = entryForMonth(history, ym);
-          return entry ? applyScenarioToValue(entry.balance, scenario) : null;
-        }),
-        borderColor: ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length],
-        backgroundColor: withAlpha(ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length], 0.14),
-        borderWidth: focusId && focusId === item.acc.id ? 4 : 2,
-        tension:0.35,
-        fill:false,
-        spanGaps:true,
-        accountId: item.acc.id
-      };
-    });
-    eomCharts.accounts = new Chart(canvas.getContext('2d'), {
-      type:'line',
-      data:{ labels: monthsToShow, datasets },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          legend:{ position:'bottom' },
-          tooltip:{
-            callbacks:{
-              label: context => `${context.dataset.label}: ${fmt(context.parsed.y, state.currency)}`
-            }
-          }
-        },
-        scales:{
-          y:{ ticks:{ callback: currencyTicks } }
-        },
-        onClick: (evt, elements) => {
-          if(!elements.length) return;
-          const datasetIndex = elements[0].datasetIndex;
-          const dataset = datasets[datasetIndex];
-          if(dataset?.accountId){
-            eomUiState.focusedAccountId = dataset.accountId;
-            renderEOM();
-            renderEOMHistory();
-          }
+    eomCharts.netWorth.__details = details;
+    const focusCandidate = eomUiState.netWorthFocusMonth && details.some(detail => detail.ym === eomUiState.netWorthFocusMonth)
+      ? eomUiState.netWorthFocusMonth
+      : details[details.length - 1].ym;
+    setNetWorthFocus(focusCandidate, eomCharts.netWorth, false);
+
+    if(!canvas.dataset.networthBound){
+      canvas.dataset.networthBound = '1';
+      canvas.addEventListener('dblclick', evt => {
+        const chart = eomCharts.netWorth;
+        if(!chart) return;
+        const elements = chart.getElementsAtEventForMode(evt,'nearest',{ intersect:false },true);
+        if(!elements.length){
+          eomUiState.dateRange = { from:null, to:null };
+          renderEOM();
+          renderEOMHistory();
+          return;
         }
-      }
-    });
+        const idx = elements[0].index;
+        const labels = chart.data.labels || [];
+        if(!labels.length) return;
+        const start = Math.max(0, idx - 1);
+        const end = Math.min(labels.length - 1, idx + 1);
+        eomUiState.dateRange = { from: labels[start], to: labels[end] };
+        renderEOM();
+        renderEOMHistory();
+      });
+    }
   }
 
   function renderEOM(){
@@ -4153,23 +6754,90 @@
       const lastInfo = ctx.hasWorking
         ? 'Masz już zapisane salda dla tego miesiąca — możesz je zaktualizować.'
         : ctx.latestMonth ? `Ostatnio zapisano dane dla ${ctx.latestMonth}.` : 'To będzie Twój pierwszy zapis sald.';
-      const scenarioInfo = EOM_SCENARIOS[eomUiState.scenario] || EOM_SCENARIOS.actual;
-      prompt.innerHTML = `Wprowadź salda swoich kont na koniec miesiąca <b>${ym}</b>. <span class="muted">${lastInfo}</span><br><span class="tiny muted">Scenariusz: ${scenarioInfo.description}</span>`;
+      prompt.innerHTML = `Wprowadź salda swoich kont na koniec miesiąca <b>${ym}</b>. <span class="muted">${lastInfo}</span>`;
     }
     const badge = document.getElementById('eom-active-month');
     if(badge) badge.textContent = ym;
 
-    const filterSel = document.getElementById('eom-account-filter');
-    if(filterSel){
-      filterSel.value = eomUiState.accountFilter;
-      if(!filterSel.dataset.bound){
-        filterSel.dataset.bound = '1';
-        filterSel.addEventListener('change', () => {
-          eomUiState.accountFilter = filterSel.value;
-          renderEOM();
-          renderEOMHistory();
+    const dashboardNav = document.getElementById('eom-dashboard-nav');
+    if(dashboardNav){
+      if(!dashboardNav.dataset.bound){
+        dashboardNav.dataset.bound = '1';
+        dashboardNav.addEventListener('click', (event) => {
+          const btn = event.target.closest('[data-panel]');
+          if(!btn) return;
+          const next = btn.dataset.panel;
+          if(!next) return;
+          updateEomDashboardView(next);
         });
       }
+      updateEomDashboardView(eomUiState.dashboardView || 'overview');
+    }
+
+    renderEomComparison(ctx);
+
+    const sortSelect = document.getElementById('eom-account-sort');
+    if(sortSelect){
+      sortSelect.value = eomUiState.accountSort || 'balance';
+      if(!sortSelect.dataset.bound){
+        sortSelect.dataset.bound = '1';
+        sortSelect.addEventListener('change', () => {
+          eomUiState.accountSort = sortSelect.value;
+          renderEOM();
+        });
+      }
+    }
+
+    const positiveBox = document.getElementById('eom-filter-positive');
+    const negativeBox = document.getElementById('eom-filter-negative');
+    const hideZeroBox = document.getElementById('eom-filter-hide-zero');
+    if(positiveBox){
+      positiveBox.checked = !!eomUiState.filterPositiveOnly;
+      if(!positiveBox.dataset.bound){
+        positiveBox.dataset.bound = '1';
+        positiveBox.addEventListener('change', () => {
+          eomUiState.filterPositiveOnly = positiveBox.checked;
+          renderEOM();
+        });
+      }
+    }
+    if(negativeBox){
+      negativeBox.checked = !!eomUiState.filterNegativeOnly;
+      if(!negativeBox.dataset.bound){
+        negativeBox.dataset.bound = '1';
+        negativeBox.addEventListener('change', () => {
+          eomUiState.filterNegativeOnly = negativeBox.checked;
+          renderEOM();
+        });
+      }
+    }
+    if(hideZeroBox){
+      hideZeroBox.checked = !!eomUiState.hideZeroAccounts;
+      if(!hideZeroBox.dataset.bound){
+        hideZeroBox.dataset.bound = '1';
+        hideZeroBox.addEventListener('change', () => {
+          eomUiState.hideZeroAccounts = hideZeroBox.checked;
+          renderEOM();
+        });
+      }
+    }
+
+    const expandAllBtn = document.getElementById('eom-expand-all');
+    if(expandAllBtn && !expandAllBtn.dataset.bound){
+      expandAllBtn.dataset.bound = '1';
+      expandAllBtn.addEventListener('click', () => {
+        const cards = Array.from(document.querySelectorAll('#eom-grid .eom-account-item'));
+        eomUiState.expandedAccounts = cards.map(card => card.dataset.accountId).filter(Boolean);
+        renderEOM();
+      });
+    }
+    const collapseAllBtn = document.getElementById('eom-collapse-all');
+    if(collapseAllBtn && !collapseAllBtn.dataset.bound){
+      collapseAllBtn.dataset.bound = '1';
+      collapseAllBtn.addEventListener('click', () => {
+        eomUiState.expandedAccounts = [];
+        renderEOM();
+      });
     }
 
     const typeSelect = document.getElementById('eom-account-type-filter');
@@ -4213,23 +6881,6 @@
       }
     }
 
-    const scenarioToggle = document.getElementById('eom-scenario-toggle');
-    if(scenarioToggle){
-      scenarioToggle.querySelectorAll('button[data-scenario]').forEach(btn => {
-        const value = btn.dataset.scenario;
-        btn.classList.toggle('active', value === eomUiState.scenario);
-        if(!btn.dataset.bound){
-          btn.dataset.bound = '1';
-          btn.addEventListener('click', () => {
-            if(eomUiState.scenario === value) return;
-            eomUiState.scenario = value;
-            renderEOM();
-            renderEOMHistory();
-          });
-        }
-      });
-    }
-
     const pivotToggle = document.getElementById('eom-pivot-toggle');
     if(pivotToggle){
       pivotToggle.dataset.active = eomUiState.pivotMode ? '1' : '0';
@@ -4255,22 +6906,12 @@
       }
     }
 
-    const volatilityIds = (() => {
-      const scores = ctx.accounts.map(acc => {
-        const history = ctx.accountHistory[acc.id] || [];
-        if(history.length < 2) return { id: acc.id, score: 0 };
-        const values = history.map(item => item.balance);
-        const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-        return { id: acc.id, score: Math.sqrt(variance) };
-      });
-      scores.sort((a,b) => b.score - a.score);
-      return new Set(scores.slice(0, Math.min(5, scores.length)).map(item => item.id));
-    })();
-
     const sparkMonths = monthsForSparkline(ctx, eomUiState.dateRange);
-    const accountFilter = eomUiState.accountFilter;
     const selectedTypes = new Set(eomUiState.accountTypes || []);
+    const wantsPositiveOnly = !!eomUiState.filterPositiveOnly;
+    const wantsNegativeOnly = !!eomUiState.filterNegativeOnly;
+    const hideZeroAccounts = !!eomUiState.hideZeroAccounts;
+    const threshold = 0.005;
 
     const rows = ctx.accounts.map(acc => {
       const type = inferAccountType(acc);
@@ -4279,14 +6920,73 @@
       const currentEntry = entryForMonth(history, ym);
       const prevEntry = lastEntryBefore(history, ym);
       const referenceValue = currentEntry ? currentEntry.balance : (prevEntry ? prevEntry.balance : 0);
-      if(accountFilter === 'positive' && referenceValue <= 0) return null;
-      if(accountFilter === 'negative' && referenceValue >= 0) return null;
-      if(accountFilter === 'volatile' && !volatilityIds.has(acc.id)) return null;
+      const isZero = Math.abs(referenceValue || 0) < threshold;
+      if(wantsPositiveOnly && !wantsNegativeOnly && referenceValue <= 0) return null;
+      if(!wantsPositiveOnly && wantsNegativeOnly && referenceValue >= 0) return null;
+      if(wantsPositiveOnly && wantsNegativeOnly && isZero) return null;
+      if(hideZeroAccounts && isZero) return null;
       const currentValue = currentEntry ? currentEntry.balance : null;
       const previousValue = prevEntry ? prevEntry.balance : null;
       const scenarioCurrent = currentValue === null ? null : applyScenarioToValue(currentValue, eomUiState.scenario);
       const scenarioPrevious = previousValue === null ? null : applyScenarioToValue(previousValue, eomUiState.scenario);
       const deltaAdjusted = (scenarioCurrent !== null || scenarioPrevious !== null) ? ((scenarioCurrent ?? 0) - (scenarioPrevious ?? 0)) : null;
+      const deltaPct = scenarioPrevious && scenarioPrevious !== 0 ? (deltaAdjusted / Math.abs(scenarioPrevious)) * 100 : null;
+      const sparklinePoints = buildSparklinePoints(history, sparkMonths).map(pt => ({ ym: pt.ym, value: applyScenarioToValue(pt.value, eomUiState.scenario) ?? 0 }));
+      const adjustedHistory = history.map(item => {
+        const value = applyScenarioToValue(item.balance, eomUiState.scenario);
+        return { ym: item.ym, value: typeof value === 'number' ? value : null };
+      }).filter(item => item.value !== null);
+      const lastSix = adjustedHistory.slice(-6);
+      const avgSix = lastSix.length ? lastSix.reduce((sum, item) => sum + item.value, 0) / lastSix.length : null;
+      const recordEntry = adjustedHistory.reduce((best, item) => (!best || item.value > best.value ? item : best), null);
+      const minEntry = adjustedHistory.reduce((worst, item) => (!worst || item.value < worst.value ? item : worst), null);
+      let streakDir = null;
+      let streakCount = 0;
+      for(let i = adjustedHistory.length - 1; i > 0; i--){
+        const curr = adjustedHistory[i]?.value;
+        const prev = adjustedHistory[i-1]?.value;
+        if(typeof curr !== 'number' || typeof prev !== 'number') continue;
+        const diff = curr - prev;
+        const dir = diff > threshold ? 'up' : diff < -threshold ? 'down' : 'flat';
+        if(dir === 'flat'){
+          if(streakDir === null) continue;
+          else break;
+        }
+        if(streakDir === null){
+          streakDir = dir;
+          streakCount = 1;
+        } else if(streakDir === dir){
+          streakCount += 1;
+        } else {
+          break;
+        }
+      }
+      let trendDescription = 'Wahania bez wyraźnego trendu';
+      if(streakDir === 'up' && streakCount >= 2){
+        trendDescription = `Rośnie ${streakCount + 1} miesiąc z rzędu`;
+      } else if(streakDir === 'down' && streakCount >= 2){
+        trendDescription = `Spada ${streakCount + 1} miesiąc z rzędu`;
+      } else if(streakDir === 'up'){
+        trendDescription = 'Lekki wzrost w tym miesiącu';
+      } else if(streakDir === 'down'){
+        trendDescription = 'Lekki spadek w tym miesiącu';
+      } else if(Math.abs(deltaAdjusted || 0) < threshold){
+        trendDescription = 'Stabilne w ostatnim miesiącu';
+      }
+      const trendDirection = deltaAdjusted === null ? 'flat' : (deltaAdjusted > threshold ? 'up' : deltaAdjusted < -threshold ? 'down' : 'flat');
+      const trendArrow = trendDirection === 'up' ? '↗' : trendDirection === 'down' ? '↘' : '→';
+      const deltaDisplay = deltaAdjusted === null ? '—' : `${deltaAdjusted > 0 ? '+' : '−'}${fmt(Math.abs(deltaAdjusted), state.currency)}`;
+      const pctDisplay = deltaPct !== null ? `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—';
+      const scenarioBalance = scenarioCurrent !== null ? fmt(scenarioCurrent, state.currency) : (currentValue !== null ? fmt(currentValue, state.currency) : '—');
+      const previousDisplay = scenarioPrevious !== null ? fmt(scenarioPrevious, state.currency) : (previousValue !== null ? fmt(previousValue, state.currency) : '—');
+      const dormant = history.length >= 3 ? history.slice(-3).every(item => {
+        const val = applyScenarioToValue(item.balance, eomUiState.scenario);
+        return Math.abs((typeof val === 'number' ? val : 0)) < threshold;
+      }) : false;
+      const subtitleParts = [capitalizeFirst(type), capitalizeFirst(eomAccountStatus(referenceValue))];
+      const subtitle = subtitleParts.filter(Boolean).join(' · ');
+      const sparkColor = trendDirection === 'down' ? '#dc2626' : trendDirection === 'up' ? '#16a34a' : '#64748b';
+      let deltaLabel = deltaAdjusted === null ? '<span class=\"muted\">—</span>' : renderDeltaBadge(deltaAdjusted);
       const prevBits = [];
       if(previousValue === null){
         prevBits.push('<span class=\"muted\">Brak danych</span>');
@@ -4295,13 +6995,6 @@
         if(prevEntry?.ym){
           prevBits.push(`<span class=\"tiny muted\">${prevEntry.ym}</span>`);
         }
-        if(eomUiState.scenario !== 'actual' && scenarioPrevious !== null){
-          prevBits.push(`<span class=\"tiny muted\">${EOM_SCENARIOS[eomUiState.scenario].label}: ${fmt(scenarioPrevious, state.currency)}</span>`);
-        }
-      }
-      let deltaLabel = deltaAdjusted === null ? '<span class=\"muted\">—</span>' : renderDeltaBadge(deltaAdjusted);
-      if(eomUiState.scenario !== 'actual' && scenarioCurrent !== null){
-        deltaLabel += `<br><span class=\"tiny muted\">${fmt(scenarioCurrent, state.currency)} (${EOM_SCENARIOS[eomUiState.scenario].label})</span>`;
       }
       let groupKey = 'Wszystkie konta';
       if(eomUiState.groupBy === 'type') groupKey = `Typ: ${capitalizeFirst(type)}`;
@@ -4313,10 +7006,26 @@
         previousLabel: prevBits.join('<br>'),
         currentInput: currentValue === null ? '' : String(currentValue).replace('.',','),
         currentValue,
+        adjustedCurrent: scenarioCurrent,
+        adjustedPrevious: scenarioPrevious,
         previousAdjusted: scenarioPrevious,
         deltaAdjusted,
+        deltaPct,
         deltaLabel,
-        sparklinePoints: buildSparklinePoints(history, sparkMonths).map(pt => ({ ym: pt.ym, value: applyScenarioToValue(pt.value, eomUiState.scenario) ?? 0 })),
+        deltaDisplay,
+        deltaPctDisplay: pctDisplay,
+        trendArrow,
+        trendDirection,
+        trendDescription,
+        displayBalance: scenarioBalance,
+        previousDisplay,
+        averageSix: avgSix,
+        recordEntry,
+        minEntry,
+        sparkColor,
+        isDormant: dormant,
+        subtitle,
+        sparklinePoints,
         history,
         groupKey
       };
@@ -4328,7 +7037,7 @@
 
     const gridResult = eomUiState.pivotMode
       ? renderEomPivotTable(ctx, rows, sparkMonths, eomUiState.scenario)
-      : renderEomInteractiveGrid(ctx, rows, { sort: eomUiState.gridSort, scenario: eomUiState.scenario, focusedAccountId: eomUiState.focusedAccountId });
+      : renderEomInteractiveGrid(ctx, rows, { focusedAccountId: eomUiState.focusedAccountId, scenario: eomUiState.scenario });
 
     renderEomHeatmap(ctx, rows, sparkMonths, eomUiState.scenario);
 
@@ -4364,24 +7073,74 @@
       gridResult.inputs.forEach(input => {
         const accountId = input.dataset.id;
         const row = rowMap.get(accountId);
-        const deltaCell = gridContainer.querySelector(`[data-delta="${accountId}"]`);
+        const deltaNodes = gridContainer.querySelectorAll(`[data-delta="${accountId}"]`);
+        const balanceNode = gridContainer.querySelector(`[data-balance="${accountId}"]`);
         const updateRow = () => {
           const raw = input.value.trim() === '' ? null : num(input.value);
           const scenarioValue = raw === null ? null : applyScenarioToValue(raw, eomUiState.scenario);
           row.currentValue = raw;
-          if(deltaCell){
-            if(scenarioValue === null && row.previousAdjusted === null){
-              deltaCell.innerHTML = '<span class="muted">—</span>';
-            } else {
-              const deltaVal = (scenarioValue ?? 0) - (row.previousAdjusted ?? 0);
-              let html = renderDeltaBadge(deltaVal);
-              if(eomUiState.scenario !== 'actual' && scenarioValue !== null){
-                html += `<br><span class=\"tiny muted\">${fmt(scenarioValue, state.currency)} (${EOM_SCENARIOS[eomUiState.scenario].label})</span>`;
-              }
-              deltaCell.innerHTML = html;
-            }
+          row.adjustedCurrent = scenarioValue;
+
+          const prevAdjusted = row.adjustedPrevious ?? row.previousAdjusted ?? null;
+          const hasAny = !(scenarioValue === null && prevAdjusted === null);
+          const deltaVal = hasAny ? ((scenarioValue ?? 0) - (prevAdjusted ?? 0)) : null;
+          const pctVal = prevAdjusted && prevAdjusted !== 0 ? (deltaVal / Math.abs(prevAdjusted)) * 100 : null;
+          row.deltaAdjusted = deltaVal;
+          row.deltaPct = pctVal;
+
+          const threshold = 0.005;
+          const direction = deltaVal === null ? 'flat' : (deltaVal > threshold ? 'up' : deltaVal < -threshold ? 'down' : 'flat');
+          const arrow = direction === 'up' ? '↗' : direction === 'down' ? '↘' : '→';
+          const deltaDisplay = deltaVal === null ? '—' : `${deltaVal > 0 ? '+' : '−'}${fmt(Math.abs(deltaVal), state.currency)}`;
+          const pctDisplay = pctVal !== null ? `${pctVal > 0 ? '+' : ''}${pctVal.toFixed(1)}%` : '—';
+          row.trendDirection = direction;
+          row.trendArrow = arrow;
+          row.deltaDisplay = deltaDisplay;
+          row.deltaPctDisplay = pctDisplay;
+          row.sparkColor = direction === 'down' ? '#dc2626' : direction === 'up' ? '#16a34a' : '#64748b';
+
+          if(balanceNode){
+            const balanceText = scenarioValue !== null ? fmt(scenarioValue, state.currency) : (raw !== null ? fmt(raw, state.currency) : '—');
+            balanceNode.textContent = balanceText;
+            row.displayBalance = balanceText;
           }
+
+          const cardEl = input.closest('.eom-account-item');
+          if(cardEl){
+            cardEl.title = `${row.acc.name}: ${row.displayBalance}${row.deltaDisplay && row.deltaDisplay !== '—' ? ` | Δ ${row.deltaDisplay}` : ''}`;
+          }
+
+          if(deltaNodes.length){
+            deltaNodes.forEach(node => {
+              const role = node.dataset.role || '';
+              if(role === 'header'){
+                const tone = direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'flat';
+                node.classList.remove('up','down','flat');
+                node.classList.add(tone);
+                const headerHtml = pctDisplay !== '—'
+                  ? `<span class="arrow ${tone}">${arrow}</span><span>${deltaDisplay} <span class="tiny muted">(${pctDisplay})</span></span>`
+                  : `<span class="arrow ${tone}">${arrow}</span><span>${deltaDisplay}</span>`;
+                node.innerHTML = headerHtml;
+              } else if(role === 'detail'){
+                const tone = direction === 'up' ? 'positive' : direction === 'down' ? 'negative' : 'neutral';
+                node.classList.remove('positive','negative','neutral');
+                node.classList.add(tone);
+                node.textContent = pctDisplay !== '—' ? `${deltaDisplay} (${pctDisplay})` : deltaDisplay;
+              } else {
+                node.textContent = deltaDisplay;
+              }
+            });
+          }
+
+          const sparkPoint = row.sparklinePoints?.find(pt => pt.ym === ym);
+          if(sparkPoint){
+            sparkPoint.value = scenarioValue ?? 0;
+          }
+
           updateTotal();
+          if(typeof gridResult.refreshSparklines === 'function'){
+            gridResult.refreshSparklines();
+          }
         };
         input.addEventListener('input', updateRow);
         updateRow();
@@ -4478,26 +7237,84 @@
 
   function renderEOMHistory(){
     const ctx = buildEomContext();
-    const select = document.getElementById('eom-history-months');
-    let limitValue = select ? select.value : '6';
-    if(select && !select.dataset.bound){
-      select.dataset.bound = '1';
-      select.addEventListener('change', renderEOMHistory);
+    const rangeSelect = document.getElementById('eom-history-range');
+    const transposeBtn = document.getElementById('eom-history-transpose');
+    const searchInput = document.getElementById('eom-history-search');
+    const onlyChangesBox = document.getElementById('eom-history-only-changes');
+    const exportBtn = document.getElementById('eom-history-export');
+
+    if(rangeSelect){
+      const desired = eomUiState.historyRange || '6';
+      if(rangeSelect.value !== desired) rangeSelect.value = desired;
+      if(!rangeSelect.dataset.bound){
+        rangeSelect.dataset.bound = '1';
+        rangeSelect.addEventListener('change', event => {
+          eomUiState.historyRange = event.target.value || '6';
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
     }
+
+    if(searchInput){
+      searchInput.value = eomUiState.historySearch || '';
+      if(!searchInput.dataset.bound){
+        searchInput.dataset.bound = '1';
+        searchInput.addEventListener('input', event => {
+          eomUiState.historySearch = event.target.value || '';
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(onlyChangesBox){
+      onlyChangesBox.checked = !!eomUiState.historyOnlyChanges;
+      if(!onlyChangesBox.dataset.bound){
+        onlyChangesBox.dataset.bound = '1';
+        onlyChangesBox.addEventListener('change', event => {
+          eomUiState.historyOnlyChanges = !!event.target.checked;
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(transposeBtn){
+      transposeBtn.dataset.active = eomUiState.historyTranspose ? '1' : '0';
+      transposeBtn.textContent = eomUiState.historyTranspose ? 'Widok standardowy' : 'Transponuj widok';
+      if(!transposeBtn.dataset.bound){
+        transposeBtn.dataset.bound = '1';
+        transposeBtn.addEventListener('click', () => {
+          eomUiState.historyTranspose = !eomUiState.historyTranspose;
+          if(eomUiState.historyTranspose && eomUiState.historySort?.key === 'ym'){
+            eomUiState.historySort = { key:'name', dir:'asc' };
+          }
+          saveEomUiState();
+          renderEOMHistory();
+        });
+      }
+    }
+
+    if(exportBtn && !exportBtn.dataset.bound){
+      exportBtn.dataset.bound = '1';
+      exportBtn.addEventListener('click', exportEomHistoryCsv);
+    }
+
     const months = ctx.months;
     const rangeMonths = getMonthsWithinRange(months, eomUiState.dateRange);
     const baseMonths = rangeMonths.length ? rangeMonths : months;
+    const limitValue = eomUiState.historyRange || '6';
     const monthsToShow = !baseMonths.length
       ? []
       : (limitValue === 'all' ? baseMonths : baseMonths.slice(-Number(limitValue || 6)));
 
     if(!baseMonths.length){
       renderEomKpis(ctx, []);
-      renderEomHistoryTable(ctx, []);
-      renderEomChangeTable(ctx, []);
+      renderEomPerformanceMatrix(ctx, []);
+      renderEomHistoryTable(ctx, [], { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
       renderEomMonthlySummary([]);
-      destroyEomChart('netWorth');
-      destroyEomChart('accounts');
+      renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
       return;
     }
 
@@ -4507,11 +7324,18 @@
     const monthlySummary = computeMonthlySummary(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
 
     renderEomKpis(ctx, accountStats);
-    renderEomHistoryTable(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-    renderEomChangeTable(ctx, accountStats);
+    renderEomPerformanceMatrix(ctx, accountStats);
+    renderEomHistoryTable(ctx, monthsToShow, {
+      scenario: eomUiState.scenario,
+      accountTypes: eomUiState.accountTypes,
+      transpose: eomUiState.historyTranspose,
+      search: eomUiState.historySearch,
+      onlyChanges: eomUiState.historyOnlyChanges,
+      sort: eomUiState.historySort,
+      totalMonths: baseMonths.length
+    });
     renderEomMonthlySummary(monthlySummary.filter(row => monthsToShow.includes(row.ym)), { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-    renderEomNetWorthChart(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-    renderEomAccountsChart(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes, focus: eomUiState.focusedAccountId });
+    renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
   }
 
   const DAY_MS = 1000*60*60*24;
@@ -4533,18 +7357,73 @@
   let analyticsUiState = loadAnalyticsUiState();
   const analyticsCharts={};
   const eomCharts={};
-  const eomUiState={
-    accountFilter:'all',
+  let eomHistoryExportCache=null;
+  const EOM_UI_STATE_KEY='lifeos_budget_eom_ui_v1';
+  const DEFAULT_EOM_UI_STATE={
     accountTypes:[],
     dateRange:{ from:null, to:null },
     scenario:'actual',
-    gridSort:{ field:'name', dir:'asc' },
     groupBy:'type',
     pivotMode:false,
     focusedAccountId:null,
-    changeSort:{field:'delta',dir:'desc'},
-    monthlySort:{field:'ym',dir:'desc'}
+    monthlySort:{field:'ym',dir:'desc'},
+    netWorthRange:'6m',
+    netWorthFocusMonth:null,
+    accountSort:'balance',
+    filterPositiveOnly:false,
+    filterNegativeOnly:false,
+    hideZeroAccounts:false,
+    expandedAccounts:[],
+    dashboardView:'overview',
+    compareMonthA:null,
+    compareMonthB:null,
+    historyRange:'6',
+    historyTranspose:false,
+    historySearch:'',
+    historyOnlyChanges:false,
+    historySort:{ key:'ym', dir:'desc' }
   };
+
+  function loadEomUiState(){
+    try{
+      const raw=localStorage.getItem(EOM_UI_STATE_KEY);
+      if(!raw) return {};
+      const parsed=JSON.parse(raw);
+      if(!parsed || typeof parsed!=='object') return {};
+      return parsed;
+    }catch(err){
+      console.warn('Nie można odczytać ustawień EOM',err);
+      return {};
+    }
+  }
+
+  function saveEomUiState(){
+    try{
+      const payload={
+        netWorthRange:eomUiState.netWorthRange,
+        netWorthFocusMonth:eomUiState.netWorthFocusMonth,
+        compareMonthA:eomUiState.compareMonthA,
+        compareMonthB:eomUiState.compareMonthB,
+        historyRange:eomUiState.historyRange,
+        historyTranspose:eomUiState.historyTranspose,
+        historySearch:eomUiState.historySearch,
+        historyOnlyChanges:eomUiState.historyOnlyChanges,
+        historySort:eomUiState.historySort,
+        dashboardView:eomUiState.dashboardView
+      };
+      localStorage.setItem(EOM_UI_STATE_KEY,JSON.stringify(payload));
+    }catch(err){
+      console.warn('Nie można zapisać ustawień EOM',err);
+    }
+  }
+
+  let eomUiState={...DEFAULT_EOM_UI_STATE,...loadEomUiState()};
+  eomUiState.scenario='actual';
+  if(!eomUiState.dateRange){
+    eomUiState.dateRange={ from:null, to:null };
+  }else{
+    eomUiState.dateRange=normalizeYmRange(eomUiState.dateRange);
+  }
   const ANALYTICS_COLORS=['#0ea5e9','#ef4444','#16a34a','#f97316','#8b5cf6','#14b8a6','#facc15','#6366f1','#0f172a'];
 
   function loadAnalyticsUiState(){
