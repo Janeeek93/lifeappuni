@@ -2031,20 +2031,21 @@
       position: fixed;
       left: var(--mom-panel-left, 24px);
       right: var(--mom-panel-right, 24px);
-      top: var(--mom-panel-top, auto);
+      top: var(--mom-panel-top, 24px);
       bottom: var(--mom-panel-bottom, 24px);
       background: var(--surface);
-      border-radius: 24px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 28px 48px rgba(15, 23, 42, 0.18);
+      border-radius: 22px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 24px 44px rgba(15, 23, 42, 0.16);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       opacity: 0;
-      transform: translateY(20px) scale(0.98);
+      transform: translateY(18px) scale(0.985);
       pointer-events: none;
       transition: opacity .25s ease, transform .25s ease;
       z-index: 41;
+      max-width: none;
     }
 
     .mom-detail-panel.is-visible {
@@ -2058,7 +2059,8 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
-      padding: 24px 28px 12px;
+      padding: 22px 32px 14px;
+      flex-wrap: wrap;
     }
 
     .mom-detail-heading {
@@ -2147,63 +2149,67 @@
     }
 
     .mom-detail-meta {
+      padding: 0 32px 18px;
+    }
+
+    .mom-detail-overview {
       display: grid;
-      gap: 16px;
-      padding: 0 28px 20px;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 18px;
+      align-items: stretch;
     }
 
     .mom-detail-meta-grid {
       display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
 
     .mom-detail-tile {
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      padding: 16px 18px;
-      background: rgba(248, 250, 252, 0.92);
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      padding: 14px 16px;
+      background: rgba(248, 250, 252, 0.85);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      min-height: 120px;
+      gap: 6px;
+      min-height: 0;
     }
 
     .mom-detail-tile.highlight {
-      background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
-      border-color: rgba(37, 99, 235, 0.25);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      background: linear-gradient(145deg, rgba(37, 99, 235, 0.07), rgba(37, 99, 235, 0.02));
+      border-color: rgba(37, 99, 235, 0.22);
     }
 
     .mom-detail-tile.positive {
-      border-color: rgba(239, 68, 68, 0.28);
-      background: linear-gradient(150deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.92));
+      border-color: rgba(239, 68, 68, 0.22);
+      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.9));
     }
 
     .mom-detail-tile.negative {
-      border-color: rgba(34, 197, 94, 0.28);
-      background: linear-gradient(150deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.92));
+      border-color: rgba(34, 197, 94, 0.22);
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.9));
     }
 
     .mom-detail-tile-label {
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .mom-detail-tile-value {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--ink);
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       align-items: baseline;
     }
 
     .mom-detail-tile-value strong {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: var(--ink);
     }
@@ -2212,44 +2218,44 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       font-weight: 700;
       color: var(--muted);
-      background: rgba(148, 163, 184, 0.18);
-      padding: 2px 8px;
+      background: rgba(148, 163, 184, 0.16);
+      padding: 2px 7px;
       border-radius: 999px;
     }
 
     .mom-detail-tile-dot {
       color: var(--muted);
-      font-weight: 700;
+      font-weight: 600;
     }
 
     .mom-detail-tile-note {
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: 12px;
+      line-height: 1.4;
       color: var(--muted);
     }
 
     .mom-detail-cross {
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      padding: 16px 18px 18px;
-      background: rgba(248, 250, 252, 0.9);
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 14px 16px 16px;
+      background: rgba(248, 250, 252, 0.85);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .mom-detail-cross.positive {
-      border-color: rgba(239, 68, 68, 0.28);
-      background: linear-gradient(150deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.96));
+      border-color: rgba(239, 68, 68, 0.22);
+      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.92));
     }
 
     .mom-detail-cross.neutral {
-      border-color: rgba(148, 163, 184, 0.24);
+      border-color: rgba(148, 163, 184, 0.2);
     }
 
     .mom-detail-cross-header {
@@ -2260,14 +2266,14 @@
     }
 
     .mom-detail-cross-label {
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .mom-detail-cross-value {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--ink);
     }
@@ -2276,7 +2282,7 @@
       position: relative;
       height: 6px;
       border-radius: 999px;
-      background: rgba(148, 163, 184, 0.22);
+      background: rgba(148, 163, 184, 0.2);
       overflow: hidden;
     }
 
@@ -2284,46 +2290,46 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 12px;
+      width: 10px;
       border-radius: 999px;
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.75), rgba(239, 68, 68, 0.45));
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.7), rgba(239, 68, 68, 0.4));
       transform: translateX(-50%);
       left: var(--mom-cross-position, 0%);
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
     }
 
     .mom-detail-cross-note {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
-      line-height: 1.45;
+      line-height: 1.4;
     }
 
     .mom-detail-body {
-      padding: 0 28px 28px;
+      padding: 0 32px 28px;
       overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      align-content: start;
       flex: 1;
     }
 
     .mom-detail-day {
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      border-radius: 18px;
-      padding: 12px 16px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      background: linear-gradient(145deg, rgba(148, 163, 184, 0.12), rgba(255, 255, 255, 0.95));
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      gap: 10px;
+      background: rgba(248, 250, 252, 0.85);
     }
 
     .mom-detail-day.positive {
-      border-left: 4px solid rgba(239, 68, 68, 0.55);
+      border-left: 4px solid rgba(239, 68, 68, 0.5);
     }
 
     .mom-detail-day.negative {
-      border-left: 4px solid rgba(34, 197, 94, 0.55);
+      border-left: 4px solid rgba(34, 197, 94, 0.5);
     }
 
     .mom-detail-day-header {
@@ -2339,13 +2345,13 @@
     }
 
     .mom-detail-day-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .mom-detail-day-subline {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
       margin-top: 2px;
     }
@@ -2353,9 +2359,9 @@
     .mom-detail-badge {
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      background: rgba(148, 163, 184, 0.18);
+      background: rgba(148, 163, 184, 0.16);
       color: var(--ink);
       white-space: nowrap;
     }
@@ -2373,61 +2379,62 @@
     .mom-detail-columns {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .mom-detail-month {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .mom-detail-month-label {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
-      letter-spacing: 0.05em;
+      font-size: 11px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .mom-detail-month-count {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--ink);
-      background: rgba(148, 163, 184, 0.18);
-      padding: 2px 8px;
+      background: rgba(148, 163, 184, 0.16);
+      padding: 2px 7px;
       border-radius: 999px;
     }
 
     .mom-detail-entry {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: flex-start;
       border-radius: 12px;
-      padding: 10px 12px;
-      background: rgba(248, 250, 252, 0.92);
-      border: 1px solid rgba(148, 163, 184, 0.22);
+      padding: 9px 11px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.18);
     }
 
     .mom-detail-entry-amount {
       font-weight: 600;
       color: var(--ink);
       white-space: nowrap;
+      font-size: 13px;
     }
 
     .mom-detail-entry-info {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .mom-detail-entry-note {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--ink);
-      line-height: 1.4;
+      line-height: 1.35;
     }
 
     .mom-detail-entry-note .muted {
@@ -2449,6 +2456,13 @@
       text-align: center;
       font-size: 13px;
       color: var(--muted);
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 1280px) {
+      .mom-detail-overview {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 900px) {
@@ -2468,6 +2482,7 @@
 
       .mom-detail-body {
         padding: 0 20px 24px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       }
     }
 
@@ -2482,6 +2497,10 @@
       }
 
       .mom-detail-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .mom-detail-body {
         grid-template-columns: 1fr;
       }
     }
@@ -9315,8 +9334,7 @@
     const rect=section.getBoundingClientRect();
     const viewportWidth=window.innerWidth||document.documentElement.clientWidth||1024;
     const viewportHeight=window.innerHeight||document.documentElement.clientHeight||768;
-    const left=Math.max(16, rect.left);
-    const right=Math.max(16, viewportWidth-rect.right);
+    const margin=viewportWidth>=1440?48:viewportWidth>=1200?36:viewportWidth>=960?28:18;
     let top=Math.max(24, rect.top);
     let bottom=Math.max(24, viewportHeight-rect.bottom);
     const minHeight=360;
@@ -9334,8 +9352,8 @@
         top-=reduceTop;
       }
     }
-    panel.style.setProperty('--mom-panel-left', `${left}px`);
-    panel.style.setProperty('--mom-panel-right', `${right}px`);
+    panel.style.setProperty('--mom-panel-left', `${margin}px`);
+    panel.style.setProperty('--mom-panel-right', `${margin}px`);
     panel.style.setProperty('--mom-panel-top', `${Math.max(16, top)}px`);
     panel.style.setProperty('--mom-panel-bottom', `${Math.max(16, bottom)}px`);
   }
@@ -9572,46 +9590,46 @@
     };
     const renderPair=(labelA,valueA,labelB,valueB)=>`<span class="mom-detail-tile-pill">${labelA}</span><strong>${valueA}</strong><span class="mom-detail-tile-dot">•</span><span class="mom-detail-tile-pill">${labelB}</span><strong>${valueB}</strong>`;
     const totalNote=totalDiff>0
-      ? `Miesiąc A przekracza miesiąc B o ${fmt(Math.abs(totalDiff), state.currency)}.`
+      ? `A wyżej o ${fmt(Math.abs(totalDiff), state.currency)}.`
       : totalDiff<0
-        ? `Miesiąc A jest niższy o ${fmt(Math.abs(totalDiff), state.currency)} względem miesiąca B.`
+        ? `A niżej o ${fmt(Math.abs(totalDiff), state.currency)}.`
         : (detail.totalA>0 || detail.totalB>0)
-          ? 'Oba miesiące są na bardzo podobnym poziomie.'
-          : 'Brak wydatków w wybranych miesiącach.';
+          ? 'Poziomy wyrównane.'
+          : 'Brak wydatków.';
     const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
     const freqNote=!hasTransactions
-      ? 'Brak transakcji w porównywanych miesiącach.'
+      ? 'Brak transakcji.'
       : freqDiff>0
-        ? `Więcej transakcji w miesiącu A (+${freqDiff}).`
+        ? `A częściej (+${freqDiff}).`
         : freqDiff<0
-          ? `Mniej transakcji w miesiącu A (−${Math.abs(freqDiff)}).`
-          : 'Tyle samo transakcji w obu miesiącach.';
+          ? `A rzadziej (−${Math.abs(freqDiff)}).`
+          : 'Tyle samo transakcji.';
     const avgNote=!hasTransactions
-      ? 'Średnie wartości pojawią się po pierwszych transakcjach.'
+      ? 'Średnie pojawią się po transakcjach.'
       : avgDiff>0
-        ? `Średnia wartość transakcji w miesiącu A jest wyższa o ${fmt(Math.abs(avgDiff), state.currency)}.`
+        ? `A drożej o ${fmt(Math.abs(avgDiff), state.currency)}.`
         : avgDiff<0
-          ? `Średnia wartość transakcji w miesiącu A jest niższa o ${fmt(Math.abs(avgDiff), state.currency)}.`
-          : 'Średnia wartość transakcji pozostaje na tym samym poziomie.';
+          ? `A taniej o ${fmt(Math.abs(avgDiff), state.currency)}.`
+          : 'Średnia bez zmian.';
     let crossoverHtml='';
     if(detail.everLed && detail.crossoverDay){
       const crossRatio=Math.max(0, Math.min(100, (detail.crossoverDay/detail.dayLimit)*100));
       const crossLabel=detail.ledFromStart?'Start prowadzenia':'Moment przekroczenia';
       const crossNote=detail.ledFromStart
-        ? 'Wydatki miesiąca A były wyższe od pierwszego dnia.'
-        : 'Po tym dniu wydatki miesiąca A utrzymywały się powyżej miesiąca B.';
+        ? 'A prowadzi od pierwszego dnia.'
+        : 'Od tego dnia A utrzymuje przewagę nad B.';
       crossoverHtml=`<div class="mom-detail-cross positive"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">${crossLabel}</span><span class="mom-detail-cross-value">Dzień ${String(detail.crossoverDay).padStart(2,'0')}</span></div><div class="mom-detail-cross-bar"><span style="--mom-cross-position:${crossRatio}%"></span></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
     }else{
       const limitSafe=Number.isFinite(detail.dayLimit)?String(detail.dayLimit).padStart(2,'0'):'';
       const crossNote=limitSafe
-        ? `Do dnia ${limitSafe} wydatki miesiąca A nie przekroczyły poziomu miesiąca B.`
-        : 'Do wskazanego dnia wydatki miesiąca A nie przekroczyły poziomu miesiąca B.';
+        ? `Do dnia ${limitSafe} A nie przebił wydatków B.`
+        : 'Do wskazanego dnia A nie przebił wydatków B.';
       crossoverHtml=`<div class="mom-detail-cross neutral"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">Moment przekroczenia</span><span class="mom-detail-cross-value">Nie wystąpił</span></div><div class="mom-detail-cross-bar"></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
     }
     const totalPair=renderPair('A', fmt(detail.totalA,state.currency), 'B', fmt(detail.totalB,state.currency));
     const countPair=renderPair('A', formatCountFull(detail.countA), 'B', formatCountFull(detail.countB));
     const avgPair=renderPair('A', hasTransactions?fmt(detail.avgA,state.currency):'—', 'B', hasTransactions?fmt(detail.avgB,state.currency):'—');
-    metaEl.innerHTML=`<div class="mom-detail-meta-grid"><div class="${totalTileClass.join(' ')}"><span class="mom-detail-tile-label">Łączne wydatki</span><div class="mom-detail-tile-value">${totalPair}</div><p class="mom-detail-tile-note">${totalNote}</p></div><div class="${freqTileClass.join(' ')}"><span class="mom-detail-tile-label">Liczba transakcji</span><div class="mom-detail-tile-value">${countPair}</div><p class="mom-detail-tile-note">${freqNote}</p></div><div class="${avgTileClass.join(' ')}"><span class="mom-detail-tile-label">Średnia wartość</span><div class="mom-detail-tile-value">${avgPair}</div><p class="mom-detail-tile-note">${avgNote}</p></div></div>${crossoverHtml}`;
+    metaEl.innerHTML=`<div class="mom-detail-overview"><div class="mom-detail-meta-grid"><div class="${totalTileClass.join(' ')}"><span class="mom-detail-tile-label">Łączne wydatki</span><div class="mom-detail-tile-value">${totalPair}</div><p class="mom-detail-tile-note">${totalNote}</p></div><div class="${freqTileClass.join(' ')}"><span class="mom-detail-tile-label">Liczba transakcji</span><div class="mom-detail-tile-value">${countPair}</div><p class="mom-detail-tile-note">${freqNote}</p></div><div class="${avgTileClass.join(' ')}"><span class="mom-detail-tile-label">Średnia wartość</span><div class="mom-detail-tile-value">${avgPair}</div><p class="mom-detail-tile-note">${avgNote}</p></div></div>${crossoverHtml}</div>`;
     if(detail.days.length===0){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       return;
@@ -9641,8 +9659,8 @@
       const sampleIso=day.isoA || day.isoB;
       const weekday=formatWeekdayShort(sampleIso);
       const dayTitle=weekday?`Dzień ${day.label} • ${weekday}`:`Dzień ${day.label}`;
-      const subTitle=`Suma dnia: A ${fmt(day.totalA,state.currency)} • B ${fmt(day.totalB,state.currency)}`;
-      const cumulativeLine=`Narastająco: A ${fmt(day.cumulativeA,state.currency)} • B ${fmt(day.cumulativeB,state.currency)}`;
+      const subTitle=`Suma: A ${fmt(day.totalA,state.currency)} • B ${fmt(day.totalB,state.currency)}`;
+      const cumulativeLine=`Narastająco A ${fmt(day.cumulativeA,state.currency)} • B ${fmt(day.cumulativeB,state.currency)}`;
       const deltaValue=Math.abs(day.delta);
       let badgeText='Bez różnicy';
       if(day.delta>0) badgeText=`A +${fmt(deltaValue,state.currency)}`;
@@ -9656,9 +9674,9 @@
       if(!el) return;
       const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
       const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
-      const background=day.delta===0?colorWithAlpha(palette.ink,0.08):colorWithAlpha(toneColor,0.18+0.32*impact);
-      const border=day.delta===0?colorWithAlpha(palette.ink,0.18):colorWithAlpha(toneColor,0.45+0.25*impact);
-      el.style.background=`linear-gradient(145deg, ${background}, rgba(255,255,255,0.95))`;
+      const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
+      const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
+      el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
       el.style.borderColor=border;
     });
     bodyEl.scrollTop=0;
