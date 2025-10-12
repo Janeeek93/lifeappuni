@@ -2029,14 +2029,14 @@
 
     .mom-detail-panel {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: min(460px, calc(100vw - 32px));
-      max-height: calc(100vh - 48px);
+      left: var(--mom-panel-left, 24px);
+      right: var(--mom-panel-right, 24px);
+      top: var(--mom-panel-top, auto);
+      bottom: var(--mom-panel-bottom, 24px);
       background: var(--surface);
       border-radius: 24px;
       border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 28px 48px rgba(15, 23, 42, 0.18);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -2058,7 +2058,7 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
-      padding: 20px 24px 12px;
+      padding: 24px 28px 12px;
     }
 
     .mom-detail-heading {
@@ -2147,50 +2147,164 @@
     }
 
     .mom-detail-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 0 24px 12px;
+      display: grid;
+      gap: 16px;
+      padding: 0 28px 20px;
     }
 
-    .mom-detail-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      background: rgba(148, 163, 184, 0.12);
+    .mom-detail-meta-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .mom-detail-tile {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      padding: 16px 18px;
+      background: rgba(248, 250, 252, 0.92);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 120px;
+    }
+
+    .mom-detail-tile.highlight {
+      background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+      border-color: rgba(37, 99, 235, 0.25);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .mom-detail-tile.positive {
+      border-color: rgba(239, 68, 68, 0.28);
+      background: linear-gradient(150deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.92));
+    }
+
+    .mom-detail-tile.negative {
+      border-color: rgba(34, 197, 94, 0.28);
+      background: linear-gradient(150deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.92));
+    }
+
+    .mom-detail-tile-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: var(--muted);
     }
 
-    .mom-detail-chip strong {
+    .mom-detail-tile-value {
+      font-size: 18px;
+      font-weight: 700;
       color: var(--ink);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .mom-detail-tile-value strong {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .mom-detail-tile-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(148, 163, 184, 0.18);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .mom-detail-tile-dot {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .mom-detail-tile-note {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .mom-detail-cross {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      padding: 16px 18px 18px;
+      background: rgba(248, 250, 252, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mom-detail-cross.positive {
+      border-color: rgba(239, 68, 68, 0.28);
+      background: linear-gradient(150deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.96));
+    }
+
+    .mom-detail-cross.neutral {
+      border-color: rgba(148, 163, 184, 0.24);
+    }
+
+    .mom-detail-cross-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .mom-detail-cross-label {
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mom-detail-cross-value {
+      font-size: 16px;
       font-weight: 600;
+      color: var(--ink);
     }
 
-    .mom-detail-chip.positive {
-      background: rgba(239, 68, 68, 0.12);
+    .mom-detail-cross-bar {
+      position: relative;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.22);
+      overflow: hidden;
     }
 
-    .mom-detail-chip.positive strong {
-      color: var(--red);
+    .mom-detail-cross-bar span {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.75), rgba(239, 68, 68, 0.45));
+      transform: translateX(-50%);
+      left: var(--mom-cross-position, 0%);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
 
-    .mom-detail-chip.negative {
-      background: rgba(34, 197, 94, 0.12);
-    }
-
-    .mom-detail-chip.negative strong {
-      color: var(--green);
+    .mom-detail-cross-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
     }
 
     .mom-detail-body {
-      padding: 0 24px 24px;
+      padding: 0 28px 28px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+      flex: 1;
     }
 
     .mom-detail-day {
@@ -2225,6 +2339,12 @@
     }
 
     .mom-detail-day-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .mom-detail-day-subline {
       font-size: 12px;
       color: var(--muted);
       margin-top: 2px;
@@ -2287,8 +2407,8 @@
       align-items: flex-start;
       border-radius: 12px;
       padding: 10px 12px;
-      background: rgba(248, 250, 252, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(248, 250, 252, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.22);
     }
 
     .mom-detail-entry-amount {
@@ -2314,13 +2434,6 @@
       color: var(--muted);
     }
 
-    .mom-detail-entry-meta {
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
     .mom-detail-month-empty {
       padding: 12px;
       border-radius: 12px;
@@ -2340,10 +2453,21 @@
 
     @media (max-width: 900px) {
       .mom-detail-panel {
-        left: 12px;
-        right: 12px;
-        bottom: 16px;
-        width: calc(100vw - 24px);
+        border-radius: 18px;
+      }
+
+      .mom-detail-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px 20px 12px;
+      }
+
+      .mom-detail-meta {
+        padding: 0 20px 20px;
+      }
+
+      .mom-detail-body {
+        padding: 0 20px 24px;
       }
     }
 
@@ -9139,6 +9263,13 @@
   let momDetailBound=false;
   let momDetailKeyBound=false;
 
+  window.addEventListener('resize',()=>{
+    if(momDetailOpen) positionMomDetailPanel();
+  });
+  window.addEventListener('scroll',()=>{
+    if(momDetailOpen) positionMomDetailPanel();
+  },{passive:true});
+
   function momDetailEligible(catId){
     return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
   }
@@ -9177,11 +9308,44 @@
     }
   }
 
+  function positionMomDetailPanel(){
+    const panel=document.getElementById('mom-detail-panel');
+    const section=document.getElementById('tab-mom');
+    if(!panel || !section) return;
+    const rect=section.getBoundingClientRect();
+    const viewportWidth=window.innerWidth||document.documentElement.clientWidth||1024;
+    const viewportHeight=window.innerHeight||document.documentElement.clientHeight||768;
+    const left=Math.max(16, rect.left);
+    const right=Math.max(16, viewportWidth-rect.right);
+    let top=Math.max(24, rect.top);
+    let bottom=Math.max(24, viewportHeight-rect.bottom);
+    const minHeight=360;
+    let available=viewportHeight-top-bottom;
+    if(available<minHeight){
+      const missing=minHeight-available;
+      const reducibleBottom=Math.max(0, bottom-24);
+      const reduceBottom=Math.min(reducibleBottom, missing);
+      bottom-=reduceBottom;
+      available=viewportHeight-top-bottom;
+      if(available<minHeight){
+        const remaining=minHeight-available;
+        const reducibleTop=Math.max(0, top-24);
+        const reduceTop=Math.min(reducibleTop, remaining);
+        top-=reduceTop;
+      }
+    }
+    panel.style.setProperty('--mom-panel-left', `${left}px`);
+    panel.style.setProperty('--mom-panel-right', `${right}px`);
+    panel.style.setProperty('--mom-panel-top', `${Math.max(16, top)}px`);
+    panel.style.setProperty('--mom-panel-bottom', `${Math.max(16, bottom)}px`);
+  }
+
   function openMomDetail(){
     const panel=document.getElementById('mom-detail-panel');
     const backdrop=document.getElementById('mom-detail-backdrop');
     if(!panel || !backdrop) return;
     momDetailOpen=true;
+    positionMomDetailPanel();
     renderMomDetail();
     panel.classList.add('is-visible');
     panel.setAttribute('aria-hidden','false');
@@ -9301,25 +9465,61 @@
         entriesA,
         entriesB,
         isoA: monthA ? `${monthA}-${padded}` : null,
-        isoB: monthB ? `${monthB}-${padded}` : null
+        isoB: monthB ? `${monthB}-${padded}` : null,
+        cumulativeA: 0,
+        cumulativeB: 0,
+        cumulativeDelta: 0
       };
     });
-    const totalA=days.reduce((sum,row)=>sum+row.totalA,0);
-    const totalB=days.reduce((sum,row)=>sum+row.totalB,0);
-    return {days,totalA,totalB,dayLimit:limit};
+    let runningA=0;
+    let runningB=0;
+    let crossoverDay=null;
+    let ledFromStart=false;
+    let everLed=false;
+    let totalCountA=0;
+    let totalCountB=0;
+    days.forEach((row,idx)=>{
+      totalCountA+=row.entriesA.length;
+      totalCountB+=row.entriesB.length;
+      runningA+=row.totalA;
+      runningB+=row.totalB;
+      row.cumulativeA=runningA;
+      row.cumulativeB=runningB;
+      row.cumulativeDelta=runningA-runningB;
+      if(runningA>runningB){
+        everLed=true;
+        if(crossoverDay===null) crossoverDay=row.day;
+        if(idx===0) ledFromStart=true;
+      }
+    });
+    const totalA=runningA;
+    const totalB=runningB;
+    const avgA=totalCountA>0?totalA/totalCountA:0;
+    const avgB=totalCountB>0?totalB/totalCountB:0;
+    return {
+      days,
+      totalA,
+      totalB,
+      dayLimit:limit,
+      countA:totalCountA,
+      countB:totalCountB,
+      avgA,
+      avgB,
+      crossoverDay,
+      ledFromStart,
+      everLed,
+      finalDelta: totalA-totalB
+    };
   }
 
-  function renderMomDetailEntries(entries, accountsMap){
+  function renderMomDetailEntries(entries){
     if(!entries.length){
       return '<div class="mom-detail-month-empty">Brak wydatków</div>';
     }
     return entries.map(entry=>{
       const amount=fmt(Math.abs(entry.amount), state.currency);
       const note=entry.note ? escapeHtml(entry.note).replace(/\n/g,'<br />') : '<span class="muted">Brak notatki</span>';
-      const account=accountsMap?.[entry.accountId];
-      const accountLabel=account ? escapeHtml(account.name||'') : '';
-      const meta=accountLabel ? `<div class="mom-detail-entry-meta">${accountLabel}</div>` : '';
-      return `<div class="mom-detail-entry"><div class="mom-detail-entry-amount">${amount}</div><div class="mom-detail-entry-info"><div class="mom-detail-entry-note">${note}</div>${meta}</div></div>`;
+      return `<div class="mom-detail-entry"><div class="mom-detail-entry-amount">${amount}</div><div class="mom-detail-entry-info"><div class="mom-detail-entry-note">${note}</div></div></div>`;
     }).join('');
   }
 
@@ -9331,6 +9531,7 @@
     const metaEl=document.getElementById('mom-detail-meta');
     const bodyEl=document.getElementById('mom-detail-body');
     if(!titleEl || !subtitleEl || !metaEl || !bodyEl) return;
+    positionMomDetailPanel();
     updateMomDetailSortButtons();
     const context=momLastContext;
     if(!context){
@@ -9354,26 +9555,67 @@
     subtitleEl.textContent=`${formatYmHuman(monthA)} vs ${formatYmHuman(monthB)} • do dnia ${String(dayLimit).padStart(2,'0')}`;
     const detail=buildMomDetailData(monthA, monthB, selected.id, dayLimit);
     const totalDiff=detail.totalA-detail.totalB;
-    const chips=[];
-    const totalChipClass=totalDiff>0?'mom-detail-chip positive':totalDiff<0?'mom-detail-chip negative':'mom-detail-chip';
-    let totalDiffLabel='Remis';
-    if(totalDiff>0) totalDiffLabel=`A +${fmt(Math.abs(totalDiff),state.currency)}`;
-    else if(totalDiff<0) totalDiffLabel=`B +${fmt(Math.abs(totalDiff),state.currency)}`;
-    chips.push(`<div class="${totalChipClass}"><span>Łącznie:</span><strong>A: ${fmt(detail.totalA,state.currency)}</strong><span>•</span><strong>B: ${fmt(detail.totalB,state.currency)}</strong><span>${totalDiffLabel}</span></div>`);
-    const positiveDay=[...detail.days].filter(d=>d.delta>0).sort((a,b)=>b.delta-a.delta)[0];
-    const negativeDay=[...detail.days].filter(d=>d.delta<0).sort((a,b)=>a.delta-b.delta)[0];
-    if(positiveDay){
-      chips.push(`<div class="mom-detail-chip positive"><span>Największy wzrost:</span><strong>Dzień ${String(positiveDay.day).padStart(2,'0')}</strong><span>+${fmt(Math.abs(positiveDay.delta), state.currency)}</span></div>`);
+    const freqDiff=detail.countA-detail.countB;
+    const avgDiff=detail.avgA-detail.avgB;
+    const totalTileClass=['mom-detail-tile','highlight'];
+    if(totalDiff>0) totalTileClass.push('positive');
+    else if(totalDiff<0) totalTileClass.push('negative');
+    const freqTileClass=['mom-detail-tile'];
+    if(freqDiff>0) freqTileClass.push('positive');
+    else if(freqDiff<0) freqTileClass.push('negative');
+    const avgTileClass=['mom-detail-tile'];
+    if(avgDiff>0) avgTileClass.push('positive');
+    else if(avgDiff<0) avgTileClass.push('negative');
+    const formatCountFull=value=>{
+      if(!Number.isFinite(value) || value<=0) return '0';
+      return String(value);
+    };
+    const renderPair=(labelA,valueA,labelB,valueB)=>`<span class="mom-detail-tile-pill">${labelA}</span><strong>${valueA}</strong><span class="mom-detail-tile-dot">•</span><span class="mom-detail-tile-pill">${labelB}</span><strong>${valueB}</strong>`;
+    const totalNote=totalDiff>0
+      ? `Miesiąc A przekracza miesiąc B o ${fmt(Math.abs(totalDiff), state.currency)}.`
+      : totalDiff<0
+        ? `Miesiąc A jest niższy o ${fmt(Math.abs(totalDiff), state.currency)} względem miesiąca B.`
+        : (detail.totalA>0 || detail.totalB>0)
+          ? 'Oba miesiące są na bardzo podobnym poziomie.'
+          : 'Brak wydatków w wybranych miesiącach.';
+    const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
+    const freqNote=!hasTransactions
+      ? 'Brak transakcji w porównywanych miesiącach.'
+      : freqDiff>0
+        ? `Więcej transakcji w miesiącu A (+${freqDiff}).`
+        : freqDiff<0
+          ? `Mniej transakcji w miesiącu A (−${Math.abs(freqDiff)}).`
+          : 'Tyle samo transakcji w obu miesiącach.';
+    const avgNote=!hasTransactions
+      ? 'Średnie wartości pojawią się po pierwszych transakcjach.'
+      : avgDiff>0
+        ? `Średnia wartość transakcji w miesiącu A jest wyższa o ${fmt(Math.abs(avgDiff), state.currency)}.`
+        : avgDiff<0
+          ? `Średnia wartość transakcji w miesiącu A jest niższa o ${fmt(Math.abs(avgDiff), state.currency)}.`
+          : 'Średnia wartość transakcji pozostaje na tym samym poziomie.';
+    let crossoverHtml='';
+    if(detail.everLed && detail.crossoverDay){
+      const crossRatio=Math.max(0, Math.min(100, (detail.crossoverDay/detail.dayLimit)*100));
+      const crossLabel=detail.ledFromStart?'Start prowadzenia':'Moment przekroczenia';
+      const crossNote=detail.ledFromStart
+        ? 'Wydatki miesiąca A były wyższe od pierwszego dnia.'
+        : 'Po tym dniu wydatki miesiąca A utrzymywały się powyżej miesiąca B.';
+      crossoverHtml=`<div class="mom-detail-cross positive"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">${crossLabel}</span><span class="mom-detail-cross-value">Dzień ${String(detail.crossoverDay).padStart(2,'0')}</span></div><div class="mom-detail-cross-bar"><span style="--mom-cross-position:${crossRatio}%"></span></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
+    }else{
+      const limitSafe=Number.isFinite(detail.dayLimit)?String(detail.dayLimit).padStart(2,'0'):'';
+      const crossNote=limitSafe
+        ? `Do dnia ${limitSafe} wydatki miesiąca A nie przekroczyły poziomu miesiąca B.`
+        : 'Do wskazanego dnia wydatki miesiąca A nie przekroczyły poziomu miesiąca B.';
+      crossoverHtml=`<div class="mom-detail-cross neutral"><div class="mom-detail-cross-header"><span class="mom-detail-cross-label">Moment przekroczenia</span><span class="mom-detail-cross-value">Nie wystąpił</span></div><div class="mom-detail-cross-bar"></div><p class="mom-detail-cross-note">${crossNote}</p></div>`;
     }
-    if(negativeDay){
-      chips.push(`<div class="mom-detail-chip negative"><span>Największa oszczędność:</span><strong>Dzień ${String(negativeDay.day).padStart(2,'0')}</strong><span>−${fmt(Math.abs(negativeDay.delta), state.currency)}</span></div>`);
-    }
-    metaEl.innerHTML=chips.join('');
+    const totalPair=renderPair('A', fmt(detail.totalA,state.currency), 'B', fmt(detail.totalB,state.currency));
+    const countPair=renderPair('A', formatCountFull(detail.countA), 'B', formatCountFull(detail.countB));
+    const avgPair=renderPair('A', hasTransactions?fmt(detail.avgA,state.currency):'—', 'B', hasTransactions?fmt(detail.avgB,state.currency):'—');
+    metaEl.innerHTML=`<div class="mom-detail-meta-grid"><div class="${totalTileClass.join(' ')}"><span class="mom-detail-tile-label">Łączne wydatki</span><div class="mom-detail-tile-value">${totalPair}</div><p class="mom-detail-tile-note">${totalNote}</p></div><div class="${freqTileClass.join(' ')}"><span class="mom-detail-tile-label">Liczba transakcji</span><div class="mom-detail-tile-value">${countPair}</div><p class="mom-detail-tile-note">${freqNote}</p></div><div class="${avgTileClass.join(' ')}"><span class="mom-detail-tile-label">Średnia wartość</span><div class="mom-detail-tile-value">${avgPair}</div><p class="mom-detail-tile-note">${avgNote}</p></div></div>${crossoverHtml}`;
     if(detail.days.length===0){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       return;
     }
-    const accountsMap=Object.fromEntries((b().accounts||[]).map(acc=>[acc.id,acc]));
     const maxImpact=detail.days.reduce((max,day)=>Math.max(max,Math.abs(day.delta)),0);
     const sortedDays=[...detail.days];
     if(momDetailSort==='impact'){
@@ -9399,14 +9641,15 @@
       const sampleIso=day.isoA || day.isoB;
       const weekday=formatWeekdayShort(sampleIso);
       const dayTitle=weekday?`Dzień ${day.label} • ${weekday}`:`Dzień ${day.label}`;
-      const subTitle=`Sumy: A ${fmt(day.totalA,state.currency)} • B ${fmt(day.totalB,state.currency)}`;
+      const subTitle=`Suma dnia: A ${fmt(day.totalA,state.currency)} • B ${fmt(day.totalB,state.currency)}`;
+      const cumulativeLine=`Narastająco: A ${fmt(day.cumulativeA,state.currency)} • B ${fmt(day.cumulativeB,state.currency)}`;
       const deltaValue=Math.abs(day.delta);
       let badgeText='Bez różnicy';
       if(day.delta>0) badgeText=`A +${fmt(deltaValue,state.currency)}`;
       else if(day.delta<0) badgeText=`B +${fmt(deltaValue,state.currency)}`;
       const countA=formatCount(day.entriesA.length);
       const countB=formatCount(day.entriesB.length);
-      return `<div class="mom-detail-day ${toneClass}" data-mom-detail-day="${idx}"><div class="mom-detail-day-header"><div><div class="mom-detail-day-title">${dayTitle}</div><div class="mom-detail-day-subtitle">${subTitle}</div></div><div class="mom-detail-badge ${badgeTone}">${badgeText}</div></div><div class="mom-detail-columns"><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc A</span><span class="mom-detail-month-count">${countA}</span></div>${renderMomDetailEntries(day.entriesA, accountsMap)}</div><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc B</span><span class="mom-detail-month-count">${countB}</span></div>${renderMomDetailEntries(day.entriesB, accountsMap)}</div></div></div>`;
+      return `<div class="mom-detail-day ${toneClass}" data-mom-detail-day="${idx}"><div class="mom-detail-day-header"><div><div class="mom-detail-day-title">${dayTitle}</div><div class="mom-detail-day-subtitle">${subTitle}</div><div class="mom-detail-day-subline">${cumulativeLine}</div></div><div class="mom-detail-badge ${badgeTone}">${badgeText}</div></div><div class="mom-detail-columns"><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc A</span><span class="mom-detail-month-count">${countA}</span></div>${renderMomDetailEntries(day.entriesA)}</div><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc B</span><span class="mom-detail-month-count">${countB}</span></div>${renderMomDetailEntries(day.entriesB)}</div></div></div>`;
     }).join('');
     sortedDays.forEach((day,idx)=>{
       const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
