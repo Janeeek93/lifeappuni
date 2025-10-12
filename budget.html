@@ -879,6 +879,10 @@
       background: linear-gradient(135deg, rgba(248, 113, 113, 0.12), rgba(254, 242, 242, 0.7));
     }
 
+    .eom-account-card.neutral {
+      border-left-color: rgba(148, 163, 184, 0.6);
+    }
+
     .eom-account-card.is-focused {
       border-color: var(--accent);
       box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
@@ -1016,6 +1020,10 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .eom-kpi-value.positive { color: var(--green); }
+    .eom-kpi-value.negative { color: var(--red); }
+    .eom-kpi-value.warning { color: var(--orange); }
+
     .eom-kpi-meta {
       font-size: 12px;
       color: var(--muted);
@@ -1042,6 +1050,11 @@
 
     .eom-kpi-trend.negative {
       color: var(--red);
+      font-weight: 600;
+    }
+
+    .eom-kpi-trend.warning {
+      color: var(--orange);
       font-weight: 600;
     }
 
@@ -1885,6 +1898,12 @@
       padding: 16px;
     }
 
+    .goal-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .eom-panel .title { font-size: 18px; margin: 0 0 6px 0; }
 
     .table-modern thead th {
@@ -2079,32 +2098,34 @@
     </div>
 
     <!-- Dashboard -->
-    <section id="tab-dashboard" class="card" style="margin-top:12px">
-      <h3 class="title">Dashboard finansowy</h3>
-      <div class="grid-2" style="margin-top:12px">
-        <div class="card">
+    <section id="tab-dashboard" style="margin-top:12px">
+      <div class="eom-panel" style="margin-bottom:12px">
+        <h3 class="title" style="margin:0">Dashboard finansowy</h3>
+      </div>
+      <div class="eom-hero-grid">
+        <article class="eom-panel">
           <div class="title">Wydatki dzień po dniu</div>
           <div class="chart-box"><canvas id="dailyLine"></canvas></div>
-        </div>
-        <div class="card">
+        </article>
+        <article class="eom-panel">
           <div class="title">Skumulowane: limit vs wydatki</div>
           <div class="hint">Dwie linie: oczekiwane (np. 400 zł/dzień) vs faktyczne (wydatki + oszczędności)</div>
           <div class="chart-box"><canvas id="cumulativeLine"></canvas></div>
-        </div>
+        </article>
       </div>
 
-      <div class="card heatmap-card" style="margin-top:16px">
+      <article class="eom-panel" style="margin-top:16px">
         <div class="title">Wydatki dzienne — heatmap</div>
-        <div class="muted" style="margin-bottom:4px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
+        <div class="muted tiny">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
         <div id="daily-spending-calendar" class="heatmap-strip"></div>
         <div class="heat-legend">
-          <span class="heat-day" style="background:#dcfce7"> </span> w normie
-          <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
-          <span class="heat-day" style="background:#fee2e2"> </span> mocno powyżej
+          <span class="heat-day" style="background:#dcfce7"></span> w normie
+          <span class="heat-day" style="background:#ffedd5"></span> lekko powyżej
+          <span class="heat-day" style="background:#fee2e2"></span> mocno powyżej
         </div>
-      </div>
+      </article>
 
-      <div class="card recent-calendar-card" style="margin-top:16px">
+      <article class="eom-panel" style="margin-top:16px">
         <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
           <div>
             <div class="title">Ostatnie 7 dni — wydatki</div>
@@ -2113,10 +2134,10 @@
           <div class="chip" style="margin:0" id="recent-seven-total">Łącznie: —</div>
         </div>
         <div id="recent-spending-calendar" class="recent-calendar"></div>
-      </div>
+      </article>
 
       <div id="var-table-dashboard-slot" style="display:none">
-        <div id="var-transactions-card" class="card">
+        <article id="var-transactions-card" class="eom-panel">
           <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
             <div>
               <div class="title">Transakcje w miesiącu</div>
@@ -2126,30 +2147,28 @@
               Suma: <b id="var-sum">0</b>
             </div>
           </div>
-          <div class="row" style="margin:12px 0;gap:8px;align-items:center;flex-wrap:wrap">
-            <label class="tiny" style="display:flex;flex-direction:column;gap:6px">
-              Filtr kategorii
+          <div class="eom-account-toolbar" style="margin:12px 0">
+            <label class="filter-group">
+              <span class="tiny">Filtr kategorii</span>
               <select id="var-filter-cat"><option value="">Wszystkie kategorie</option></select>
             </label>
           </div>
           <div class="table-wrapper" style="max-height:320px;overflow:auto">
-            <table class="table-compact">
+            <table class="table-modern eom-history-table">
               <thead><tr><th>Data</th><th>Kategoria</th><th>Konto</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
               <tbody id="var-rows"></tbody>
             </table>
           </div>
-        </div>
+        </article>
       </div>
 
-      <div class="quick-actions" style="margin-top:12px">
-        <div class="row">
-          <div class="title">Szybkie akcje</div>
-          <div class="row" style="gap:8px">
-            <button id="qa-edit-toggle" class="btn ghost">⚙️ Edytuj szybkie akcje</button>
-          </div>
+      <section class="eom-panel" style="margin-top:12px">
+        <div class="row" style="align-items:center;justify-content:space-between;gap:12px">
+          <div class="title" style="margin:0">Szybkie akcje</div>
+          <button id="qa-edit-toggle" class="btn ghost">⚙️ Edytuj szybkie akcje</button>
         </div>
-        <div id="qa-grid" class="grid g-4" style="margin-top:8px"></div>
-        <div id="qa-editor" class="editor-section" style="display:none">
+        <div id="qa-grid" class="eom-hero-grid" style="margin-top:8px"></div>
+        <div id="qa-editor" class="editor-section" style="display:none;margin-top:12px">
           <div class="title">Edycja szybkich akcji</div>
           <div class="tiny">Zapisuje się w pamięci przeglądarki (localStorage).</div>
           <form id="qa-add-form" class="grid g-4" style="margin-top:10px">
@@ -2161,168 +2180,287 @@
             <input name="defaultNote" placeholder="Domyślna notatka" />
             <button class="btn" type="submit" style="grid-column: 1 / -1;">Dodaj akcję</button>
           </form>
-          <table style="margin-top:10px">
-            <thead><tr><th>Emoji</th><th>Nazwa</th><th>Kategoria</th><th>Konto</th><th>Domyślna kwota</th><th>Notatka</th><th></th></tr></thead>
-            <tbody id="qa-rows"></tbody>
+          <div class="table-wrapper" style="margin-top:10px">
+            <table class="table-modern eom-history-table">
+              <thead><tr><th>Emoji</th><th>Nazwa</th><th>Kategoria</th><th>Konto</th><th>Domyślna kwota</th><th>Notatka</th><th></th></tr></thead>
+              <tbody id="qa-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- Overview -->
+    <section id="tab-overview" style="margin-top:12px;display:none">
+      <div class="eom-panel">
+        <h3 class="title">Przegląd miesiąca — <span id="ov-month">YYYY-MM</span></h3>
+        <div class="eom-hero-grid" style="margin-top:12px">
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Przychody</span>
+            <div class="eom-kpi-value" id="ov-inc">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral" id="ov-inc-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Stałe zaplanowane</span>
+            <div class="eom-kpi-value" id="ov-fixed-planned">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral" id="ov-fixed-planned-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Stałe zapłacone</span>
+            <div class="eom-kpi-value positive" id="ov-fixed-paid">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend positive" id="ov-fixed-paid-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Stałe do zapłacenia</span>
+            <div class="eom-kpi-value warning" id="ov-fixed-unpaid">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend warning" id="ov-fixed-unpaid-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Wydatki zmienne</span>
+            <div class="eom-kpi-value negative" id="ov-var-spent">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend negative" id="ov-var-spent-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Oszczędności</span>
+            <div class="eom-kpi-value" id="ov-savings">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend positive" id="ov-savings-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Budżet zmienny do dyspozycji</span>
+            <div class="eom-kpi-value" id="ov-remaining">0</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral" id="ov-remaining-trend">—</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Prognozowana stopa oszczędności</span>
+            <div class="eom-kpi-value" id="stat-savings-rate">0%</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral" id="stat-savings-rate-trend">—</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Incomes -->
+    <section id="tab-incomes" style="margin-top:12px;display:none">
+      <div class="eom-panel">
+        <h3 class="title">Przychody — <span id="inc-month">YYYY-MM</span></h3>
+        <form id="inc-form" class="eom-account-toolbar" style="margin:12px 0 8px">
+          <label class="tiny" style="flex:1;min-width:180px">
+            Kwota (zł)
+            <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
+          </label>
+          <label class="tiny" style="flex:1;min-width:200px">
+            Notatka
+            <input name="note" placeholder="Notatka (np. pensja)" />
+          </label>
+          <button class="btn" type="submit">Dodaj przychód</button>
+        </form>
+        <div class="muted tiny" style="margin-bottom:8px">Suma: <b id="inc-sum">0</b></div>
+        <div class="table-wrapper">
+          <table class="table-modern eom-history-table">
+            <thead><tr><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
+            <tbody id="inc-rows"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- Overview -->
-    <section id="tab-overview" class="card" style="margin-top:12px;display:none">
-      <h3 class="title">Przegląd miesiąca — <span id="ov-month">YYYY-MM</span></h3>
-      <div class="grid g-4">
-        <div class="stat-card"><div class="muted">Przychody</div><div class="big-number" id="ov-inc">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zaplanowane</div><div class="big-number" id="ov-fixed-planned">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
-        <div class="stat-card"><div class="muted">Wydatki zmienne</div><div class="big-number bad" id="ov-var-spent">0</div></div>
-        <div class="stat-card"><div class="muted">Oszczędności</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
-        <div class="stat-card"><div class="muted">Budżet zmienny do dyspozycji</div><div class="big-number" id="ov-remaining">0</div></div>
-        <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
-      </div>
-    </section>
-
-    <!-- Incomes -->
-    <section id="tab-incomes" class="card" style="margin-top:12px;display:none">
-      <h3 class="title">Przychody — <span id="inc-month">YYYY-MM</span></h3>
-      <form id="inc-form" class="grid g-3" style="margin-bottom:8px">
-        <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
-        <input name="note" placeholder="Notatka (np. pensja)" />
-        <button class="btn" type="submit">Dodaj przychód</button>
-      </form>
-      <div class="muted" style="margin-bottom:4px">Suma: <b id="inc-sum">0</b></div>
-      <table><thead><tr><th>Kwota</th><th>Notatka</th><th></th></tr></thead><tbody id="inc-rows"></tbody></table>
-    </section>
-
     <!-- Fixed Expenses -->
-    <section id="tab-fixed" class="card" style="margin-top:12px;display:none">
-      <div class="row">
-        <h3 class="title" style="margin: 0;">Stałe wydatki — <span id="fix-month">YYYY-MM</span></h3>
+    <section id="tab-fixed" style="margin-top:12px;display:none">
+      <div class="eom-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <h3 class="title" style="margin:0">Stałe wydatki — <span id="fix-month">YYYY-MM</span></h3>
         <button id="fix-manage-templates-btn" class="btn ghost">⚙️ Zarządzaj szablonami</button>
       </div>
-      
+
       <!-- NEW: Fixed expense templates manager -->
-      <div id="fix-templates-manager" class="editor-section" style="margin-bottom:12px; display:none">
+      <div id="fix-templates-manager" class="eom-panel editor-section" style="margin-bottom:12px; display:none">
         <div class="title">Zarządzaj szablonami stałych wydatków</div>
         <p class="tiny">Zdefiniuj stałe opłaty (np. czynsz, abonamenty), a aplikacja będzie sugerować ich dodanie w każdym miesiącu.</p>
-        <form id="fix-template-form" class="grid g-4" style="margin-top:8px">
-          <input name="title" placeholder="Nazwa (np. Czynsz)" required />
-          <input name="amount" placeholder="Kwota (zł)" inputmode="decimal" required />
-          <input name="day" type="number" min="1" max="31" placeholder="Dzień płatności (1-31)" required />
+        <form id="fix-template-form" class="eom-account-toolbar" style="margin-top:8px">
+          <label class="tiny" style="flex:1;min-width:160px">
+            Nazwa
+            <input name="title" placeholder="Nazwa (np. Czynsz)" required />
+          </label>
+          <label class="tiny" style="flex:1;min-width:140px">
+            Kwota
+            <input name="amount" placeholder="Kwota (zł)" inputmode="decimal" required />
+          </label>
+          <label class="tiny" style="width:120px">
+            Dzień płatności
+            <input name="day" type="number" min="1" max="31" placeholder="Dzień płatności (1-31)" required />
+          </label>
           <button class="btn" type="submit">Dodaj szablon</button>
         </form>
-        <table style="margin-top:10px">
-          <thead><tr><th>Nazwa</th><th>Kwota</th><th>Dzień miesiąca</th><th></th></tr></thead>
-          <tbody id="fix-templates-tbody"></tbody>
-        </table>
+        <div class="table-wrapper" style="margin-top:10px">
+          <table class="table-modern eom-history-table">
+            <thead><tr><th>Nazwa</th><th>Kwota</th><th>Dzień miesiąca</th><th></th></tr></thead>
+            <tbody id="fix-templates-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- NEW: Fixed expense suggestions -->
-      <div id="fix-suggestions-box" class="card" style="margin-bottom: 12px; display: none; background: #f8fafc;">
-        <div class="row">
-          <div class="title">💡 Sugestie na ten miesiąc</div>
+      <div id="fix-suggestions-box" class="eom-panel" style="margin-bottom:12px; display:none">
+        <div class="row" style="align-items:center;justify-content:space-between;gap:12px">
+          <div class="title" style="margin:0">💡 Sugestie na ten miesiąc</div>
           <button id="fix-apply-all-btn" class="btn soft">Dodaj wszystkie</button>
         </div>
-        <div id="fix-suggestions-list" class="grid g-3" style="margin-top:8px; gap:8px"></div>
+        <div id="fix-suggestions-list" class="eom-hero-grid" style="margin-top:8px; gap:8px"></div>
       </div>
 
-      <form id="fix-form" class="grid g-4" style="margin:8px 0">
-        <input required name="title" placeholder="Tytuł (np. czynsz)" />
-        <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
-        <input name="due" type="date" />
+      <form id="fix-form" class="eom-account-toolbar" style="margin:12px 0">
+        <label class="tiny" style="flex:1;min-width:180px">
+          Tytuł
+          <input required name="title" placeholder="Tytuł (np. czynsz)" />
+        </label>
+        <label class="tiny" style="width:160px">
+          Kwota
+          <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
+        </label>
+        <label class="tiny" style="width:160px">
+          Termin
+          <input name="due" type="date" />
+        </label>
         <input type="hidden" name="categoryId" value="c_fixed"/>
         <button class="btn" type="submit">Dodaj jednorazowo</button>
       </form>
-      
-      <div class="row" style="margin-bottom:12px">
-        <label style="display:inline-flex;gap:8px;align-items:center">
-          <input type="checkbox" id="autoTx" checked />Automatycznie dodaj transakcję po opłaceniu
-        </label>
-        <button class="btn soft" id="payAllFixed">Opłać wszystkie</button>
-      </div>
 
-      <table>
-        <thead><tr><th>Status</th><th>Tytuł</th><th>Kwota</th><th>Termin</th><th>Dni do terminu</th><th></th></tr></thead>
-        <tbody id="fix-rows"></tbody>
-      </table>
-      <div class="muted" style="margin-top:8px">Suma nieopłaconych: <b id="fix-unpaid-sum">0</b></div>
+      <div class="eom-panel" style="margin-top:12px">
+        <div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+          <label class="tiny" style="display:inline-flex;gap:8px;align-items:center;font-weight:500;text-transform:none">
+            <input type="checkbox" id="autoTx" checked /> Automatycznie dodaj transakcję po opłaceniu
+          </label>
+          <button class="btn soft" id="payAllFixed">Opłać wszystkie</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="table-modern eom-history-table">
+            <thead><tr><th>Status</th><th>Tytuł</th><th>Kwota</th><th>Termin</th><th>Dni do terminu</th><th></th></tr></thead>
+            <tbody id="fix-rows"></tbody>
+          </table>
+        </div>
+        <div class="muted tiny" style="margin-top:8px">Suma nieopłaconych: <b id="fix-unpaid-sum">0</b></div>
+      </div>
     </section>
 
     <!-- Variable -->
-    <section id="tab-variable" class="card" style="margin-top:12px;display:none">
-      <h3 class="title">Wydatki zmienne — <span id="var-month">YYYY-MM</span></h3>
+    <section id="tab-variable" style="margin-top:12px;display:none">
+      <div class="eom-panel">
+        <h3 class="title">Wydatki zmienne — <span id="var-month">YYYY-MM</span></h3>
+      </div>
 
       <!-- Sugestie cykliczne -->
-      <div id="rec-suggestions" class="card" style="margin-bottom:10px; display:none">
-        <div class="row">
-          <div class="title">🔁 Cykliczne — Sugestie na <span id="rec-sugg-month"></span></div>
+      <div id="rec-suggestions" class="eom-panel" style="margin-bottom:10px; display:none">
+        <div class="row" style="align-items:center;justify-content:space-between;gap:12px">
+          <div class="title" style="margin:0">🔁 Cykliczne — Sugestie na <span id="rec-sugg-month"></span></div>
           <button class="btn ghost" id="rec-manage-toggle">⚙️ Zarządzaj szablonami</button>
         </div>
-        <div id="rec-sugg-list" class="grid" style="gap:8px"></div>
+        <div id="rec-sugg-list" class="eom-hero-grid" style="margin-top:8px;gap:8px"></div>
       </div>
 
       <!-- Zarządzanie szablonami (zmienne) -->
-      <div id="rec-manage" class="editor-section" style="display:none">
+      <div id="rec-manage" class="eom-panel editor-section" style="display:none">
         <div class="title">Szablony cykliczne</div>
         <div class="tiny">Miesięczny harmonogram (dzień 1–31). Obsługa splitu.</div>
-        <form id="rec-add-form" class="grid g-4" style="margin-top:8px">
-          <input name="label" placeholder="Nazwa (np. Abonament)" required />
-          <input name="day" type="number" min="1" max="31" placeholder="Dzień miesiąca" required />
-          <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="isSplit" /> Split</label><span></span>
-          <div data-mode="single" class="grid g-4" style="grid-column:1/-1;gap:8px">
+        <form id="rec-add-form" class="eom-account-toolbar" style="margin-top:8px">
+          <label class="tiny" style="flex:1;min-width:180px">
+            Nazwa
+            <input name="label" placeholder="Nazwa (np. Abonament)" required />
+          </label>
+          <label class="tiny" style="width:140px">
+            Dzień miesiąca
+            <input name="day" type="number" min="1" max="31" placeholder="Dzień miesiąca" required />
+          </label>
+          <label class="tiny" style="width:140px;display:flex;flex-direction:row;align-items:center;gap:8px;text-transform:none;font-weight:500">
+            <input type="checkbox" name="isSplit" /> Split
+          </label>
+          <div data-mode="single" class="grid g-4" style="flex:1 1 100%;grid-column:1/-1;gap:8px;margin-top:8px">
             <select name="categoryId"></select>
             <select name="accountId"></select>
             <input name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
             <input name="note" placeholder="Notatka" />
           </div>
-          <div data-mode="split" class="split-box" style="grid-column:1/-1;display:none">
-            <table style="width:100%"><thead><tr><th>Kategoria</th><th>Kwota</th><th></th></tr></thead><tbody class="rec-split-rows"></tbody></table>
+          <div data-mode="split" class="split-box" style="flex:1 1 100%;grid-column:1/-1;display:none;margin-top:8px">
+            <div class="table-wrapper">
+              <table class="table-modern eom-history-table"><thead><tr><th>Kategoria</th><th>Kwota</th><th></th></tr></thead><tbody class="rec-split-rows"></tbody></table>
+            </div>
             <div style="margin-top:6px"><button class="btn soft" type="button" id="rec-split-add">+ wiersz</button></div>
           </div>
-          <button class="btn" type="submit" style="grid-column:1/-1">Dodaj szablon</button>
+          <div style="flex:1 1 100%;display:flex;justify-content:flex-end;margin-top:8px">
+            <button class="btn" type="submit">Dodaj szablon</button>
+          </div>
         </form>
-        <table style="margin-top:10px">
-          <thead><tr><th>Nazwa</th><th>Dzień</th><th>Tryb</th><th>Podsumowanie</th><th>Konto</th><th>Notatka</th><th></th></tr></thead>
-          <tbody id="rec-rows"></tbody>
-        </table>
+        <div class="table-wrapper" style="margin-top:10px">
+          <table class="table-modern eom-history-table">
+            <thead><tr><th>Nazwa</th><th>Dzień</th><th>Tryb</th><th>Podsumowanie</th><th>Konto</th><th>Notatka</th><th></th></tr></thead>
+            <tbody id="rec-rows"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Dodawanie transakcji -->
-      <form id="var-form" class="grid g-4" style="margin:10px 0">
-        <input type="date" name="date" />
-        <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
-        <select name="categoryId"></select>
-        <select name="accountId"></select>
-        <input name="note" placeholder="Notatka" />
+      <form id="var-form" class="eom-account-toolbar" style="margin:10px 0">
+        <label class="tiny" style="width:150px">
+          Data
+          <input type="date" name="date" />
+        </label>
+        <label class="tiny" style="width:140px">
+          Kwota
+          <input required name="amount" placeholder="Kwota (zł)" inputmode="decimal" />
+        </label>
+        <label class="tiny" style="flex:1;min-width:160px">
+          Kategoria
+          <select name="categoryId"></select>
+        </label>
+        <label class="tiny" style="flex:1;min-width:160px">
+          Konto
+          <select name="accountId"></select>
+        </label>
+        <label class="tiny" style="flex:1;min-width:200px">
+          Notatka
+          <input name="note" placeholder="Notatka" />
+        </label>
         <button class="btn" type="submit">Dodaj wydatek</button>
       </form>
 
-      <div id="var-table-variable-slot" style="margin-top:12px"></div>
+      <div id="var-table-variable-slot" class="eom-panel-slot" style="margin-top:12px"></div>
 
-      <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz poniżej lub w panelu „Dashboard finansowy”.</div>
+      <div class="eom-panel insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz poniżej lub w panelu „Dashboard finansowy”.</div>
     </section>
 
     <!-- Categories -->
-    <section id="tab-categories" class="card" style="margin-top:12px;display:none">
-      <h3 class="title">Kategorie</h3>
-      <form id="cat-form" class="grid g-4" style="margin-bottom:8px">
-        <input required name="name" placeholder="Nazwa" />
-        <select name="type">
-          <option value="expense">Wydatek</option>
-          <option value="income">Przychód</option>
-          <option value="saving">Oszczędność</option>
-        </select>
-        <input name="emoji" placeholder="Emoji (np. 🍕)" />
-        <input name="budget" placeholder="Budżet (zł)" inputmode="decimal" />
-        <button class="btn" type="submit">Dodaj kategorię</button>
-      </form>
-      <div class="muted" id="cat-empty" style="display:none;margin-bottom:8px">Brak kategorii — dodaj pierwszą powyżej.</div>
-      <table>
-        <thead><tr><th>Emoji</th><th>Nazwa</th><th>Typ</th><th>Budżet</th><th>Wydano</th><th>Status</th><th></th></tr></thead>
-        <tbody id="cat-rows"></tbody>
-      </table>
+    <section id="tab-categories" style="margin-top:12px;display:none">
+      <div class="eom-panel">
+        <h3 class="title">Kategorie</h3>
+        <form id="cat-form" class="eom-account-toolbar" style="margin:12px 0 8px">
+          <label class="tiny" style="flex:1;min-width:180px">
+            Nazwa
+            <input required name="name" placeholder="Nazwa" />
+          </label>
+          <label class="tiny" style="width:160px">
+            Typ
+            <select name="type">
+              <option value="expense">Wydatek</option>
+              <option value="income">Przychód</option>
+              <option value="saving">Oszczędność</option>
+            </select>
+          </label>
+          <label class="tiny" style="width:140px">
+            Emoji
+            <input name="emoji" placeholder="Emoji (np. 🍕)" />
+          </label>
+          <label class="tiny" style="width:160px">
+            Budżet
+            <input name="budget" placeholder="Budżet (zł)" inputmode="decimal" />
+          </label>
+          <button class="btn" type="submit">Dodaj kategorię</button>
+        </form>
+        <div class="muted tiny" id="cat-empty" style="display:none;margin-bottom:8px">Brak kategorii — dodaj pierwszą powyżej.</div>
+        <div class="table-wrapper">
+          <table class="table-modern eom-history-table">
+            <thead><tr><th>Emoji</th><th>Nazwa</th><th>Typ</th><th>Budżet</th><th>Wydano</th><th>Status</th><th></th></tr></thead>
+            <tbody id="cat-rows"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- EOM -->
@@ -2566,21 +2704,35 @@
     </section>
 
   <!-- Goals -->
-    <section id="tab-goals" class="card" style="margin-top:12px;display:none">
-      <h3 class="title">Cele oszczędnościowe</h3>
-      <form id="goal-form" class="grid g-4" style="margin-bottom:8px">
-        <input required name="name" placeholder="Nazwa (np. Poduszka)" />
-        <input required name="target" placeholder="Kwota celu" inputmode="decimal" />
-        <label class="tiny" for="startdate">Początek oszczędzania</label>
-        <label class="tiny" for="deadline">Termin końcowy</label>
-        <input name="startdate" type="date" title="Data rozpoczęcia oszczędzania"/>
-        <input name="deadline" type="date" title="Data końcowa"/>
-        <button class="btn" type="submit" style="grid-column: 1 / -1;">Dodaj cel</button>
-      </form>
+    <section id="tab-goals" style="margin-top:12px;display:none">
+      <div class="eom-panel">
+        <h3 class="title">Cele oszczędnościowe</h3>
+        <form id="goal-form" class="eom-account-toolbar" style="margin:12px 0 0">
+          <label class="tiny" style="flex:1;min-width:200px">
+            Nazwa celu
+            <input required name="name" placeholder="Nazwa (np. Poduszka)" />
+          </label>
+          <label class="tiny" style="width:180px">
+            Kwota
+            <input required name="target" placeholder="Kwota celu" inputmode="decimal" />
+          </label>
+          <label class="tiny" style="width:180px">
+            Początek
+            <input name="startdate" type="date" title="Data rozpoczęcia oszczędzania"/>
+          </label>
+          <label class="tiny" style="width:180px">
+            Termin końcowy
+            <input name="deadline" type="date" title="Data końcowa"/>
+          </label>
+          <div style="margin-left:auto">
+            <button class="btn" type="submit">Dodaj cel</button>
+          </div>
+        </form>
+      </div>
 
-      <div id="goal-summary" class="card" style="margin-top:16px; background: #f8fafc;"></div>
+      <div id="goal-summary" class="eom-panel" style="margin-top:16px;background:rgba(248,250,252,0.9);"></div>
 
-      <div id="goal-timeline-wrapper" class="card" style="margin-top:16px;">
+      <div id="goal-timeline-wrapper" class="eom-panel" style="margin-top:16px">
         <h4 class="title">Oś czasu celów</h4>
         <div class="timeline-wrapper">
             <div id="timeline-labels" class="timeline-labels"></div>
@@ -2588,53 +2740,64 @@
             <div id="timeline-axis" class="timeline-axis"></div>
         </div>
       </div>
-      
-      <div class="card" style="margin-top:16px;">
+
+      <div class="eom-panel" style="margin-top:16px">
         <h4 class="title">Harmonogram Miesięcznych Wpłat na Cele</h4>
-        <div style="overflow-x:auto;">
-            <table id="goal-commitment-table"></table>
+        <div class="table-wrapper">
+            <table id="goal-commitment-table" class="table-modern eom-history-table"></table>
         </div>
       </div>
 
-      <div id="goal-list" class="grid g-2" style="gap:10px; margin-top: 16px;"></div>
+      <div id="goal-list" class="eom-hero-grid" style="gap:10px; margin-top:16px;"></div>
 
-      <div class="card" style="margin-top:16px">
+      <div class="eom-panel" style="margin-top:16px">
         <div class="title" id="alloc-form-title">Dodaj alokację na cel</div>
-        <form id="alloc-form" class="grid g-3">
+        <form id="alloc-form" class="eom-account-toolbar" style="margin-top:12px">
           <input type="hidden" name="allocId" />
-          <select name="goalId"></select>
-          <input name="date" type="date" />
-          <input name="amount" placeholder="Kwota" inputmode="decimal" />
-          <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px;">
+          <label class="tiny" style="flex:1;min-width:200px">
+            Cel
+            <select name="goalId"></select>
+          </label>
+          <label class="tiny" style="width:160px">
+            Data
+            <input name="date" type="date" />
+          </label>
+          <label class="tiny" style="width:160px">
+            Kwota
+            <input name="amount" placeholder="Kwota" inputmode="decimal" />
+          </label>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
             <button id="alloc-cancel-btn" type="button" class="btn ghost" style="display: none;">Anuluj</button>
             <button id="alloc-submit-btn" type="submit" class="btn">Dodaj alokację</button>
           </div>
         </form>
       </div>
-      
-      <div class="card" style="margin-top:16px">
+
+      <div class="eom-panel" style="margin-top:16px">
         <h4 class="title">Historia ostatnich alokacji</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Cel</th>
-                    <th>Kwota</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="alloc-history-tbody"></tbody>
-        </table>
+        <div class="table-wrapper" style="margin-top:8px">
+          <table class="table-modern eom-history-table">
+              <thead>
+                  <tr>
+                      <th>Data</th>
+                      <th>Cel</th>
+                      <th>Kwota</th>
+                      <th></th>
+                  </tr>
+              </thead>
+              <tbody id="alloc-history-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- Analytics -->
-    <section id="tab-analytics" class="card" style="margin-top:12px;display:none">
-      <div class="row" style="align-items:center">
-        <h3 class="title" style="margin-bottom:0">Centrum Analityczne</h3>
+    <section id="tab-analytics" style="margin-top:12px;display:none">
+      <div class="eom-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <h3 class="title" style="margin:0">Centrum Analityczne</h3>
       </div>
 
-      <div class="analytics-filter-card">
+      <div class="eom-panel analytics-filter-card">
         <div class="row" style="align-items:flex-start;gap:12px">
           <div style="flex:1">
             <div class="title" style="margin:0;font-size:18px">Zakres miesięcy</div>
@@ -2651,7 +2814,7 @@
         <div id="analytics-month-picker" class="analytics-month-picker"></div>
       </div>
 
-      <div class="analytics-filter-card">
+      <div class="eom-panel analytics-filter-card">
         <div class="row" style="align-items:flex-start;gap:12px">
           <div style="flex:1">
             <div class="title" style="margin:0;font-size:18px">Filtry kategorii</div>
@@ -2671,15 +2834,15 @@
         <div id="analytics-category-filter-list" class="analytics-filter-grid"></div>
       </div>
 
-      <div id="analytics-kpis" class="grid g-4" style="margin-top:12px"></div>
+      <div id="analytics-kpis" class="eom-hero-grid" style="margin-top:12px"></div>
 
       <div class="grid g-2" style="margin-top:12px">
-        <div class="card">
+        <div class="eom-panel">
           <div class="title">Przychody vs Wydatki</div>
           <div class="hint">Porównanie całkowitych wpływów, wydatków oraz wydatków z wybranych kategorii.</div>
           <div class="chart-box"><canvas id="analytics-income-expense-chart"></canvas></div>
         </div>
-        <div class="card">
+        <div class="eom-panel">
           <div class="title">Struktura wybranych kategorii</div>
           <div class="hint">Wizualizacja udziałów kategorii w sumie wydatków objętych filtrem.</div>
           <div class="chart-box"><canvas id="analytics-category-chart"></canvas></div>
@@ -2687,76 +2850,76 @@
       </div>
 
       <div class="grid g-2" style="margin-top:12px">
-        <div class="card">
+        <div class="eom-panel">
           <div class="title">Aktywność miesięczna (wybrane kategorie)</div>
           <div class="hint">Sprawdź, czy zmiany wynikają z większej liczby transakcji czy z wyższych kwot.</div>
           <div class="chart-box"><canvas id="analytics-monthly-activity-chart"></canvas></div>
         </div>
-        <div class="card">
+        <div class="eom-panel">
           <div class="title">Średnia i mediana transakcji</div>
           <div class="hint">Porównanie trendu średniej i mediany dla wybranych kategorii.</div>
           <div class="chart-box"><canvas id="analytics-avg-trend-chart"></canvas></div>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="title">Top kategorie — suma, częstotliwość i średnia</div>
         <div class="hint">Łatwo ocenisz, które kategorie rosną przez większą liczbę transakcji, a które przez wyższe rachunki.</div>
         <div class="chart-box tall"><canvas id="analytics-category-leader-chart"></canvas></div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="title">Trendy najważniejszych kategorii</div>
         <div class="hint">Miesięczne wydatki w kluczowych kategoriach objętych filtrem.</div>
         <div class="chart-box tall"><canvas id="analytics-category-trend-chart"></canvas></div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <h4 class="title">Macierz kategorii × miesiąc</h4>
         <p class="tiny">W każdej komórce znajdziesz sumę, liczbę transakcji oraz średnią wartość. Kolor wskazuje odchylenie od średniej dla danej kategorii.</p>
         <div style="overflow-x:auto;">
-          <table id="analytics-category-trends"></table>
+          <table id="analytics-category-trends" class="table-modern eom-history-table"></table>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="row" style="align-items:flex-end">
           <h4 class="title">Ranking kategorii (wybrane)</h4>
           <span class="tiny muted">Kliknij nagłówek, aby sortować po dowolnym KPI.</span>
         </div>
         <div style="overflow-x:auto;">
-          <table id="analytics-category-summary" class="table-sortable"></table>
+          <table id="analytics-category-summary" class="table-modern table-sortable"></table>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <h4 class="title">Zmiany miesiąc do miesiąca</h4>
         <p class="tiny">Analiza czy wzrost wynika z liczby transakcji czy z ich wartości.</p>
         <div style="overflow-x:auto;">
-          <table id="analytics-category-momentum" class="table-sortable"></table>
+          <table id="analytics-category-momentum" class="table-modern table-sortable"></table>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <h4 class="title">Przegląd miesięczny (wybrane kategorie)</h4>
         <div style="overflow-x:auto;">
-          <table id="analytics-monthly-breakdown"></table>
+          <table id="analytics-monthly-breakdown" class="table-modern eom-history-table"></table>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px; position: relative;">
+      <div class="eom-panel" style="margin-top:12px; position: relative;">
         <div class="row">
           <h4 class="title">Największe Pojedyncze Wydatki</h4>
           <span class="tiny muted">Lista respektuje aktualne filtry kategorii.</span>
         </div>
         <p class="tiny">Twoje 10 największych transakcji w wybranym okresie. To dobre miejsce do szukania oszczędności.</p>
-        <table id="analytics-top-transactions"></table>
+        <table id="analytics-top-transactions" class="table-modern eom-history-table"></table>
       </div>
     </section>
 
     <!-- MoM Comparison -->
-    <section id="tab-mom" class="card" style="margin-top:12px;display:none">
-      <div class="row" style="align-items:flex-start;justify-content:space-between;gap:12px">
+    <section id="tab-mom" style="margin-top:12px;display:none">
+      <div class="eom-panel" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div>
           <h3 class="title" style="margin-bottom:4px">Porównanie miesiąc do miesiąca</h3>
           <div class="muted" id="mom-info">Wybierz miesiące, aby zobaczyć zestawienie wydatków.</div>
@@ -2774,7 +2937,7 @@
           </label>
         </div>
       </div>
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="row" style="align-items:flex-end;justify-content:space-between">
           <h4 class="title">Tempo wydatków</h4>
           <span class="tiny muted">Kliknij kategorię z tabeli, aby zobaczyć jej przebieg.</span>
@@ -2785,7 +2948,7 @@
         </div>
         <p class="tiny muted" id="mom-chart-caption" style="margin-top:8px"></p>
       </div>
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="row" style="align-items:flex-end;justify-content:space-between">
           <h4 class="title">Dzienna różnica (A − B)</h4>
           <span class="tiny muted">Czerwone słupki oznaczają szybsze tempo w miesiącu A, zielone — wolniejsze.</span>
@@ -2796,13 +2959,13 @@
         </div>
         <p class="tiny muted" id="mom-diff-caption" style="margin-top:8px"></p>
       </div>
-      <div class="card" style="margin-top:12px">
+      <div class="eom-panel" style="margin-top:12px">
         <div class="row" style="align-items:flex-end;justify-content:space-between">
           <h4 class="title">Zestawienie kategorii</h4>
           <span class="tiny muted">Kwoty obejmują wydatki do wybranego dnia.</span>
         </div>
         <div style="overflow-x:auto;">
-          <table id="mom-table" class="table-compact">
+          <table id="mom-table" class="table-modern eom-history-table">
             <thead>
               <tr>
                 <th>Kategoria</th>
@@ -3174,7 +3337,7 @@
 
     box.style.display='block'; list.innerHTML='';
     for(const t of candidates){
-      const card=document.createElement('div'); card.className='card';
+      const card=document.createElement('div'); card.className='eom-account-card neutral';
       card.innerHTML=`
         <div class="row">
           <div><b>${t.title}</b> <span class="muted">(dzień ${t.day})</span></div>
@@ -3830,7 +3993,7 @@
       }
 
       const card=document.createElement('div');
-      card.className='card';
+      card.className='eom-panel goal-card';
       card.id=`goal-card-${g.id}`;
       card.innerHTML=`
         <div data-view="display">
@@ -3861,14 +4024,22 @@
     const totalProgressPct=totalTarget>0?(totalCollected/totalTarget)*100:0;
     if(summary){
       summary.innerHTML=`
-        <div class="row">
-          <div class="stat-card" style="flex:1;"><div class="muted">Łącznie do zebrania</div><div class="big-number">${fmt(totalTarget,state.currency)}</div></div>
-          <div class="stat-card" style="flex:1;"><div class="muted">Zebrano do tej pory</div><div class="big-number">${fmt(totalCollected,state.currency)}</div></div>
+        <div class="eom-hero-grid">
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Łącznie do zebrania</span>
+            <div class="eom-kpi-value">${fmt(totalTarget,state.currency)}</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">Cele aktywne: ${(b().goals||[]).length}</span></div>
+          </article>
+          <article class="eom-kpi-card">
+            <span class="eom-kpi-label">Zebrano do tej pory</span>
+            <div class="eom-kpi-value">${fmt(totalCollected,state.currency)}</div>
+            <div class="eom-kpi-meta"><span class="eom-kpi-trend positive">${totalProgressPct.toFixed(1)}% celu</span></div>
+          </article>
         </div>
-        <div style="margin-top:8px;">
-          <div class="muted">Całkowity postęp</div>
+        <div style="margin-top:12px;">
+          <div class="muted tiny">Całkowity postęp</div>
           <div class="progress ${totalProgressPct>=100?'good':totalProgressPct>=75?'warn':''}" style="margin-top:4px;height:12px;"><i style="width:${totalProgressPct}%"></i></div>
-          <div class="muted" style="font-size:12px;margin-top:4px">${totalProgressPct.toFixed(1)}%</div>
+          <div class="muted tiny" style="margin-top:4px">${totalProgressPct.toFixed(1)}%</div>
         </div>
       `;
     }
@@ -7760,23 +7931,83 @@
     const savingsShare = totalSelectedStructure > 0 ? (selectedTypeTotals.saving / totalSelectedStructure) * 100 : 0;
     const expenseShare = totalSelectedStructure > 0 ? (selectedTypeTotals.expense / totalSelectedStructure) * 100 : 0;
 
-    let html = `
-      <div class="stat-card"><div class="muted">Całkowity przychód</div><div class="big-number ok">${fmt(totalIncome, state.currency)}</div><div class="trend">Śr. ${fmt(totalIncome / (monthsCount || 1), state.currency)} / miesiąc</div></div>
-      <div class="stat-card"><div class="muted">Całkowite wydatki</div><div class="big-number bad">${fmt(totalExpenseAll, state.currency)}</div><div class="trend">Śr. ${fmt(totalExpenseAll / (monthsCount || 1), state.currency)} / miesiąc</div></div>
-      <div class="stat-card"><div class="muted">Bilans (Netto)</div><div class="big-number ${netChange >= 0 ? 'ok' : 'bad'}">${fmt(netChange, state.currency)}</div><div class="trend">Stopa oszczędności: ${avgSavingsRate.toFixed(1)}%</div></div>
-      <div class="stat-card"><div class="muted">Wydatki (wybrane)</div><div class="big-number ${selectedMood === 'saving' ? 'ok' : 'bad'}">${fmt(totalSelectedExpense, state.currency)}</div><div class="trend">Śr. ${fmt(avgPerMonth, state.currency)} / mies.</div></div>
-      <div class="stat-card"><div class="muted">Transakcji (wybrane)</div><div class="big-number">${totalSelectedCount}</div><div class="trend">~${countPerMonth.toFixed(1)} / miesiąc</div></div>
-      <div class="stat-card"><div class="muted">Średnia vs mediana</div><div class="big-number">${fmt(selectedAvg, state.currency)}</div><div class="trend">Mediana: ${fmt(selectedMedian, state.currency)}</div></div>
-      <div class="stat-card"><div class="muted">Udział wybranych</div><div class="big-number">${selectedShare.toFixed(1)}%</div><div class="trend">Pozostałe: ${fmt(totalExpenseAll - totalSelectedExpense, state.currency)}</div></div>
-      <div class="stat-card"><div class="muted">Dynamika ${lastMonthSummary?.ym || ''}</div><div class="big-number">${fmt(lastMonthSummary?.selectedTotal || 0, state.currency)}</div><div class="trend">Suma: ${formatTrend(lastVsPrevAmount, lastVsPrevPercent, selectedMood)}<br>Liczba: ${formatCountTrend(lastCountDelta, prevMonthSummary?.selectedCount || 0, selectedMood)}<br>Średnia: ${formatTrend(avgDelta, avgDeltaPct, selectedMood)}</div></div>
-      <div class="stat-card"><div class="muted">Top kategoria</div><div class="big-number">${largestName}</div><div class="trend">${largestCategory ? `${fmt(largestCategory.total, state.currency)} (${largestShare.toFixed(1)}%) • ${largestCategory.count} × ${fmt(largestAvg, state.currency)}` : 'Brak danych'}</div></div>
-    `;
-
+    const cards = [];
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Całkowity przychód</span>
+        <div class="eom-kpi-value positive">${fmt(totalIncome, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend positive">Śr. ${fmt(totalIncome / (monthsCount || 1), state.currency)} / miesiąc</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Całkowite wydatki</span>
+        <div class="eom-kpi-value negative">${fmt(totalExpenseAll, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend negative">Śr. ${fmt(totalExpenseAll / (monthsCount || 1), state.currency)} / miesiąc</span></div>
+      </article>
+    `);
+    const balanceTone = netChange >= 0 ? 'positive' : 'negative';
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Bilans (Netto)</span>
+        <div class="eom-kpi-value ${balanceTone}">${fmt(netChange, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend ${balanceTone}">Stopa oszczędności: ${avgSavingsRate.toFixed(1)}%</span></div>
+      </article>
+    `);
+    const selectedTone = selectedMood === 'saving' ? 'positive' : 'negative';
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Wydatki (wybrane)</span>
+        <div class="eom-kpi-value ${selectedTone}">${fmt(totalSelectedExpense, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend ${selectedTone}">Śr. ${fmt(avgPerMonth, state.currency)} / mies.</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Transakcji (wybrane)</span>
+        <div class="eom-kpi-value">${totalSelectedCount}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">~${countPerMonth.toFixed(1)} / miesiąc</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Średnia vs mediana</span>
+        <div class="eom-kpi-value">${fmt(selectedAvg, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">Mediana: ${fmt(selectedMedian, state.currency)}</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Udział wybranych</span>
+        <div class="eom-kpi-value">${selectedShare.toFixed(1)}%</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">Pozostałe: ${fmt(totalExpenseAll - totalSelectedExpense, state.currency)}</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Dynamika ${lastMonthSummary?.ym || ''}</span>
+        <div class="eom-kpi-value">${fmt(lastMonthSummary?.selectedTotal || 0, state.currency)}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">Suma: ${formatTrend(lastVsPrevAmount, lastVsPrevPercent, selectedMood)}</span><span class="eom-kpi-trend neutral">Liczba: ${formatCountTrend(lastCountDelta, prevMonthSummary?.selectedCount || 0, selectedMood)}</span><span class="eom-kpi-trend neutral">Średnia: ${formatTrend(avgDelta, avgDeltaPct, selectedMood)}</span></div>
+      </article>
+    `);
+    cards.push(`
+      <article class="eom-kpi-card">
+        <span class="eom-kpi-label">Top kategoria</span>
+        <div class="eom-kpi-value">${largestName}</div>
+        <div class="eom-kpi-meta"><span class="eom-kpi-trend neutral">${largestCategory ? `${fmt(largestCategory.total, state.currency)} (${largestShare.toFixed(1)}%) • ${largestCategory.count} × ${fmt(largestAvg, state.currency)}` : 'Brak danych'}</span></div>
+      </article>
+    `);
     if(totalSelectedStructure > 0){
-      html += `<div class="stat-card"><div class="muted">Struktura wybranych</div><div class="big-number">${fmt(totalSelectedExpense, state.currency)}</div><div class="trend"><span class="insight-pill">Wydatki: ${expenseShare.toFixed(1)}%</span><span class="insight-pill">Oszczędności: ${savingsShare.toFixed(1)}%</span></div></div>`;
+      cards.push(`
+        <article class="eom-kpi-card">
+          <span class="eom-kpi-label">Struktura wybranych</span>
+          <div class="eom-kpi-value">${fmt(totalSelectedExpense, state.currency)}</div>
+          <div class="eom-kpi-meta"><span class="insight-pill">Wydatki: ${expenseShare.toFixed(1)}%</span><span class="insight-pill">Oszczędności: ${savingsShare.toFixed(1)}%</span></div>
+        </article>
+      `);
     }
 
-    container.innerHTML = html;
+    container.innerHTML = `<div class="eom-hero-grid">${cards.join('')}</div>`;
   }
 
   function renderAnalytics(){
@@ -8960,7 +9191,7 @@
         const summary = t.splits?.length
           ? `Split (${t.splits.length} pozycji)`
           : `${fmt(signFor(t.categoryId, num(t.amount)), state.currency)} • ${(catsById()[t.categoryId]?.name)||'—'}`;
-        const div=document.createElement('div'); div.className='card';
+        const div=document.createElement('div'); div.className='eom-account-card neutral';
         div.innerHTML=`
           <div class="row">
             <div><b>${t.label}</b> <span class="muted">(${date})</span></div>
