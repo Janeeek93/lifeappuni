@@ -9924,7 +9924,7 @@
       sortedDays.sort((a,b)=>a.day-b.day);
     }
     const palette=momPalette();
-    const formatCount=count=>{
+    const formatDayCount=count=>{
       if(!count) return 'Brak';
       if(count===1) return '1 trans.';
       return `${count} trans.`;
@@ -9991,8 +9991,8 @@
       let badgeText='Bez różnicy';
       if(day.delta>0) badgeText=`A +${fmt(deltaValue,state.currency)}`;
       else if(day.delta<0) badgeText=`B +${fmt(deltaValue,state.currency)}`;
-      const countA=formatCount(day.entriesA.length);
-      const countB=formatCount(day.entriesB.length);
+      const countA=formatDayCount(day.entriesA.length);
+      const countB=formatDayCount(day.entriesB.length);
       return `<div class="mom-detail-day ${toneClass}" data-mom-detail-day="${idx}"><div class="mom-detail-day-header"><div><div class="mom-detail-day-title">${dayTitle}</div><div class="mom-detail-day-subtitle">${subTitle}</div><div class="mom-detail-day-subline">${cumulativeLine}</div></div><div class="mom-detail-badge ${badgeTone}">${badgeText}</div></div><div class="mom-detail-columns"><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc A</span><span class="mom-detail-month-count">${countA}</span></div>${renderMomDetailEntries(day.entriesA)}</div><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc B</span><span class="mom-detail-month-count">${countB}</span></div>${renderMomDetailEntries(day.entriesB)}</div></div></div>`;
     }).join('');
     const listContent=daysForList.length
