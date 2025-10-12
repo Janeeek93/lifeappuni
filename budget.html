@@ -770,125 +770,80 @@
       margin-top: 16px;
       border: 1px solid rgba(148, 163, 184, 0.4);
       border-radius: 16px;
-      overflow: hidden;
       background: var(--surface);
+      overflow: hidden;
     }
 
-    .eom-grid-header,
-    .eom-grid-row {
-      display: grid;
-      grid-template-columns: minmax(180px, 1.8fr) minmax(120px, 1.2fr) minmax(140px, 1.4fr) minmax(120px, 1.1fr) minmax(140px, 1.3fr);
-      align-items: center;
-      gap: 12px;
+    .eom-account-toolbar {
+      margin-top: 12px;
       padding: 12px 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 14px;
+      background: var(--surface);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .eom-grid-header {
-      background: rgba(148, 163, 184, 0.15);
-      font-size: 13px;
+    .eom-account-toolbar .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+    }
+
+    .eom-account-toolbar label.tiny {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--muted);
     }
 
-    .eom-grid-header button {
+    .eom-account-toolbar select,
+    .eom-account-toolbar .checkboxes {
+      font-size: 13px;
+    }
+
+    .eom-account-toolbar .checkboxes {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .eom-account-toolbar .checkboxes label {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--ink);
       cursor: pointer;
-      padding: 0;
     }
 
-    .eom-grid-body {
+    .eom-account-toolbar .bulk-actions {
       display: flex;
-      flex-direction: column;
-    }
-
-    .eom-grid-group {
-      border-top: 1px solid rgba(148, 163, 184, 0.25);
-    }
-
-    .eom-grid-group:first-child {
-      border-top: none;
-    }
-
-    .eom-grid-group-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px 4px;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .eom-grid-row {
-      border-top: 1px solid rgba(148, 163, 184, 0.15);
-      transition: background .2s ease, transform .2s ease;
-    }
-
-    .eom-grid-row:hover {
-      background: rgba(226, 232, 240, 0.35);
-      transform: translateX(2px);
-    }
-
-    .eom-grid-row.is-focused {
-      box-shadow: inset 2px 0 0 var(--blue);
-      background: rgba(59, 130, 246, 0.08);
-    }
-
-    .eom-grid-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 13px;
-    }
-
-    .eom-grid-cell strong {
-      font-size: 14px;
-      line-height: 1.2;
-    }
-
-    .eom-grid-cell .tiny {
-      line-height: 1.2;
-    }
-
-    .eom-grid-row input[type="text"],
-    .eom-grid-row input[type="number"],
-    .eom-grid-row input[type="decimal"],
-    .eom-grid-row input[type="date"],
-    .eom-grid-row input[type="month"],
-    .eom-grid-row input[type="email"],
-    .eom-grid-row input[type="tel"],
-    .eom-grid-row input[type="search"],
-    .eom-grid-row input[type="time"],
-    .eom-grid-row input[type="datetime-local"] {
-      width: 100%;
-    }
-
-    .eom-grid-row input[data-id] {
-      background: #fff;
-    }
-
-    .eom-grid-row .btn.danger {
-      justify-self: flex-start;
-    }
-
-    .eom-sparkline {
-      display: flex;
-      align-items: center;
       gap: 8px;
+      align-items: center;
     }
 
-    .eom-sparkline canvas {
-      width: 120px;
-      height: 32px;
+    .eom-account-toolbar .count {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .eom-account-accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      max-height: unset;
+      overflow: visible;
     }
 
     .eom-grid-empty {
@@ -896,6 +851,223 @@
       text-align: center;
       font-size: 14px;
       color: var(--muted);
+    }
+
+    .eom-account-item {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      background: var(--card);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      position: relative;
+    }
+
+    .eom-account-item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    .eom-account-item.is-priority {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-account-item.is-focused {
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    }
+
+    .eom-account-item.is-debt {
+      border-color: rgba(220, 38, 38, 0.45);
+      background: linear-gradient(120deg, rgba(248, 113, 113, 0.08), rgba(248, 250, 252, 0.85));
+    }
+
+    .eom-account-item.is-dormant {
+      opacity: 0.7;
+    }
+
+    .eom-account-header {
+      width: 100%;
+      border: none;
+      background: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(140px, auto) minmax(120px, auto) 28px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 18px;
+      cursor: pointer;
+    }
+
+    .eom-account-header:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .eom-account-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .eom-account-title strong {
+      font-size: 16px;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .eom-account-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-balance {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-trend {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .eom-account-trend .arrow.up { color: var(--green); }
+    .eom-account-trend .arrow.down { color: var(--red); }
+    .eom-account-trend .arrow.flat { color: var(--muted); }
+    .eom-account-trend.up { color: var(--green); }
+    .eom-account-trend.down { color: var(--red); }
+    .eom-account-trend.flat { color: var(--muted); }
+
+    .eom-account-toggle-icon {
+      font-size: 18px;
+      color: var(--muted);
+      transition: transform .2s ease;
+    }
+
+    .eom-account-item.is-expanded .eom-account-toggle-icon {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+
+    .eom-account-body {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .3s ease;
+    }
+
+    .eom-account-item.is-expanded .eom-account-body {
+      max-height: 500px;
+    }
+
+    .eom-account-body-inner {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1.2fr) minmax(200px, 1fr);
+      gap: 18px;
+    }
+
+    .eom-account-body-inner > div {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .eom-account-spark-large canvas {
+      width: 100%;
+      height: 60px;
+    }
+
+    .eom-account-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(226, 232, 240, 0.35);
+    }
+
+    .eom-account-stats div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-stats div strong {
+      font-size: 14px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-change {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .eom-account-change .delta {
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-change .delta.positive { color: var(--green); }
+    .eom-account-change .delta.negative { color: var(--red); }
+    .eom-account-change .delta.neutral { color: var(--muted); }
+
+    .eom-account-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .eom-account-body-inner .tiny.muted {
+      line-height: 1.2;
+    }
+
+    .eom-account-item .tooltip-target {
+      position: relative;
+    }
+
+    @media (max-width: 960px) {
+      .eom-account-header {
+        grid-template-columns: minmax(0, 1fr) minmax(100px, auto) minmax(90px, auto) 24px;
+      }
+      .eom-account-body-inner {
+        grid-template-columns: 1fr;
+      }
+      .eom-account-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .eom-account-toolbar .count {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .eom-account-toolbar {
+        padding: 12px;
+      }
+      .eom-account-header {
+        padding: 12px 14px;
+      }
+      .eom-account-balance {
+        font-size: 16px;
+      }
+      .eom-account-item.is-expanded .eom-account-body {
+        max-height: 620px;
+      }
     }
 
     .eom-pivot-table {
@@ -1727,15 +1899,6 @@
               <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
               <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
             </label>
-            <label class="filter-group">
-              <span class="tiny">Status salda</span>
-              <select id="eom-account-filter" style="min-width:180px">
-                <option value="all">Wszystkie konta</option>
-                <option value="positive">Saldo dodatnie</option>
-                <option value="negative">Saldo ujemne</option>
-                <option value="volatile">Najbardziej zmienne</option>
-              </select>
-            </label>
             <div class="filter-group">
               <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
               <div class="row" style="gap:6px;align-items:center">
@@ -1765,6 +1928,28 @@
               </div>
               <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
             </div>
+          </div>
+          <div class="eom-account-toolbar" id="eom-account-toolbar">
+            <div class="controls">
+              <label class="tiny" for="eom-account-sort">Sortowanie
+                <select id="eom-account-sort">
+                  <option value="name">Po nazwie A-Z</option>
+                  <option value="balance">Po saldzie (najwyższe)</option>
+                  <option value="change-up">Zmiana % (wzrost)</option>
+                  <option value="change-down">Zmiana % (spadek)</option>
+                </select>
+              </label>
+              <div class="checkboxes" aria-label="Filtry kont">
+                <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
+                <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
+                <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
+              </div>
+            </div>
+            <div class="bulk-actions">
+              <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
+              <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
+            </div>
+            <div class="count" id="eom-account-count">—</div>
           </div>
           <div id="eom-grid" class="eom-grid-shell"></div>
           <div id="eom-heatmap" class="eom-heatmap-shell"></div>
@@ -3608,8 +3793,18 @@
     return filtered.map(item => ({ ym:item.ym, value:item.balance }));
   }
 
-  function renderSparkline(canvas, points){
-    if(!canvas || !points.length) return;
+  function renderSparkline(canvas, points, options={}){
+    if(!canvas || !points.length){
+      if(canvas){
+        const ctx2d = canvas.getContext('2d');
+        if(ctx2d){
+          const width = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+          const height = canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+          ctx2d.clearRect(0,0,width,height);
+        }
+      }
+      return;
+    }
     const ctx2d = canvas.getContext('2d');
     const width = canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
     const height = canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -3619,8 +3814,11 @@
     const max = Math.max(...values);
     const range = max - min || 1;
     const step = width / Math.max(points.length - 1, 1);
-    ctx2d.lineWidth = 2 * (window.devicePixelRatio || 1);
-    ctx2d.strokeStyle = '#2563eb';
+    const color = options.color || '#2563eb';
+    const fill = options.fill !== undefined ? options.fill : 'rgba(37, 99, 235, 0.18)';
+    const lineWidth = (options.lineWidth ?? 2) * (window.devicePixelRatio || 1);
+    ctx2d.lineWidth = lineWidth;
+    ctx2d.strokeStyle = color;
     ctx2d.beginPath();
     points.forEach((pt, idx) => {
       const x = idx * step;
@@ -3629,11 +3827,13 @@
       else ctx2d.lineTo(x, y);
     });
     ctx2d.stroke();
-    ctx2d.fillStyle = 'rgba(37, 99, 235, 0.18)';
-    ctx2d.lineTo(width, height);
-    ctx2d.lineTo(0, height);
-    ctx2d.closePath();
-    ctx2d.fill();
+    if(fill){
+      ctx2d.fillStyle = fill;
+      ctx2d.lineTo(width, height);
+      ctx2d.lineTo(0, height);
+      ctx2d.closePath();
+      ctx2d.fill();
+    }
   }
 
   function monthsForSparkline(ctx, range){
@@ -3641,139 +3841,186 @@
     return months.length ? months : ctx.months.slice(-6);
   }
 
-  function renderEomInteractiveGrid(ctx, rows, options){
+  function renderEomInteractiveGrid(ctx, rows, options={}){
     const container = document.getElementById('eom-grid');
-    if(!container) return { inputs:[], updateTotal:()=>{} };
+    if(!container) return { inputs:[], refreshSparklines:()=>{} };
     container.innerHTML = '';
+    container.className = 'eom-grid-shell';
+
+    const totalAccounts = (ctx.accounts || []).length;
+    const countEl = document.getElementById('eom-account-count');
+    if(countEl){
+      const visible = rows.length;
+      countEl.textContent = totalAccounts
+        ? `Pokazujesz ${visible} z ${totalAccounts} kont`
+        : `Pokazujesz ${visible} kont`;
+    }
+
     if(!rows.length){
       container.innerHTML = '<div class="eom-grid-empty">Brak kont spełniających kryteria. Dodaj nowe konto lub zmień filtry.</div>';
-      return { inputs:[], updateTotal:()=>{} };
+      return { inputs:[], refreshSparklines:()=>{} };
     }
 
-    const { sort, scenario, focusedAccountId } = options;
-    const header = document.createElement('div');
-    header.className = 'eom-grid-header';
-    const columns = [
-      { key:'name', label:'Konto', sortable:true },
-      { key:'previous', label:'Poprzedni zapis', sortable:true },
-      { key:'current', label:`Saldo (${ctx.workingYm})`, sortable:false },
-      { key:'delta', label:'Zmiana', sortable:true },
-      { key:'trend', label:'Trend', sortable:false }
-    ];
-    header.innerHTML = columns.map(col => {
-      if(!col.sortable){
-        return `<div>${col.label}</div>`;
-      }
-      const active = sort.field === col.key;
-      const icon = active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕';
-      return `<div><button type="button" data-sort="${col.key}">${col.label} ${icon}</button></div>`;
-    }).join('');
-    container.appendChild(header);
-
-    const body = document.createElement('div');
-    body.className = 'eom-grid-body';
-    container.appendChild(body);
-
-    const sortRows = [...rows];
-    sortRows.sort((a,b) => {
-      const dir = sort.dir === 'asc' ? 1 : -1;
-      switch(sort.field){
-        case 'name': return a.acc.name.localeCompare(b.acc.name, 'pl', { sensitivity:'base' }) * dir;
-        case 'previous': return ((a.previousAdjusted ?? -Infinity) - (b.previousAdjusted ?? -Infinity)) * dir;
-        case 'delta': return ((a.deltaAdjusted ?? 0) - (b.deltaAdjusted ?? 0)) * dir;
-        default: return 0;
+    const sortKey = eomUiState.accountSort || 'balance';
+    const sortedRows = [...rows];
+    sortedRows.sort((a,b) => {
+      switch(sortKey){
+        case 'name':
+          return a.acc.name.localeCompare(b.acc.name, 'pl', { sensitivity:'base' });
+        case 'change-up':
+          return ((b.deltaPct ?? -Infinity) - (a.deltaPct ?? -Infinity));
+        case 'change-down':
+          return ((a.deltaPct ?? Infinity) - (b.deltaPct ?? Infinity));
+        case 'balance':
+        default:
+          return ((b.adjustedCurrent ?? b.currentValue ?? 0) - (a.adjustedCurrent ?? a.currentValue ?? 0));
       }
     });
 
-    const groups = {};
-    for(const row of sortRows){
-      const key = row.groupKey || 'inne';
-      if(!groups[key]) groups[key] = [];
-      groups[key].push(row);
-    }
+    const expandedSet = new Set(Array.isArray(eomUiState.expandedAccounts) ? eomUiState.expandedAccounts : []);
+    const focusId = options.focusedAccountId || null;
+
+    const prioritySet = (() => {
+      const ranked = [...sortedRows]
+        .filter(row => Number.isFinite(row.deltaAdjusted) && Math.abs(row.deltaAdjusted || 0) >= 0.005)
+        .sort((a,b) => Math.abs((b.deltaAdjusted ?? 0)) - Math.abs((a.deltaAdjusted ?? 0)));
+      return new Set(ranked.slice(0, Math.min(3, ranked.length)).map(row => row.acc.id));
+    })();
+
+    const accordion = document.createElement('div');
+    accordion.className = 'eom-account-accordion';
+    container.appendChild(accordion);
 
     const inputs = [];
+    const sparkTargets = [];
 
-    Object.entries(groups).forEach(([group, items]) => {
-      const section = document.createElement('div');
-      section.className = 'eom-grid-group';
-      const total = items.reduce((sum, item) => sum + (item.currentValue ?? 0), 0);
-      const scenarioTotal = items.reduce((sum, item) => {
-        if(item.currentValue === null || item.currentValue === undefined) return sum;
-        const adjusted = applyScenarioToValue(item.currentValue, scenario) ?? 0;
-        return sum + adjusted;
-      }, 0);
-      const headerEl = document.createElement('div');
-      headerEl.className = 'eom-grid-group-header';
-      const scenarioInfo = scenario !== 'actual' ? ` · ${fmt(scenarioTotal, state.currency)} ${EOM_SCENARIOS[scenario]?.label || ''}` : '';
-      headerEl.innerHTML = `<span>${group}</span><span class="tiny muted">${fmt(total, state.currency)}${scenarioInfo}</span>`;
-      section.appendChild(headerEl);
+    sortedRows.forEach(row => {
+      const isExpanded = expandedSet.has(row.acc.id);
+      const card = document.createElement('article');
+      card.className = 'eom-account-item';
+      if(prioritySet.has(row.acc.id)) card.classList.add('is-priority');
+      if(Number.isFinite(row.adjustedCurrent) && row.adjustedCurrent < 0) card.classList.add('is-debt');
+      if(row.isDormant) card.classList.add('is-dormant');
+      if(focusId && focusId === row.acc.id) card.classList.add('is-focused');
+      if(isExpanded) card.classList.add('is-expanded');
+      card.dataset.accountId = row.acc.id;
+      card.title = `${row.acc.name}: ${row.displayBalance}${row.deltaDisplay && row.deltaDisplay !== '—' ? ` | Δ ${row.deltaDisplay}` : ''}`;
 
-      items.forEach(item => {
-        const rowEl = document.createElement('div');
-        rowEl.className = 'eom-grid-row';
-        if(focusedAccountId && focusedAccountId === item.acc.id){
-          rowEl.classList.add('is-focused');
-        }
-        rowEl.innerHTML = `
-          <div class="eom-grid-cell">
-            <strong>${item.acc.name}</strong>
-            <span class="tiny muted">${item.typeLabel}</span>
-          </div>
-          <div class="eom-grid-cell">
-            ${item.previousLabel}
-          </div>
-          <div class="eom-grid-cell">
-            <input inputmode="decimal" data-id="${item.acc.id}" value="${item.currentInput}" placeholder="0,00" />
-            <span class="tiny muted">${scenario ? `Scenariusz: ${EOM_SCENARIOS[scenario]?.label || ''}` : ''}</span>
-          </div>
-          <div class="eom-grid-cell" data-delta="${item.acc.id}">
-            ${item.deltaLabel}
-          </div>
-          <div class="eom-grid-cell">
-            <div class="eom-sparkline">
-              <canvas data-spark="${item.acc.id}"></canvas>
-              <button class="btn ghost" type="button" data-drill="${item.acc.id}">Szczegóły</button>
+      const trendTone = row.trendDirection === 'up' ? 'up' : row.trendDirection === 'down' ? 'down' : 'flat';
+      const deltaTone = row.trendDirection === 'up' ? 'positive' : row.trendDirection === 'down' ? 'negative' : 'neutral';
+      const deltaText = row.deltaPctDisplay && row.deltaPctDisplay !== '—'
+        ? `${row.deltaDisplay} <span class="tiny muted">(${row.deltaPctDisplay})</span>`
+        : row.deltaDisplay;
+
+      const headerBtn = document.createElement('button');
+      headerBtn.type = 'button';
+      headerBtn.className = 'eom-account-header';
+      headerBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+      headerBtn.innerHTML = `
+        <div class="eom-account-title">
+          <strong>${row.acc.name}</strong>
+          <span>${row.subtitle}</span>
+        </div>
+        <div class="eom-account-balance" data-balance="${row.acc.id}">${row.displayBalance}</div>
+        <div class="eom-account-trend ${trendTone}" data-delta="${row.acc.id}" data-role="header">
+          <span class="arrow ${trendTone}">${row.trendArrow}</span>
+          <span>${deltaText}</span>
+        </div>
+        <span class="eom-account-toggle-icon">${isExpanded ? '▲' : '▼'}</span>
+      `;
+      card.appendChild(headerBtn);
+
+      const body = document.createElement('div');
+      body.className = 'eom-account-body';
+      const recordDisplay = row.recordEntry ? fmt(row.recordEntry.value, state.currency) : '—';
+      const recordDate = row.recordEntry?.ym || '—';
+      const minDisplay = row.minEntry ? fmt(row.minEntry.value, state.currency) : '—';
+      const minDate = row.minEntry?.ym || '—';
+      const avgDisplay = row.averageSix !== null && row.averageSix !== undefined ? fmt(row.averageSix, state.currency) : '—';
+      const rangeHint = row.sparklinePoints.length
+        ? `Zakres danych: ${row.sparklinePoints[0].ym} → ${row.sparklinePoints[row.sparklinePoints.length - 1].ym}`
+        : 'Brak danych historycznych w wybranym zakresie.';
+      body.innerHTML = `
+        <div class="eom-account-body-inner">
+          <div>
+            <div class="eom-account-spark-large">
+              <canvas data-big-spark="${row.acc.id}"></canvas>
+            </div>
+            <div class="tiny muted">${rangeHint}</div>
+            <div class="eom-account-stats">
+              <div><span>Rekord</span><strong>${recordDisplay}</strong><span>${recordDate}</span></div>
+              <div><span>Najniższa</span><strong>${minDisplay}</strong><span>${minDate}</span></div>
+              <div><span>Średnia (6M)</span><strong>${avgDisplay}</strong><span>${row.sparklinePoints.length >= 6 ? 'Ostatnie 6 miesięcy' : 'Wszystkie dostępne'}</span></div>
             </div>
           </div>
-        `;
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn danger';
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Usuń';
-        removeBtn.dataset.del = item.acc.id;
-        rowEl.appendChild(removeBtn);
-        section.appendChild(rowEl);
+          <div>
+            <div class="eom-account-change">
+              <div class="delta ${deltaTone}" data-delta="${row.acc.id}" data-role="detail">${row.deltaDisplay}${row.deltaPctDisplay && row.deltaPctDisplay !== '—' ? ` (${row.deltaPctDisplay})` : ''}</div>
+              <div class="tiny muted">Poprzedni miesiąc: ${row.previousDisplay}</div>
+              ${eomUiState.scenario !== 'actual' ? `<div class="tiny muted">Scenariusz: ${row.scenarioLabel}</div>` : ''}
+              <p class="tiny">${row.trendDescription}</p>
+            </div>
+            <div class="eom-account-actions">
+              <label class="tiny" for="eom-input-${row.acc.id}">Aktualizuj saldo</label>
+              <input id="eom-input-${row.acc.id}" inputmode="decimal" data-id="${row.acc.id}" value="${row.currentInput}" placeholder="0,00" />
+              <button class="btn ghost" type="button" data-drill="${row.acc.id}">Historia</button>
+              <button class="btn danger" type="button" data-del="${row.acc.id}">Usuń</button>
+            </div>
+          </div>
+        </div>
+      `;
+      card.appendChild(body);
+      accordion.appendChild(card);
 
-        const input = rowEl.querySelector('input[data-id]');
-        if(input) inputs.push(input);
-      });
+      const input = body.querySelector('input[data-id]');
+      if(input) inputs.push(input);
+      const sparkCanvas = body.querySelector('canvas[data-big-spark]');
+      if(sparkCanvas){
+        sparkTargets.push({ canvas: sparkCanvas, row });
+      }
 
-      body.appendChild(section);
+      if(isExpanded){
+        requestAnimationFrame(() => {
+          body.style.maxHeight = `${body.scrollHeight}px`;
+        });
+      } else {
+        body.style.maxHeight = '0px';
+      }
     });
 
-    header.querySelectorAll('button[data-sort]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.sort;
-        if(sort.field === key){
-          eomUiState.gridSort.dir = sort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-          eomUiState.gridSort.field = key;
-          eomUiState.gridSort.dir = key === 'name' ? 'asc' : 'desc';
+    if(!accordion.dataset.bound){
+      accordion.dataset.bound = '1';
+      accordion.addEventListener('click', event => {
+        const header = event.target.closest('.eom-account-header');
+        if(!header || !accordion.contains(header)) return;
+        const card = header.closest('.eom-account-item');
+        if(!card) return;
+        const body = card.querySelector('.eom-account-body');
+        const accountId = card.dataset.accountId;
+        const isExpanded = card.classList.toggle('is-expanded');
+        header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+        const icon = header.querySelector('.eom-account-toggle-icon');
+        if(icon) icon.textContent = isExpanded ? '▲' : '▼';
+        const nextSet = new Set(Array.isArray(eomUiState.expandedAccounts) ? eomUiState.expandedAccounts : []);
+        if(isExpanded) nextSet.add(accountId); else nextSet.delete(accountId);
+        eomUiState.expandedAccounts = Array.from(nextSet);
+        if(body){
+          if(isExpanded){
+            body.style.maxHeight = `${body.scrollHeight}px`;
+          } else {
+            body.style.maxHeight = '0px';
+          }
         }
-        renderEOM();
-        renderEOMHistory();
       });
-    });
+    }
 
     return {
       inputs,
       refreshSparklines(){
-        rows.forEach(item => {
-          const canvas = container.querySelector(`canvas[data-spark="${item.acc.id}"]`);
-          if(canvas){
-            renderSparkline(canvas, item.sparklinePoints || []);
-          }
+        sparkTargets.forEach(target => {
+          const color = target.row?.sparkColor || '#2563eb';
+          const points = target.row?.sparklinePoints || [];
+          renderSparkline(target.canvas, points, { color, fill: withAlpha(color, 0.16) });
         });
       }
     };
@@ -3783,6 +4030,14 @@
     const container = document.getElementById('eom-grid');
     if(!container) return { inputs:[], refreshSparklines:()=>{} };
     container.innerHTML = '';
+    const countEl = document.getElementById('eom-account-count');
+    if(countEl){
+      const totalAccounts = (ctx.accounts || []).length;
+      const visible = rows.length;
+      countEl.textContent = totalAccounts
+        ? `Pokazujesz ${visible} z ${totalAccounts} kont`
+        : `Pokazujesz ${visible} kont`;
+    }
     if(!rows.length){
       container.innerHTML = '<div class="eom-grid-empty">Brak danych do zbudowania tabeli przestawnej.</div>';
       return { inputs:[], refreshSparklines:()=>{} };
@@ -5133,17 +5388,68 @@
     const badge = document.getElementById('eom-active-month');
     if(badge) badge.textContent = ym;
 
-    const filterSel = document.getElementById('eom-account-filter');
-    if(filterSel){
-      filterSel.value = eomUiState.accountFilter;
-      if(!filterSel.dataset.bound){
-        filterSel.dataset.bound = '1';
-        filterSel.addEventListener('change', () => {
-          eomUiState.accountFilter = filterSel.value;
+    const sortSelect = document.getElementById('eom-account-sort');
+    if(sortSelect){
+      sortSelect.value = eomUiState.accountSort || 'balance';
+      if(!sortSelect.dataset.bound){
+        sortSelect.dataset.bound = '1';
+        sortSelect.addEventListener('change', () => {
+          eomUiState.accountSort = sortSelect.value;
           renderEOM();
-          renderEOMHistory();
         });
       }
+    }
+
+    const positiveBox = document.getElementById('eom-filter-positive');
+    const negativeBox = document.getElementById('eom-filter-negative');
+    const hideZeroBox = document.getElementById('eom-filter-hide-zero');
+    if(positiveBox){
+      positiveBox.checked = !!eomUiState.filterPositiveOnly;
+      if(!positiveBox.dataset.bound){
+        positiveBox.dataset.bound = '1';
+        positiveBox.addEventListener('change', () => {
+          eomUiState.filterPositiveOnly = positiveBox.checked;
+          renderEOM();
+        });
+      }
+    }
+    if(negativeBox){
+      negativeBox.checked = !!eomUiState.filterNegativeOnly;
+      if(!negativeBox.dataset.bound){
+        negativeBox.dataset.bound = '1';
+        negativeBox.addEventListener('change', () => {
+          eomUiState.filterNegativeOnly = negativeBox.checked;
+          renderEOM();
+        });
+      }
+    }
+    if(hideZeroBox){
+      hideZeroBox.checked = !!eomUiState.hideZeroAccounts;
+      if(!hideZeroBox.dataset.bound){
+        hideZeroBox.dataset.bound = '1';
+        hideZeroBox.addEventListener('change', () => {
+          eomUiState.hideZeroAccounts = hideZeroBox.checked;
+          renderEOM();
+        });
+      }
+    }
+
+    const expandAllBtn = document.getElementById('eom-expand-all');
+    if(expandAllBtn && !expandAllBtn.dataset.bound){
+      expandAllBtn.dataset.bound = '1';
+      expandAllBtn.addEventListener('click', () => {
+        const cards = Array.from(document.querySelectorAll('#eom-grid .eom-account-item'));
+        eomUiState.expandedAccounts = cards.map(card => card.dataset.accountId).filter(Boolean);
+        renderEOM();
+      });
+    }
+    const collapseAllBtn = document.getElementById('eom-collapse-all');
+    if(collapseAllBtn && !collapseAllBtn.dataset.bound){
+      collapseAllBtn.dataset.bound = '1';
+      collapseAllBtn.addEventListener('click', () => {
+        eomUiState.expandedAccounts = [];
+        renderEOM();
+      });
     }
 
     const typeSelect = document.getElementById('eom-account-type-filter');
@@ -5229,22 +5535,13 @@
       }
     }
 
-    const volatilityIds = (() => {
-      const scores = ctx.accounts.map(acc => {
-        const history = ctx.accountHistory[acc.id] || [];
-        if(history.length < 2) return { id: acc.id, score: 0 };
-        const values = history.map(item => item.balance);
-        const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-        return { id: acc.id, score: Math.sqrt(variance) };
-      });
-      scores.sort((a,b) => b.score - a.score);
-      return new Set(scores.slice(0, Math.min(5, scores.length)).map(item => item.id));
-    })();
-
     const sparkMonths = monthsForSparkline(ctx, eomUiState.dateRange);
-    const accountFilter = eomUiState.accountFilter;
     const selectedTypes = new Set(eomUiState.accountTypes || []);
+    const wantsPositiveOnly = !!eomUiState.filterPositiveOnly;
+    const wantsNegativeOnly = !!eomUiState.filterNegativeOnly;
+    const hideZeroAccounts = !!eomUiState.hideZeroAccounts;
+    const scenarioLabel = EOM_SCENARIOS[eomUiState.scenario]?.label || 'Realny';
+    const threshold = 0.005;
 
     const rows = ctx.accounts.map(acc => {
       const type = inferAccountType(acc);
@@ -5253,14 +5550,76 @@
       const currentEntry = entryForMonth(history, ym);
       const prevEntry = lastEntryBefore(history, ym);
       const referenceValue = currentEntry ? currentEntry.balance : (prevEntry ? prevEntry.balance : 0);
-      if(accountFilter === 'positive' && referenceValue <= 0) return null;
-      if(accountFilter === 'negative' && referenceValue >= 0) return null;
-      if(accountFilter === 'volatile' && !volatilityIds.has(acc.id)) return null;
+      const isZero = Math.abs(referenceValue || 0) < threshold;
+      if(wantsPositiveOnly && !wantsNegativeOnly && referenceValue <= 0) return null;
+      if(!wantsPositiveOnly && wantsNegativeOnly && referenceValue >= 0) return null;
+      if(wantsPositiveOnly && wantsNegativeOnly && isZero) return null;
+      if(hideZeroAccounts && isZero) return null;
       const currentValue = currentEntry ? currentEntry.balance : null;
       const previousValue = prevEntry ? prevEntry.balance : null;
       const scenarioCurrent = currentValue === null ? null : applyScenarioToValue(currentValue, eomUiState.scenario);
       const scenarioPrevious = previousValue === null ? null : applyScenarioToValue(previousValue, eomUiState.scenario);
       const deltaAdjusted = (scenarioCurrent !== null || scenarioPrevious !== null) ? ((scenarioCurrent ?? 0) - (scenarioPrevious ?? 0)) : null;
+      const deltaPct = scenarioPrevious && scenarioPrevious !== 0 ? (deltaAdjusted / Math.abs(scenarioPrevious)) * 100 : null;
+      const sparklinePoints = buildSparklinePoints(history, sparkMonths).map(pt => ({ ym: pt.ym, value: applyScenarioToValue(pt.value, eomUiState.scenario) ?? 0 }));
+      const adjustedHistory = history.map(item => {
+        const value = applyScenarioToValue(item.balance, eomUiState.scenario);
+        return { ym: item.ym, value: typeof value === 'number' ? value : null };
+      }).filter(item => item.value !== null);
+      const lastSix = adjustedHistory.slice(-6);
+      const avgSix = lastSix.length ? lastSix.reduce((sum, item) => sum + item.value, 0) / lastSix.length : null;
+      const recordEntry = adjustedHistory.reduce((best, item) => (!best || item.value > best.value ? item : best), null);
+      const minEntry = adjustedHistory.reduce((worst, item) => (!worst || item.value < worst.value ? item : worst), null);
+      let streakDir = null;
+      let streakCount = 0;
+      for(let i = adjustedHistory.length - 1; i > 0; i--){
+        const curr = adjustedHistory[i]?.value;
+        const prev = adjustedHistory[i-1]?.value;
+        if(typeof curr !== 'number' || typeof prev !== 'number') continue;
+        const diff = curr - prev;
+        const dir = diff > threshold ? 'up' : diff < -threshold ? 'down' : 'flat';
+        if(dir === 'flat'){
+          if(streakDir === null) continue;
+          else break;
+        }
+        if(streakDir === null){
+          streakDir = dir;
+          streakCount = 1;
+        } else if(streakDir === dir){
+          streakCount += 1;
+        } else {
+          break;
+        }
+      }
+      let trendDescription = 'Wahania bez wyraźnego trendu';
+      if(streakDir === 'up' && streakCount >= 2){
+        trendDescription = `Rośnie ${streakCount + 1} miesiąc z rzędu`;
+      } else if(streakDir === 'down' && streakCount >= 2){
+        trendDescription = `Spada ${streakCount + 1} miesiąc z rzędu`;
+      } else if(streakDir === 'up'){
+        trendDescription = 'Lekki wzrost w tym miesiącu';
+      } else if(streakDir === 'down'){
+        trendDescription = 'Lekki spadek w tym miesiącu';
+      } else if(Math.abs(deltaAdjusted || 0) < threshold){
+        trendDescription = 'Stabilne w ostatnim miesiącu';
+      }
+      const trendDirection = deltaAdjusted === null ? 'flat' : (deltaAdjusted > threshold ? 'up' : deltaAdjusted < -threshold ? 'down' : 'flat');
+      const trendArrow = trendDirection === 'up' ? '↗' : trendDirection === 'down' ? '↘' : '→';
+      const deltaDisplay = deltaAdjusted === null ? '—' : `${deltaAdjusted > 0 ? '+' : '−'}${fmt(Math.abs(deltaAdjusted), state.currency)}`;
+      const pctDisplay = deltaPct !== null ? `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : '—';
+      const scenarioBalance = scenarioCurrent !== null ? fmt(scenarioCurrent, state.currency) : (currentValue !== null ? fmt(currentValue, state.currency) : '—');
+      const previousDisplay = scenarioPrevious !== null ? fmt(scenarioPrevious, state.currency) : (previousValue !== null ? fmt(previousValue, state.currency) : '—');
+      const dormant = history.length >= 3 ? history.slice(-3).every(item => {
+        const val = applyScenarioToValue(item.balance, eomUiState.scenario);
+        return Math.abs((typeof val === 'number' ? val : 0)) < threshold;
+      }) : false;
+      const subtitleParts = [capitalizeFirst(type), capitalizeFirst(eomAccountStatus(referenceValue))];
+      const subtitle = subtitleParts.filter(Boolean).join(' · ');
+      const sparkColor = trendDirection === 'down' ? '#dc2626' : trendDirection === 'up' ? '#16a34a' : '#64748b';
+      let deltaLabel = deltaAdjusted === null ? '<span class=\"muted\">—</span>' : renderDeltaBadge(deltaAdjusted);
+      if(eomUiState.scenario !== 'actual' && scenarioCurrent !== null){
+        deltaLabel += `<br><span class=\"tiny muted\">${fmt(scenarioCurrent, state.currency)} (${scenarioLabel})</span>`;
+      }
       const prevBits = [];
       if(previousValue === null){
         prevBits.push('<span class=\"muted\">Brak danych</span>');
@@ -5270,12 +5629,8 @@
           prevBits.push(`<span class=\"tiny muted\">${prevEntry.ym}</span>`);
         }
         if(eomUiState.scenario !== 'actual' && scenarioPrevious !== null){
-          prevBits.push(`<span class=\"tiny muted\">${EOM_SCENARIOS[eomUiState.scenario].label}: ${fmt(scenarioPrevious, state.currency)}</span>`);
+          prevBits.push(`<span class=\"tiny muted\">${scenarioLabel}: ${fmt(scenarioPrevious, state.currency)}</span>`);
         }
-      }
-      let deltaLabel = deltaAdjusted === null ? '<span class=\"muted\">—</span>' : renderDeltaBadge(deltaAdjusted);
-      if(eomUiState.scenario !== 'actual' && scenarioCurrent !== null){
-        deltaLabel += `<br><span class=\"tiny muted\">${fmt(scenarioCurrent, state.currency)} (${EOM_SCENARIOS[eomUiState.scenario].label})</span>`;
       }
       let groupKey = 'Wszystkie konta';
       if(eomUiState.groupBy === 'type') groupKey = `Typ: ${capitalizeFirst(type)}`;
@@ -5287,10 +5642,27 @@
         previousLabel: prevBits.join('<br>'),
         currentInput: currentValue === null ? '' : String(currentValue).replace('.',','),
         currentValue,
+        adjustedCurrent: scenarioCurrent,
+        adjustedPrevious: scenarioPrevious,
         previousAdjusted: scenarioPrevious,
         deltaAdjusted,
+        deltaPct,
         deltaLabel,
-        sparklinePoints: buildSparklinePoints(history, sparkMonths).map(pt => ({ ym: pt.ym, value: applyScenarioToValue(pt.value, eomUiState.scenario) ?? 0 })),
+        deltaDisplay,
+        deltaPctDisplay: pctDisplay,
+        trendArrow,
+        trendDirection,
+        trendDescription,
+        displayBalance: scenarioBalance,
+        previousDisplay,
+        averageSix: avgSix,
+        recordEntry,
+        minEntry,
+        sparkColor,
+        isDormant: dormant,
+        subtitle,
+        scenarioLabel,
+        sparklinePoints,
         history,
         groupKey
       };
@@ -5302,7 +5674,7 @@
 
     const gridResult = eomUiState.pivotMode
       ? renderEomPivotTable(ctx, rows, sparkMonths, eomUiState.scenario)
-      : renderEomInteractiveGrid(ctx, rows, { sort: eomUiState.gridSort, scenario: eomUiState.scenario, focusedAccountId: eomUiState.focusedAccountId });
+      : renderEomInteractiveGrid(ctx, rows, { focusedAccountId: eomUiState.focusedAccountId, scenario: eomUiState.scenario });
 
     renderEomHeatmap(ctx, rows, sparkMonths, eomUiState.scenario);
 
@@ -5338,24 +5710,74 @@
       gridResult.inputs.forEach(input => {
         const accountId = input.dataset.id;
         const row = rowMap.get(accountId);
-        const deltaCell = gridContainer.querySelector(`[data-delta="${accountId}"]`);
+        const deltaNodes = gridContainer.querySelectorAll(`[data-delta="${accountId}"]`);
+        const balanceNode = gridContainer.querySelector(`[data-balance="${accountId}"]`);
         const updateRow = () => {
           const raw = input.value.trim() === '' ? null : num(input.value);
           const scenarioValue = raw === null ? null : applyScenarioToValue(raw, eomUiState.scenario);
           row.currentValue = raw;
-          if(deltaCell){
-            if(scenarioValue === null && row.previousAdjusted === null){
-              deltaCell.innerHTML = '<span class="muted">—</span>';
-            } else {
-              const deltaVal = (scenarioValue ?? 0) - (row.previousAdjusted ?? 0);
-              let html = renderDeltaBadge(deltaVal);
-              if(eomUiState.scenario !== 'actual' && scenarioValue !== null){
-                html += `<br><span class=\"tiny muted\">${fmt(scenarioValue, state.currency)} (${EOM_SCENARIOS[eomUiState.scenario].label})</span>`;
-              }
-              deltaCell.innerHTML = html;
-            }
+          row.adjustedCurrent = scenarioValue;
+
+          const prevAdjusted = row.adjustedPrevious ?? row.previousAdjusted ?? null;
+          const hasAny = !(scenarioValue === null && prevAdjusted === null);
+          const deltaVal = hasAny ? ((scenarioValue ?? 0) - (prevAdjusted ?? 0)) : null;
+          const pctVal = prevAdjusted && prevAdjusted !== 0 ? (deltaVal / Math.abs(prevAdjusted)) * 100 : null;
+          row.deltaAdjusted = deltaVal;
+          row.deltaPct = pctVal;
+
+          const threshold = 0.005;
+          const direction = deltaVal === null ? 'flat' : (deltaVal > threshold ? 'up' : deltaVal < -threshold ? 'down' : 'flat');
+          const arrow = direction === 'up' ? '↗' : direction === 'down' ? '↘' : '→';
+          const deltaDisplay = deltaVal === null ? '—' : `${deltaVal > 0 ? '+' : '−'}${fmt(Math.abs(deltaVal), state.currency)}`;
+          const pctDisplay = pctVal !== null ? `${pctVal > 0 ? '+' : ''}${pctVal.toFixed(1)}%` : '—';
+          row.trendDirection = direction;
+          row.trendArrow = arrow;
+          row.deltaDisplay = deltaDisplay;
+          row.deltaPctDisplay = pctDisplay;
+          row.sparkColor = direction === 'down' ? '#dc2626' : direction === 'up' ? '#16a34a' : '#64748b';
+
+          if(balanceNode){
+            const balanceText = scenarioValue !== null ? fmt(scenarioValue, state.currency) : (raw !== null ? fmt(raw, state.currency) : '—');
+            balanceNode.textContent = balanceText;
+            row.displayBalance = balanceText;
           }
+
+          const cardEl = input.closest('.eom-account-item');
+          if(cardEl){
+            cardEl.title = `${row.acc.name}: ${row.displayBalance}${row.deltaDisplay && row.deltaDisplay !== '—' ? ` | Δ ${row.deltaDisplay}` : ''}`;
+          }
+
+          if(deltaNodes.length){
+            deltaNodes.forEach(node => {
+              const role = node.dataset.role || '';
+              if(role === 'header'){
+                const tone = direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'flat';
+                node.classList.remove('up','down','flat');
+                node.classList.add(tone);
+                const headerHtml = pctDisplay !== '—'
+                  ? `<span class="arrow ${tone}">${arrow}</span><span>${deltaDisplay} <span class="tiny muted">(${pctDisplay})</span></span>`
+                  : `<span class="arrow ${tone}">${arrow}</span><span>${deltaDisplay}</span>`;
+                node.innerHTML = headerHtml;
+              } else if(role === 'detail'){
+                const tone = direction === 'up' ? 'positive' : direction === 'down' ? 'negative' : 'neutral';
+                node.classList.remove('positive','negative','neutral');
+                node.classList.add(tone);
+                node.textContent = pctDisplay !== '—' ? `${deltaDisplay} (${pctDisplay})` : deltaDisplay;
+              } else {
+                node.textContent = deltaDisplay;
+              }
+            });
+          }
+
+          const sparkPoint = row.sparklinePoints?.find(pt => pt.ym === ym);
+          if(sparkPoint){
+            sparkPoint.value = scenarioValue ?? 0;
+          }
+
           updateTotal();
+          if(typeof gridResult.refreshSparklines === 'function'){
+            gridResult.refreshSparklines();
+          }
         };
         input.addEventListener('input', updateRow);
         updateRow();
@@ -5511,18 +5933,21 @@
   const eomCharts={};
   const EOM_UI_STATE_KEY='lifeos_budget_eom_ui_v1';
   const DEFAULT_EOM_UI_STATE={
-    accountFilter:'all',
     accountTypes:[],
     dateRange:{ from:null, to:null },
     scenario:'actual',
-    gridSort:{ field:'name', dir:'asc' },
     groupBy:'type',
     pivotMode:false,
     focusedAccountId:null,
     changeSort:{field:'delta',dir:'desc'},
     monthlySort:{field:'ym',dir:'desc'},
     netWorthRange:'6m',
-    netWorthFocusMonth:null
+    netWorthFocusMonth:null,
+    accountSort:'balance',
+    filterPositiveOnly:false,
+    filterNegativeOnly:false,
+    hideZeroAccounts:false,
+    expandedAccounts:[]
   };
 
   function loadEomUiState(){
