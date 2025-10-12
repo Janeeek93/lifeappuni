@@ -50,6 +50,159 @@
       position: relative;
     }
 
+    .eom-hero {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .eom-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .eom-kpi-card {
+      position: relative;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .eom-kpi-card.is-visible {
+      animation: eomFadeUp .55s ease forwards;
+      animation-delay: var(--eom-delay, 0s);
+    }
+
+    .eom-kpi-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .eom-kpi-card.primary {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(37, 99, 235, 0.85));
+      border: none;
+      color: #fff;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.25);
+    }
+
+    .eom-kpi-card.primary:hover {
+      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.35);
+    }
+
+    .eom-kpi-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .eom-kpi-card.primary .eom-kpi-label {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .eom-kpi-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .eom-kpi-value {
+      font-size: clamp(28px, 3vw, 34px);
+      font-weight: 700;
+      color: inherit;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-kpi-meta {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eom-kpi-card.primary .eom-kpi-meta {
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .eom-kpi-trend {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .eom-kpi-trend.positive {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .eom-kpi-trend.negative {
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .eom-kpi-trend.neutral {
+      color: var(--muted);
+    }
+
+    .eom-kpi-card.primary .eom-kpi-trend.neutral {
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .eom-kpi-card.primary .eom-kpi-trend.positive {
+      color: #bbf7d0;
+    }
+
+    .eom-kpi-card.primary .eom-kpi-trend.negative {
+      color: #fecaca;
+    }
+
+    .eom-hero-insights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .eom-insight-pill {
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--ink);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .eom-insight-pill.negative {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.18);
+    }
+
+    @keyframes eomFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .chart-box.tall { height: 320px; }
     .chart-box.wide { height: 280px; }
 
@@ -1135,8 +1288,10 @@
         </div>
       </div>
 
-      <div id="eom-kpis" class="grid g-4" style="margin-top:16px"></div>
-      <div id="eom-insights" class="insight-row"></div>
+      <div class="eom-hero">
+        <div id="eom-kpis" class="eom-hero-grid"></div>
+        <div id="eom-insights" class="eom-hero-insights"></div>
+      </div>
 
       <div class="grid g-2" style="margin-top:16px;gap:16px">
         <div class="eom-panel">
@@ -3423,145 +3578,194 @@
   function renderEomKpis(ctx, accountStats){
     const container = document.getElementById('eom-kpis');
     if(!container) return;
+    container.innerHTML = '';
     if(!ctx.months.length){
-      container.innerHTML = `<p class="muted" style="grid-column:1 / -1;text-align:center;">Dodaj pierwsze salda, aby zobaczyć wskaźniki.</p>`;
+      container.innerHTML = `<div class="muted" style="grid-column:1 / -1;text-align:center;padding:18px;">Dodaj pierwsze salda, aby zobaczyć wskaźniki.</div>`;
+      renderEomInsights(ctx, []);
       return;
     }
+
     const scenario = eomUiState.scenario || 'actual';
+    const scenarioLabel = EOM_SCENARIOS[scenario]?.label || 'Realny';
     const typeFilter = new Set(eomUiState.accountTypes || []);
     const relevantAccounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
-    const netWorth = relevantAccounts.reduce((sum, acc) => {
-      const value = ctx.focusBalances[acc.id];
-      if(value === undefined) return sum;
-      const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-      return sum + adjusted;
-    }, 0);
-    const prevNetWorth = ctx.focusPrevMonth ? relevantAccounts.reduce((sum, acc) => {
-      const value = ctx.focusPrevBalances[acc.id];
-      if(value === undefined) return sum;
-      const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-      return sum + adjusted;
-    }, 0) : null;
-    const delta = prevNetWorth !== null ? netWorth - prevNetWorth : null;
-    const deltaExists = delta !== null && Math.abs(delta) >= 0.005;
-    const deltaValue = deltaExists ? `${delta > 0 ? '+' : ''}${fmt(delta, state.currency)}` : '—';
-    let changeInfo = '<span class="kpi-trend trend-flat">Brak danych do porównania</span>';
-    if(deltaExists){
-      const deltaPct = prevNetWorth ? (delta / prevNetWorth) * 100 : null;
-      const pctText = deltaPct !== null ? ` (${delta > 0 ? '+' : ''}${deltaPct.toFixed(1)}%)` : '';
-      changeInfo = `<span class="kpi-trend ${delta > 0 ? 'trend-up' : 'trend-down'}">${delta > 0 ? 'Wzrost' : 'Spadek'} ${delta > 0 ? '+' : ''}${fmt(delta, state.currency)}${pctText}</span>`;
+    if(!relevantAccounts.length){
+      container.innerHTML = `<div class="muted" style="grid-column:1 / -1;text-align:center;padding:18px;">Brak kont spełniających filtry — zmień wybór typów kont.</div>`;
+      renderEomInsights(ctx, []);
+      return;
     }
-    const { positive, liabilities } = relevantAccounts.reduce((acc, account) => {
-      const value = ctx.focusBalances[account.id];
-      if(value === undefined) return acc;
-      const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-      if(adjusted >= 0) acc.positive += adjusted;
-      else acc.liabilities += adjusted;
-      return acc;
-    }, { positive:0, liabilities:0 });
-    const base = positive + Math.abs(liabilities);
-    const debtShare = base ? (Math.abs(liabilities) / base) * 100 : 0;
-    const bestAccount = accountStats.filter(row => Number.isFinite(row.delta)).sort((a,b) => (b.delta || 0) - (a.delta || 0))[0];
-    const worstAccount = accountStats.filter(row => Number.isFinite(row.delta)).sort((a,b) => (a.delta || 0) - (b.delta || 0))[0];
-    const bestLine = bestAccount && Math.abs(bestAccount.delta || 0) >= 0.005
-      ? `<div><span class="ok">▲ ${bestAccount.account.name}</span> ${fmt(bestAccount.delta, state.currency)}</div>`
-      : '<div class="muted">Brak wzrostów</div>';
-    const worstLine = worstAccount && Math.abs(worstAccount.delta || 0) >= 0.005
-      ? `<div><span class="bad">▼ ${worstAccount.account.name}</span> ${fmt(worstAccount.delta, state.currency)}</div>`
-      : '<div class="muted">Brak spadków</div>';
-    const focusLabel = ctx.focusMonth
-      ? (ctx.focusMonth === ctx.workingYm ? `Dane z ${ctx.focusMonth}` : `Ostatni zapis: ${ctx.focusMonth}`)
+
+    const netWorthForMonth = (ym) => {
+      if(!ym) return 0;
+      const balances = ctx.monthBalances[ym] || {};
+      return relevantAccounts.reduce((sum, acc) => {
+        const value = balances[acc.id];
+        if(value === undefined) return sum;
+        const adjusted = applyScenarioToValue(value, scenario);
+        return sum + (typeof adjusted === 'number' ? adjusted : 0);
+      }, 0);
+    };
+
+    const focusMonth = ctx.focusMonth;
+    const focusPrevMonth = ctx.focusPrevMonth;
+    const netWorth = netWorthForMonth(focusMonth);
+    const prevNetWorth = focusPrevMonth ? netWorthForMonth(focusPrevMonth) : null;
+    const delta = prevNetWorth !== null ? netWorth - prevNetWorth : null;
+    const hasDelta = delta !== null && Math.abs(delta) >= 0.005;
+    const deltaPct = hasDelta && prevNetWorth !== 0 ? (delta / (prevNetWorth || 1)) * 100 : null;
+    const deltaClass = !hasDelta ? 'neutral' : (delta > 0 ? 'positive' : 'negative');
+
+    const focusLabel = focusMonth
+      ? (focusMonth === ctx.workingYm ? `Dane z ${focusMonth}` : `Ostatni zapis: ${focusMonth}`)
       : 'Brak zapisów';
 
-    container.innerHTML = `
-      <div class="kpi-card">
-        <div class="label">Majątek netto</div>
-        <div class="value">${fmt(netWorth, state.currency)}</div>
-        <div class="sub">${focusLabel} • Scenariusz: ${EOM_SCENARIOS[scenario]?.label || 'Realny'}</div>
-      </div>
-      <div class="kpi-card light">
-        <div class="label">Zmiana m/m</div>
-        <div class="value">${deltaValue}</div>
-        ${changeInfo}
-      </div>
-      <div class="kpi-card light">
-        <div class="label">Największe ruchy</div>
-        ${bestLine}
-        ${worstLine}
-      </div>
-      <div class="kpi-card light">
-        <div class="label">Struktura</div>
-        <div>Płynne aktywa: <b>${fmt(positive, state.currency)}</b></div>
-        <div>Zobowiązania: <b>${fmt(Math.abs(liabilities), state.currency)}</b></div>
-        <div class="sub">Dług to ${debtShare.toFixed(1)}% portfela</div>
-      </div>
-    `;
+    const balanceBreakdown = relevantAccounts.reduce((acc, account) => {
+      const value = ctx.focusBalances[account.id];
+      if(value === undefined) return acc;
+      const adjusted = applyScenarioToValue(value, scenario);
+      if(typeof adjusted !== 'number') return acc;
+      if(adjusted >= 0) acc.assets += adjusted; else acc.debt += adjusted;
+      return acc;
+    }, { assets:0, debt:0 });
+    const prevBreakdown = focusPrevMonth ? relevantAccounts.reduce((acc, account) => {
+      const value = ctx.focusPrevBalances[account.id];
+      if(value === undefined) return acc;
+      const adjusted = applyScenarioToValue(value, scenario);
+      if(typeof adjusted !== 'number') return acc;
+      if(adjusted >= 0) acc.assets += adjusted; else acc.debt += adjusted;
+      return acc;
+    }, { assets:0, debt:0 }) : null;
+    const debtTotal = Math.abs(balanceBreakdown.debt);
+    const base = balanceBreakdown.assets + debtTotal;
+    const debtShare = base ? (debtTotal / base) * 100 : 0;
+    const prevDebtTotal = prevBreakdown ? Math.abs(prevBreakdown.debt) : null;
+    const debtDelta = prevDebtTotal !== null ? debtTotal - prevDebtTotal : null;
+    const debtDeltaClass = debtDelta === null ? 'neutral' : (debtDelta > 0 ? 'negative' : (debtDelta < 0 ? 'positive' : 'neutral'));
+
+    const record = ctx.months.reduce((best, ym) => {
+      const total = netWorthForMonth(ym);
+      if(!Number.isFinite(total)) return best;
+      if(!best || total > best.total) return { ym, total };
+      return best;
+    }, null);
+    const recordGap = record ? netWorth - record.total : null;
+    const recordTrendClass = recordGap === null ? 'neutral' : (recordGap >= 0 ? 'positive' : 'negative');
+
+    const bestAccount = accountStats.filter(row => Number.isFinite(row.delta)).sort((a,b) => (b.delta || 0) - (a.delta || 0))[0];
+    const worstAccount = accountStats.filter(row => Number.isFinite(row.delta)).sort((a,b) => (a.delta || 0) - (b.delta || 0))[0];
+    const growthInsight = bestAccount && Math.abs(bestAccount.delta || 0) >= 0.005
+      ? { text: `Najszybszy wzrost: ${bestAccount.account.name} ${bestAccount.delta > 0 ? '+' : ''}${fmt(bestAccount.delta, state.currency)}`, className: 'positive', icon: '🚀' }
+      : null;
+    const dragInsight = worstAccount && Math.abs(worstAccount.delta || 0) >= 0.005
+      ? { text: `Największy spadek: ${worstAccount.account.name} ${worstAccount.delta > 0 ? '+' : ''}${fmt(worstAccount.delta, state.currency)}`, className: worstAccount.delta < 0 ? 'negative' : 'neutral', icon: '📉' }
+      : null;
+    const debtShareInsight = debtTotal
+      ? { text: `Zadłużenie to ${debtShare.toFixed(1)}% portfela`, className: debtShare > 35 ? 'negative' : 'neutral', icon: debtShare > 35 ? '⚠️' : 'ℹ️' }
+      : null;
+    const insights = [];
+    if(growthInsight) insights.push(growthInsight);
+    if(debtShareInsight) insights.push(debtShareInsight);
+    if(insights.length < 2 && dragInsight) insights.push(dragInsight);
+    if(insights.length === 0 && record){
+      insights.push({ text: `Rekord: ${record.ym} ${fmt(record.total, state.currency)}`, className: 'positive', icon: '🏆' });
+    }
+
+    const cards = [
+      {
+        id: 'net-worth',
+        target: 'eom-networth-chart',
+        primary: true,
+        icon: '💼',
+        label: 'Majątek netto',
+        value: fmt(netWorth, state.currency),
+        trend: hasDelta ? { className: deltaClass, text: `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta), state.currency)}${deltaPct !== null ? ` (${delta > 0 ? '+' : ''}${deltaPct.toFixed(1)}%)` : ''}` } : { className: 'neutral', text: 'Stabilnie m/m' },
+        meta: [ `${focusLabel}`, `Scenariusz: ${scenarioLabel}` ]
+      },
+      {
+        id: 'mom-change',
+        target: 'eom-accounts-chart',
+        primary: false,
+        icon: '📈',
+        label: 'Zmiana m/m',
+        value: hasDelta ? `${delta > 0 ? '+' : ''}${fmt(delta, state.currency)}` : '—',
+        trend: hasDelta ? { className: deltaClass, text: `${deltaPct !== null ? `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` : 'vs poprzedni miesiąc'}` } : { className: 'neutral', text: 'Brak danych historycznych' },
+        meta: [ prevNetWorth !== null ? `Poprzedni miesiąc: ${fmt(prevNetWorth, state.currency)}` : 'Czekamy na pierwszy zapis', focusPrevMonth ? `Porównanie z ${focusPrevMonth}` : '' ].filter(Boolean)
+      },
+      {
+        id: 'net-record',
+        target: 'eom-accounts-history',
+        primary: false,
+        icon: '🏆',
+        label: 'Rekord historyczny',
+        value: record ? fmt(record.total, state.currency) : '—',
+        trend: record ? (Math.abs(recordGap || 0) < 0.005
+          ? { className: 'positive', text: 'Nowy rekord w tym miesiącu' }
+          : { className: recordTrendClass, text: `${recordGap > 0 ? 'Rekord pobity' : 'Do rekordu brakuje'} ${fmt(Math.abs(recordGap), state.currency)}` }
+        ) : { className: 'neutral', text: 'Brak historii' },
+        meta: [ record ? `Ustanowiony: ${record.ym}` : 'Dodaj więcej miesięcy', record && focusMonth && record.ym !== focusMonth ? `Obecnie: ${fmt(netWorth, state.currency)}` : '' ].filter(Boolean)
+      },
+      {
+        id: 'net-debt',
+        target: 'eom-grid',
+        primary: false,
+        icon: '💳',
+        label: 'Zadłużenie',
+        value: debtTotal ? `-${fmt(debtTotal, state.currency)}` : '—',
+        trend: debtDelta !== null
+          ? { className: debtDeltaClass, text: `${debtDelta > 0 ? '▲' : debtDelta < 0 ? '▼' : '●'} ${debtDelta > 0 ? '+' : ''}${fmt(debtDelta, state.currency)}` }
+          : { className: 'neutral', text: 'Brak danych historycznych' },
+        meta: [ `Stanowi ${debtShare.toFixed(1)}% portfela`, balanceBreakdown.assets ? `Aktywa: ${fmt(balanceBreakdown.assets, state.currency)}` : '' ].filter(Boolean)
+      }
+    ];
+
+    renderEomInsights(ctx, insights);
+
+    container.innerHTML = cards.map((card, idx) => {
+      const trendHtml = card.trend ? `<div class="eom-kpi-trend ${card.trend.className}">${card.trend.text}</div>` : '';
+      const metaHtml = card.meta && card.meta.length ? `<div class="eom-kpi-meta">${card.meta.map(line => `<span>${line}</span>`).join('')}</div>` : '';
+      return `
+        <article class="eom-kpi-card${card.primary ? ' primary' : ''}" data-target="${card.target}" style="--eom-delay:${idx * 80}ms">
+          <div class="eom-kpi-icon">${card.icon}</div>
+          <span class="eom-kpi-label">${card.label}</span>
+          <span class="eom-kpi-value">${card.value}</span>
+          ${trendHtml}
+          ${metaHtml}
+        </article>
+      `;
+    }).join('');
+
+    requestAnimationFrame(() => {
+      container.querySelectorAll('.eom-kpi-card').forEach(card => {
+        card.classList.add('is-visible');
+        const target = card.getAttribute('data-target');
+        if(target && !card.dataset.bound){
+          card.dataset.bound = '1';
+          card.addEventListener('click', () => {
+            const el = document.getElementById(target);
+            if(el){
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        }
+      });
+    });
   }
 
-  function renderEomInsights(ctx, summaryRows){
+  function renderEomInsights(ctx, insightItems){
     const container = document.getElementById('eom-insights');
     if(!container) return;
-    if(!ctx.months.length){
+    const items = Array.isArray(insightItems)
+      ? insightItems.filter(item => item && typeof item.text === 'string' && item.text.trim().length)
+      : [];
+    if(!ctx.months.length || !items.length){
       container.innerHTML = '';
       return;
     }
-    const insights = [];
-    const scenario = eomUiState.scenario || 'actual';
-    const typeFilter = new Set(eomUiState.accountTypes || []);
-    const relevantAccounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
-    if(summaryRows.length){
-      const record = summaryRows.reduce((max, item) => item.netWorth > (max?.netWorth ?? -Infinity) ? item : max, null);
-      if(record){
-        insights.push(`<span class="insight-pill">📈 Rekord (${EOM_SCENARIOS[scenario]?.label || 'Realny'}): ${record.ym} — ${fmt(record.netWorth, state.currency)}</span>`);
-      }
-      const low = summaryRows.reduce((min, item) => item.netWorth < (min?.netWorth ?? Infinity) ? item : min, null);
-      if(low && low.ym !== record?.ym){
-        insights.push(`<span class="insight-pill">📉 Najniższy poziom: ${low.ym} — ${fmt(low.netWorth, state.currency)}</span>`);
-      }
-    }
-    const swing = summaryRows.filter(row => row.delta !== null && Math.abs(row.delta) >= 0.005)
-      .sort((a,b) => Math.abs((b.delta || 0)) - Math.abs((a.delta || 0)))[0];
-    if(swing){
-      insights.push(`<span class="insight-pill">${swing.delta > 0 ? '🟢' : '🔻'} Największa zmiana: ${swing.ym} ${swing.delta > 0 ? '+' : ''}${fmt(swing.delta, state.currency)}</span>`);
-    }
-    const total = relevantAccounts.reduce((sum, acc) => {
-      const value = ctx.focusBalances[acc.id];
-      if(value === undefined) return sum;
-      const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-      return sum + adjusted;
-    }, 0);
-    if(total){
-      let top = null;
-      for(const acc of relevantAccounts){
-        const value = ctx.focusBalances[acc.id];
-        if(value === undefined) continue;
-        const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-        const share = (adjusted / total) * 100;
-        if(!top || Math.abs(share) > Math.abs(top.share)){
-          top = { account: acc, value: adjusted, share };
-        }
-      }
-      if(top){
-        insights.push(`<span class="insight-pill">${top.value >= 0 ? '🏦' : '💳'} ${top.account.name}: ${fmt(top.value, state.currency)} (${top.share.toFixed(1)}%)</span>`);
-      }
-    }
-    const liabilities = relevantAccounts.reduce((sum, acc) => {
-      const value = ctx.focusBalances[acc.id];
-      if(value === undefined) return sum;
-      const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-      return adjusted < 0 ? sum + adjusted : sum;
-    }, 0);
-    if(liabilities){
-      const base = relevantAccounts.reduce((sum, acc) => {
-        const value = ctx.focusBalances[acc.id];
-        if(value === undefined) return sum;
-        const adjusted = applyScenarioToValue(value, scenario) ?? 0;
-        return sum + Math.abs(adjusted);
-      }, 0);
-      const ratio = base ? (Math.abs(liabilities) / base) * 100 : 0;
-      insights.push(`<span class="insight-pill">⚠️ Długi: ${fmt(Math.abs(liabilities), state.currency)} (${ratio.toFixed(1)}% aktywów)</span>`);
-    }
-    container.innerHTML = insights.join('');
+    container.innerHTML = items.slice(0, 2).map(item => {
+      const cls = item.className === 'negative' ? 'eom-insight-pill negative' : 'eom-insight-pill';
+      const icon = item.icon ? `${item.icon} ` : '';
+      return `<span class="${cls}">${icon}${item.text}</span>`;
+    }).join('');
   }
 
   function renderEomHistoryTable(ctx, monthsToShow, options={}){
@@ -4289,7 +4493,6 @@
 
     if(!baseMonths.length){
       renderEomKpis(ctx, []);
-      renderEomInsights(ctx, []);
       renderEomHistoryTable(ctx, []);
       renderEomChangeTable(ctx, []);
       renderEomMonthlySummary([]);
@@ -4304,7 +4507,6 @@
     const monthlySummary = computeMonthlySummary(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
 
     renderEomKpis(ctx, accountStats);
-    renderEomInsights(ctx, monthlySummary);
     renderEomHistoryTable(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
     renderEomChangeTable(ctx, accountStats);
     renderEomMonthlySummary(monthlySummary.filter(row => monthsToShow.includes(row.ym)), { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
