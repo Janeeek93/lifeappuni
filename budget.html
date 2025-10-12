@@ -915,13 +915,13 @@
 
     .eom-kpi-card {
       position: relative;
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-radius: 18px;
       background: var(--card);
       border: 1px solid rgba(148, 163, 184, 0.35);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
       cursor: pointer;
       transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
       opacity: 0;
@@ -962,19 +962,19 @@
     }
 
     .eom-kpi-icon {
-      font-size: 22px;
+      font-size: 20px;
       line-height: 1;
     }
 
     .eom-kpi-value {
-      font-size: clamp(28px, 3vw, 34px);
+      font-size: clamp(24px, 2.6vw, 30px);
       font-weight: 700;
       color: inherit;
       font-variant-numeric: tabular-nums;
     }
 
     .eom-kpi-meta {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--muted);
       display: flex;
       flex-direction: column;
@@ -989,7 +989,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .eom-kpi-trend.positive {
@@ -1218,23 +1218,6 @@
       flex-direction: column;
       gap: 6px;
       min-width: 180px;
-    }
-
-    .eom-scenario-toggle {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .eom-scenario-toggle .btn {
-      padding: 6px 10px;
-      font-size: 13px;
-    }
-
-    .eom-scenario-toggle .btn.active {
-      background: var(--ink);
-      color: #fff;
-      border-color: var(--ink);
     }
 
     .eom-grid-shell {
@@ -2346,159 +2329,80 @@
         <div class="eom-performance-column">
           <div class="eom-performance-head">
             <h4 class="title">⚠️ Wymagają uwagi</h4>
-            <p class="tiny muted">Spadki, zadłużenie lub nietypowe skoki powyżej 50%.</p>
+            <p class="tiny muted">Największe spadki miesiąc do miesiąca — sprawdź, co ciągnie wynik w dół.</p>
           </div>
           <div class="eom-performance-list" data-zone="watch"></div>
         </div>
       </section>
 
-      <section class="eom-mom-section" id="eom-mom">
+      <div class="eom-panel" style="margin-top:16px">
         <div class="row" style="align-items:flex-end;gap:12px">
           <div>
-            <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
-            <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
+            <div class="title" style="margin-bottom:4px">Rejestr sald</div>
+            <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
           </div>
         </div>
-        <div class="eom-mom-controls">
-          <div class="control-group">
-            <label for="eom-mom-month-a">Miesiąc A</label>
-            <select id="eom-mom-month-a"></select>
-          </div>
-          <div class="control-group">
-            <label for="eom-mom-month-b">Miesiąc B</label>
-            <select id="eom-mom-month-b"></select>
-          </div>
-          <div class="eom-mom-actions">
-            <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
-            <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
-          </div>
-        </div>
-        <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
-        <div id="eom-mom-grid" class="eom-mom-grid" style="display:none">
-          <div class="eom-mom-column" data-column="a">
-            <div class="eom-mom-column-header">
-              <div class="label">Miesiąc A</div>
-              <div class="value" id="eom-mom-total-a">—</div>
-              <div class="tiny muted" id="eom-mom-label-a"></div>
-            </div>
-            <div class="eom-mom-pie">
-              <canvas id="eom-mom-pie-a"></canvas>
-              <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-a" style="display:none">Brak danych</div>
-            </div>
-            <div class="eom-mom-list" id="eom-mom-list-a"></div>
-          </div>
-          <div class="eom-mom-column" data-column="delta">
-            <div class="eom-mom-column-header">
-              <div class="label">Zmiana</div>
-              <div class="tiny muted">Saldo A vs B</div>
-            </div>
-            <div class="eom-mom-list" id="eom-mom-list-delta"></div>
-          </div>
-          <div class="eom-mom-column" data-column="b">
-            <div class="eom-mom-column-header">
-              <div class="label">Miesiąc B</div>
-              <div class="value" id="eom-mom-total-b">—</div>
-              <div class="tiny muted" id="eom-mom-label-b"></div>
-            </div>
-            <div class="eom-mom-pie">
-              <canvas id="eom-mom-pie-b"></canvas>
-              <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-b" style="display:none">Brak danych</div>
-            </div>
-            <div class="eom-mom-list" id="eom-mom-list-b"></div>
-          </div>
-        </div>
-        <div id="eom-mom-summary" class="eom-mom-summary-card" style="display:none"></div>
-      </section>
-
-      <div class="grid g-2" style="margin-top:16px;gap:16px">
-        <div class="eom-panel">
-          <div class="row" style="align-items:flex-end;gap:12px">
-            <div>
-              <div class="title" style="margin-bottom:4px">Rejestr sald</div>
-              <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
-            </div>
-          </div>
           <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
             <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
             <button class="btn soft" type="submit">Dodaj konto</button>
           </form>
-          <div class="eom-control-bar" id="eom-control-bar">
-            <label class="filter-group">
-              <span class="tiny">Typy kont</span>
-              <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
-              <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
-            </label>
-            <div class="filter-group">
-              <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
-              <div class="row" style="gap:6px;align-items:center">
-                <input type="month" id="eom-date-from" />
-                <span class="tiny muted">→</span>
-                <input type="month" id="eom-date-to" />
-              </div>
-              <span class="tiny muted">Określ zakres do analizy trendów.</span>
+        <div class="eom-control-bar" id="eom-control-bar">
+          <label class="filter-group">
+            <span class="tiny">Typy kont</span>
+            <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
+            <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
+          </label>
+          <div class="filter-group">
+            <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
+            <div class="row" style="gap:6px;align-items:center">
+              <input type="month" id="eom-date-from" />
+              <span class="tiny muted">→</span>
+              <input type="month" id="eom-date-to" />
             </div>
-            <div class="filter-group">
-              <span class="tiny">Scenariusz</span>
-              <div class="eom-scenario-toggle" id="eom-scenario-toggle">
-                <button class="btn soft" type="button" data-scenario="actual">Realny</button>
-                <button class="btn soft" type="button" data-scenario="optimistic">Optymistyczny</button>
-                <button class="btn soft" type="button" data-scenario="stress">Stresowy</button>
-              </div>
-            </div>
-            <div class="filter-group">
-              <span class="tiny">Widok danych</span>
-              <div class="row" style="gap:6px;align-items:center">
-                <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
-                <select id="eom-group-by" style="min-width:160px">
-                  <option value="type">Grupuj wg typu</option>
-                  <option value="status">Grupuj wg statusu</option>
-                  <option value="none">Bez grupowania</option>
-                </select>
-              </div>
-              <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
-            </div>
+            <span class="tiny muted">Określ zakres do analizy trendów.</span>
           </div>
-          <div class="eom-account-toolbar" id="eom-account-toolbar">
-            <div class="controls">
-              <label class="tiny" for="eom-account-sort">Sortowanie
-                <select id="eom-account-sort">
-                  <option value="name">Po nazwie A-Z</option>
-                  <option value="balance">Po saldzie (najwyższe)</option>
-                  <option value="change-up">Zmiana % (wzrost)</option>
-                  <option value="change-down">Zmiana % (spadek)</option>
-                </select>
-              </label>
-              <div class="checkboxes" aria-label="Filtry kont">
-                <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
-                <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
-                <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
-              </div>
+          <div class="filter-group">
+            <span class="tiny">Widok danych</span>
+            <div class="row" style="gap:6px;align-items:center">
+              <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
+              <select id="eom-group-by" style="min-width:160px">
+                <option value="type">Grupuj wg typu</option>
+                <option value="status">Grupuj wg statusu</option>
+                <option value="none">Bez grupowania</option>
+              </select>
             </div>
-            <div class="bulk-actions">
-              <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
-              <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
-            </div>
-            <div class="count" id="eom-account-count">—</div>
-          </div>
-          <div id="eom-grid" class="eom-grid-shell"></div>
-          <div id="eom-heatmap" class="eom-heatmap-shell"></div>
-          <div class="row" style="margin-top:12px">
-            <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
-            <div class="row" style="gap:8px">
-              <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
-              <button id="eom-save" class="btn" type="button">Zapisz salda</button>
-            </div>
+            <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
           </div>
         </div>
-        <div class="eom-panel">
-          <div class="title" style="margin-bottom:4px">Konta napędzające zmiany</div>
-          <p class="tiny">Śledź, które konta mają największy wpływ na wynik portfela i jak zmieniają się ich wartości.</p>
-          <div class="chart-box tall" style="margin-top:16px"><canvas id="eom-accounts-chart"></canvas></div>
-          <div style="margin-top:16px;overflow-x:auto">
-            <table id="eom-change-table" class="table-modern table-sortable">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
+        <div class="eom-account-toolbar" id="eom-account-toolbar">
+          <div class="controls">
+            <label class="tiny" for="eom-account-sort">Sortowanie
+              <select id="eom-account-sort">
+                <option value="name">Po nazwie A-Z</option>
+                <option value="balance">Po saldzie (najwyższe)</option>
+                <option value="change-up">Zmiana % (wzrost)</option>
+                <option value="change-down">Zmiana % (spadek)</option>
+              </select>
+            </label>
+            <div class="checkboxes" aria-label="Filtry kont">
+              <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
+              <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
+              <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
+            </div>
+          </div>
+          <div class="bulk-actions">
+            <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
+            <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
+          </div>
+          <div class="count" id="eom-account-count">—</div>
+        </div>
+        <div id="eom-grid" class="eom-grid-shell"></div>
+        <div id="eom-heatmap" class="eom-heatmap-shell"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
+          <div class="row" style="gap:8px">
+            <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
+            <button id="eom-save" class="btn" type="button">Zapisz salda</button>
           </div>
         </div>
       </div>
@@ -2546,9 +2450,67 @@
           </table>
         </div>
       </div>
-    </section>
 
-    <!-- Goals -->
+    <section class="eom-mom-section" id="eom-mom" style="margin-top:16px">
+      <div class="row" style="align-items:flex-end;gap:12px">
+        <div>
+          <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
+          <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
+        </div>
+      </div>
+      <div class="eom-mom-controls">
+        <div class="control-group">
+          <label for="eom-mom-month-a">Miesiąc A</label>
+          <select id="eom-mom-month-a"></select>
+        </div>
+        <div class="control-group">
+          <label for="eom-mom-month-b">Miesiąc B</label>
+          <select id="eom-mom-month-b"></select>
+        </div>
+        <div class="eom-mom-actions">
+          <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
+          <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
+        </div>
+      </div>
+      <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
+      <div id="eom-mom-grid" class="eom-mom-grid" style="display:none">
+        <div class="eom-mom-column" data-column="a">
+          <div class="eom-mom-column-header">
+            <div class="label">Miesiąc A</div>
+            <div class="value" id="eom-mom-total-a">—</div>
+            <div class="tiny muted" id="eom-mom-label-a"></div>
+          </div>
+          <div class="eom-mom-pie">
+            <canvas id="eom-mom-pie-a"></canvas>
+            <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-a" style="display:none">Brak danych</div>
+          </div>
+          <div class="eom-mom-list" id="eom-mom-list-a"></div>
+        </div>
+        <div class="eom-mom-column" data-column="delta">
+          <div class="eom-mom-column-header">
+            <div class="label">Zmiana</div>
+            <div class="tiny muted">Saldo A vs B</div>
+          </div>
+          <div class="eom-mom-list" id="eom-mom-list-delta"></div>
+        </div>
+        <div class="eom-mom-column" data-column="b">
+          <div class="eom-mom-column-header">
+            <div class="label">Miesiąc B</div>
+            <div class="value" id="eom-mom-total-b">—</div>
+            <div class="tiny muted" id="eom-mom-label-b"></div>
+          </div>
+          <div class="eom-mom-pie">
+            <canvas id="eom-mom-pie-b"></canvas>
+            <div class="eom-mom-pie-empty" id="eom-mom-pie-empty-b" style="display:none">Brak danych</div>
+          </div>
+          <div class="eom-mom-list" id="eom-mom-list-b"></div>
+        </div>
+      </div>
+      <div id="eom-mom-summary" class="eom-mom-summary-card" style="display:none"></div>
+    </section>
+  </section>
+
+  <!-- Goals -->
     <section id="tab-goals" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Cele oszczędnościowe</h3>
       <form id="goal-form" class="grid g-4" style="margin-bottom:8px">
@@ -4512,7 +4474,6 @@
             <div class="eom-account-change">
               <div class="delta ${deltaTone}" data-delta="${row.acc.id}" data-role="detail">${row.deltaDisplay}${row.deltaPctDisplay && row.deltaPctDisplay !== '—' ? ` (${row.deltaPctDisplay})` : ''}</div>
               <div class="tiny muted">Poprzedni miesiąc: ${row.previousDisplay}</div>
-              ${eomUiState.scenario !== 'actual' ? `<div class="tiny muted">Scenariusz: ${row.scenarioLabel}</div>` : ''}
               <p class="tiny">${row.trendDescription}</p>
             </div>
             <div class="eom-account-actions">
@@ -4811,7 +4772,6 @@
     }
 
     const scenario = eomUiState.scenario || 'actual';
-    const scenarioLabel = EOM_SCENARIOS[scenario]?.label || 'Realny';
     const typeFilter = new Set(eomUiState.accountTypes || []);
     const relevantAccounts = ctx.accounts.filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)));
     if(!relevantAccounts.length){
@@ -4904,11 +4864,11 @@
         label: 'Majątek netto',
         value: fmt(netWorth, state.currency),
         trend: hasDelta ? { className: deltaClass, text: `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta), state.currency)}${deltaPct !== null ? ` (${delta > 0 ? '+' : ''}${deltaPct.toFixed(1)}%)` : ''}` } : { className: 'neutral', text: 'Stabilnie m/m' },
-        meta: [ `${focusLabel}`, `Scenariusz: ${scenarioLabel}` ]
+        meta: [ `${focusLabel}` ]
       },
       {
         id: 'mom-change',
-        target: 'eom-accounts-chart',
+        target: 'eom-mom',
         primary: false,
         icon: '📈',
         label: 'Zmiana m/m',
@@ -5529,92 +5489,6 @@
     return str;
   }
 
-  function renderEomChangeTable(ctx, accountStats){
-    const table = document.getElementById('eom-change-table');
-    if(!table) return;
-    const thead = table.querySelector('thead');
-    const tbody = table.querySelector('tbody');
-    if(thead) thead.innerHTML = '';
-    if(tbody) tbody.innerHTML = '';
-    if(!accountStats.length){
-      if(tbody) tbody.innerHTML = `<tr><td colspan="7" class="muted" style="text-align:center;padding:16px;">Brak historii kont do analizy.</td></tr>`;
-      return;
-    }
-    if(!thead || !tbody) return;
-    const sortState = eomUiState.changeSort;
-    const cols = [
-      { label:'Konto', key:'name' },
-      { label:`Saldo (${ctx.focusMonth || ctx.workingYm})`, key:'current' },
-      { label:ctx.focusPrevMonth ? `Poprzednio (${ctx.focusPrevMonth})` : 'Poprzednio', key:'previous' },
-      { label:'Zmiana m/m', key:'delta' },
-      { label:'Zmiana %', key:'deltaPct' },
-      { label:'vs średnia 3m', key:'trendVsAvg' },
-      { label:'Rekord', key:'max' }
-    ];
-    thead.innerHTML = '<tr>' + cols.map(col => {
-      const active = sortState.field === col.key;
-      const indicator = active ? `<span class="sort-indicator">${sortState.dir === 'asc' ? '▲' : '▼'}</span>` : '';
-      return `<th data-sort="${col.key}">${col.label}${indicator}</th>`;
-    }).join('') + '</tr>';
-
-    const rows = accountStats.map(stat => ({
-      ...stat,
-      name: stat.account.name,
-      maxScenario: stat.maxEntry ? applyScenarioToValue(stat.maxEntry.balance, stat.scenario) : null
-    }));
-
-    rows.sort((a,b) => {
-      const dir = sortState.dir === 'asc' ? 1 : -1;
-      const key = sortState.field;
-      if(key === 'name') return a.name.localeCompare(b.name, 'pl', { sensitivity:'base' }) * dir;
-      const mapValue = (row) => {
-        switch(key){
-          case 'current': return row.current ?? -Infinity;
-          case 'previous': return row.previous ?? -Infinity;
-          case 'delta': return row.delta ?? 0;
-          case 'deltaPct': return row.deltaPct ?? -Infinity;
-          case 'trendVsAvg': return row.trendVsAvg ?? -Infinity;
-          case 'max': return (row.maxScenario ?? row.maxEntry?.balance ?? -Infinity);
-          default: return row[key] ?? 0;
-        }
-      };
-      const av = mapValue(a);
-      const bv = mapValue(b);
-      if(av === bv) return a.name.localeCompare(b.name, 'pl', { sensitivity:'base' }) * dir;
-      return (av - bv) * dir;
-    });
-
-    tbody.innerHTML = rows.map(row => {
-      const currentHtml = row.current === null
-        ? '<span class="muted">—</span>'
-        : `${fmt(row.current, state.currency)}${row.currentYm && row.currentYm !== ctx.focusMonth ? `<br><span class="tiny muted">${row.currentYm}</span>` : ''}`;
-      const previousHtml = row.previous === null
-        ? '<span class="muted">—</span>'
-        : `${fmt(row.previous, state.currency)}${row.previousYm ? `<br><span class="tiny muted">${row.previousYm}</span>` : ''}`;
-      const deltaHtml = row.delta === null ? '<span class="muted">—</span>' : renderDeltaBadge(row.delta);
-      const pctHtml = row.deltaPct === null ? '<span class="muted">—</span>' : `<span class="${row.deltaPct >= 0 ? 'ok' : 'bad'}">${row.deltaPct >= 0 ? '+' : ''}${row.deltaPct.toFixed(1)}%</span>`;
-      const avgHtml = row.trendVsAvg === null ? '<span class="muted">—</span>' : renderDeltaBadge(row.trendVsAvg);
-      const maxHtml = row.maxEntry
-        ? `${fmt(row.maxScenario ?? row.maxEntry.balance, state.currency)}<br><span class="tiny muted">${row.maxEntry.ym}</span>`
-        : '<span class="muted">—</span>';
-      const focusClass = eomUiState.focusedAccountId === row.account.id ? ' class="focused"' : '';
-      return `<tr${focusClass}><td>${row.name}</td><td>${currentHtml}</td><td>${previousHtml}</td><td>${deltaHtml}</td><td>${pctHtml}</td><td>${avgHtml}</td><td>${maxHtml}</td></tr>`;
-    }).join('');
-
-    thead.querySelectorAll('th[data-sort]').forEach(th => {
-      const key = th.dataset.sort;
-      th.onclick = () => {
-        if(eomUiState.changeSort.field === key){
-          eomUiState.changeSort.dir = eomUiState.changeSort.dir === 'asc' ? 'desc' : 'asc';
-        } else {
-          eomUiState.changeSort.field = key;
-          eomUiState.changeSort.dir = key === 'name' ? 'asc' : 'desc';
-        }
-        renderEOMHistory();
-      };
-    });
-  }
-
   function renderEomPerformanceMatrix(ctx, accountStats){
     const container = document.getElementById('eom-performance-matrix');
     if(!container) return;
@@ -5647,32 +5521,18 @@
     }
 
     const watchCandidates = accountStats
-      .map(stat => {
-        const currentValue = stat.current ?? stat.previous ?? 0;
-        const negativeChange = Number.isFinite(stat.delta) && stat.delta < 0;
-        const negativeBalance = Number.isFinite(currentValue) && currentValue < 0;
-        const bigSwing = stat.deltaPct !== null && Math.abs(stat.deltaPct) >= 50;
-        if(!negativeChange && !negativeBalance && !bigSwing) return null;
-        const alert = detectEomAccountAlert(stat, scenario);
-        const severity =
-          (alert ? 4 : 0) +
-          (negativeBalance ? 3 : 0) +
-          (negativeChange ? 2 : 0) +
-          (bigSwing ? 1 : 0);
-        return { stat, severity, alert };
-      })
-      .filter(Boolean);
-
-    watchCandidates.sort((a,b) => {
-      if(a.severity !== b.severity) return b.severity - a.severity;
-      const deltaA = Math.abs(a.stat.delta ?? 0);
-      const deltaB = Math.abs(b.stat.delta ?? 0);
-      if(deltaA !== deltaB) return deltaB - deltaA;
-      const pctA = Math.abs(a.stat.deltaPct ?? 0);
-      const pctB = Math.abs(b.stat.deltaPct ?? 0);
-      if(pctA !== pctB) return pctB - pctA;
-      return a.stat.account.name.localeCompare(b.stat.account.name, 'pl', { sensitivity:'base' });
-    });
+      .filter(stat => Number.isFinite(stat.delta) && stat.delta < 0)
+      .map(stat => ({
+        stat,
+        magnitude: Math.abs(stat.delta ?? 0),
+        pct: Math.abs(stat.deltaPct ?? 0),
+        alert: detectEomAccountAlert(stat, scenario)
+      }))
+      .sort((a,b) => {
+        if(a.magnitude !== b.magnitude) return b.magnitude - a.magnitude;
+        if(a.pct !== b.pct) return b.pct - a.pct;
+        return a.stat.account.name.localeCompare(b.stat.account.name, 'pl', { sensitivity:'base' });
+      });
 
     const watchList = watchCandidates.slice(0, 5);
     if(!watchList.length){
@@ -6159,7 +6019,7 @@
     card.addEventListener('click', () => {
       eomUiState.focusedAccountId = stat.account.id;
       renderEOM();
-      const target = document.getElementById('eom-accounts-chart') || document.getElementById('eom-grid');
+      const target = document.getElementById('eom-grid');
       if(target){
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -6246,8 +6106,6 @@
     const table = document.getElementById('eom-monthly-summary');
     if(!table) return;
     const scenarioKey = options.scenario || 'actual';
-    table.dataset.scenario = scenarioKey;
-    table.title = `Scenariusz: ${(EOM_SCENARIOS[scenarioKey]?.label) || 'Realny'}`;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if(thead) thead.innerHTML = '';
@@ -6702,71 +6560,6 @@
     }
   }
 
-  function renderEomAccountsChart(ctx, monthsToShow, options={}){
-    const canvas = document.getElementById('eom-accounts-chart');
-    if(!canvas) return;
-    destroyEomChart('accounts');
-    if(!monthsToShow.length) return;
-    const scenario = options.scenario || 'actual';
-    const typeFilter = new Set(Array.isArray(options.accountTypes) ? options.accountTypes : []);
-    const focusId = options.focus || null;
-    const ranked = ctx.accounts
-      .filter(acc => typeFilter.size === 0 || typeFilter.has(inferAccountType(acc)))
-      .map(acc => ({
-        acc,
-        value: Math.abs(ctx.focusBalances[acc.id] ?? 0)
-      }))
-      .sort((a,b) => b.value - a.value)
-      .slice(0, 6);
-    if(!ranked.length) return;
-    const datasets = ranked.map((item, idx) => {
-      const history = ctx.accountHistory[item.acc.id] || [];
-      return {
-        label: item.acc.name,
-        data: monthsToShow.map(ym => {
-          const entry = entryForMonth(history, ym);
-          return entry ? applyScenarioToValue(entry.balance, scenario) : null;
-        }),
-        borderColor: ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length],
-        backgroundColor: withAlpha(ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length], 0.14),
-        borderWidth: focusId && focusId === item.acc.id ? 4 : 2,
-        tension:0.35,
-        fill:false,
-        spanGaps:true,
-        accountId: item.acc.id
-      };
-    });
-    eomCharts.accounts = new Chart(canvas.getContext('2d'), {
-      type:'line',
-      data:{ labels: monthsToShow, datasets },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          legend:{ position:'bottom' },
-          tooltip:{
-            callbacks:{
-              label: context => `${context.dataset.label}: ${fmt(context.parsed.y, state.currency)}`
-            }
-          }
-        },
-        scales:{
-          y:{ ticks:{ callback: currencyTicks } }
-        },
-        onClick: (evt, elements) => {
-          if(!elements.length) return;
-          const datasetIndex = elements[0].datasetIndex;
-          const dataset = datasets[datasetIndex];
-          if(dataset?.accountId){
-            eomUiState.focusedAccountId = dataset.accountId;
-            renderEOM();
-            renderEOMHistory();
-          }
-        }
-      }
-    });
-  }
-
   function renderEOM(){
     const ctx = buildEomContext();
     const ym = ctx.workingYm;
@@ -6775,8 +6568,7 @@
       const lastInfo = ctx.hasWorking
         ? 'Masz już zapisane salda dla tego miesiąca — możesz je zaktualizować.'
         : ctx.latestMonth ? `Ostatnio zapisano dane dla ${ctx.latestMonth}.` : 'To będzie Twój pierwszy zapis sald.';
-      const scenarioInfo = EOM_SCENARIOS[eomUiState.scenario] || EOM_SCENARIOS.actual;
-      prompt.innerHTML = `Wprowadź salda swoich kont na koniec miesiąca <b>${ym}</b>. <span class="muted">${lastInfo}</span><br><span class="tiny muted">Scenariusz: ${scenarioInfo.description}</span>`;
+      prompt.innerHTML = `Wprowadź salda swoich kont na koniec miesiąca <b>${ym}</b>. <span class="muted">${lastInfo}</span>`;
     }
     const badge = document.getElementById('eom-active-month');
     if(badge) badge.textContent = ym;
@@ -6888,23 +6680,6 @@
       }
     }
 
-    const scenarioToggle = document.getElementById('eom-scenario-toggle');
-    if(scenarioToggle){
-      scenarioToggle.querySelectorAll('button[data-scenario]').forEach(btn => {
-        const value = btn.dataset.scenario;
-        btn.classList.toggle('active', value === eomUiState.scenario);
-        if(!btn.dataset.bound){
-          btn.dataset.bound = '1';
-          btn.addEventListener('click', () => {
-            if(eomUiState.scenario === value) return;
-            eomUiState.scenario = value;
-            renderEOM();
-            renderEOMHistory();
-          });
-        }
-      });
-    }
-
     const pivotToggle = document.getElementById('eom-pivot-toggle');
     if(pivotToggle){
       pivotToggle.dataset.active = eomUiState.pivotMode ? '1' : '0';
@@ -6935,7 +6710,6 @@
     const wantsPositiveOnly = !!eomUiState.filterPositiveOnly;
     const wantsNegativeOnly = !!eomUiState.filterNegativeOnly;
     const hideZeroAccounts = !!eomUiState.hideZeroAccounts;
-    const scenarioLabel = EOM_SCENARIOS[eomUiState.scenario]?.label || 'Realny';
     const threshold = 0.005;
 
     const rows = ctx.accounts.map(acc => {
@@ -7012,9 +6786,6 @@
       const subtitle = subtitleParts.filter(Boolean).join(' · ');
       const sparkColor = trendDirection === 'down' ? '#dc2626' : trendDirection === 'up' ? '#16a34a' : '#64748b';
       let deltaLabel = deltaAdjusted === null ? '<span class=\"muted\">—</span>' : renderDeltaBadge(deltaAdjusted);
-      if(eomUiState.scenario !== 'actual' && scenarioCurrent !== null){
-        deltaLabel += `<br><span class=\"tiny muted\">${fmt(scenarioCurrent, state.currency)} (${scenarioLabel})</span>`;
-      }
       const prevBits = [];
       if(previousValue === null){
         prevBits.push('<span class=\"muted\">Brak danych</span>');
@@ -7022,9 +6793,6 @@
         prevBits.push(`<strong>${fmt(previousValue, state.currency)}</strong>`);
         if(prevEntry?.ym){
           prevBits.push(`<span class=\"tiny muted\">${prevEntry.ym}</span>`);
-        }
-        if(eomUiState.scenario !== 'actual' && scenarioPrevious !== null){
-          prevBits.push(`<span class=\"tiny muted\">${scenarioLabel}: ${fmt(scenarioPrevious, state.currency)}</span>`);
         }
       }
       let groupKey = 'Wszystkie konta';
@@ -7056,7 +6824,6 @@
         sparkColor,
         isDormant: dormant,
         subtitle,
-        scenarioLabel,
         sparklinePoints,
         history,
         groupKey
@@ -7345,10 +7112,8 @@
       renderEomKpis(ctx, []);
       renderEomPerformanceMatrix(ctx, []);
       renderEomHistoryTable(ctx, [], { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-      renderEomChangeTable(ctx, []);
       renderEomMonthlySummary([]);
       renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-      destroyEomChart('accounts');
       return;
     }
 
@@ -7368,10 +7133,8 @@
       sort: eomUiState.historySort,
       totalMonths: baseMonths.length
     });
-    renderEomChangeTable(ctx, accountStats);
     renderEomMonthlySummary(monthlySummary.filter(row => monthsToShow.includes(row.ym)), { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
     renderEomNetWorthChart(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
-    renderEomAccountsChart(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes, focus: eomUiState.focusedAccountId });
   }
 
   const DAY_MS = 1000*60*60*24;
@@ -7402,7 +7165,6 @@
     groupBy:'type',
     pivotMode:false,
     focusedAccountId:null,
-    changeSort:{field:'delta',dir:'desc'},
     monthlySort:{field:'ym',dir:'desc'},
     netWorthRange:'6m',
     netWorthFocusMonth:null,
@@ -7453,6 +7215,7 @@
   }
 
   let eomUiState={...DEFAULT_EOM_UI_STATE,...loadEomUiState()};
+  eomUiState.scenario='actual';
   if(!eomUiState.dateRange){
     eomUiState.dateRange={ from:null, to:null };
   }else{
