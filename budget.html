@@ -8877,6 +8877,41 @@
     destroyMomChart();
     destroyMomDiffChart();
     const palette=momPalette();
+    const toRgb=(value)=>{
+      if(!value) return null;
+      const raw=String(value).trim();
+      const hexMatch=raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if(hexMatch){
+        let hex=hexMatch[1];
+        if(hex.length===3){
+          hex=hex.split('').map(ch=>ch+ch).join('');
+        }
+        const int=parseInt(hex,16);
+        return {
+          r:(int>>16)&255,
+          g:(int>>8)&255,
+          b:int&255
+        };
+      }
+      const rgbMatch=raw.match(/^rgba?\(([^)]+)\)$/i);
+      if(rgbMatch){
+        const parts=rgbMatch[1].split(',').map(part=>Number(part.trim())).filter(num=>Number.isFinite(num));
+        if(parts.length>=3){
+          return {r:parts[0],g:parts[1],b:parts[2]};
+        }
+      }
+      return null;
+    };
+    const mixColor=(color,target,amount)=>{
+      const base=toRgb(color);
+      const mix=toRgb(target);
+      if(!base||!mix) return color;
+      const clamp=(v)=>Math.max(0,Math.min(255,Math.round(v)));
+      const r=clamp(base.r+(mix.r-base.r)*amount);
+      const g=clamp(base.g+(mix.g-base.g)*amount);
+      const b=clamp(base.b+(mix.b-base.b)*amount);
+      return `rgb(${r},${g},${b})`;
+    };
     const createGradient=(ctx,color)=>{
       const area=ctx.chart.chartArea;
       if(!area){
@@ -8976,6 +9011,37 @@
       if(value<0) return palette.negative;
       return palette.neutral;
     };
+    const buildBarGradient=(ctx,base)=>{
+      if(base==='transparent') return base;
+      const area=ctx.chart.chartArea;
+      if(!area){
+        return colorWithAlpha(base,0.48);
+      }
+      const chartCtx=ctx.chart.ctx;
+      const gradient=chartCtx.createLinearGradient(0, area.bottom, 0, area.top);
+      const highlight=mixColor(base,'#ffffff',0.22);
+      const shadow=mixColor(base,palette.ink,0.35);
+      const isPositive=(ctx.raw??0)>=0;
+      if(isPositive){
+        gradient.addColorStop(0, colorWithAlpha(shadow,0.55));
+        gradient.addColorStop(0.55, colorWithAlpha(base,0.62));
+        gradient.addColorStop(1, colorWithAlpha(highlight,0.85));
+      }else{
+        gradient.addColorStop(0, colorWithAlpha(highlight,0.85));
+        gradient.addColorStop(0.45, colorWithAlpha(base,0.62));
+        gradient.addColorStop(1, colorWithAlpha(shadow,0.55));
+      }
+      return gradient;
+    };
+    const resolveBorderColor=(base)=>{
+      if(base==='transparent') return base;
+      return mixColor(base,palette.ink,0.45);
+    };
+    const resolveHoverFill=(ctx,base)=>{
+      if(base==='transparent') return base;
+      const lift=mixColor(base,'#ffffff',0.32);
+      return colorWithAlpha(lift,0.9);
+    };
     momDiffChart=new Chart(diffCanvas.getContext('2d'),{
       type:'bar',
       data:{
@@ -8985,42 +9051,25 @@
           data:diffSeries,
           backgroundColor:(ctx)=>{
             const base=diffDatasetColor(ctx);
-            if(base==='transparent') return base;
-            const area=ctx.chart.chartArea;
-            if(!area){
-              return colorWithAlpha(base,0.4);
-            }
-            const gradient=ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-            if((ctx.raw??0)>=0){
-              gradient.addColorStop(0, colorWithAlpha(base,0.45));
-              gradient.addColorStop(1, colorWithAlpha(base,0.05));
-            }else{
-              gradient.addColorStop(0, colorWithAlpha(base,0.05));
-              gradient.addColorStop(1, colorWithAlpha(base,0.45));
-            }
-            return gradient;
+            return buildBarGradient(ctx,base);
           },
-          borderColor:(ctx)=>{
-            const base=diffDatasetColor(ctx);
-            return base==='transparent'?base:colorWithAlpha(base,0.85);
-          },
-          hoverBorderColor:(ctx)=>{
-            const base=diffDatasetColor(ctx);
-            return base==='transparent'?base:base;
-          },
-          borderWidth:2,
+          borderColor:(ctx)=>resolveBorderColor(diffDatasetColor(ctx)),
+          hoverBorderColor:(ctx)=>diffDatasetColor(ctx),
+          hoverBackgroundColor:(ctx)=>resolveHoverFill(ctx,diffDatasetColor(ctx)),
+          borderWidth:1.5,
           borderRadius:(ctx)=>{
             const value=ctx.raw;
             if(value===null||value===undefined) return 0;
-            const radius=10;
+            const radius=6;
             if(value>=0){
-              return {topLeft:radius,topRight:radius,bottomLeft:4,bottomRight:4};
+              return {topLeft:radius,topRight:radius,bottomLeft:2,bottomRight:2};
             }
-            return {topLeft:4,topRight:4,bottomLeft:radius,bottomRight:radius};
+            return {topLeft:2,topRight:2,bottomLeft:radius,bottomRight:radius};
           },
           borderSkipped:false,
-          barPercentage:0.72,
-          categoryPercentage:0.9
+          barPercentage:0.58,
+          categoryPercentage:0.78,
+          maxBarThickness:26
         }]
       },
       options:{
