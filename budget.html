@@ -1973,801 +1973,32 @@
       gap: 4px;
     }
 
-    .mom-detail-button {
-      display: inline-flex;
+    .mom-category-cell {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      padding-inline: 16px;
-      transition: all .25s ease;
-      background: rgba(148, 163, 184, 0.16);
-      color: var(--ink);
     }
 
-    .mom-detail-button .icon {
-      font-size: 16px;
-    }
-
-    .mom-detail-button:is(:hover,:focus-visible) {
-      outline: none;
-      background: rgba(37, 99, 235, 0.18);
-      color: var(--accent);
-      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
-      transform: translateY(-1px);
-    }
-
-    .mom-detail-button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .mom-detail-button.is-ready {
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.05));
-      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
-    }
-
-    .mom-detail-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.38);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .25s ease;
-      z-index: 40;
-    }
-
-    .mom-detail-backdrop.is-visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .mom-detail-panel {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      left: auto;
-      width: min(1100px, 68vw);
-      background: var(--surface);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: -24px 0 60px rgba(15, 23, 42, 0.22);
-      opacity: 0;
-      transform: translateX(36px);
-      pointer-events: none;
-      transition: opacity .28s ease, transform .28s ease;
-      z-index: 41;
-      --mom-detail-gutter: clamp(24px, 4vw, 56px);
-    }
-
-    .mom-detail-panel.is-visible {
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-
-    @media (max-width: 960px) {
-      .mom-detail-panel {
-        width: 100%;
-        border-radius: 0;
-      }
-    }
-
-    body.mom-detail-open {
-      overflow: hidden;
-    }
-
-    .mom-detail-header {
-      position: sticky;
-      top: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 28px var(--mom-detail-gutter) 20px;
-      background: rgba(248, 250, 252, 0.92);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-      z-index: 2;
-    }
-
-    .mom-detail-heading {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .mom-detail-eyebrow {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .mom-detail-title {
-      margin: 0;
-      font-size: 20px;
-      color: var(--ink);
-    }
-
-    .mom-detail-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .mom-detail-close {
-      border: none;
-      background: rgba(15, 23, 42, 0.06);
-      color: var(--ink);
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background .2s ease, transform .2s ease, color .2s ease;
-    }
-
-    .mom-detail-close:hover,
-    .mom-detail-close:focus-visible {
-      outline: none;
-      background: rgba(37, 99, 235, 0.18);
-      color: #1d4ed8;
-      transform: translateY(-1px);
-    }
-
-    .mom-detail-toolbar {
-      padding: 16px var(--mom-detail-gutter) 0;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-    }
-
-    .mom-detail-sort {
-      display: inline-flex;
-      gap: 6px;
-      padding: 4px;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.18);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    }
-
-    .mom-detail-sort button {
+    .mom-category-detail-trigger {
       border: none;
       background: transparent;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
       cursor: pointer;
-      color: var(--muted);
-      transition: background .2s ease, color .2s ease, transform .2s ease;
-    }
-
-    .mom-detail-sort button.is-active {
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.32));
-      color: #1d4ed8;
-      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
-      transform: translateY(-1px);
-    }
-
-    .mom-detail-sort button:not(.is-active):hover {
-      color: #1d4ed8;
-      background: rgba(37, 99, 235, 0.12);
-    }
-
-    .mom-detail-scroll {
-      flex: 1;
-      overflow-y: auto;
-      padding: 18px 0 48px;
-    }
-
-    .mom-detail-meta,
-    .mom-detail-body {
-      padding: 0 var(--mom-detail-gutter);
-    }
-
-    .mom-detail-meta {
-      margin-bottom: 28px;
-    }
-
-    .mom-detail-body {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(28px, 5vw, 42px);
-    }
-
-    .mom-detail-section {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .mom-detail-section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .mom-detail-section-title {
       font-size: 16px;
-      font-weight: 700;
-      margin: 0;
-      color: var(--ink);
-    }
-
-    .mom-detail-section-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin: 0;
-    }
-
-    .mom-detail-kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    @media (max-width: 1100px) {
-      .mom-detail-kpi-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 620px) {
-      .mom-detail-kpi-grid {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-      }
-    }
-
-    .mom-detail-kpi-card {
-      --mom-kpi-start: rgba(37, 99, 235, 0.12);
-      --mom-kpi-stop: rgba(37, 99, 235, 0.32);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 18px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, var(--mom-kpi-start), var(--mom-kpi-stop));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 16px 32px rgba(15, 23, 42, 0.12);
-    }
-
-    .mom-detail-kpi-card .label {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(15, 23, 42, 0.7);
-    }
-
-    .mom-detail-kpi-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--ink);
-      margin: 0;
-    }
-
-    .mom-detail-kpi-trend {
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .mom-detail-kpi-card.month-a {
-      --mom-kpi-start: rgba(14, 165, 233, 0.16);
-      --mom-kpi-stop: rgba(14, 165, 233, 0.4);
-    }
-
-    .mom-detail-kpi-card.month-b {
-      --mom-kpi-start: rgba(249, 115, 22, 0.16);
-      --mom-kpi-stop: rgba(249, 115, 22, 0.4);
-    }
-
-    .mom-detail-kpi-card.positive {
-      --mom-kpi-start: rgba(34, 197, 94, 0.14);
-      --mom-kpi-stop: rgba(16, 185, 129, 0.38);
-    }
-
-    .mom-detail-kpi-card.negative {
-      --mom-kpi-start: rgba(239, 68, 68, 0.16);
-      --mom-kpi-stop: rgba(239, 68, 68, 0.42);
-    }
-
-    .mom-detail-kpi-card.neutral {
-      --mom-kpi-start: rgba(148, 163, 184, 0.1);
-      --mom-kpi-stop: rgba(148, 163, 184, 0.24);
-    }
-
-    .mom-detail-kpi-trend.positive { color: #047857; }
-    .mom-detail-kpi-trend.negative { color: #b91c1c; }
-    .mom-detail-kpi-trend.neutral { color: var(--muted); }
-
-    .mom-detail-metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(248, 250, 252, 0.76);
-    }
-
-    @media (max-width: 1100px) {
-      .mom-detail-metric-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 640px) {
-      .mom-detail-metric-grid {
-        grid-template-columns: repeat(1, minmax(0, 1fr));
-      }
-    }
-
-    .mom-detail-metric {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .mom-detail-metric-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-    }
-
-    .mom-detail-metric-values {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px 14px;
-    }
-
-    .mom-detail-metric-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.05);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mom-detail-metric-chip span {
-      font-weight: 700;
-    }
-
-    .mom-detail-metric-delta {
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: auto;
-    }
-
-    .mom-detail-metric-delta.positive { color: #047857; }
-    .mom-detail-metric-delta.negative { color: #b91c1c; }
-    .mom-detail-metric-delta.neutral { color: var(--muted); }
-
-    .mom-detail-highlight {
-      margin-top: 18px;
-      padding: 16px 18px;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: linear-gradient(120deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0));
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .mom-detail-highlight.neutral {
-      background: linear-gradient(120deg, rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0));
-    }
-
-    .mom-detail-highlight-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    .mom-detail-highlight-note {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .mom-detail-calendar {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .mom-detail-calendar-heading,
-    .mom-detail-daylist-heading {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .mom-detail-calendar-title,
-    .mom-detail-daylist-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mom-detail-calendar-subtitle,
-    .mom-detail-daylist-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .mom-detail-calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .mom-detail-calendar-weekday {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-      text-align: center;
-      padding: 2px 0;
-    }
-
-    .mom-detail-calendar-cell {
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      background: rgba(248, 250, 252, 0.85);
-      padding: 12px 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 140px;
-      position: relative;
-    }
-
-    .mom-detail-calendar-cell.is-empty {
-      background: rgba(248, 250, 252, 0.4);
-      border-style: dashed;
-    }
-
-    .mom-detail-calendar-cell.placeholder {
-      background: transparent;
-      border: none;
-      min-height: 0;
+      line-height: 1;
+      color: inherit;
       padding: 0;
     }
 
-    .mom-detail-calendar-cell.positive {
-      border-color: rgba(239, 68, 68, 0.3);
-      background: linear-gradient(150deg, rgba(239, 68, 68, 0.08), rgba(255, 255, 255, 0.92));
+    .mom-category-detail-trigger:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
-    .mom-detail-calendar-cell.negative {
-      border-color: rgba(34, 197, 94, 0.3);
-      background: linear-gradient(150deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.92));
+    /* MoM Category Detail - Reserved space for new implementation */
+    #mom-category-detail-root {
+      /* Will be populated by new code */
     }
-
-    .mom-detail-calendar-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .mom-detail-calendar-day {
-      font-weight: 600;
-      color: var(--ink);
-      font-size: 15px;
-    }
-
-    .mom-detail-calendar-delta {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-      background: rgba(148, 163, 184, 0.18);
-      color: var(--ink);
-    }
-
-    .mom-detail-calendar-cell.positive .mom-detail-calendar-delta {
-      background: rgba(239, 68, 68, 0.16);
-      color: var(--red);
-    }
-
-    .mom-detail-calendar-cell.negative .mom-detail-calendar-delta {
-      background: rgba(34, 197, 94, 0.16);
-      color: var(--green);
-    }
-
-    .mom-detail-calendar-tracks {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .mom-detail-calendar-track {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .mom-detail-calendar-track-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
-    }
-
-    .mom-detail-calendar-badge {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--mom-badge-bg, rgba(148, 163, 184, 0.18));
-      color: var(--mom-badge-color, var(--muted));
-    }
-
-    .mom-detail-calendar-amount {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mom-detail-calendar-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .mom-detail-calendar-entry {
-      font-size: 12px;
-      color: var(--ink);
-      line-height: 1.35;
-    }
-
-    .mom-detail-calendar-entry .muted {
-      color: var(--muted);
-    }
-
-    .mom-detail-calendar-entry strong {
-      font-weight: 600;
-      color: var(--ink);
-      margin-right: 6px;
-    }
-
-    .mom-detail-calendar-note {
-      display: inline;
-    }
-
-    .mom-detail-daylist {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 18px;
-    }
-
-    .mom-detail-daylist-section {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .mom-detail-day {
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 16px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: rgba(248, 250, 252, 0.85);
-    }
-
-    .mom-detail-day.positive {
-      border-left: 4px solid rgba(239, 68, 68, 0.5);
-    }
-
-    .mom-detail-day.negative {
-      border-left: 4px solid rgba(34, 197, 94, 0.5);
-    }
-
-    .mom-detail-day-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .mom-detail-day-title {
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .mom-detail-day-subtitle {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 1px;
-    }
-
-    .mom-detail-day-subline {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .mom-detail-badge {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      background: rgba(148, 163, 184, 0.16);
-      color: var(--ink);
-      white-space: nowrap;
-    }
-
-    .mom-detail-badge.positive {
-      background: rgba(239, 68, 68, 0.16);
-      color: var(--red);
-    }
-
-    .mom-detail-badge.negative {
-      background: rgba(34, 197, 94, 0.16);
-      color: var(--green);
-    }
-
-    .mom-detail-columns {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .mom-detail-month {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .mom-detail-month-label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .mom-detail-month-count {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--ink);
-      background: rgba(148, 163, 184, 0.16);
-      padding: 2px 7px;
-      border-radius: 999px;
-    }
-
-    .mom-detail-entry {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      border-radius: 12px;
-      padding: 9px 11px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.18);
-    }
-
-    .mom-detail-entry-amount {
-      font-weight: 600;
-      color: var(--ink);
-      white-space: nowrap;
-      font-size: 13px;
-    }
-
-    .mom-detail-entry-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .mom-detail-entry-note {
-      font-size: 12px;
-      color: var(--ink);
-      line-height: 1.35;
-    }
-
-    .mom-detail-entry-note .muted {
-      color: var(--muted);
-    }
-
-    .mom-detail-month-empty {
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px dashed rgba(148, 163, 184, 0.4);
-      font-size: 12px;
-      text-align: center;
-      color: var(--muted);
-      background: rgba(248, 250, 252, 0.6);
-    }
-
-    .mom-detail-empty {
-      padding: 24px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--muted);
-      grid-column: 1 / -1;
-    }
-
-    @media (max-width: 1280px) {
-      .mom-detail-overview {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 900px) {
-      .mom-detail-panel {
-        border-radius: 18px;
-      }
-
-      .mom-detail-header {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 20px 20px 12px;
-      }
-
-      .mom-detail-meta {
-        padding: 0 20px 20px;
-      }
-
-      .mom-detail-body {
-        padding: 0 20px 24px;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-    }
-
-    @media (max-width: 720px) {
-      .mom-detail-header {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .mom-detail-header-actions {
-        justify-content: space-between;
-      }
-
-      .mom-detail-columns {
-        grid-template-columns: 1fr;
-      }
-
-      .mom-detail-body {
-        grid-template-columns: 1fr;
-      }
-    }
-
 
     .chart-empty {
       position: absolute;
@@ -3611,10 +2842,6 @@
             <h4 class="title">Zestawienie kategorii</h4>
             <span class="tiny muted">Kwoty obejmują wydatki do wybranego dnia.</span>
           </div>
-          <button class="btn soft mom-detail-button" id="mom-detail-toggle" type="button" disabled>
-            <span class="icon">🔍</span>
-            <span class="label">Szczegóły kategorii</span>
-          </button>
         </div>
         <div style="overflow-x:auto;">
           <table id="mom-table" class="table-compact">
@@ -3631,29 +2858,6 @@
           </table>
         </div>
       </div>
-      <div id="mom-detail-backdrop" class="mom-detail-backdrop" hidden></div>
-      <aside id="mom-detail-panel" class="mom-detail-panel" role="dialog" aria-modal="true" aria-hidden="true">
-        <header class="mom-detail-header">
-          <div class="mom-detail-heading">
-            <span class="mom-detail-eyebrow">Analiza kategorii</span>
-            <h4 class="mom-detail-title" id="mom-detail-title">Szczegóły kategorii</h4>
-            <div class="mom-detail-subtitle" id="mom-detail-subtitle">Wybierz kategorię z tabeli, aby zanurzyć się w transakcje.</div>
-          </div>
-          <button type="button" class="mom-detail-close" id="mom-detail-close" data-mom-detail-close aria-label="Zamknij szczegóły">✕</button>
-        </header>
-        <div class="mom-detail-toolbar" id="mom-detail-toolbar" style="display:none">
-          <div class="mom-detail-sort" id="mom-detail-sort">
-            <button type="button" class="is-active" data-mom-detail-sort="impact">Największy wpływ</button>
-            <button type="button" data-mom-detail-sort="chron">Chronologicznie</button>
-          </div>
-        </div>
-        <div class="mom-detail-scroll">
-          <div class="mom-detail-meta" id="mom-detail-meta"></div>
-          <div class="mom-detail-body" id="mom-detail-body">
-            <div class="mom-detail-empty">Wybierz kategorię z tabeli, aby zobaczyć dzienne wydatki w miesiącu A i B.</div>
-          </div>
-        </div>
-      </aside>
     </section>
         </main>
         <aside class="right-rail">
@@ -9535,485 +8739,6 @@
     return `${prefix}${cat.name}`;
   }
 
-  function updateMomActiveRows(tbody){
-    if(!tbody) return;
-    tbody.querySelectorAll('tr').forEach(row=>{
-      row.classList.toggle('active',row.dataset.catId===momState.selectedCategory);
-    });
-  }
-
-  let momDetailOpen=false;
-  let momDetailSort='impact';
-  let momDetailBound=false;
-  let momDetailKeyBound=false;
-  let momDetailScrollRestore=0;
-
-  function momDetailEligible(catId){
-    return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
-  }
-
-  function ensureMomDetailBindings(){
-    const button=document.getElementById('mom-detail-toggle');
-    const panel=document.getElementById('mom-detail-panel');
-    const backdrop=document.getElementById('mom-detail-backdrop');
-    const closeBtn=document.getElementById('mom-detail-close');
-    if(button && panel && backdrop && !momDetailBound){
-      button.addEventListener('click',()=>{ if(!button.disabled) openMomDetail(); });
-      if(closeBtn){ closeBtn.addEventListener('click',()=>closeMomDetail()); }
-      backdrop.addEventListener('click',()=>closeMomDetail());
-      momDetailBound=true;
-    }
-    const sortWrap=document.getElementById('mom-detail-sort');
-    if(sortWrap && !sortWrap.dataset.bound){
-      sortWrap.dataset.bound='1';
-      sortWrap.querySelectorAll('button[data-mom-detail-sort]').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-          const value=btn.dataset.momDetailSort||'impact';
-          if(momDetailSort===value) return;
-          momDetailSort=value;
-          updateMomDetailSortButtons();
-          if(momDetailOpen) renderMomDetail();
-        });
-      });
-    }
-    if(!momDetailKeyBound){
-      document.addEventListener('keydown',evt=>{
-        if(evt.key==='Escape' && momDetailOpen){
-          closeMomDetail();
-        }
-      });
-      momDetailKeyBound=true;
-    }
-  }
-
-  function openMomDetail(){
-    const panel=document.getElementById('mom-detail-panel');
-    const backdrop=document.getElementById('mom-detail-backdrop');
-    if(!panel || !backdrop) return;
-    momDetailScrollRestore=window.scrollY||window.pageYOffset||document.documentElement.scrollTop||0;
-    if(document.body) document.body.classList.add('mom-detail-open');
-    momDetailOpen=true;
-    renderMomDetail();
-    panel.classList.add('is-visible');
-    panel.setAttribute('aria-hidden','false');
-    backdrop.hidden=false;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>backdrop.classList.add('is-visible'));
-    else backdrop.classList.add('is-visible');
-    const closeBtn=document.getElementById('mom-detail-close');
-    if(closeBtn) closeBtn.focus({preventScroll:true});
-  }
-
-  function closeMomDetail(options={}){
-    const {focusTrigger=true}=options;
-    const panel=document.getElementById('mom-detail-panel');
-    const backdrop=document.getElementById('mom-detail-backdrop');
-    if(!panel || !backdrop) return;
-    momDetailOpen=false;
-    panel.classList.remove('is-visible');
-    panel.setAttribute('aria-hidden','true');
-    backdrop.classList.remove('is-visible');
-    setTimeout(()=>{ if(!momDetailOpen) backdrop.hidden=true; }, 240);
-    if(document.body) document.body.classList.remove('mom-detail-open');
-    if(Number.isFinite(momDetailScrollRestore) && momDetailScrollRestore>=0){
-      window.scrollTo({top:momDetailScrollRestore,left:0,behavior:'auto'});
-    }
-    momDetailScrollRestore=0;
-    if(focusTrigger){
-      const button=document.getElementById('mom-detail-toggle');
-      if(button) button.focus({preventScroll:true});
-    }
-  }
-
-  function updateMomDetailSortButtons(){
-    document.querySelectorAll('[data-mom-detail-sort]').forEach(btn=>{
-      const value=btn.dataset.momDetailSort||'impact';
-      btn.classList.toggle('is-active', value===momDetailSort);
-    });
-  }
-
-  function updateMomDetailTrigger(){
-    ensureMomDetailBindings();
-    const button=document.getElementById('mom-detail-toggle');
-    if(!button){
-      if(momDetailOpen) closeMomDetail({focusTrigger:false});
-      return;
-    }
-    const labelEl=button.querySelector('.label');
-    const context=momLastContext;
-    const selected=context?.categories?.find(c=>c.id===momState.selectedCategory);
-    const eligible=context && selected && momDetailEligible(selected.id);
-    const enabled=Boolean(eligible && context?.monthA && context?.monthB);
-    button.disabled=!enabled;
-    button.classList.toggle('is-ready', enabled);
-    const labelText=enabled ? `Detale: ${momCategoryLabel(selected)}` : 'Szczegóły kategorii';
-    if(labelEl) labelEl.textContent=labelText;
-    else button.textContent=labelText;
-    if(enabled){
-      button.title=`Pokaż transakcje dla ${momCategoryLabel(selected)} (${context.monthA} vs ${context.monthB})`;
-    }else{
-      button.title='Wybierz kategorię wydatków, aby zobaczyć szczegóły.';
-    }
-    if(!enabled && momDetailOpen){
-      closeMomDetail({focusTrigger:false});
-    }
-  }
-
-  function formatYmHuman(ym){
-    if(!ym) return '';
-    const parts=ym.split('-').map(Number);
-    if(parts.length<2) return ym;
-    const [year, month]=parts;
-    if(!year || !month) return ym;
-    const date=new Date(year, month-1, 1);
-    if(Number.isNaN(date.getTime())) return ym;
-    try{
-      return date.toLocaleDateString('pl-PL',{month:'long',year:'numeric'});
-    }catch(err){
-      return ym;
-    }
-  }
-
-  function formatWeekdayShort(iso){
-    if(!iso) return '';
-    const date=new Date(iso);
-    if(Number.isNaN(date.getTime())) return '';
-    try{
-      return date.toLocaleDateString('pl-PL',{weekday:'short'});
-    }catch(err){
-      return '';
-    }
-  }
-
-  function buildMomDetailData(monthA, monthB, categoryId, dayLimit){
-    const limit=Math.max(1, Number(dayLimit)||1);
-    const collect=ym=>{
-      const map=new Map();
-      if(!ym) return map;
-      const entries=entriesForMonth(ym);
-      for(const entry of entries){
-        if(entry.categoryId!==categoryId) continue;
-        const day=Number(entry.date.slice(-2));
-        if(!Number.isFinite(day) || day<1 || day>limit) continue;
-        if(!map.has(day)) map.set(day,[]);
-        map.get(day).push(entry);
-      }
-      return map;
-    };
-    const mapA=collect(monthA);
-    const mapB=collect(monthB);
-    const maxDaysA=monthA?daysInYm(monthA):0;
-    const maxDaysB=monthB?daysInYm(monthB):0;
-    const days=[];
-    const amountsA=[];
-    const amountsB=[];
-    for(let day=1; day<=limit; day++){
-      const entriesA=mapA.get(day)||[];
-      const entriesB=mapB.get(day)||[];
-      const totalA=entriesA.reduce((sum,entry)=>sum+Math.abs(entry.amount),0);
-      const totalB=entriesB.reduce((sum,entry)=>sum+Math.abs(entry.amount),0);
-      const padded=String(day).padStart(2,'0');
-      days.push({
-        day,
-        label:padded,
-        totalA,
-        totalB,
-        delta: totalA-totalB,
-        entriesA,
-        entriesB,
-        isoA: monthA && day<=maxDaysA ? `${monthA}-${padded}` : null,
-        isoB: monthB && day<=maxDaysB ? `${monthB}-${padded}` : null,
-        cumulativeA: 0,
-        cumulativeB: 0,
-        cumulativeDelta: 0
-      });
-      entriesA.forEach(entry=>amountsA.push(Math.abs(entry.amount)));
-      entriesB.forEach(entry=>amountsB.push(Math.abs(entry.amount)));
-    }
-    let runningA=0;
-    let runningB=0;
-    let crossoverDay=null;
-    let ledFromStart=false;
-    let everLed=false;
-    let totalCountA=0;
-    let totalCountB=0;
-    days.forEach((row,idx)=>{
-      totalCountA+=row.entriesA.length;
-      totalCountB+=row.entriesB.length;
-      runningA+=row.totalA;
-      runningB+=row.totalB;
-      row.cumulativeA=runningA;
-      row.cumulativeB=runningB;
-      row.cumulativeDelta=runningA-runningB;
-      if(runningA>runningB){
-        everLed=true;
-        if(crossoverDay===null) crossoverDay=row.day;
-        if(idx===0) ledFromStart=true;
-      }
-    });
-    const totalA=runningA;
-    const totalB=runningB;
-    const avgA=totalCountA>0?totalA/totalCountA:0;
-    const avgB=totalCountB>0?totalB/totalCountB:0;
-    const calcMedian=arr=>{
-      if(!arr.length) return 0;
-      const sorted=[...arr].sort((a,b)=>a-b);
-      const mid=Math.floor(sorted.length/2);
-      if(sorted.length%2===1) return sorted[mid];
-      return (sorted[mid-1]+sorted[mid])/2;
-    };
-    const medianA=calcMedian(amountsA);
-    const medianB=calcMedian(amountsB);
-    const maxA=amountsA.length?Math.max(...amountsA):0;
-    const maxB=amountsB.length?Math.max(...amountsB):0;
-    return {
-      days,
-      totalA,
-      totalB,
-      dayLimit:limit,
-      countA:totalCountA,
-      countB:totalCountB,
-      avgA,
-      avgB,
-      medianA,
-      medianB,
-      maxA,
-      maxB,
-      crossoverDay,
-      ledFromStart,
-      everLed,
-      finalDelta: totalA-totalB
-    };
-  }
-
-  function renderMomDetailEntries(entries){
-    if(!entries.length){
-      return '<div class="mom-detail-month-empty">Brak wydatków</div>';
-    }
-    return entries.map(entry=>{
-      const amount=fmt(Math.abs(entry.amount), state.currency);
-      const note=entry.note ? escapeHtml(entry.note).replace(/\n/g,'<br />') : '<span class="muted">Brak notatki</span>';
-      return `<div class="mom-detail-entry"><div class="mom-detail-entry-amount">${amount}</div><div class="mom-detail-entry-info"><div class="mom-detail-entry-note">${note}</div></div></div>`;
-    }).join('');
-  }
-
-  function renderMomDetailCalendarEntries(entries){
-    if(!entries.length){
-      return '<div class="mom-detail-calendar-entry"><span class="muted">Brak wpisów</span></div>';
-    }
-    return entries.map(entry=>{
-      const amount=fmt(Math.abs(entry.amount), state.currency);
-      const note=entry.note ? escapeHtml(entry.note).replace(/\n/g,'<br />') : '<span class="muted">Brak notatki</span>';
-      return `<div class="mom-detail-calendar-entry"><strong>${amount}</strong><span class="mom-detail-calendar-note">${note}</span></div>`;
-    }).join('');
-  }
-
-  function renderMomDetail(){
-    if(!momDetailOpen) return;
-    ensureMomDetailBindings();
-    const titleEl=document.getElementById('mom-detail-title');
-    const subtitleEl=document.getElementById('mom-detail-subtitle');
-    const metaEl=document.getElementById('mom-detail-meta');
-    const bodyEl=document.getElementById('mom-detail-body');
-    const toolbar=document.getElementById('mom-detail-toolbar');
-    if(!titleEl || !subtitleEl || !metaEl || !bodyEl) return;
-    updateMomDetailSortButtons();
-    const context=momLastContext;
-    if(!context){
-      titleEl.textContent='Szczegóły kategorii';
-      subtitleEl.textContent='Wybierz miesiące oraz kategorię, aby zobaczyć transakcje.';
-      metaEl.innerHTML='';
-      bodyEl.innerHTML='<div class="mom-detail-empty">Brak danych do analizy. Wybierz dwa miesiące do porównania.</div>';
-      if(toolbar) toolbar.style.display='none';
-      return;
-    }
-    const {categories,monthA,monthB,dayLimit}=context;
-    const selected=categories.find(c=>c.id===momState.selectedCategory);
-    if(!selected || !momDetailEligible(selected.id)){
-      titleEl.textContent='Szczegóły kategorii';
-      subtitleEl.textContent='Kliknij konkretną kategorię z tabeli, aby zobaczyć transakcje.';
-      metaEl.innerHTML='';
-      bodyEl.innerHTML='<div class="mom-detail-empty">Wybierz kategorię wydatków, aby wejść w szczegóły.</div>';
-      if(toolbar) toolbar.style.display='none';
-      return;
-    }
-    const titleLabel=momCategoryLabel(selected);
-    titleEl.textContent=titleLabel;
-    subtitleEl.textContent=`${formatYmHuman(monthA)} vs ${formatYmHuman(monthB)} • do dnia ${String(dayLimit).padStart(2,'0')}`;
-    const detail=buildMomDetailData(monthA, monthB, selected.id, dayLimit);
-    if(toolbar) toolbar.style.display='';
-    const totalDiff=detail.totalA-detail.totalB;
-    const dayLimitLabel=String(detail.dayLimit).padStart(2,'0');
-    const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
-    const changeTone=totalDiff>0?'negative':totalDiff<0?'positive':'neutral';
-    const changeValue=totalDiff===0?'—':`${totalDiff>0?'+':'−'}${fmt(Math.abs(totalDiff), state.currency)}`;
-    const changeTrend=totalDiff>0?'↗ Wzrost wydatków':'↘ Oszczędności';
-    const percentBase=detail.totalB;
-    let percentTone='neutral';
-    let percentValue='—';
-    let percentTrend='Stabilnie względem miesiąca B';
-    if(percentBase>0){
-      const pct=((detail.totalA-detail.totalB)/percentBase)*100;
-      if(Math.abs(pct)<0.05){
-        percentValue='0,0%';
-        percentTone='neutral';
-        percentTrend='Różnica pomijalna';
-      }else{
-        percentTone=pct>0?'negative':'positive';
-        const sign=pct>0?'+':'−';
-        percentValue=`${sign}${Math.abs(pct).toFixed(1)}%`;
-        percentTrend=pct>0?'↗ Tempo rośnie':'↘ Tempo maleje';
-      }
-    }else if(detail.totalA>0){
-      percentValue='—';
-      percentTone='negative';
-      percentTrend='Brak punktu odniesienia (0 w miesiącu B)';
-    }else{
-      percentValue='—';
-      percentTone='neutral';
-      percentTrend='Brak transakcji w obu miesiącach';
-    }
-    const formatCount=value=>Number.isFinite(value)?String(value):'0';
-    const renderChip=(label,value)=>`<span class="mom-detail-metric-chip">${label} <span>${value}</span></span>`;
-    const renderDelta=(delta,unit,preferPositive=false)=>{
-      if(!Number.isFinite(delta) || Math.abs(delta)<(unit==='count'?0.5:0.01)){
-        return '<span class="mom-detail-metric-delta neutral">—</span>';
-      }
-      const isIncrease=delta>0;
-      const tone=isIncrease===preferPositive?'positive':'negative';
-      const arrow=isIncrease?'↗':'↘';
-      const valueText=unit==='currency'?
-        `${isIncrease?'+':'−'}${fmt(Math.abs(delta),state.currency)}`:
-        `${isIncrease?'+':'−'}${Math.abs(Math.round(delta))}${unit==='count'?' trans.':''}`;
-      return `<span class="mom-detail-metric-delta ${tone}">${arrow} ${valueText}</span>`;
-    };
-    const countDelta=detail.countA-detail.countB;
-    const avgDelta=detail.avgA-detail.avgB;
-    const medianA=detail.medianA;
-    const medianB=detail.medianB;
-    const maxA=detail.maxA;
-    const maxB=detail.maxB;
-    let highlightHtml='';
-    if(detail.everLed && detail.crossoverDay){
-      const crossDay=String(detail.crossoverDay).padStart(2,'0');
-      const crossTitle=detail.ledFromStart?'A prowadzi od pierwszego dnia':`Przekroczenie w dniu ${crossDay}`;
-      const crossNote=detail.ledFromStart
-        ? 'Łączne wydatki miesiąca A były wyższe od początku okresu.'
-        : 'Od tego dnia suma wydatków miesiąca A pozostaje wyższa niż w miesiącu B.';
-      highlightHtml=`<div class="mom-detail-highlight"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${crossTitle}</span><span class="mom-detail-highlight-note">${crossNote}</span></div>`;
-    }else{
-      const fallback=Number.isFinite(detail.dayLimit)?`Do dnia ${dayLimitLabel} A nie przebił wydatków B.`:'Miesiąc A nie przekroczył wydatków miesiąca B.';
-      highlightHtml=`<div class="mom-detail-highlight neutral"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${fallback}</span></div>`;
-    }
-    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
-    metaEl.innerHTML=overviewSection;
-    if(!hasTransactions){
-      bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
-      if(toolbar) toolbar.style.display='none';
-      return;
-    }
-    const sortedDays=[...detail.days];
-    if(momDetailSort==='impact'){
-      sortedDays.sort((a,b)=>{
-        const impactDiff=Math.abs(b.delta)-Math.abs(a.delta);
-        if(Math.abs(impactDiff)>0.01) return impactDiff;
-        if(b.totalA!==a.totalA) return b.totalA-a.totalA;
-        if(b.totalB!==a.totalB) return b.totalB-a.totalB;
-        return a.day-b.day;
-      });
-    }else{
-      sortedDays.sort((a,b)=>a.day-b.day);
-    }
-    const palette=momPalette();
-    const formatDayCount=count=>{
-      if(!count) return 'Brak';
-      if(count===1) return '1 trans.';
-      return `${count} trans.`;
-    };
-    const weekdayLabels=['Pn','Wt','Śr','Cz','Pt','So','Nd'];
-    const anchorMonth=monthA||monthB;
-    let calendarOffset=0;
-    if(anchorMonth){
-      const [anchorYear,anchorMonthIdx]=anchorMonth.split('-').map(Number);
-      if(anchorYear && anchorMonthIdx){
-        const firstDate=new Date(anchorYear, anchorMonthIdx-1, 1);
-        if(!Number.isNaN(firstDate.getTime())){
-          const jsDay=firstDate.getDay();
-          calendarOffset=(jsDay+6)%7;
-        }
-      }
-    }
-    const weekdayRow=weekdayLabels.map(label=>`<div class="mom-detail-calendar-weekday" aria-hidden="true">${label}</div>`).join('');
-    const leadingPlaceholders=Array.from({length:calendarOffset},()=>'<div class="mom-detail-calendar-cell placeholder" aria-hidden="true"></div>').join('');
-    const dayCells=detail.days.map(day=>{
-      const sampleIso=day.isoA || day.isoB;
-      const weekday=formatWeekdayShort(sampleIso);
-      const dayLabel=weekday?`${day.label} · ${weekday}`:day.label;
-      const hasEntries=day.entriesA.length>0 || day.entriesB.length>0;
-      const toneClass=day.delta>0?'positive':day.delta<0?'negative':'';
-      const classes=['mom-detail-calendar-cell'];
-      if(!hasEntries) classes.push('is-empty');
-      if(toneClass) classes.push(toneClass);
-      let deltaLabel='Brak';
-      if(hasEntries){
-        if(day.delta>0) deltaLabel=`A +${fmt(Math.abs(day.delta), state.currency)}`;
-        else if(day.delta<0) deltaLabel=`B +${fmt(Math.abs(day.delta), state.currency)}`;
-        else deltaLabel='Bez zmian';
-      }
-      const amountA=day.totalA>0?fmt(day.totalA,state.currency):'—';
-      const amountB=day.totalB>0?fmt(day.totalB,state.currency):'—';
-      const badgeAStyle=`style="--mom-badge-bg:${colorWithAlpha(palette.monthA,0.16)};--mom-badge-color:${palette.monthA};"`;
-      const badgeBStyle=`style="--mom-badge-bg:${colorWithAlpha(palette.monthB,0.16)};--mom-badge-color:${palette.monthB};"`;
-      return `<div class="${classes.join(' ')}" data-mom-calendar-day="${day.day}"><div class="mom-detail-calendar-top"><div class="mom-detail-calendar-day">${dayLabel}</div><span class="mom-detail-calendar-delta">${deltaLabel}</span></div><div class="mom-detail-calendar-tracks"><div class="mom-detail-calendar-track"><div class="mom-detail-calendar-track-header"><span class="mom-detail-calendar-badge" ${badgeAStyle}>A</span><span class="mom-detail-calendar-amount">${amountA}</span></div><div class="mom-detail-calendar-list">${renderMomDetailCalendarEntries(day.entriesA)}</div></div><div class="mom-detail-calendar-track"><div class="mom-detail-calendar-track-header"><span class="mom-detail-calendar-badge" ${badgeBStyle}>B</span><span class="mom-detail-calendar-amount">${amountB}</span></div><div class="mom-detail-calendar-list">${renderMomDetailCalendarEntries(day.entriesB)}</div></div></div></div>`;
-    }).join('');
-    const totalCells=calendarOffset+detail.days.length;
-    const trailingCount=(7-(totalCells%7))%7;
-    const trailingPlaceholders=Array.from({length:trailingCount},()=>'<div class="mom-detail-calendar-cell placeholder" aria-hidden="true"></div>').join('');
-    const calendarGridHtml=weekdayRow+leadingPlaceholders+dayCells+trailingPlaceholders;
-    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
-    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
-    const calendarSubtitle=`Do dnia ${String(detail.dayLimit).padStart(2,'0')} • ${humanMonthA} / ${humanMonthB}`;
-    const calendarSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Kalendarz transakcji</h5><p class="mom-detail-section-subtitle">${calendarSubtitle}</p></div></div><div class="mom-detail-calendar"><div class="mom-detail-calendar-grid">${calendarGridHtml}</div></div></section>`;
-    const daysForList=sortedDays.filter(day=>day.entriesA.length>0 || day.entriesB.length>0);
-    const maxImpact=daysForList.reduce((max,day)=>Math.max(max,Math.abs(day.delta)),0);
-    const listTitle=momDetailSort==='impact'?'Największe różnice dzienne':'Chronologiczna lista dni';
-    const listSubtitle=momDetailSort==='impact'
-      ? 'Sortowanie według największych odchyleń pomiędzy miesiącami A i B.'
-      : 'Sortowanie według kolejnych dni w wybranym zakresie.';
-    const listCards=daysForList.map((day,idx)=>{
-      const toneClass=day.delta>0?'positive':day.delta<0?'negative':'neutral';
-      const badgeTone=day.delta>0?'positive':day.delta<0?'negative':'neutral';
-      const sampleIso=day.isoA || day.isoB;
-      const weekday=formatWeekdayShort(sampleIso);
-      const dayTitle=weekday?`Dzień ${day.label} • ${weekday}`:`Dzień ${day.label}`;
-      const subTitle=`Suma: A ${fmt(day.totalA,state.currency)} • B ${fmt(day.totalB,state.currency)}`;
-      const cumulativeLine=`Narastająco A ${fmt(day.cumulativeA,state.currency)} • B ${fmt(day.cumulativeB,state.currency)}`;
-      const deltaValue=Math.abs(day.delta);
-      let badgeText='Bez różnicy';
-      if(day.delta>0) badgeText=`A +${fmt(deltaValue,state.currency)}`;
-      else if(day.delta<0) badgeText=`B +${fmt(deltaValue,state.currency)}`;
-      const countA=formatDayCount(day.entriesA.length);
-      const countB=formatDayCount(day.entriesB.length);
-      return `<div class="mom-detail-day ${toneClass}" data-mom-detail-day="${idx}"><div class="mom-detail-day-header"><div><div class="mom-detail-day-title">${dayTitle}</div><div class="mom-detail-day-subtitle">${subTitle}</div><div class="mom-detail-day-subline">${cumulativeLine}</div></div><div class="mom-detail-badge ${badgeTone}">${badgeText}</div></div><div class="mom-detail-columns"><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc A</span><span class="mom-detail-month-count">${countA}</span></div>${renderMomDetailEntries(day.entriesA)}</div><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc B</span><span class="mom-detail-month-count">${countB}</span></div>${renderMomDetailEntries(day.entriesB)}</div></div></div>`;
-    }).join('');
-    const listContent=daysForList.length
-      ? `<div class="mom-detail-daylist">${listCards}</div>`
-      : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
-    const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${calendarSection}${daylistSection}`;
-    daysForList.forEach((day,idx)=>{
-      const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
-      if(!el) return;
-      const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
-      const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
-      const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
-      const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
-      el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
-      el.style.borderColor=border;
-    });
-    const scrollWrap=document.querySelector('.mom-detail-scroll');
-    if(scrollWrap) scrollWrap.scrollTop=0;
-  }
-
   function renderMomComparison(){
     const section=document.getElementById('tab-mom');
     if(!section) return;
@@ -10031,8 +8756,6 @@
     const diffCanvas=document.getElementById('mom-diff-chart');
     const diffEmpty=document.getElementById('mom-diff-empty');
     const diffCaption=document.getElementById('mom-diff-caption');
-
-    ensureMomDetailBindings();
 
     const months=getAnalyticsAvailableMonths();
     ensureMomState(months);
@@ -10088,8 +8811,6 @@
       if(diffCanvas) diffCanvas.style.display='none';
       if(diffEmpty) diffEmpty.style.display='flex';
       if(diffCaption) diffCaption.textContent='';
-      updateMomDetailTrigger();
-      if(momDetailOpen) renderMomDetail();
       return;
     }
 
@@ -10134,25 +8855,40 @@
       tableBody.innerHTML='';
       ordered.forEach(row=>{
         const tr=document.createElement('tr');
-        tr.dataset.catId=row.cat.id;
-        const label=momCategoryLabel(row.cat);
-        tr.innerHTML=`<td>${label}</td><td>${fmt(row.totalA, state.currency)}</td><td>${fmt(row.totalB, state.currency)}</td><td>${formatMomDiff(row.diff)}</td><td>${formatMomPace(row.totalA,row.totalB)}</td>`;
-        tr.addEventListener('click',()=>{
+        tr.dataset.categoryId=row.cat.id;
+        const labelText=momCategoryLabel(row.cat);
+        const labelHtml=escapeHtml(labelText);
+        const isAll=row.cat.id==='__all';
+        const iconHtml=isAll?'':`<button type="button" class="mom-category-detail-trigger" title="Szczegóły kategorii" aria-label="Szczegóły kategorii">🔍</button>`;
+        tr.innerHTML=`<td><div class="mom-category-cell"><span>${labelHtml}</span>${iconHtml}</div></td><td>${fmt(row.totalA, state.currency)}</td><td>${fmt(row.totalB, state.currency)}</td><td>${formatMomDiff(row.diff)}</td><td>${formatMomPace(row.totalA,row.totalB)}</td>`;
+        const activateCategory=()=>{
           momState.selectedCategory=row.cat.id;
           updateMomActiveRows(tableBody);
           updateMomChart();
-          updateMomDetailTrigger();
-          if(momDetailOpen) renderMomDetail();
+        };
+        tr.addEventListener('click',()=>{
+          activateCategory();
+          if(!isAll){
+            emitMomCategoryDetailRequest(row.cat.id);
+          }
         });
+        if(!isAll){
+          const iconBtn=tr.querySelector('.mom-category-detail-trigger');
+          if(iconBtn){
+            iconBtn.addEventListener('click',event=>{
+              event.stopPropagation();
+              activateCategory();
+              emitMomCategoryDetailRequest(row.cat.id);
+            });
+          }
+        }
         tableBody.appendChild(tr);
       });
       updateMomActiveRows(tableBody);
     }
 
     momLastContext={categories,monthA:momState.monthA,monthB:momState.monthB,dayLimit:effectiveDay,monthAData,monthBData};
-    updateMomDetailTrigger();
     updateMomChart();
-    if(momDetailOpen) renderMomDetail();
   }
 
   function updateMomChart(){
@@ -10176,8 +8912,6 @@
       if(diffEmpty) diffEmpty.style.display='flex';
       diffCanvas.style.display='none';
       if(diffCaption) diffCaption.textContent='';
-      updateMomDetailTrigger();
-      if(momDetailOpen) renderMomDetail();
       return;
     }
     const {categories,monthA,monthB,dayLimit,monthAData,monthBData}=momLastContext;
@@ -10194,8 +8928,6 @@
       if(diffEmpty) diffEmpty.style.display='flex';
       diffCanvas.style.display='none';
       if(diffCaption) diffCaption.textContent='';
-      updateMomDetailTrigger();
-      if(momDetailOpen) renderMomDetail();
       return;
     }
     const labels=Array.from({length:maxLen},(_,i)=>String(i+1).padStart(2,'0'));
@@ -10458,6 +9190,24 @@
     }
   }
 
+  function updateMomActiveRows(tbody){
+    if(!tbody) return;
+    tbody.querySelectorAll('tr').forEach(row=>{
+      row.classList.toggle('active',row.dataset.categoryId===momState.selectedCategory);
+    });
+  }
+
+  function emitMomCategoryDetailRequest(categoryId){
+    if(!categoryId || categoryId==='__all') return;
+    const detail={
+      categoryId,
+      monthA:momState.monthA,
+      monthB:momState.monthB,
+      day:Number(momState.day),
+      context:momLastContext
+    };
+    document.dispatchEvent(new CustomEvent('mom-category-detail-request',{detail}));
+  }
 
   // --- Recurring templates (variable expenses) --------------------------------
   function scheduledDateFor(tpl, ym){
@@ -10510,7 +9260,7 @@
       const m=document.getElementById('rec-manage');
       m.style.display = m.style.display==='none' ? 'block' : 'none';
       if(m.style.display==='block'){renderRecurringManage()}
-    }
+    };
   }
   function applyTemplate(tpl,date){
     const txBase={id:`tx_${Math.random().toString(36).slice(2)}`,date,accountId:tpl.accountId||b().accounts[0]?.id||'a_main',note:tpl.note||tpl.label};
@@ -10531,24 +9281,50 @@
     const isSplit=form.querySelector('input[name="isSplit"]');
     const singleBox=form.querySelector('[data-mode="single"]');
     const splitBox=form.querySelector('[data-mode="split"]');
-    isSplit.onchange=()=>{singleBox.style.display=isSplit.checked?'none':'grid'; splitBox.style.display=isSplit.checked?'block':'none'}
+    isSplit.onchange=()=>{singleBox.style.display=isSplit.checked?'none':'grid'; splitBox.style.display=isSplit.checked?'block':'none'};
     const splitTbody=form.querySelector('.rec-split-rows');
-    function addRow(sp){const tr=document.createElement('tr'); tr.className='rec-split-row'; tr.innerHTML=`<td><select class="sp-cat"></select></td><td><input class="sp-amt" inputmode="decimal" value="${sp?String(sp.amount).replace('.',','):''}" /></td><td><button class="btn danger" type="button">X</button></td>`; const sel=tr.querySelector('.sp-cat'); for(const c of (b().categories||[])){sel.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id,false, sp?sp.categoryId===c.id:false))} tr.querySelector('button').onclick=()=>{tr.remove()}; splitTbody.appendChild(tr); bindMoneyInputs(tr);}
+    function addRow(sp){
+      const tr=document.createElement('tr');
+      tr.className='rec-split-row';
+      tr.innerHTML=`<td><select class="sp-cat"></select></td><td><input class="sp-amt" inputmode="decimal" value="${sp?String(sp.amount).replace('.',','):''}" /></td><td><button class="btn danger" type="button">X</button></td>`;
+      const sel=tr.querySelector('.sp-cat');
+      for(const c of (b().categories||[])){sel.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id,false, sp?sp.categoryId===c.id:false));}
+      tr.querySelector('button').onclick=()=>{tr.remove()};
+      splitTbody.appendChild(tr);
+      bindMoneyInputs(tr);
+    }
     document.getElementById('rec-split-add').onclick=()=>addRow();
     form.onsubmit=(e)=>{
       e.preventDefault();
       const f=new FormData(form);
-      const label=String(f.get('label')); const day=Number(f.get('day'));
-      const accountId=String(f.get('accountId')||b().accounts[0]?.id||'a_main'); const note=String(f.get('note')||'');
+      const label=String(f.get('label'));
+      const day=Number(f.get('day'));
+      const accountId=String(f.get('accountId')||b().accounts[0]?.id||'a_main');
+      const note=String(f.get('note')||'');
       if(isSplit.checked){
-        const rows=Array.from(splitTbody.querySelectorAll('.rec-split-row')); if(rows.length===0){alert('Dodaj wiersze split.'); return;}
-        const splits=[]; for(const r of rows){const cat=r.querySelector('.sp-cat').value; const amt=num(r.querySelector('.sp-amt').value); if(!cat || !amt){alert('Uzupełnij kategorię i kwotę w każdym wierszu.'); return;} splits.push({categoryId:cat, amount:amt});}
+        const rows=Array.from(splitTbody.querySelectorAll('.rec-split-row'));
+        if(rows.length===0){alert('Dodaj wiersze split.'); return;}
+        const splits=[];
+        for(const r of rows){
+          const cat=r.querySelector('.sp-cat').value;
+          const amt=num(r.querySelector('.sp-amt').value);
+          if(!cat || !amt){alert('Uzupełnij kategorię i kwotę w każdym wierszu.'); return;}
+          splits.push({categoryId:cat, amount:amt});
+        }
         b().recurringTemplates.push({id:'rt_'+Math.random().toString(36).slice(2),label,day,accountId,note,splits});
       }else{
-        const categoryId=String(f.get('categoryId')); const amount=num(f.get('amount')); if(!categoryId || !amount){alert('Uzupełnij kategorię i kwotę.'); return;}
+        const categoryId=String(f.get('categoryId'));
+        const amount=num(f.get('amount'));
+        if(!categoryId || !amount){alert('Uzupełnij kategorię i kwotę.'); return;}
         b().recurringTemplates.push({id:'rt_'+Math.random().toString(36).slice(2),label,day,accountId,categoryId,amount,note});
       }
-      save(state); form.reset(); splitTbody.innerHTML=''; singleBox.style.display='grid'; splitBox.style.display='none'; isSplit.checked=false; renderRecurringManage();
+      save(state);
+      form.reset();
+      splitTbody.innerHTML='';
+      singleBox.style.display='grid';
+      splitBox.style.display='none';
+      isSplit.checked=false;
+      renderRecurringManage();
     };
     const tbody=document.getElementById('rec-rows'); tbody.innerHTML='';
     for(const t of (b().recurringTemplates||[])){
@@ -10556,14 +9332,17 @@
       const summary = t.splits?.length ? t.splits.map(s=>`${(catsById()[s.categoryId]?.name)||'—'}: ${fmt(num(s.amount),state.currency)}`).join(' | ') : `${fmt(signFor(t.categoryId,num(t.amount)),state.currency)} • ${(catsById()[t.categoryId]?.name)||'—'}`;
       const tr=document.createElement('tr');
       tr.innerHTML=`<td>${t.label}</td><td>${t.day}</td><td>${mode}</td><td>${summary||'—'}</td><td>${(b().accounts||[]).find(a=>a.id===t.accountId)?.name||'—'}</td><td>${t.note||''}</td><td><button class="btn danger">Usuń</button></td>`;
-      tr.querySelector('.btn').onclick=()=>{ if(!confirm('Usunąć szablon cykliczny?')) return; b().recurringTemplates=(b().recurringTemplates||[]).filter(x=>x.id!==t.id); b().recurringLog=(b().recurringLog||[]).filter(x=>x.templateId!==t.id); save(state); renderRecurringManage(); };
+      tr.querySelector('.btn').onclick=()=>{
+        if(!confirm('Usunąć szablon cykliczny?')) return;
+        b().recurringTemplates=(b().recurringTemplates||[]).filter(x=>x.id!==t.id);
+        b().recurringLog=(b().recurringLog||[]).filter(x=>x.templateId!==t.id);
+        save(state);
+        renderRecurringManage();
+      };
       tbody.appendChild(tr);
     }
     bindMoneyInputs(form);
   }
-
-  // --- Safe render orchestrator ----------------------------------------------
-  function safeRender(fn, name){ try{ fn(); } catch(err){ console.error('Render error:', name, err); } }
 
   function renderIncomes(){
     const ym=b().workingMonth; ensureMonth(ym);
@@ -10680,5 +9459,7 @@
   }
   renderAll();
   </script>
+  <!-- MoM Category Detail Panel - will be built from scratch -->
+  <div id="mom-category-detail-root"></div>
 </body>
 </html>
