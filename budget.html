@@ -288,6 +288,160 @@
       gap: 12px;
     }
 
+    .eom-performance-matrix {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .eom-performance-column {
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .eom-performance-head {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eom-performance-head .title {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .eom-performance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .eom-performance-empty {
+      border: 1px dashed rgba(148, 163, 184, 0.5);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      background: rgba(241, 245, 249, 0.45);
+    }
+
+    .eom-account-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-left-width: 4px;
+      padding: 14px 16px;
+      text-align: left;
+      background: var(--card);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      font: inherit;
+    }
+
+    .eom-account-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+      border-color: var(--accent);
+    }
+
+    .eom-account-card.positive {
+      border-left-color: var(--green);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(240, 253, 244, 0.65));
+    }
+
+    .eom-account-card.negative {
+      border-left-color: var(--red);
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.12), rgba(254, 242, 242, 0.7));
+    }
+
+    .eom-account-card.is-focused {
+      border-color: var(--accent);
+      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.18);
+    }
+
+    .eom-account-card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+    }
+
+    .eom-account-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .eom-account-delta {
+      font-weight: 600;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .eom-account-delta.positive { color: var(--green); }
+    .eom-account-delta.negative { color: var(--red); }
+    .eom-account-delta.attention { color: var(--orange); }
+
+    .eom-account-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .eom-account-alert {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(248, 113, 113, 0.14);
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .eom-account-card.positive .eom-account-alert {
+      background: rgba(16, 185, 129, 0.14);
+      color: var(--green);
+    }
+
+    .eom-account-spark {
+      display: flex;
+      align-items: center;
+    }
+
+    .eom-account-spark canvas {
+      width: 100%;
+      height: 30px;
+      display: block;
+    }
+
+    .eom-account-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+    }
+
+    @media (max-width: 900px) {
+      .eom-performance-matrix {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .eom-kpi-card {
       position: relative;
       padding: 16px 18px;
@@ -1536,6 +1690,23 @@
           <div id="eom-networth-empty" class="eom-networth-empty">Brak danych w tym zakresie — dodaj zapisy lub zmień filtry, aby zobaczyć trend majątku netto.</div>
         </div>
         <div id="eom-networth-month-card" class="eom-networth-month-card is-empty">Wybierz punkt na wykresie, aby podejrzeć szczegóły miesiąca.</div>
+      </section>
+
+      <section class="eom-performance-matrix" id="eom-performance-matrix">
+        <div class="eom-performance-column">
+          <div class="eom-performance-head">
+            <h4 class="title">🔥 Top Performers</h4>
+            <p class="tiny muted">Największe wzrosty miesiąc do miesiąca. Kliknij kartę, aby przejść do szczegółów.</p>
+          </div>
+          <div class="eom-performance-list" data-zone="top"></div>
+        </div>
+        <div class="eom-performance-column">
+          <div class="eom-performance-head">
+            <h4 class="title">⚠️ Wymagają uwagi</h4>
+            <p class="tiny muted">Spadki, zadłużenie lub nietypowe skoki powyżej 50%.</p>
+          </div>
+          <div class="eom-performance-list" data-zone="watch"></div>
+        </div>
       </section>
 
       <div class="grid g-2" style="margin-top:16px;gap:16px">
@@ -4167,6 +4338,262 @@
     });
   }
 
+  function renderEomPerformanceMatrix(ctx, accountStats){
+    const container = document.getElementById('eom-performance-matrix');
+    if(!container) return;
+    const topZone = container.querySelector('[data-zone="top"]');
+    const watchZone = container.querySelector('[data-zone="watch"]');
+    if(!topZone || !watchZone) return;
+
+    topZone.innerHTML = '';
+    watchZone.innerHTML = '';
+
+    if(!ctx.months.length){
+      topZone.innerHTML = '<div class="eom-performance-empty">Dodaj pierwsze salda, aby zobaczyć ranking kont.</div>';
+      watchZone.innerHTML = '<div class="eom-performance-empty">✅ Wszystko pod kontrolą</div>';
+      return;
+    }
+
+    const scenario = eomUiState.scenario || 'actual';
+    const topAccounts = accountStats
+      .filter(stat => Number.isFinite(stat.delta) && stat.delta > 0)
+      .sort((a,b) => (b.delta || 0) - (a.delta || 0))
+      .slice(0, 5);
+
+    if(!topAccounts.length){
+      topZone.innerHTML = '<div class="eom-performance-empty">Wszystkie konta stabilne</div>';
+    } else {
+      topAccounts.forEach(stat => {
+        const card = buildEomAccountPerformanceCard(ctx, stat, { tone: 'positive', scenario });
+        topZone.appendChild(card);
+      });
+    }
+
+    const watchCandidates = accountStats
+      .map(stat => {
+        const currentValue = stat.current ?? stat.previous ?? 0;
+        const negativeChange = Number.isFinite(stat.delta) && stat.delta < 0;
+        const negativeBalance = Number.isFinite(currentValue) && currentValue < 0;
+        const bigSwing = stat.deltaPct !== null && Math.abs(stat.deltaPct) >= 50;
+        if(!negativeChange && !negativeBalance && !bigSwing) return null;
+        const alert = detectEomAccountAlert(stat, scenario);
+        const severity =
+          (alert ? 4 : 0) +
+          (negativeBalance ? 3 : 0) +
+          (negativeChange ? 2 : 0) +
+          (bigSwing ? 1 : 0);
+        return { stat, severity, alert };
+      })
+      .filter(Boolean);
+
+    watchCandidates.sort((a,b) => {
+      if(a.severity !== b.severity) return b.severity - a.severity;
+      const deltaA = Math.abs(a.stat.delta ?? 0);
+      const deltaB = Math.abs(b.stat.delta ?? 0);
+      if(deltaA !== deltaB) return deltaB - deltaA;
+      const pctA = Math.abs(a.stat.deltaPct ?? 0);
+      const pctB = Math.abs(b.stat.deltaPct ?? 0);
+      if(pctA !== pctB) return pctB - pctA;
+      return a.stat.account.name.localeCompare(b.stat.account.name, 'pl', { sensitivity:'base' });
+    });
+
+    const watchList = watchCandidates.slice(0, 5);
+    if(!watchList.length){
+      watchZone.innerHTML = '<div class="eom-performance-empty">✅ Wszystko pod kontrolą</div>';
+    } else {
+      watchList.forEach(item => {
+        const card = buildEomAccountPerformanceCard(ctx, item.stat, { tone: 'negative', scenario, alert: item.alert });
+        watchZone.appendChild(card);
+      });
+    }
+
+    requestAnimationFrame(() => {
+      container.querySelectorAll('canvas[data-spark]').forEach(canvas => {
+        const raw = canvas.dataset.values || '';
+        const values = raw ? raw.split(',').map(Number).filter(val => Number.isFinite(val)) : [];
+        const color = canvas.dataset.color || 'var(--accent)';
+        drawMiniSparkline(canvas, values, { color });
+      });
+    });
+  }
+
+  function buildEomAccountPerformanceCard(ctx, stat, options={}){
+    const tone = options.tone === 'negative' ? 'negative' : 'positive';
+    const scenario = options.scenario || stat.scenario || 'actual';
+    const alertText = options.alert || detectEomAccountAlert(stat, scenario);
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `eom-account-card ${tone}`;
+    if(eomUiState.focusedAccountId === stat.account.id){
+      card.classList.add('is-focused');
+    }
+    card.dataset.accountId = stat.account.id;
+
+    const deltaLabel = Number.isFinite(stat.delta)
+      ? `${stat.delta >= 0 ? '+' : ''}${fmt(stat.delta, state.currency)}`
+      : '—';
+    const pctLabel = Number.isFinite(stat.deltaPct)
+      ? `${stat.deltaPct >= 0 ? '+' : ''}${stat.deltaPct.toFixed(1)}%`
+      : '—';
+    const currentLabel = Number.isFinite(stat.current)
+      ? fmt(stat.current, state.currency)
+      : (Number.isFinite(stat.previous) ? fmt(stat.previous, state.currency) : '—');
+    const previousLabel = Number.isFinite(stat.previous)
+      ? fmt(stat.previous, state.currency)
+      : '—';
+    const monthLabel = stat.currentYm || stat.previousYm || ctx.focusMonth || '';
+
+    const header = document.createElement('div');
+    header.className = 'eom-account-card-header';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'eom-account-name';
+    nameEl.textContent = stat.account.name;
+    header.appendChild(nameEl);
+    const deltaEl = document.createElement('span');
+    const deltaClass = tone === 'negative'
+      ? (Number.isFinite(stat.delta) && stat.delta < 0 ? 'negative' : 'attention')
+      : (Number.isFinite(stat.delta) && stat.delta < 0 ? 'negative' : 'positive');
+    deltaEl.className = `eom-account-delta ${deltaClass}`;
+    deltaEl.textContent = deltaLabel;
+    header.appendChild(deltaEl);
+    card.appendChild(header);
+
+    const meta = document.createElement('div');
+    meta.className = 'eom-account-meta';
+    const pctEl = document.createElement('span');
+    pctEl.textContent = pctLabel;
+    meta.appendChild(pctEl);
+    const balanceEl = document.createElement('span');
+    balanceEl.className = 'tiny muted';
+    balanceEl.textContent = `Saldo: ${currentLabel}${monthLabel ? ` (${monthLabel})` : ''}`;
+    meta.appendChild(balanceEl);
+    card.appendChild(meta);
+
+    if(alertText){
+      const badge = document.createElement('span');
+      badge.className = 'eom-account-alert';
+      badge.textContent = alertText;
+      card.appendChild(badge);
+    }
+
+    const sparkWrap = document.createElement('div');
+    sparkWrap.className = 'eom-account-spark';
+    const canvas = document.createElement('canvas');
+    canvas.dataset.spark = stat.account.id;
+    let values = (stat.history || [])
+      .slice(-6)
+      .map(item => {
+        const adjusted = applyScenarioToValue(item.balance, scenario);
+        return typeof adjusted === 'number' && Number.isFinite(adjusted) ? adjusted : null;
+      })
+      .filter(val => val !== null);
+    if(!values.length){
+      const fallback = Number.isFinite(stat.current)
+        ? stat.current
+        : (Number.isFinite(stat.previous) ? stat.previous : 0);
+      values = [fallback, fallback];
+    } else if(values.length === 1){
+      values = [values[0], values[0]];
+    }
+    canvas.dataset.values = values.map(val => Number(val.toFixed(2))).join(',');
+    canvas.dataset.color = tone === 'negative' ? 'var(--red)' : 'var(--green)';
+    sparkWrap.appendChild(canvas);
+    card.appendChild(sparkWrap);
+
+    card.title = [
+      `Konto: ${stat.account.name}`,
+      `Aktualne saldo: ${currentLabel}${monthLabel ? ` (${monthLabel})` : ''}`,
+      `Poprzednio: ${previousLabel}${stat.previousYm ? ` (${stat.previousYm})` : ''}`,
+      `Zmiana m/m: ${deltaLabel}${pctLabel !== '—' ? ` (${pctLabel})` : ''}`
+    ].join('\n');
+
+    card.addEventListener('click', () => {
+      eomUiState.focusedAccountId = stat.account.id;
+      renderEOM();
+      const target = document.getElementById('eom-accounts-chart') || document.getElementById('eom-grid');
+      if(target){
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    return card;
+  }
+
+  function detectEomAccountAlert(stat, scenario){
+    const history = stat.history || [];
+    let worseningDebt = 0;
+    for(let i = Math.max(1, history.length - 3); i < history.length; i++){
+      const prevEntry = history[i - 1];
+      const currentEntry = history[i];
+      const prevVal = prevEntry ? applyScenarioToValue(prevEntry.balance, scenario) : null;
+      const currVal = currentEntry ? applyScenarioToValue(currentEntry.balance, scenario) : null;
+      if(typeof prevVal === 'number' && typeof currVal === 'number' && prevVal < 0 && currVal < 0 && currVal < prevVal){
+        worseningDebt += 1;
+      } else {
+        worseningDebt = 0;
+      }
+    }
+    if(worseningDebt >= 3){
+      return 'Dług rośnie 3 mies.';
+    }
+    if(stat.deltaPct !== null && Math.abs(stat.deltaPct) >= 50){
+      return stat.deltaPct > 0 ? 'Skok >50%' : 'Spadek >50%';
+    }
+    return null;
+  }
+
+  function drawMiniSparkline(canvas, values, options={}){
+    if(!canvas) return;
+    const ctx2d = canvas.getContext('2d');
+    if(!ctx2d) return;
+    const width = canvas.clientWidth || 120;
+    const height = canvas.clientHeight || 30;
+    const ratio = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    ctx2d.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx2d.clearRect(0, 0, width, height);
+
+    if(!values.length){
+      ctx2d.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+      ctx2d.lineWidth = 1.5;
+      ctx2d.beginPath();
+      ctx2d.moveTo(0, height / 2);
+      ctx2d.lineTo(width, height / 2);
+      ctx2d.stroke();
+      return;
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const step = values.length > 1 ? width / (values.length - 1) : width;
+
+    ctx2d.lineWidth = 2;
+    ctx2d.lineJoin = 'round';
+    ctx2d.lineCap = 'round';
+    ctx2d.strokeStyle = options.color || 'var(--accent)';
+    ctx2d.beginPath();
+    values.forEach((val, idx) => {
+      const ratioY = range === 0 ? 0.5 : (val - min) / range;
+      const x = idx * step;
+      const y = height - ratioY * (height - 6) - 3;
+      if(idx === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+    });
+    ctx2d.stroke();
+
+    ctx2d.fillStyle = options.pointColor || ctx2d.strokeStyle;
+    values.forEach((val, idx) => {
+      const ratioY = range === 0 ? 0.5 : (val - min) / range;
+      const x = idx * step;
+      const y = height - ratioY * (height - 6) - 3;
+      ctx2d.beginPath();
+      ctx2d.arc(x, y, 2.5, 0, Math.PI * 2);
+      ctx2d.fill();
+    });
+  }
+
   function renderEomMonthlySummary(summaryRows, options={}){
     const table = document.getElementById('eom-monthly-summary');
     if(!table) return;
@@ -5040,6 +5467,7 @@
 
     if(!baseMonths.length){
       renderEomKpis(ctx, []);
+      renderEomPerformanceMatrix(ctx, []);
       renderEomHistoryTable(ctx, []);
       renderEomChangeTable(ctx, []);
       renderEomMonthlySummary([]);
@@ -5054,6 +5482,7 @@
     const monthlySummary = computeMonthlySummary(ctx, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
 
     renderEomKpis(ctx, accountStats);
+    renderEomPerformanceMatrix(ctx, accountStats);
     renderEomHistoryTable(ctx, monthsToShow, { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
     renderEomChangeTable(ctx, accountStats);
     renderEomMonthlySummary(monthlySummary.filter(row => monthsToShow.includes(row.ym)), { scenario: eomUiState.scenario, accountTypes: eomUiState.accountTypes });
