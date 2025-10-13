@@ -2140,10 +2140,61 @@
     }
 
     .mom-detail-toolbar {
-      padding: 16px var(--mom-detail-gutter) 0;
+      position: sticky;
+      top: 72px;
+      z-index: 2;
+      padding: 12px var(--mom-detail-gutter);
       display: flex;
-      justify-content: flex-end;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .mom-detail-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mom-detail-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mom-detail-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .2s ease;
+      white-space: nowrap;
+    }
+
+    .mom-detail-tab:hover,
+    .mom-detail-tab:focus-visible {
+      outline: none;
+      color: var(--ink);
+      background: rgba(37, 99, 235, 0.16);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .mom-detail-tab.is-active {
+      background: linear-gradient(135deg, var(--accent), rgba(37, 99, 235, 0.9));
+      color: #fff;
+      box-shadow: 0 10px 26px rgba(37, 99, 235, 0.32);
+      transform: translateY(-2px);
     }
 
     .mom-detail-sort {
@@ -2153,6 +2204,10 @@
       border-radius: 999px;
       background: rgba(148, 163, 184, 0.18);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .mom-detail-sort[hidden] {
+      display: none !important;
     }
 
     .mom-detail-sort button {
@@ -2199,6 +2254,37 @@
       display: flex;
       flex-direction: column;
       gap: clamp(28px, 5vw, 42px);
+    }
+
+    .mom-detail-tabpanels {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(28px, 5vw, 42px);
+    }
+
+    .mom-detail-tabpanel {
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .mom-detail-tabpanel.is-active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+      animation: momDetailTabFade 0.35s ease;
+      will-change: opacity, transform;
+    }
+
+    @keyframes momDetailTabFade {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .mom-detail-section {
@@ -4558,7 +4644,14 @@
           <button type="button" class="mom-detail-close" id="mom-detail-close" data-mom-detail-close aria-label="Zamknij szczegóły">✕</button>
         </header>
         <div class="mom-detail-toolbar" id="mom-detail-toolbar" style="display:none">
-          <div class="mom-detail-sort" id="mom-detail-sort">
+          <div class="mom-detail-tabs" id="mom-detail-tabs" role="tablist" aria-label="Widoki analizy MoM">
+            <button type="button" class="mom-detail-tab is-active" data-mom-detail-tab="overview" id="mom-detail-tab-overview" role="tab" aria-selected="true" aria-controls="mom-detail-panel-overview">Przegląd</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="calendar" id="mom-detail-tab-calendar" role="tab" aria-selected="false" aria-controls="mom-detail-panel-calendar" tabindex="-1">Kalendarz</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="patterns" id="mom-detail-tab-patterns" role="tab" aria-selected="false" aria-controls="mom-detail-panel-patterns" tabindex="-1">Wzorce</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="stats" id="mom-detail-tab-stats" role="tab" aria-selected="false" aria-controls="mom-detail-panel-stats" tabindex="-1">Statystyki</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="transactions" id="mom-detail-tab-transactions" role="tab" aria-selected="false" aria-controls="mom-detail-panel-transactions" tabindex="-1">Transakcje</button>
+          </div>
+          <div class="mom-detail-sort" id="mom-detail-sort" hidden>
             <button type="button" class="is-active" data-mom-detail-sort="impact">Największy wpływ</button>
             <button type="button" data-mom-detail-sort="chron">Chronologicznie</button>
           </div>
@@ -10707,11 +10800,83 @@
     });
   }
 
+  const MOM_DETAIL_TABS=['overview','calendar','patterns','stats','transactions'];
   let momDetailOpen=false;
   let momDetailSort='impact';
+  let momDetailTab='overview';
+  let momDetailTabCache={};
   let momDetailBound=false;
   let momDetailKeyBound=false;
   let momDetailScrollRestore=0;
+
+  function isValidMomDetailTab(value){
+    return MOM_DETAIL_TABS.includes(value);
+  }
+
+  function updateMomDetailTabButtons(){
+    document.querySelectorAll('[data-mom-detail-tab]').forEach(btn=>{
+      const value=btn.dataset.momDetailTab||'overview';
+      const isActive=value===momDetailTab;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-selected', isActive?'true':'false');
+      if(isActive){
+        btn.removeAttribute('tabindex');
+      }else{
+        btn.setAttribute('tabindex','-1');
+      }
+    });
+  }
+
+  function updateMomDetailSortVisibility(){
+    const sortWrap=document.getElementById('mom-detail-sort');
+    if(!sortWrap) return;
+    const shouldShow=momDetailTab==='transactions';
+    sortWrap.hidden=!shouldShow;
+  }
+
+  function activateMomDetailTab(){
+    const bodyEl=document.getElementById('mom-detail-body');
+    if(!bodyEl) return;
+    hideMomDetailHeatmapTooltip();
+    const panels=bodyEl.querySelectorAll('[data-mom-detail-panel]');
+    panels.forEach(panel=>{
+      const key=panel.dataset.momDetailPanel;
+      const isActive=key===momDetailTab;
+      panel.classList.toggle('is-active', isActive);
+      panel.setAttribute('aria-hidden', isActive?'false':'true');
+      if(isActive){
+        const cache=momDetailTabCache[key];
+        if(cache && !cache.loaded){
+          cache.render(panel);
+          cache.loaded=true;
+        }else if(!cache && !panel.dataset.momPlaceholder){
+          panel.innerHTML='<div class="mom-detail-empty">Brak danych do wyświetlenia.</div>';
+          panel.dataset.momPlaceholder='1';
+        }
+      }
+    });
+    updateMomDetailTabButtons();
+    updateMomDetailSortVisibility();
+    if(momDetailTab==='transactions'){
+      updateMomDetailSortButtons();
+    }
+  }
+
+  function setMomDetailTab(value){
+    const valid=isValidMomDetailTab(value)?value:'overview';
+    if(momDetailTab===valid){
+      activateMomDetailTab();
+      return;
+    }
+    momDetailTab=valid;
+    updateMomDetailTabButtons();
+    updateMomDetailSortVisibility();
+    const scrollWrap=document.querySelector('.mom-detail-scroll');
+    if(scrollWrap){
+      scrollWrap.scrollTop=0;
+    }
+    activateMomDetailTab();
+  }
 
   function momDetailEligible(catId){
     return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
@@ -10738,6 +10903,16 @@
           momDetailSort=value;
           updateMomDetailSortButtons();
           if(momDetailOpen) renderMomDetail();
+        });
+      });
+    }
+    const tabsWrap=document.getElementById('mom-detail-tabs');
+    if(tabsWrap && !tabsWrap.dataset.bound){
+      tabsWrap.dataset.bound='1';
+      tabsWrap.querySelectorAll('button[data-mom-detail-tab]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const value=btn.dataset.momDetailTab||'overview';
+          setMomDetailTab(value);
         });
       });
     }
@@ -11807,6 +11982,8 @@
     updateMomDetailSortButtons();
     hideMomDetailHeatmapTooltip();
     momDetailHeatmapData.clear();
+    momDetailTabCache={};
+    if(!isValidMomDetailTab(momDetailTab)) momDetailTab='overview';
     const context=momLastContext;
     if(!context){
       titleEl.textContent='Szczegóły kategorii';
@@ -11816,6 +11993,8 @@
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
       destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
     const {categories,monthA,monthB,dayLimit}=context;
@@ -11828,6 +12007,8 @@
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
       destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
     const titleLabel=momCategoryLabel(selected);
@@ -11835,6 +12016,7 @@
     subtitleEl.textContent=`${formatYmHuman(monthA)} vs ${formatYmHuman(monthB)} • do dnia ${String(dayLimit).padStart(2,'0')}`;
     const detail=buildMomDetailData(monthA, monthB, selected.id, dayLimit);
     if(toolbar) toolbar.style.display='';
+    metaEl.innerHTML='';
     const totalDiff=detail.totalA-detail.totalB;
     const dayLimitLabel=String(detail.dayLimit).padStart(2,'0');
     const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
@@ -11970,20 +12152,32 @@
     const forecastSection=forecast?buildMomDetailForecastSection(forecast):'';
     const waterfallSubtitle=`Do dnia ${dayLimitLabel} • ${diffSummary}`;
     const waterfallSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wpływ dni na różnicę</h5><p class="mom-detail-section-subtitle">${waterfallSubtitle}</p></div></div><div class="mom-detail-waterfall-chart"><canvas id="mom-detail-waterfall" role="img" aria-label="Wykres wodospadowy różnicy dziennej"></canvas></div><p class="mom-detail-section-footnote">Największe różnice wyróżnione grubszą obwódką.</p></section>`;
-    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${advancedMetricsHtml}${boxPlotSection}${highlightHtml}</section>`;
+    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
+    const statsPieces=[];
+    if(advancedMetricsHtml) statsPieces.push(advancedMetricsHtml);
+    if(boxPlotSection) statsPieces.push(boxPlotSection);
+    if(!statsPieces.length){
+      statsPieces.push('<div class="mom-detail-empty">Brak danych do obliczenia zaawansowanych statystyk.</div>');
+    }
+    const statsSection=hasTransactions
+      ? `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Zaawansowane statystyki</h5><p class="mom-detail-section-subtitle">Zmiany rozkładu i koncentracja wydatków.</p></div></div>${statsPieces.join('')}</section>`
+      : `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Zaawansowane statystyki</h5><p class="mom-detail-section-subtitle">Brak transakcji w wybranych miesiącach.</p></div></div><div class="mom-detail-empty">Brak danych do analizy.</div></section>`;
     const weeklySection=buildMomDetailWeeklySection(detail, monthA, monthB, palette);
-    metaEl.innerHTML=`${overviewSection}${weeklySection.section}`;
-    bindMomDetailHeatmap(metaEl, weeklySection.cells);
     if(!hasTransactions){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
       destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
     const patterns=detectPatterns(detail.days, monthA, monthB);
     const patternsCards=patterns.map(pattern=>`<article class="mom-detail-pattern-card" data-mom-pattern="${pattern.key}"><span class="mom-detail-pattern-icon" aria-hidden="true">${pattern.icon}</span><span class="mom-detail-pattern-title">${pattern.title}</span><p class="mom-detail-pattern-desc">${pattern.description}</p></article>`).join('');
-    const patternsSection=patterns.length?`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wykryte wzorce</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-patterns-grid">${patternsCards}</div></section>`:'';
+    const patternsSection=patterns.length
+      ? `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wykryte wzorce</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-patterns-grid">${patternsCards}</div></section>`
+      : `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wykryte wzorce</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-empty">Brak jednoznacznych wzorców dla wybranej kategorii.</div></section>`;
+    const patternsContent=`${patternsSection}${weeklySection.section}`;
     const contributionsSection=buildMomDetailContributionsSection(detail, monthA, monthB);
     const sortedDays=[...detail.days];
     if(momDetailSort==='impact'){
@@ -12072,28 +12266,65 @@
       ? `<div class="mom-detail-daylist">${listCards}</div>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
     const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${forecastSection}${waterfallSection}${patternsSection}${contributionsSection.section}${calendarSection}${daylistSection}`;
-    bindMomDetailContributions(bodyEl, contributionsSection.rows);
-    const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
-    const scheduleForecast=forecast?()=>renderMomDetailForecastChart(forecast,palette):null;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
-    else scheduleWaterfall();
-    if(scheduleForecast){
-      if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleForecast);
-      else scheduleForecast();
-    }else{
-      destroyMomDetailForecastChart();
-    }
-    daysForList.forEach((day,idx)=>{
-      const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
-      if(!el) return;
-      const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
-      const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
-      const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
-      const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
-      el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
-      el.style.borderColor=border;
-    });
+    destroyMomDetailWaterfallChart();
+    destroyMomDetailForecastChart();
+    const panelsHtml=MOM_DETAIL_TABS.map(key=>`<div class="mom-detail-tabpanel" id="mom-detail-panel-${key}" data-mom-detail-panel="${key}" role="tabpanel" aria-labelledby="mom-detail-tab-${key}" aria-hidden="true"></div>`).join('');
+    bodyEl.innerHTML=`<div class="mom-detail-tabpanels">${panelsHtml}</div>`;
+    momDetailTabCache={
+      overview:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=`${forecastSection}${overviewSection}${waterfallSection}`;
+          destroyMomDetailWaterfallChart();
+          destroyMomDetailForecastChart();
+          const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
+          if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
+          else scheduleWaterfall();
+          if(forecastSection){
+            const scheduleForecast=()=>renderMomDetailForecastChart(forecast,palette);
+            if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleForecast);
+            else scheduleForecast();
+          }
+        }
+      },
+      calendar:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=calendarSection;
+        }
+      },
+      patterns:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=patternsContent;
+          bindMomDetailHeatmap(panel, weeklySection.cells);
+        }
+      },
+      stats:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=statsSection;
+        }
+      },
+      transactions:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=`${contributionsSection.section}${daylistSection}`;
+          bindMomDetailContributions(panel, contributionsSection.rows);
+          daysForList.forEach((day,idx)=>{
+            const el=panel.querySelector(`[data-mom-detail-day="${idx}"]`);
+            if(!el) return;
+            const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
+            const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
+            const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
+            const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
+            el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
+            el.style.borderColor=border;
+          });
+        }
+      }
+    };
+    activateMomDetailTab();
     const scrollWrap=document.querySelector('.mom-detail-scroll');
     if(scrollWrap){
       scrollWrap.scrollTop=0;
