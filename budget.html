@@ -2090,7 +2090,22 @@
       background: rgba(248, 250, 252, 0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-      z-index: 2;
+      transition: padding 0.2s ease, backdrop-filter 0.2s ease;
+      z-index: 10;
+    }
+
+    .mom-detail-header.scrolled {
+      padding: 16px var(--mom-detail-gutter) 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .mom-detail-header.scrolled .mom-detail-title {
+      font-size: 16px;
+    }
+
+    .mom-detail-header.scrolled .mom-detail-subtitle {
+      display: none;
     }
 
     .mom-detail-heading {
@@ -11166,8 +11181,12 @@
     updateMomDetailTabButtons();
     updateMomDetailSortVisibility();
     const scrollWrap=document.querySelector('.mom-detail-scroll');
+    const header=document.querySelector('.mom-detail-header');
     if(scrollWrap){
       scrollWrap.scrollTop=0;
+      if(header){
+        header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+      }
     }
     activateMomDetailTab();
   }
@@ -11245,6 +11264,10 @@
     const panel=document.getElementById('mom-detail-panel');
     const backdrop=document.getElementById('mom-detail-backdrop');
     if(!panel || !backdrop) return;
+    const header=document.querySelector('.mom-detail-header');
+    if(header){
+      header.classList.remove('scrolled');
+    }
     hideMomDetailHeatmapTooltip();
     momDetailHeatmapData.clear();
     momDetailOpen=false;
@@ -12701,12 +12724,23 @@
     };
     activateMomDetailTab();
     const scrollWrap=document.querySelector('.mom-detail-scroll');
+    const header=document.querySelector('.mom-detail-header');
     if(scrollWrap){
       scrollWrap.scrollTop=0;
+      if(header){
+        header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+      }
       if(!scrollWrap.dataset.heatmapScrollBound){
         scrollWrap.dataset.heatmapScrollBound='1';
-        scrollWrap.addEventListener('scroll',()=>hideMomDetailHeatmapTooltip(),{passive:true});
+        scrollWrap.addEventListener('scroll',()=>{
+          hideMomDetailHeatmapTooltip();
+          if(header){
+            header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+          }
+        },{passive:true});
       }
+    } else if(header){
+      header.classList.remove('scrolled');
     }
   }
 
