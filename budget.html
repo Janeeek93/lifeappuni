@@ -2242,6 +2242,263 @@
       line-height: 1.5;
     }
 
+    .mom-detail-heatmap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-heatmap-scroll {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .mom-detail-heatmap-grid {
+      display: grid;
+      grid-template-columns: minmax(112px, 0.9fr) repeat(7, minmax(88px, 1fr));
+      gap: 8px;
+      align-items: stretch;
+      min-width: 100%;
+    }
+
+    .mom-detail-heatmap-head {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mom-detail-heatmap-corner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .mom-detail-heatmap-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      white-space: nowrap;
+    }
+
+    .mom-detail-heatmap-cell {
+      position: relative;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      min-height: 82px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      text-align: left;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-cell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: var(--mom-heat-bg, var(--surface));
+      opacity: 1;
+      z-index: 0;
+      transition: opacity .2s ease;
+    }
+
+    .mom-detail-heatmap-cell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .mom-detail-heatmap-cell:hover,
+    .mom-detail-heatmap-cell:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+      border-color: var(--mom-heat-border, rgba(148, 163, 184, 0.35));
+      outline: none;
+    }
+
+    .mom-detail-heatmap-cell.is-empty {
+      cursor: default;
+    }
+
+    .mom-detail-heatmap-cell.is-empty:hover,
+    .mom-detail-heatmap-cell.is-empty:focus-visible {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .mom-detail-heatmap-cell.is-top {
+      border-width: 2px;
+      border-color: var(--mom-heat-border, rgba(37, 99, 235, 0.45));
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+    }
+
+    .mom-detail-heatmap-total {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .mom-detail-heatmap-count {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .mom-detail-heatmap-metric {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.3), rgba(248, 250, 252, 0.86));
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mom-detail-heatmap-metric-eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-metric-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .mom-detail-heatmap-metric-value {
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-tooltip {
+      position: fixed;
+      z-index: 1002;
+      background: rgba(255, 255, 255, 0.98);
+      color: var(--ink);
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+      padding: 14px 16px;
+      max-width: min(320px, calc(100vw - 32px));
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .mom-detail-heatmap-tooltip.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .mom-detail-heatmap-tooltip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mom-detail-heatmap-tooltip-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-tooltip-day {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .mom-detail-heatmap-tooltip-total {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .mom-detail-heatmap-tooltip-count {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    .mom-detail-heatmap-tooltip-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 260px;
+      overflow: hidden;
+    }
+
+    .mom-detail-heatmap-tooltip-item {
+      display: grid;
+      grid-template-columns: minmax(68px, auto) minmax(72px, auto) 1fr;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-tooltip-item-note {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mom-detail-heatmap-tooltip-empty {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-tooltip-more {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 720px) {
+      .mom-detail-heatmap-grid {
+        grid-template-columns: minmax(96px, 0.8fr) repeat(7, minmax(72px, 1fr));
+      }
+
+      .mom-detail-heatmap-cell {
+        min-height: 72px;
+        padding: 10px;
+      }
+    }
+
     .mom-detail-waterfall-chart {
       position: relative;
       height: clamp(260px, 45vh, 360px);
@@ -9473,6 +9730,8 @@
   let momDiffChart=null;
   let momDetailWaterfallChart=null;
   let momLastContext=null;
+  let momDetailHeatmapData=new Map();
+  let momDetailHeatmapTooltip=null;
 
   function momPalette(){
     return {
@@ -9832,6 +10091,8 @@
     const panel=document.getElementById('mom-detail-panel');
     const backdrop=document.getElementById('mom-detail-backdrop');
     if(!panel || !backdrop) return;
+    hideMomDetailHeatmapTooltip();
+    momDetailHeatmapData.clear();
     momDetailOpen=false;
     destroyMomDetailWaterfallChart();
     panel.classList.remove('is-visible');
@@ -10198,6 +10459,240 @@
     return patterns;
   }
 
+  function buildMomDetailWeeklySection(detail, monthA, monthB, palette){
+    const weekdaysShort=['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+    const weekdaysLong=['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'];
+    const buckets=weekdaysLong.map((label,idx)=>({
+      idx,
+      label,
+      short:weekdaysShort[idx],
+      totalA:0,
+      totalB:0,
+      countA:0,
+      countB:0,
+      entriesA:[],
+      entriesB:[]
+    }));
+    const getWeekdayIndex=iso=>{
+      if(!iso) return -1;
+      const date=new Date(iso);
+      if(Number.isNaN(date.getTime())) return -1;
+      const jsDay=date.getDay();
+      return (jsDay+6)%7;
+    };
+    (detail?.days||[]).forEach(day=>{
+      if(day.isoA){
+        const idx=getWeekdayIndex(day.isoA);
+        if(idx>=0){
+          const bucket=buckets[idx];
+          bucket.totalA+=day.totalA;
+          bucket.countA+=day.entriesA.length;
+          day.entriesA.forEach(entry=>{
+            bucket.entriesA.push({
+              amount:Math.abs(entry.amount)||0,
+              note:entry.note||'',
+              date:entry.date||day.isoA
+            });
+          });
+        }
+      }
+      if(day.isoB){
+        const idx=getWeekdayIndex(day.isoB);
+        if(idx>=0){
+          const bucket=buckets[idx];
+          bucket.totalB+=day.totalB;
+          bucket.countB+=day.entriesB.length;
+          day.entriesB.forEach(entry=>{
+            bucket.entriesB.push({
+              amount:Math.abs(entry.amount)||0,
+              note:entry.note||'',
+              date:entry.date||day.isoB
+            });
+          });
+        }
+      }
+    });
+    const maxValue=buckets.reduce((max,b)=>Math.max(max,b.totalA,b.totalB),0);
+    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
+    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
+    const formatCount=count=>{
+      if(!count) return 'Brak';
+      if(count===1) return '1 trans.';
+      return `${count} trans.`;
+    };
+    const formatCountAria=count=>{
+      if(!count) return 'Brak transakcji';
+      if(count===1) return '1 transakcja';
+      return `${count} transakcje`;
+    };
+    const topA=buckets.reduce((acc,b)=>b.totalA>(acc?.total||0)?{index:b.idx,total:b.totalA,label:b.label}:acc,null);
+    const topB=buckets.reduce((acc,b)=>b.totalB>(acc?.total||0)?{index:b.idx,total:b.totalB,label:b.label}:acc,null);
+    const headerCells=weekdaysShort.map(short=>`<div class="mom-detail-heatmap-head" aria-hidden="true">${short}</div>`).join('');
+    const cellMap=new Map();
+    const rows=[
+      {key:'A',label:humanMonthA,color:palette.monthA,totalKey:'totalA',countKey:'countA',entriesKey:'entriesA',top:topA},
+      {key:'B',label:humanMonthB,color:palette.monthB,totalKey:'totalB',countKey:'countB',entriesKey:'entriesB',top:topB}
+    ].map(config=>{
+      const cells=buckets.map(bucket=>{
+        const total=bucket[config.totalKey];
+        const count=bucket[config.countKey];
+        const entries=bucket[config.entriesKey];
+        const id=`${config.key}-${bucket.idx}`;
+        const ratio=maxValue>0?Math.min(1,total/maxValue):0;
+        const hasValue=total>0;
+        const background=hasValue?colorWithAlpha(config.color,0.18+0.45*ratio):colorWithAlpha(palette.ink,0.05);
+        const border=hasValue?colorWithAlpha(config.color,0.35+0.3*ratio):colorWithAlpha(palette.ink,0.12);
+        const classes=['mom-detail-heatmap-cell'];
+        if(!hasValue) classes.push('is-empty');
+        if(config.top && config.top.index===bucket.idx && hasValue) classes.push('is-top');
+        const ariaLabel=`${config.label} — ${bucket.label}: ${hasValue?fmt(total,state.currency):'Brak wydatków'}, ${formatCountAria(count)}`;
+        cellMap.set(id,{
+          monthKey:config.key,
+          monthLabel:config.label,
+          dowIndex:bucket.idx,
+          dowLabel:bucket.label,
+          total,
+          count,
+          transactions:entries.map(entry=>({
+            amount:entry.amount,
+            note:entry.note,
+            date:entry.date
+          }))
+        });
+        return `<button type="button" class="${classes.join(' ')}" data-mom-heatmap="${id}" style="--mom-heat-bg:${background};--mom-heat-border:${border};" aria-label="${escapeHtml(ariaLabel)}"><span class="mom-detail-heatmap-total">${hasValue?fmt(total,state.currency):'—'}</span><span class="mom-detail-heatmap-count">${formatCount(count)}</span></button>`;
+      }).join('');
+      return `<div class="mom-detail-heatmap-label">${escapeHtml(config.label)}</div>${cells}`;
+    }).join('');
+    const gridHtml=`<div class="mom-detail-heatmap-scroll"><div class="mom-detail-heatmap-grid"><div class="mom-detail-heatmap-corner" aria-hidden="true">Dzień</div>${headerCells}${rows}</div></div>`;
+    const metricCard=(label, top)=>{
+      const hasData=top && top.total>0;
+      const value=hasData?`${escapeHtml(top.label)} • ${fmt(top.total,state.currency)}`:'Brak danych';
+      return `<article class="mom-detail-heatmap-metric"><span class="mom-detail-heatmap-metric-eyebrow">${escapeHtml(label)}</span><h6 class="mom-detail-heatmap-metric-title">Najdroższy dzień tygodnia</h6><p class="mom-detail-heatmap-metric-value">${value}</p></article>`;
+    };
+    const metricsHtml=`<div class="mom-detail-heatmap-metrics">${metricCard(humanMonthA, topA)}${metricCard(humanMonthB, topB)}</div>`;
+    const limitLabel=String(detail?.dayLimit||0).padStart(2,'0');
+    const subtitle=`Do dnia ${limitLabel} • ${humanMonthA} / ${humanMonthB}`;
+    const sectionHtml=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Rozkład tygodniowy</h5><p class="mom-detail-section-subtitle">${subtitle}</p></div></div><div class="mom-detail-heatmap">${gridHtml}${metricsHtml}</div></section>`;
+    return {section:sectionHtml,cells:cellMap};
+  }
+
+  function ensureMomDetailHeatmapTooltip(){
+    if(!momDetailHeatmapTooltip){
+      momDetailHeatmapTooltip=document.createElement('div');
+      momDetailHeatmapTooltip.className='mom-detail-heatmap-tooltip';
+      document.body.appendChild(momDetailHeatmapTooltip);
+    }
+    return momDetailHeatmapTooltip;
+  }
+
+  function hideMomDetailHeatmapTooltip(){
+    if(momDetailHeatmapTooltip){
+      momDetailHeatmapTooltip.classList.remove('is-visible');
+    }
+  }
+
+  function positionMomDetailHeatmapTooltip(coords){
+    if(!momDetailHeatmapTooltip || !momDetailHeatmapTooltip.classList.contains('is-visible') || !coords) return;
+    const offset=18;
+    let left=(coords.x||0)+offset;
+    let top=(coords.y||0)+offset;
+    const rect=momDetailHeatmapTooltip.getBoundingClientRect();
+    const viewportWidth=window.innerWidth||document.documentElement.clientWidth||0;
+    const viewportHeight=window.innerHeight||document.documentElement.clientHeight||0;
+    if(left+rect.width>viewportWidth-12) left=(coords.x||0)-rect.width-offset;
+    if(top+rect.height>viewportHeight-12) top=(coords.y||0)-rect.height-offset;
+    if(left<12) left=12;
+    if(top<12) top=12;
+    momDetailHeatmapTooltip.style.left=`${left}px`;
+    momDetailHeatmapTooltip.style.top=`${top}px`;
+  }
+
+  function formatHeatmapDateLabel(value){
+    if(!value) return '—';
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime())) return value;
+    try{
+      return date.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'});
+    }catch(err){
+      return value;
+    }
+  }
+
+  function showMomDetailHeatmapTooltip(data, coords){
+    if(!data) return;
+    const tooltip=ensureMomDetailHeatmapTooltip();
+    const totalLabel=data.total>0?fmt(data.total,state.currency):'—';
+    const countLabel=data.count?(data.count===1?'1 transakcja':`${data.count} trans.`):'Brak transakcji';
+    const entries=(data.transactions||[]).slice(0,6);
+    const rowsHtml=entries.length
+      ? entries.map(entry=>{
+          const dateLabel=formatHeatmapDateLabel(entry.date);
+          const amount=fmt(entry.amount,state.currency);
+          const note=entry.note?escapeHtml(entry.note):'Bez opisu';
+          return `<div class="mom-detail-heatmap-tooltip-item"><span>${escapeHtml(dateLabel)}</span><span>${amount}</span><span class="mom-detail-heatmap-tooltip-item-note">${note}</span></div>`;
+        }).join('')
+      : '<div class="mom-detail-heatmap-tooltip-empty">Brak transakcji w tym dniu tygodnia.</div>';
+    const remainder=Math.max(0,(data.transactions?.length||0)-entries.length);
+    const moreHtml=remainder>0?`<div class="mom-detail-heatmap-tooltip-more">+${remainder} kolejnych pozycji</div>`:'';
+    tooltip.innerHTML=`<div class="mom-detail-heatmap-tooltip-header"><div><span class="mom-detail-heatmap-tooltip-label">${escapeHtml(data.monthLabel)}</span><div class="mom-detail-heatmap-tooltip-day">${escapeHtml(data.dowLabel)}</div></div><div class="mom-detail-heatmap-tooltip-total">${totalLabel}</div></div><div class="mom-detail-heatmap-tooltip-count">${escapeHtml(countLabel)}</div><div class="mom-detail-heatmap-tooltip-body">${rowsHtml}${moreHtml}</div>`;
+    tooltip.classList.add('is-visible');
+    requestAnimationFrame(()=>positionMomDetailHeatmapTooltip(coords));
+  }
+
+  function bindMomDetailHeatmap(root, cellMap){
+    momDetailHeatmapData.clear();
+    if(!root || !(cellMap instanceof Map) || cellMap.size===0) return;
+    cellMap.forEach((value,key)=>{
+      momDetailHeatmapData.set(key,{
+        monthKey:value.monthKey,
+        monthLabel:value.monthLabel,
+        dowIndex:value.dowIndex,
+        dowLabel:value.dowLabel,
+        total:value.total,
+        count:value.count,
+        transactions:(value.transactions||[]).map(entry=>({
+          amount:entry.amount,
+          note:entry.note,
+          date:entry.date
+        }))
+      });
+    });
+    const cells=root.querySelectorAll('[data-mom-heatmap]');
+    cells.forEach(cell=>{
+      const id=cell.dataset.momHeatmap;
+      if(!id) return;
+      const handleEnter=evt=>{
+        const data=momDetailHeatmapData.get(id);
+        if(!data) return;
+        showMomDetailHeatmapTooltip(data,{x:evt.clientX,y:evt.clientY});
+      };
+      const handleMove=evt=>{
+        positionMomDetailHeatmapTooltip({x:evt.clientX,y:evt.clientY});
+      };
+      const handleLeave=()=>hideMomDetailHeatmapTooltip();
+      const handleFocus=evt=>{
+        const data=momDetailHeatmapData.get(id);
+        if(!data) return;
+        const rect=evt.currentTarget.getBoundingClientRect();
+        showMomDetailHeatmapTooltip(data,{x:rect.left+rect.width/2,y:rect.top});
+      };
+      cell.addEventListener('mouseenter', handleEnter);
+      cell.addEventListener('mousemove', handleMove);
+      cell.addEventListener('mouseleave', handleLeave);
+      cell.addEventListener('focus', handleFocus);
+      cell.addEventListener('blur', hideMomDetailHeatmapTooltip);
+      cell.addEventListener('keydown', evt=>{ if(evt.key==='Escape') hideMomDetailHeatmapTooltip(); });
+      cell.addEventListener('touchstart', evt=>{
+        const touch=evt.touches && evt.touches[0];
+        const data=momDetailHeatmapData.get(id);
+        if(!touch || !data) return;
+        showMomDetailHeatmapTooltip(data,{x:touch.clientX,y:touch.clientY});
+      }, {passive:true});
+      cell.addEventListener('touchend', hideMomDetailHeatmapTooltip, {passive:true});
+      cell.addEventListener('touchcancel', hideMomDetailHeatmapTooltip, {passive:true});
+    });
+  }
+
   function renderMomDetailEntries(entries){
     if(!entries.length){
       return '<div class="mom-detail-month-empty">Brak wydatków</div>';
@@ -10230,6 +10725,8 @@
     const toolbar=document.getElementById('mom-detail-toolbar');
     if(!titleEl || !subtitleEl || !metaEl || !bodyEl) return;
     updateMomDetailSortButtons();
+    hideMomDetailHeatmapTooltip();
+    momDetailHeatmapData.clear();
     const context=momLastContext;
     if(!context){
       titleEl.textContent='Szczegóły kategorii';
@@ -10321,10 +10818,13 @@
     }
     const diffSign=totalDiff>0?'+':totalDiff<0?'−':'';
     const diffSummary=totalDiff===0?'Brak różnicy A-B':`Skumulowana różnica: ${diffSign}${fmt(Math.abs(totalDiff), state.currency)}`;
+    const palette=momPalette();
     const waterfallSubtitle=`Do dnia ${dayLimitLabel} • ${diffSummary}`;
     const waterfallSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wpływ dni na różnicę</h5><p class="mom-detail-section-subtitle">${waterfallSubtitle}</p></div></div><div class="mom-detail-waterfall-chart"><canvas id="mom-detail-waterfall" role="img" aria-label="Wykres wodospadowy różnicy dziennej"></canvas></div><p class="mom-detail-section-footnote">Największe różnice wyróżnione grubszą obwódką.</p></section>`;
     const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
-    metaEl.innerHTML=overviewSection;
+    const weeklySection=buildMomDetailWeeklySection(detail, monthA, monthB, palette);
+    metaEl.innerHTML=`${overviewSection}${weeklySection.section}`;
+    bindMomDetailHeatmap(metaEl, weeklySection.cells);
     if(!hasTransactions){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       if(toolbar) toolbar.style.display='none';
@@ -10346,7 +10846,6 @@
     }else{
       sortedDays.sort((a,b)=>a.day-b.day);
     }
-    const palette=momPalette();
     const formatDayCount=count=>{
       if(!count) return 'Brak';
       if(count===1) return '1 trans.';
@@ -10437,7 +10936,13 @@
       el.style.borderColor=border;
     });
     const scrollWrap=document.querySelector('.mom-detail-scroll');
-    if(scrollWrap) scrollWrap.scrollTop=0;
+    if(scrollWrap){
+      scrollWrap.scrollTop=0;
+      if(!scrollWrap.dataset.heatmapScrollBound){
+        scrollWrap.dataset.heatmapScrollBound='1';
+        scrollWrap.addEventListener('scroll',()=>hideMomDetailHeatmapTooltip(),{passive:true});
+      }
+    }
   }
 
   function renderMomComparison(){
