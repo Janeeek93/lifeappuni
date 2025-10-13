@@ -2019,7 +2019,8 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease;
-      z-index: 40;
+      will-change: opacity;
+      z-index: 1000;
     }
 
     .mom-detail-backdrop.is-visible {
@@ -2043,7 +2044,8 @@
       transform: translateX(36px);
       pointer-events: none;
       transition: opacity .28s ease, transform .28s ease;
-      z-index: 41;
+      will-change: transform, opacity;
+      z-index: 1001;
       --mom-detail-gutter: clamp(24px, 4vw, 56px);
     }
 
@@ -9594,11 +9596,14 @@
     if(document.body) document.body.classList.add('mom-detail-open');
     momDetailOpen=true;
     renderMomDetail();
-    panel.classList.add('is-visible');
-    panel.setAttribute('aria-hidden','false');
     backdrop.hidden=false;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>backdrop.classList.add('is-visible'));
-    else backdrop.classList.add('is-visible');
+    panel.setAttribute('aria-hidden','false');
+    const showElements=()=>{
+      panel.classList.add('is-visible');
+      backdrop.classList.add('is-visible');
+    };
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(showElements);
+    else showElements();
     const closeBtn=document.getElementById('mom-detail-close');
     if(closeBtn) closeBtn.focus({preventScroll:true});
   }
