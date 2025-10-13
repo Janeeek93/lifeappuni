@@ -2207,6 +2207,136 @@
       gap: 18px;
     }
 
+    .mom-detail-forecast {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-forecast-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .mom-detail-forecast-card {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.72));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mom-detail-forecast-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.45), transparent 55%);
+    }
+
+    .mom-detail-forecast-card.optimistic {
+      border-color: rgba(22, 163, 74, 0.32);
+    }
+
+    .mom-detail-forecast-card.optimistic::after {
+      background: radial-gradient(circle at top right, rgba(22, 163, 74, 0.45), transparent 55%);
+    }
+
+    .mom-detail-forecast-card.pessimistic {
+      border-color: rgba(220, 38, 38, 0.32);
+    }
+
+    .mom-detail-forecast-card.pessimistic::after {
+      background: radial-gradient(circle at top right, rgba(220, 38, 38, 0.46), transparent 55%);
+    }
+
+    .mom-detail-forecast-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .mom-detail-forecast-card-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .mom-detail-forecast-card-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .mom-detail-forecast-card-meta {
+      margin-top: auto;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mom-detail-forecast-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .mom-detail-forecast-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+    }
+
+    .mom-detail-forecast-chart {
+      position: relative;
+      height: clamp(220px, 36vh, 320px);
+      border-radius: 18px;
+      padding: 16px;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.4), rgba(248, 250, 252, 0.86));
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .mom-detail-forecast-alert {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid rgba(220, 38, 38, 0.32);
+      background: rgba(254, 226, 226, 0.72);
+      color: #991b1b;
+    }
+
+    .mom-detail-forecast-alert strong {
+      font-weight: 600;
+    }
+
+    .mom-detail-forecast-alert-icon {
+      font-size: 16px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
     .mom-detail-patterns-grid {
       display: grid;
       gap: 16px;
@@ -8053,6 +8183,93 @@
     });
   }
 
+  function renderMomDetailForecastChart(forecast,palette){
+    const canvas=document.getElementById('mom-detail-forecast-chart');
+    if(!canvas || !forecast){
+      destroyMomDetailForecastChart();
+      return;
+    }
+    const ctx=canvas.getContext('2d');
+    if(!ctx){
+      destroyMomDetailForecastChart();
+      return;
+    }
+    destroyMomDetailForecastChart();
+    const labels=forecast.labels;
+    const actual=forecast.actualCumulative;
+    const projected=forecast.projectedCumulative;
+    const realisticLabel=forecast.realisticLabel||'Prognoza';
+    const actualColor=colorWithAlpha(palette.ink,0.85);
+    const forecastColor=colorWithAlpha(palette.negative,0.9);
+    momDetailForecastChart=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {
+            label:'Faktycznie',
+            data:actual,
+            borderColor:actualColor,
+            backgroundColor:colorWithAlpha(palette.ink,0.12),
+            borderWidth:2,
+            tension:0.32,
+            fill:false,
+            spanGaps:false,
+            pointRadius:3,
+            pointHoverRadius:4,
+            segment:{borderDash:ctx=>ctx.p0?.skip&&ctx.p1?.skip?[6,6]:undefined}
+          },
+          {
+            label:`Prognoza (${realisticLabel})`,
+            data:projected,
+            borderColor:forecastColor,
+            backgroundColor:colorWithAlpha(palette.negative,0.08),
+            borderWidth:2,
+            tension:0.34,
+            fill:false,
+            spanGaps:true,
+            pointRadius:0,
+            borderDash:[6,5]
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'nearest',intersect:false},
+        plugins:{
+          legend:{labels:{color:palette.ink,font:{size:12}}},
+          tooltip:{
+            callbacks:{
+              label(context){
+                const value=context.parsed.y;
+                if(!Number.isFinite(value)) return context.dataset.label||'';
+                return `${context.dataset.label||''}: ${fmt(value,state.currency)}`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            ticks:{color:palette.muted,font:{size:11}},
+            grid:{color:colorWithAlpha(palette.muted,0.18)}
+          },
+          y:{
+            beginAtZero:true,
+            ticks:{
+              color:palette.muted,
+              font:{size:11},
+              callback(value){
+                return fmt(value,state.currency);
+              }
+            },
+            grid:{color:colorWithAlpha(palette.muted,0.14)}
+          }
+        }
+      }
+    });
+  }
+
   function renderNetWorthMonthCard(detail){
     const container = document.getElementById('eom-networth-month-card');
     if(!container) return;
@@ -10188,6 +10405,7 @@
   let momChart=null;
   let momDiffChart=null;
   let momDetailWaterfallChart=null;
+  let momDetailForecastChart=null;
   let momLastContext=null;
   let momDetailHeatmapData=new Map();
   let momDetailHeatmapTooltip=null;
@@ -10199,7 +10417,8 @@
       positive: cssVar('--red', MOM_DIFF_COLORS.positive),
       negative: cssVar('--green', MOM_DIFF_COLORS.negative),
       neutral: cssVar('--muted', MOM_DIFF_COLORS.neutral),
-      ink: cssVar('--ink', '#0f172a')
+      ink: cssVar('--ink', '#0f172a'),
+      muted: cssVar('--muted', '#475569')
     };
   }
 
@@ -10215,6 +10434,13 @@
     if(momDetailWaterfallChart){
       momDetailWaterfallChart.destroy();
       momDetailWaterfallChart=null;
+    }
+  }
+
+  function destroyMomDetailForecastChart(){
+    if(momDetailForecastChart){
+      momDetailForecastChart.destroy();
+      momDetailForecastChart=null;
     }
   }
 
@@ -10554,6 +10780,7 @@
     momDetailHeatmapData.clear();
     momDetailOpen=false;
     destroyMomDetailWaterfallChart();
+    destroyMomDetailForecastChart();
     panel.classList.remove('is-visible');
     panel.setAttribute('aria-hidden','true');
     backdrop.classList.remove('is-visible');
@@ -10795,6 +11022,161 @@
       ledFromStart,
       everLed,
       finalDelta: totalA-totalB
+    };
+  }
+
+  function computeMomDetailForecast(detail, monthA, monthB, categoryId){
+    if(!detail || !monthA || !categoryId) return null;
+    if(categoryId==='__all' || categoryId===MOM_NO_FIXED_ID) return null;
+    const now=new Date();
+    const [yearStr, monthStr]=monthA.split('-');
+    const year=Number(yearStr);
+    const monthIndex=Number(monthStr);
+    if(!Number.isFinite(year) || !Number.isFinite(monthIndex)) return null;
+    if(now.getFullYear()!==year || (now.getMonth()+1)!==monthIndex) return null;
+    const daysInMonth=daysInYm(monthA);
+    if(!Number.isFinite(daysInMonth) || daysInMonth<=0) return null;
+    const today=Math.min(daysInMonth, Math.max(0, now.getDate()));
+    const daysElapsed=today;
+    const remainingDays=Math.max(0, daysInMonth-daysElapsed);
+    const dailyTotals=Array(daysInMonth).fill(0);
+    const currentEntries=entriesForMonth(monthA).filter(entry=>entry.categoryId===categoryId);
+    for(const entry of currentEntries){
+      const day=Number(entry.date?.slice(-2));
+      if(Number.isFinite(day) && day>=1 && day<=daysInMonth){
+        dailyTotals[day-1]+=Math.abs(entry.amount);
+      }
+    }
+    const spentSoFar=dailyTotals.slice(0, Math.max(0, daysElapsed)).reduce((sum,value)=>sum+value,0);
+    const averageDaily=daysElapsed>0?spentSoFar/daysElapsed:0;
+    let linearProjection=spentSoFar+averageDaily*remainingDays;
+    if(!Number.isFinite(linearProjection)) linearProjection=spentSoFar;
+    const recentWindow=Math.min(7, daysElapsed);
+    const recentSlice=recentWindow>0?dailyTotals.slice(daysElapsed-recentWindow, daysElapsed):[];
+    const recentAverage=recentSlice.length?recentSlice.reduce((sum,value)=>sum+value,0)/recentSlice.length:averageDaily;
+    let trendProjection=spentSoFar+recentAverage*remainingDays;
+    if(!Number.isFinite(trendProjection)) trendProjection=spentSoFar;
+    const allMonths=getAnalyticsAvailableMonths();
+    const historyMonths=allMonths.filter(ym=>ym<monthA);
+    const historyTotals=historyMonths.map(ym=>{
+      const monthEntries=entriesForMonth(ym).filter(entry=>entry.categoryId===categoryId);
+      return monthEntries.reduce((sum,entry)=>sum+Math.abs(entry.amount),0);
+    }).filter(value=>Number.isFinite(value));
+    const historyAverage=historyTotals.length?historyTotals.reduce((sum,value)=>sum+value,0)/historyTotals.length:null;
+    let historyProjection=historyAverage!==null?historyAverage:null;
+    const safeSpent=Math.max(0, spentSoFar);
+    if(linearProjection<safeSpent) linearProjection=safeSpent;
+    if(trendProjection<safeSpent) trendProjection=safeSpent;
+    if(historyProjection!==null && historyProjection<safeSpent) historyProjection=safeSpent;
+    const monthBTotal=monthB
+      ? entriesForMonth(monthB).filter(entry=>entry.categoryId===categoryId).reduce((sum,entry)=>sum+Math.abs(entry.amount),0)
+      : null;
+    const methodLabels={
+      linear:'Liniowa ekstrapolacja',
+      trend:'Trend 7 dni',
+      history:'Średnia historyczna'
+    };
+    const methodDescriptions={
+      linear:'Średnie tempo z dotychczasowych dni miesiąca.',
+      trend:'Tempo z ostatnich 7 dni (jeśli dostępne).',
+      history:'Średnia z poprzednich miesięcy dla tej kategorii.'
+    };
+    const projections=[];
+    const pushProjection=(key,value,pace)=>{
+      if(!Number.isFinite(value)) return;
+      const safeValue=Math.max(safeSpent, value);
+      const safePace=Math.max(0, Number.isFinite(pace)?pace:0);
+      projections.push({
+        key,
+        label:methodLabels[key]||key,
+        description:methodDescriptions[key]||'',
+        value:safeValue,
+        pace:safePace
+      });
+    };
+    pushProjection('linear', linearProjection, averageDaily);
+    if(recentWindow>0) pushProjection('trend', trendProjection, recentAverage);
+    if(historyProjection!==null) pushProjection('history', historyProjection, remainingDays>0?(historyProjection-safeSpent)/remainingDays:0);
+    if(!projections.length){
+      projections.push({
+        key:'linear',
+        label:methodLabels.linear,
+        description:'Brak danych do predykcji — przyjęto dotychczasowy poziom wydatków.',
+        value:safeSpent,
+        pace:0
+      });
+    }
+    const realistic=projections.find(p=>p.key==='trend')||projections.find(p=>p.key==='linear')||projections[0];
+    const optimistic=projections.reduce((best,proj)=>best && best.value<=proj.value?best:proj, realistic);
+    const pessimistic=projections.reduce((best,proj)=>best && best.value>=proj.value?best:proj, realistic);
+    const labels=Array.from({length:daysInMonth},(_,i)=>String(i+1).padStart(2,'0'));
+    const actualCumulative=Array(daysInMonth).fill(null);
+    let running=0;
+    for(let i=0;i<daysInMonth;i++){
+      running+=dailyTotals[i];
+      if(i<daysElapsed){
+        actualCumulative[i]=running;
+      }
+    }
+    const projectedCumulative=Array(daysInMonth).fill(null);
+    const remainingTarget=Math.max(0, realistic.value-safeSpent);
+    const projectedPace=remainingDays>0?remainingTarget/remainingDays:0;
+    let projectedRunning=daysElapsed>0?safeSpent:0;
+    for(let i=0;i<daysInMonth;i++){
+      if(i<daysElapsed){
+        projectedCumulative[i]=actualCumulative[i];
+      }else{
+        if(daysElapsed===0 && i===0){
+          projectedRunning=0;
+        }
+        if(i===daysElapsed && daysElapsed>0){
+          projectedRunning=safeSpent;
+        }
+        if(daysElapsed===0 || i>=daysElapsed){
+          projectedRunning+=projectedPace;
+        }
+        projectedCumulative[i]=projectedRunning;
+      }
+    }
+    let alert=null;
+    if(Number.isFinite(monthBTotal) && monthBTotal>0 && realistic.value>monthBTotal){
+      const overrun=realistic.value-monthBTotal;
+      const pct=overrun/monthBTotal;
+      if(pct>=0.1){
+        alert={
+          type:'overrun',
+          amount:overrun,
+          percent:pct
+        };
+      }
+    }else if((!Number.isFinite(monthBTotal) || monthBTotal<=0) && realistic.value>safeSpent){
+      alert={
+        type:'new-spend',
+        amount:realistic.value,
+        percent:null
+      };
+    }
+    return {
+      isCurrent:true,
+      daysElapsed,
+      daysInMonth,
+      remainingDays,
+      spentSoFar:safeSpent,
+      averageDaily,
+      recentAverage,
+      historyAverage,
+      projections,
+      scenarios:{
+        optimistic,
+        realistic,
+        pessimistic
+      },
+      labels,
+      actualCumulative,
+      projectedCumulative,
+      realisticLabel:realistic?.label||'Prognoza',
+      monthBTotal,
+      alert
     };
   }
 
@@ -11103,6 +11485,46 @@
     return {section:sectionHtml,cells:cellMap};
   }
 
+  function buildMomDetailForecastSection(forecast){
+    if(!forecast) return '';
+    const {daysElapsed, daysInMonth, remainingDays, spentSoFar, averageDaily, recentAverage, historyAverage, scenarios, alert, monthBTotal}=forecast;
+    const scenarioOrder=[['optimistic','optimistyczny'],['realistic','realistyczny'],['pessimistic','pesymistyczny']];
+    const scenarioCards=scenarioOrder.map(([key,label])=>{
+      const scenario=scenarios?.[key];
+      if(!scenario) return '';
+      const paceLabel=scenario.pace>0?`${fmt(scenario.pace,state.currency)}/dzień`:'Stały poziom';
+      const methodNote=scenario.description?escapeHtml(scenario.description):escapeHtml(scenario.label);
+      const valueLabel=fmt(scenario.value,state.currency);
+      return `<article class="mom-detail-forecast-card ${escapeHtml(key)}"><span class="mom-detail-forecast-card-title">Scenariusz ${escapeHtml(label)}</span><span class="mom-detail-forecast-card-value">${valueLabel}</span><p class="mom-detail-forecast-card-note">${methodNote}</p><div class="mom-detail-forecast-card-meta"><span>${paceLabel}</span><span>•</span><span>${escapeHtml(scenario.label)}</span></div></article>`;
+    }).join('');
+    const metrics=[];
+    metrics.push(`<span class="mom-detail-forecast-metric">Do dziś: <strong>${fmt(spentSoFar,state.currency)}</strong></span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Pozostało dni: <strong>${remainingDays}</strong></span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Śr. tempo: <strong>${averageDaily>0?fmt(averageDaily,state.currency):'—'}</strong>/dzień</span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Trend 7 dni: <strong>${recentAverage>0?fmt(recentAverage,state.currency):'—'}</strong>/dzień</span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Śr. historyczna: <strong>${Number.isFinite(historyAverage)?fmt(historyAverage,state.currency):'—'}</strong></span>`);
+    if(Number.isFinite(monthBTotal)){
+      metrics.push(`<span class="mom-detail-forecast-metric">Miesiąc B: <strong>${fmt(monthBTotal,state.currency)}</strong></span>`);
+    }
+    const metricsHtml=`<div class="mom-detail-forecast-metrics">${metrics.join('')}</div>`;
+    let alertHtml='';
+    if(alert){
+      if(alert.type==='overrun'){
+        const pctLabel=`${Math.round((alert.percent||0)*1000)/10}%`;
+        alertHtml=`<div class="mom-detail-forecast-alert"><span class="mom-detail-forecast-alert-icon">⚠️</span><div><strong>Ryzyko przekroczenia</strong><br/>Prognoza wskazuje wydatki wyższe od miesiąca B o ${fmt(alert.amount,state.currency)} (${pctLabel}). Rozważ korektę budżetu.</div></div>`;
+      }else if(alert.type==='new-spend'){
+        alertHtml=`<div class="mom-detail-forecast-alert"><span class="mom-detail-forecast-alert-icon">⚠️</span><div><strong>Nowe wydatki</strong><br/>Prognoza zakłada dodatkowe wydatki do końca miesiąca. Monitoruj kategorię, aby uniknąć niespodzianek.</div></div>`;
+      }
+    }
+    const subtitleParts=[];
+    subtitleParts.push(daysElapsed>0?`Na podstawie ${daysElapsed} dni (${Math.round((daysElapsed/daysInMonth)*100)}% miesiąca).`:'Brak wydatków w bieżącym miesiącu.');
+    if(remainingDays>0){
+      subtitleParts.push(`Pozostało ${remainingDays} dni.`);
+    }
+    const subtitle=subtitleParts.join(' ');
+    return `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Prognoza do końca miesiąca</h5><p class="mom-detail-section-subtitle">${escapeHtml(subtitle)}</p></div></div><div class="mom-detail-forecast"><div class="mom-detail-forecast-grid">${scenarioCards}</div>${metricsHtml}${alertHtml}<div class="mom-detail-forecast-chart"><canvas id="mom-detail-forecast-chart" role="img" aria-label="Porównanie wydatków faktycznych i prognozowanych"></canvas></div></div></section>`;
+  }
+
   function formatMomContributionDate(iso){
     if(!iso) return '—';
     const date=new Date(iso);
@@ -11393,6 +11815,7 @@
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak danych do analizy. Wybierz dwa miesiące do porównania.</div>';
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
       return;
     }
     const {categories,monthA,monthB,dayLimit}=context;
@@ -11404,6 +11827,7 @@
       bodyEl.innerHTML='<div class="mom-detail-empty">Wybierz kategorię wydatków, aby wejść w szczegóły.</div>';
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
       return;
     }
     const titleLabel=momCategoryLabel(selected);
@@ -11542,6 +11966,8 @@
     const diffSign=totalDiff>0?'+':totalDiff<0?'−':'';
     const diffSummary=totalDiff===0?'Brak różnicy A-B':`Skumulowana różnica: ${diffSign}${fmt(Math.abs(totalDiff), state.currency)}`;
     const palette=momPalette();
+    const forecast=computeMomDetailForecast(detail, monthA, monthB, selected.id);
+    const forecastSection=forecast?buildMomDetailForecastSection(forecast):'';
     const waterfallSubtitle=`Do dnia ${dayLimitLabel} • ${diffSummary}`;
     const waterfallSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wpływ dni na różnicę</h5><p class="mom-detail-section-subtitle">${waterfallSubtitle}</p></div></div><div class="mom-detail-waterfall-chart"><canvas id="mom-detail-waterfall" role="img" aria-label="Wykres wodospadowy różnicy dziennej"></canvas></div><p class="mom-detail-section-footnote">Największe różnice wyróżnione grubszą obwódką.</p></section>`;
     const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${advancedMetricsHtml}${boxPlotSection}${highlightHtml}</section>`;
@@ -11552,6 +11978,7 @@
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       if(toolbar) toolbar.style.display='none';
       destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
       return;
     }
     const patterns=detectPatterns(detail.days, monthA, monthB);
@@ -11645,11 +12072,18 @@
       ? `<div class="mom-detail-daylist">${listCards}</div>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
     const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${waterfallSection}${patternsSection}${contributionsSection.section}${calendarSection}${daylistSection}`;
+    bodyEl.innerHTML=`${forecastSection}${waterfallSection}${patternsSection}${contributionsSection.section}${calendarSection}${daylistSection}`;
     bindMomDetailContributions(bodyEl, contributionsSection.rows);
     const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
+    const scheduleForecast=forecast?()=>renderMomDetailForecastChart(forecast,palette):null;
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
     else scheduleWaterfall();
+    if(scheduleForecast){
+      if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleForecast);
+      else scheduleForecast();
+    }else{
+      destroyMomDetailForecastChart();
+    }
     daysForList.forEach((day,idx)=>{
       const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
       if(!el) return;
