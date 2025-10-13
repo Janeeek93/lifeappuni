@@ -2207,6 +2207,26 @@
       gap: 18px;
     }
 
+    .mom-detail-waterfall-chart {
+      position: relative;
+      height: clamp(260px, 45vh, 360px);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.45), rgba(248, 250, 252, 0.9));
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 12px;
+    }
+
+    .mom-detail-waterfall-chart canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mom-detail-section-footnote {
+      margin: -6px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
     .mom-detail-section-header {
       display: flex;
       justify-content: space-between;
@@ -9416,6 +9436,7 @@
   };
   let momChart=null;
   let momDiffChart=null;
+  let momDetailWaterfallChart=null;
   let momLastContext=null;
 
   function momPalette(){
@@ -9435,6 +9456,139 @@
 
   function destroyMomDiffChart(){
     if(momDiffChart){momDiffChart.destroy(); momDiffChart=null;}
+  }
+
+  function destroyMomDetailWaterfallChart(){
+    if(momDetailWaterfallChart){
+      momDetailWaterfallChart.destroy();
+      momDetailWaterfallChart=null;
+    }
+  }
+
+  function renderMomDetailWaterfallChart(detail){
+    const canvas=document.getElementById('mom-detail-waterfall');
+    if(!canvas){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    if(!detail || !Array.isArray(detail.days)){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    const ctx=canvas.getContext('2d');
+    if(!ctx){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    const palette=momPalette();
+    const ranked=detail.days
+      .map((day,index)=>({index,impact:Math.abs(day.delta)}))
+      .filter(item=>item.impact>0)
+      .sort((a,b)=>b.impact-a.impact)
+      .slice(0,3)
+      .map(item=>item.index);
+    const highlightSet=new Set(ranked);
+    let cumulative=0;
+    const dataPoints=detail.days.map(day=>{
+      const start=cumulative;
+      cumulative+=day.delta;
+      return [start,cumulative];
+    });
+    const totalDiff=detail.totalA-detail.totalB;
+    destroyMomDetailWaterfallChart();
+    momDetailWaterfallChart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:detail.days.map(day=>day.label),
+        datasets:[{
+          label:'Wpływ dnia',
+          data:dataPoints,
+          borderRadius:6,
+          barPercentage:0.9,
+          categoryPercentage:0.9,
+          backgroundColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            const alpha=highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?0.88:0.65;
+            return colorWithAlpha(tone,alpha);
+          },
+          borderColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            const alpha=highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?0.95:0.55;
+            return colorWithAlpha(tone,alpha);
+          },
+          borderWidth:context=>{
+            const day=detail.days[context.dataIndex];
+            return highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?3:1;
+          },
+          hoverBackgroundColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            return colorWithAlpha(tone,0.95);
+          },
+          hoverBorderColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            return colorWithAlpha(tone,0.95);
+          }
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:{duration:420},
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              title:items=>{
+                if(!items.length) return '';
+                const day=detail.days[items[0].dataIndex];
+                const sampleIso=day.isoA||day.isoB;
+                const weekday=formatWeekdayShort(sampleIso);
+                return weekday?`Dzień ${day.label} • ${weekday}`:`Dzień ${day.label}`;
+              },
+              label:context=>{
+                const day=detail.days[context.dataIndex];
+                const diff=day.delta;
+                const diffAbs=fmt(Math.abs(diff), state.currency);
+                const diffLabel=diff>0?`+${diffAbs}`:diff<0?`−${diffAbs}`:diffAbs;
+                let pctLabel='—';
+                if(totalDiff!==0){
+                  const pct=(diff/totalDiff)*100;
+                  const pctSign=pct>0?'+':pct<0?'−':'';
+                  pctLabel=`${pctSign}${Math.abs(pct).toFixed(1)}%`;
+                }
+                return [
+                  `Miesiąc A: ${fmt(day.totalA,state.currency)}`,
+                  `Miesiąc B: ${fmt(day.totalB,state.currency)}`,
+                  `Różnica: ${diffLabel}`,
+                  `Udział: ${pctLabel}`
+                ];
+              },
+              labelColor:context=>{
+                const day=detail.days[context.dataIndex];
+                const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+                return {borderColor:tone,backgroundColor:tone};
+              },
+              labelTextColor:()=>cssVar('--ink','#0f172a')
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false},
+            ticks:{color:cssVar('--muted','#475569')}
+          },
+          y:{
+            grid:{color:colorWithAlpha(palette.ink,0.08)},
+            ticks:{callback:value=>currencyTicks(value)}
+          }
+        }
+      }
+    });
   }
 
   function ensureMomState(months){
@@ -9627,6 +9781,7 @@
     const backdrop=document.getElementById('mom-detail-backdrop');
     if(!panel || !backdrop) return;
     momDetailOpen=false;
+    destroyMomDetailWaterfallChart();
     panel.classList.remove('is-visible');
     panel.setAttribute('aria-hidden','true');
     backdrop.classList.remove('is-visible');
@@ -9842,6 +9997,7 @@
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak danych do analizy. Wybierz dwa miesiące do porównania.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
       return;
     }
     const {categories,monthA,monthB,dayLimit}=context;
@@ -9852,6 +10008,7 @@
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Wybierz kategorię wydatków, aby wejść w szczegóły.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
       return;
     }
     const titleLabel=momCategoryLabel(selected);
@@ -9922,11 +10079,16 @@
       const fallback=Number.isFinite(detail.dayLimit)?`Do dnia ${dayLimitLabel} A nie przebił wydatków B.`:'Miesiąc A nie przekroczył wydatków miesiąca B.';
       highlightHtml=`<div class="mom-detail-highlight neutral"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${fallback}</span></div>`;
     }
+    const diffSign=totalDiff>0?'+':totalDiff<0?'−':'';
+    const diffSummary=totalDiff===0?'Brak różnicy A-B':`Skumulowana różnica: ${diffSign}${fmt(Math.abs(totalDiff), state.currency)}`;
+    const waterfallSubtitle=`Do dnia ${dayLimitLabel} • ${diffSummary}`;
+    const waterfallSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wpływ dni na różnicę</h5><p class="mom-detail-section-subtitle">${waterfallSubtitle}</p></div></div><div class="mom-detail-waterfall-chart"><canvas id="mom-detail-waterfall" role="img" aria-label="Wykres wodospadowy różnicy dziennej"></canvas></div><p class="mom-detail-section-footnote">Największe różnice wyróżnione grubszą obwódką.</p></section>`;
     const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
     metaEl.innerHTML=overviewSection;
     if(!hasTransactions){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
       return;
     }
     const sortedDays=[...detail.days];
@@ -10017,7 +10179,10 @@
       ? `<div class="mom-detail-daylist">${listCards}</div>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
     const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${calendarSection}${daylistSection}`;
+    bodyEl.innerHTML=`${waterfallSection}${calendarSection}${daylistSection}`;
+    const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
+    else scheduleWaterfall();
     daysForList.forEach((day,idx)=>{
       const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
       if(!el) return;
