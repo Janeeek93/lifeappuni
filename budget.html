@@ -2207,6 +2207,41 @@
       gap: 18px;
     }
 
+    .mom-detail-patterns-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .mom-detail-pattern-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.7));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .mom-detail-pattern-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .mom-detail-pattern-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .mom-detail-pattern-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
     .mom-detail-waterfall-chart {
       position: relative;
       height: clamp(260px, 45vh, 360px);
@@ -9975,6 +10010,194 @@
     };
   }
 
+  function detectPatterns(dayData, monthA, monthB){
+    const patterns=[];
+    const days=Array.isArray(dayData)?dayData.map(day=>({
+      day:Number(day.day)||0,
+      totalA:Math.max(0, Number(day.totalA)||0),
+      totalB:Math.max(0, Number(day.totalB)||0),
+      delta:Number(day.delta)||0,
+      isoA:day.isoA||null,
+      isoB:day.isoB||null,
+      cumulativeDelta:Number(day.cumulativeDelta)||0
+    })).filter(day=>day.day>0):[];
+
+    const ensureIso=(dayNumber)=>{
+      const base=monthA||monthB;
+      if(!base) return null;
+      const padded=String(dayNumber).padStart(2,'0');
+      const max=daysInYm(base);
+      if(dayNumber>max) return null;
+      return `${base}-${padded}`;
+    };
+
+    const totalCombined=days.reduce((sum,day)=>sum+day.totalA+day.totalB,0);
+    if(totalCombined<=0){
+      return [
+        {key:'clustering',icon:'📅',title:'Klaster wydatków',description:'Brak wydatków w analizowanym zakresie.'},
+        {key:'spike',icon:'🚨',title:'Nagły skok',description:'Brak odchyleń przekraczających próg 2σ.'},
+        {key:'weekend',icon:'🛍️',title:'Efekt weekendu',description:'Za mało danych, aby porównać weekendy z dniami roboczymi.'},
+        {key:'trend',icon:'📈',title:'Trend miesiąca',description:'Brak danych do analizy trendu różnicy A-B.'},
+        {key:'regularity',icon:'🔁',title:'Regularność',description:'Brak danych do wykrycia powtarzalnego rytmu wydatków.'}
+      ];
+    }
+
+    // Klasterowanie
+    const buckets={early:0,mid:0,late:0};
+    days.forEach(day=>{
+      const bucket=day.day<=10?'early':day.day<=20?'mid':'late';
+      buckets[bucket]+=day.totalA+day.totalB;
+    });
+    const bucketEntries=Object.entries(buckets).sort((a,b)=>b[1]-a[1]);
+    const [topBucketKey,topBucketValue]=bucketEntries[0];
+    const bucketShare=topBucketValue/totalCombined;
+    const bucketLabel=topBucketKey==='early'?'początek':topBucketKey==='mid'?'środek':'koniec';
+    const bucketPercent=Math.round(bucketShare*100);
+    patterns.push({
+      key:'clustering',
+      icon:'📅',
+      title:'Klaster wydatków',
+      description:`${bucketPercent}% wydatków przypada na ${bucketLabel} miesiąca.`
+    });
+
+    // Spike detection
+    const deltas=days.map(day=>Math.abs(day.delta));
+    const meanDelta=deltas.reduce((sum,val)=>sum+val,0)/deltas.length;
+    const variance=deltas.reduce((sum,val)=>sum+Math.pow(val-meanDelta,2),0)/deltas.length;
+    const stdDev=Math.sqrt(variance);
+    const threshold=meanDelta+2*stdDev;
+    let spike=null;
+    days.forEach(day=>{
+      const impact=Math.abs(day.delta);
+      if(impact>threshold && (!spike || impact>spike.impact)){
+        spike={day,impact};
+      }
+    });
+    if(spike){
+      const direction=spike.day.delta>0?'Miesiąc A wydał więcej':'Miesiąc B wydał więcej';
+      patterns.push({
+        key:'spike',
+        icon:'🚨',
+        title:'Nagły skok',
+        description:`Dzień ${String(spike.day.day).padStart(2,'0')} wygenerował różnicę ${fmt(Math.abs(spike.day.delta), state.currency)} (${direction}).`
+      });
+    }else{
+      patterns.push({
+        key:'spike',
+        icon:'🚨',
+        title:'Nagły skok',
+        description:'Brak odchyleń przekraczających próg 2σ.'
+      });
+    }
+
+    // Weekend effect
+    let weekendSum=0;
+    let weekdaySum=0;
+    let weekendCount=0;
+    let weekdayCount=0;
+    days.forEach(day=>{
+      const iso=day.isoA||day.isoB||ensureIso(day.day);
+      if(!iso) return;
+      const date=new Date(`${iso}T00:00:00`);
+      if(Number.isNaN(date.getTime())) return;
+      const jsDay=date.getDay();
+      const isWeekend=jsDay===0||jsDay===6;
+      const combined=day.totalA+day.totalB;
+      if(isWeekend){
+        weekendSum+=combined;
+        weekendCount++;
+      }else{
+        weekdaySum+=combined;
+        weekdayCount++;
+      }
+    });
+    let weekendDescription='Za mało danych, aby porównać weekendy z dniami roboczymi.';
+    if(weekendCount>0 && weekdayCount>0 && (weekendSum+weekdaySum)>0){
+      const weekendAvg=weekendSum/weekendCount;
+      const weekdayAvg=weekdaySum/weekdayCount;
+      if(weekendAvg>weekdayAvg*1.1){
+        weekendDescription=`Weekendy generują średnio ${fmt(weekendAvg, state.currency)} dziennie vs ${fmt(weekdayAvg, state.currency)} w dni robocze.`;
+      }else if(weekdayAvg>weekendAvg*1.1){
+        weekendDescription=`Dni robocze są cięższe: ${fmt(weekdayAvg, state.currency)} dziennie vs ${fmt(weekendAvg, state.currency)} w weekendy.`;
+      }else{
+        weekendDescription=`Weekend i dni robocze są zbliżone (${fmt(weekendAvg, state.currency)} vs ${fmt(weekdayAvg, state.currency)} na dzień).`;
+      }
+    }
+    patterns.push({
+      key:'weekend',
+      icon:'🛍️',
+      title:'Efekt weekendu',
+      description:weekendDescription
+    });
+
+    // Trend
+    let trendDescription='Różnica A-B pozostaje stabilna przez miesiąc.';
+    if(days.length>=2){
+      const n=days.length;
+      const yValues=days.map(day=>Number.isFinite(day.cumulativeDelta)?day.cumulativeDelta:0);
+      const meanX=(n+1)/2;
+      const meanY=yValues.reduce((sum,val)=>sum+val,0)/n;
+      let numerator=0;
+      let denominator=0;
+      days.forEach((day,idx)=>{
+        const x=idx+1;
+        const y=yValues[idx];
+        numerator+=(x-meanX)*(y-meanY);
+        denominator+=(x-meanX)*(x-meanX);
+      });
+      const slope=denominator!==0?numerator/denominator:0;
+      const avgAbsDelta=days.reduce((sum,day)=>sum+Math.abs(day.delta),0)/n;
+      const threshold=Math.max(avgAbsDelta*0.1, 0.01);
+      if(slope>threshold){
+        trendDescription=`Różnica A-B rośnie — średnio +${fmt(Math.abs(slope), state.currency)} dziennie.`;
+      }else if(slope<-threshold){
+        trendDescription=`Różnica A-B maleje — średnio −${fmt(Math.abs(slope), state.currency)} dziennie.`;
+      }
+    }
+    patterns.push({
+      key:'trend',
+      icon:'📈',
+      title:'Trend miesiąca',
+      description:trendDescription
+    });
+
+    // Regularity
+    let regularDescription='Brak powtarzalnego cyklu — odstępy między wydatkami są nieregularne.';
+    const activeDays=days.filter(day=>day.totalA+day.totalB>0).map(day=>day.day).sort((a,b)=>a-b);
+    if(activeDays.length>=3){
+      const gapCounts=new Map();
+      for(let i=1;i<activeDays.length;i++){
+        const gap=activeDays[i]-activeDays[i-1];
+        if(gap<=0) continue;
+        gapCounts.set(gap,(gapCounts.get(gap)||0)+1);
+      }
+      if(gapCounts.size>0){
+        const sortedGaps=[...gapCounts.entries()].sort((a,b)=>{
+          if(b[1]!==a[1]) return b[1]-a[1];
+          return a[0]-b[0];
+        });
+        const [bestGap,bestCount]=sortedGaps[0];
+        if(bestCount>=2){
+          const occur=bestCount+1;
+          let label=`co ${bestGap} dni`;
+          if(bestGap===7) label='około co tydzień';
+          else if(bestGap===14) label='mniej więcej co dwa tygodnie';
+          regularDescription=`Wydatki pojawiają się ${label} (${occur} powtórzenia).`;
+        }
+      }
+    }else{
+      regularDescription='Zbyt mało dni z wydatkami, aby wykryć rytm.';
+    }
+    patterns.push({
+      key:'regularity',
+      icon:'🔁',
+      title:'Regularność',
+      description:regularDescription
+    });
+
+    return patterns;
+  }
+
   function renderMomDetailEntries(entries){
     if(!entries.length){
       return '<div class="mom-detail-month-empty">Brak wydatków</div>';
@@ -10108,6 +10331,9 @@
       destroyMomDetailWaterfallChart();
       return;
     }
+    const patterns=detectPatterns(detail.days, monthA, monthB);
+    const patternsCards=patterns.map(pattern=>`<article class="mom-detail-pattern-card" data-mom-pattern="${pattern.key}"><span class="mom-detail-pattern-icon" aria-hidden="true">${pattern.icon}</span><span class="mom-detail-pattern-title">${pattern.title}</span><p class="mom-detail-pattern-desc">${pattern.description}</p></article>`).join('');
+    const patternsSection=patterns.length?`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Wykryte wzorce</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-patterns-grid">${patternsCards}</div></section>`:'';
     const sortedDays=[...detail.days];
     if(momDetailSort==='impact'){
       sortedDays.sort((a,b)=>{
@@ -10196,7 +10422,7 @@
       ? `<div class="mom-detail-daylist">${listCards}</div>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
     const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${waterfallSection}${calendarSection}${daylistSection}`;
+    bodyEl.innerHTML=`${waterfallSection}${patternsSection}${calendarSection}${daylistSection}`;
     const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
     else scheduleWaterfall();
