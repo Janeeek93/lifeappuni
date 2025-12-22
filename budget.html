@@ -4577,14 +4577,14 @@
           <div class="trend" id="inv-groups">Grupy: —</div>
         </div>
         <div class="inv-hero-card">
-          <div class="muted tiny">Strategia</div>
-          <div class="big-number">DCA + akumulacja</div>
-          <div class="trend">Zachowaj dyscyplinę i notuj zakupy.</div>
+          <div class="muted tiny">Średni ticket</div>
+          <div class="big-number" id="inv-hero-ticket">—</div>
+          <div class="trend" id="inv-hero-ticket-note">na transakcję</div>
         </div>
         <div class="inv-hero-card">
-          <div class="muted tiny">Kontrola</div>
-          <div class="big-number">Panel analityczny</div>
-          <div class="trend">Wybierz wykresy i tabele poniżej.</div>
+          <div class="muted tiny">Tempo zakupów</div>
+          <div class="big-number" id="inv-hero-weekly">—</div>
+          <div class="trend" id="inv-hero-last30">Ostatnie 30 dni: —</div>
         </div>
       </div>
 
@@ -6850,10 +6850,21 @@
 
   function renderInvestmentPace(trades){
     const container=document.getElementById('inv-pace');
+    const heroTicket=document.getElementById('inv-hero-ticket');
+    const heroTicketNote=document.getElementById('inv-hero-ticket-note');
+    const heroWeekly=document.getElementById('inv-hero-weekly');
+    const heroLast30=document.getElementById('inv-hero-last30');
+    const resetHero=()=>{
+      if(heroTicket) heroTicket.textContent='—';
+      if(heroTicketNote) heroTicketNote.textContent='na transakcję';
+      if(heroWeekly) heroWeekly.textContent='—';
+      if(heroLast30) heroLast30.textContent='Ostatnie 30 dni: —';
+    };
     if(!container) return;
     container.innerHTML='';
     if(!trades.length){
       container.innerHTML='<span class="tiny muted">Brak zapisanych zakupów.</span>';
+      resetHero();
       return;
     }
     const total=trades.reduce((s,t)=>s+num(t.amount),0);
@@ -6867,6 +6878,10 @@
     });
     const last30Sum=last30.reduce((s,t)=>s+num(t.amount),0);
     const last30Count=last30.length;
+    if(heroTicket) heroTicket.textContent=fmt(avgTicket,state.currency);
+    if(heroTicketNote) heroTicketNote.textContent=`${trades.length} trans.`;
+    if(heroWeekly) heroWeekly.textContent=fmt(avgWeek,state.currency);
+    if(heroLast30) heroLast30.textContent=`Ostatnie 30 dni: ${fmt(last30Sum,state.currency)} (${last30Count} zak.)`;
     const cards=[
       {label:'Śr. ticket', value:fmt(avgTicket,state.currency), note:'na transakcję'},
       {label:'Tempo tygodniowe', value:fmt(avgWeek,state.currency), note:'średni kapitał / tydzień'},
