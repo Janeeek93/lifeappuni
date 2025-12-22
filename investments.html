@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LifeOS — Inwestycje</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Specyficzne style dla modułu inwestycji */
+    .pnl-positive { color: var(--green); font-weight: 600; }
+    .pnl-negative { color: var(--red); font-weight: 600; }
+    .pnl-neutral { color: var(--muted); }
+    
+    .asset-icon {
+        width: 32px; height: 32px; border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; background: var(--surface); border: 1px solid var(--line);
+    }
+
+    .ticker-badge {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        padding: 2px 6px; border-radius: 4px; background: var(--line); color: var(--muted);
+    }
+
+    .invest-week-card {
+        background: linear-gradient(135deg, var(--ink), #1e293b);
+        color: white;
+        border: none;
+    }
+    .invest-week-card .muted { color: rgba(255,255,255,0.6); }
+    .invest-week-card .title { color: white; }
+
+    .trend-indicator {
+        display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    }
+
+    /* Układ formularza */
+    .asset-type-select {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;
+    }
+    .type-option {
+        border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+        text-align: center; cursor: pointer; transition: all 0.2s;
+        font-size: 13px; font-weight: 500;
+    }
+    .type-option:hover { background: var(--surface); }
+    .type-option.active { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
+
+    .refresh-spin { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Update Modal Styles */
+    .price-update-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+    }
+    .price-update-row:last-child { border-bottom: none; }
+    .price-update-label { font-size: 13px; font-weight: 500; }
+    .price-update-input { text-align: right; }
+
+    /* Wymuszone style modala (Naprawa 'wywalania pod aplikacje') */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.6); z-index: 9999;
+        display: none; justify-content: center; align-items: center;
+        backdrop-filter: blur(4px);
+    }
+    .modal-card {
+        background: var(--card); padding: 24px; border-radius: 16px;
+        width: 90%; max-width: 450px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        max-height: 90vh; overflow-y: auto;
+        border: 1px solid var(--line);
+    }
+  </style>
+</head>
+<body data-page="investments">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar__header">
+        <span class="sidebar__emoji">🧭</span>
+        <span class="sidebar__brand">LifeOS</span>
+      </div>
+      <nav class="sidebar__nav">
+        <ul class="sidebar__list">
+          <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="sidebar__icon">💰</span><span class="sidebar__label">Budżet</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="sidebar__icon">✅</span><span class="sidebar__label">Zadania</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="sidebar__icon">💪</span><span class="sidebar__label">Progres</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="sidebar__icon">⛽</span><span class="sidebar__label">Paliwo</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="sidebar__icon">🏦</span><span class="sidebar__label">Kredyt</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="sidebar__icon">📦</span><span class="sidebar__label">Magazyn</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="sidebar__icon">🏠</span><span class="sidebar__label">Budowa</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="investments.html" data-page="investments"><span class="sidebar__icon">📈</span><span class="sidebar__label">Inwestycje</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar__footer"><strong>Twój cyfrowy dom</strong></div>
+    </aside>
+
+    <div class="main">
+      <header class="page-header">
+        <div class="page-header__top">
+          <span class="page-overline">Finanse</span>
+          <h1 class="page-title"><span class="page-title__icon">📈</span><span class="page-title__text">Portfel Inwestycyjny</span></h1>
+        </div>
+        <div class="page-header__actions">
+            <span class="tiny muted" id="last-update-time">Brak danych</span>
+            <button class="btn soft" id="refresh-prices-btn" title="Pobierz dostępne kursy z API">🌐 API</button>
+            <button class="btn" onclick="openUpdatePricesModal()">📝 Aktualizuj Wycenę</button>
+            <button class="btn primary" onclick="openTransactionModal()">+ Transakcja</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <main class="page-content stack">
+            
+            <!-- KPI Cards -->
+            <div class="grid g-3">
+                <div class="stat-card">
+                    <div class="label">Wartość Portfela</div>
+                    <div class="value" id="total-portfolio-value">0,00 zł</div>
+                    <div class="trend" id="portfolio-change">Koszt: 0,00 zł</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Zysk/Strata (PnL)</div>
+                    <div class="value" id="total-pnl-value">0,00 zł</div>
+                    <div class="trend" id="total-pnl-percent">0% od początku</div>
+                </div>
+                <div class="card invest-week-card">
+                    <div class="row" style="align-items: flex-start;">
+                        <div>
+                            <div class="label" style="color: rgba(255,255,255,0.7)">Cel Tygodniowy (Pon-Ndz)</div>
+                            <div class="value" id="weekly-invested">0 zł</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="tiny">Cel: 500 zł</div>
+                            <div class="tiny" id="weekly-remaining">Pozostało: 500 zł</div>
+                        </div>
+                    </div>
+                    <div class="progress" style="background: rgba(255,255,255,0.2); margin-top: 10px;">
+                        <i id="weekly-progress-bar" style="width: 0%; background: #4ade80;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historia Wartości Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="title">Historia Wartości Portfela</h3>
+                    <div class="tiny muted">Punkty pomiarowe (Snapshots)</div>
+                </div>
+                <div class="chart-box" style="height: 250px; position: relative;">
+                    <canvas id="history-chart"></canvas>
+                    <div id="history-empty-state" class="empty-state" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center;">Zrób pierwszą aktualizację wyceny, aby zobaczyć wykres.</div>
+                </div>
+            </div>
+
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 20px;">
+                <!-- Main Assets Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="title">Twoje Aktywa</h3>
+                        <div class="tiny muted">Ceny uśrednione (DCA)</div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aktywo</th>
+                                    <th>Ilość</th>
+                                    <th>Śr. Cena Kupna</th>
+                                    <th>Aktualna Cena</th>
+                                    <th>Wartość</th>
+                                    <th>PnL</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="assets-table-body">
+                                <!-- JS populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Allocation Chart -->
+                <div class="card">
+                    <h3 class="title">Alokacja</h3>
+                    <div class="chart-box" style="height: 300px; position: relative;">
+                        <canvas id="allocation-chart"></canvas>
+                        <div id="chart-empty-state" class="empty-state" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center;">Brak danych</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="title">Ostatnie Transakcje</h3>
+                    <button class="btn ghost tiny" onclick="clearHistory()">Resetuj wszystko</button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Typ</th>
+                                <th>Aktywo</th>
+                                <th>Cena</th>
+                                <th>Ilość</th>
+                                <th>Wartość (PLN)</th>
+                                <th>Usuń</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Transakcji -->
+  <div id="modal-overlay" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <h3 class="title">Dodaj Transakcję</h3>
+        
+        <div class="asset-type-select" id="asset-type-selector">
+            <div class="type-option active" data-value="stock">📈 Akcje</div>
+            <div class="type-option" data-value="crypto">🪙 Krypto</div>
+            <div class="type-option" data-value="currency">💱 Waluty</div>
+            <div class="type-option" data-value="gold">🥇 Złoto</div>
+        </div>
+
+        <div class="grid g-2">
+            <div class="form-group">
+                <label class="tiny">Ticker / Symbol</label>
+                <input type="text" id="inp-ticker" placeholder="np. BTC, AAPL, USD">
+            </div>
+            <div class="form-group">
+                <label class="tiny">Nazwa</label>
+                <input type="text" id="inp-name" placeholder="np. Bitcoin">
+            </div>
+            <div class="form-group">
+                <label class="tiny">Data</label>
+                <input type="date" id="inp-date">
+            </div>
+            <div class="form-group">
+                <label class="tiny">Typ operacji</label>
+                <select id="inp-operation">
+                    <option value="buy">Kupno</option>
+                    <option value="sell">Sprzedaż</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="tiny">Ilość</label>
+                <input type="number" id="inp-quantity" step="0.000001" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label class="tiny">Cena jedn. (PLN)</label>
+                <input type="number" id="inp-price" step="0.01" placeholder="0.00">
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 10px;">
+            <label class="tiny">Całkowity koszt (PLN)</label>
+            <input type="number" id="inp-total" step="0.01" placeholder="Automatycznie" readonly style="background: var(--bg);">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn" onclick="closeModal()">Anuluj</button>
+            <button class="btn primary" onclick="saveTransaction()">Zapisz</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Modal Aktualizacji Cen -->
+  <div id="price-modal-overlay" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <h3 class="title">Aktualizacja Wyceny (Snapshot)</h3>
+        <p class="tiny muted">Wprowadź aktualne ceny rynkowe (PLN). Zapisanie utworzy nowy punkt na wykresie historii.</p>
+        
+        <div id="price-update-list" style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+            <!-- JS populated -->
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn" onclick="closePriceModal()">Anuluj</button>
+            <button class="btn primary" onclick="savePricesAndSnapshot()">💾 Zapisz i Przelicz</button>
+        </div>
+    </div>
+  </div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    const STORAGE_KEY = 'lifeos_investments_v1';
+    
+    // Default state structure
+    let state = {
+        portfolio: [], // { id, type, ticker, name, quantity, avgPrice, currentPrice }
+        transactions: [], // { id, date, type, ticker, operation, quantity, price, total }
+        snapshots: [], // { date, totalValue, totalCost, pnl } NEW: History
+        lastUpdate: null
+    };
+
+    function loadState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                state = { ...state, ...parsed };
+                if(!Array.isArray(state.snapshots)) state.snapshots = [];
+            } catch(e) { console.error("Error loading state", e); }
+        }
+        recalcPortfolio(); // Ensure portfolio matches transactions
+    }
+
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+    }
+
+    // --- CORE LOGIC (DCA & PnL) ---
+    
+    function recalcPortfolio() {
+        const tempPortfolio = {};
+
+        // Sort transactions by date asc
+        const sortedTx = [...state.transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        sortedTx.forEach(tx => {
+            const key = tx.ticker.toUpperCase();
+            
+            if (!tempPortfolio[key]) {
+                tempPortfolio[key] = {
+                    id: key,
+                    type: tx.type,
+                    ticker: key,
+                    name: tx.name,
+                    quantity: 0,
+                    totalCost: 0,
+                    avgPrice: 0,
+                    currentPrice: 0 
+                };
+            }
+
+            const asset = tempPortfolio[key];
+
+            if (tx.operation === 'buy') {
+                asset.totalCost += tx.total;
+                asset.quantity += tx.quantity;
+            } else if (tx.operation === 'sell') {
+                // Reduce totalCost proportionally
+                const costOfSold = asset.avgPrice * tx.quantity;
+                asset.totalCost -= costOfSold;
+                asset.quantity -= tx.quantity;
+            }
+
+            // Recalc Average
+            if (asset.quantity > 0.0000001) {
+                asset.avgPrice = asset.totalCost / asset.quantity;
+            } else {
+                asset.avgPrice = 0;
+                asset.totalCost = 0;
+                asset.quantity = 0;
+            }
+        });
+
+        // Preserve current prices from existing state or default to avgPrice
+        const oldPrices = {};
+        state.portfolio.forEach(p => oldPrices[p.ticker] = p.currentPrice);
+
+        state.portfolio = Object.values(tempPortfolio).filter(a => a.quantity > 0.0000001).map(a => ({
+            ...a,
+            currentPrice: oldPrices[a.ticker] !== undefined ? oldPrices[a.ticker] : a.avgPrice
+        }));
+    }
+
+    // --- API INTEGRATION (Only helpers for manual entry) ---
+
+    async function fetchMarketData() {
+        const btn = document.getElementById('refresh-prices-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '🔄 ...';
+        btn.classList.add('refresh-spin');
+        btn.disabled = true;
+
+        try {
+            // Only fetching Crypto, Currency, Gold to update state prices silently
+            // Stocks are ignored here as requested
+            
+            // 1. Waluty i Złoto (NBP API)
+            const nbpResponse = await fetch('https://api.nbp.pl/api/exchangerates/tables/a/?format=json').catch(()=>null);
+            let rates = [];
+            if(nbpResponse && nbpResponse.ok) {
+                const nbpData = await nbpResponse.json();
+                rates = nbpData[0].rates;
+            }
+            
+            const goldResponse = await fetch('https://api.nbp.pl/api/cenyzlota/?format=json').catch(()=>null);
+            let goldPrice = 0;
+            if(goldResponse && goldResponse.ok) {
+                const goldData = await goldResponse.json();
+                goldPrice = goldData[0].cena; 
+            }
+
+            // 2. Krypto (CoinGecko)
+            const cryptoMap = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'DOT': 'polkadot' };
+            const cryptoIds = state.portfolio.filter(p => p.type === 'crypto').map(p => cryptoMap[p.ticker] || p.name.toLowerCase()).join(',');
+            
+            let cryptoPrices = {};
+            if (cryptoIds) {
+                const cgResponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds}&vs_currencies=pln`).catch(()=>null);
+                if(cgResponse && cgResponse.ok) cryptoPrices = await cgResponse.json();
+            }
+
+            // Update State
+            let updatedCount = 0;
+            state.portfolio = state.portfolio.map(asset => {
+                let newPrice = asset.currentPrice;
+                let updated = false;
+
+                if (asset.type === 'currency') {
+                    if (asset.ticker === 'USD') {
+                        const usd = rates.find(r => r.code === 'USD');
+                        if (usd) { newPrice = usd.mid; updated = true; }
+                    } else if (asset.ticker === 'EUR') {
+                        const eur = rates.find(r => r.code === 'EUR');
+                        if (eur) { newPrice = eur.mid; updated = true; }
+                    }
+                } else if (asset.type === 'gold' && goldPrice > 0) {
+                    newPrice = goldPrice;
+                    updated = true;
+                } else if (asset.type === 'crypto') {
+                    const cgId = cryptoMap[asset.ticker] || asset.name.toLowerCase();
+                    if (cryptoPrices[cgId] && cryptoPrices[cgId].pln) {
+                        newPrice = cryptoPrices[cgId].pln;
+                        updated = true;
+                    }
+                }
+                
+                if(updated) updatedCount++;
+                return { ...asset, currentPrice: newPrice };
+            });
+
+            if(updatedCount > 0) {
+                alert(`Zaktualizowano ${updatedCount} aktywów z zewnętrznych API (Krypto/Waluty/Złoto). Pamiętaj, aby wejść w "Aktualizuj Wycenę" i zapisać Snapshot.`);
+            } else {
+                alert("Nie znaleziono pasujących danych w darmowych API.");
+            }
+
+            saveState(); 
+
+        } catch (error) {
+            console.error("API Error:", error);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.classList.remove('refresh-spin');
+            btn.disabled = false;
+        }
+    }
+
+    // --- MANUAL PRICE UPDATE & SNAPSHOTS ---
+
+    function openUpdatePricesModal() {
+        const list = document.getElementById('price-update-list');
+        list.innerHTML = '';
+
+        if(state.portfolio.length === 0) {
+            list.innerHTML = '<div class="empty-state">Brak aktywów do wyceny.</div>';
+        }
+
+        state.portfolio.forEach(asset => {
+            const div = document.createElement('div');
+            div.className = 'price-update-row';
+            div.innerHTML = `
+                <div class="price-update-label">
+                    <div>${asset.ticker}</div>
+                    <div class="tiny muted">${asset.name} (${asset.quantity})</div>
+                </div>
+                <input type="number" step="0.01" class="price-update-input" 
+                    id="price-input-${asset.ticker}" 
+                    value="${asset.currentPrice}" 
+                    placeholder="Cena w PLN">
+            `;
+            list.appendChild(div);
+        });
+
+        document.getElementById('price-modal-overlay').style.display = 'flex';
+    }
+
+    function closePriceModal() {
+        document.getElementById('price-modal-overlay').style.display = 'none';
+    }
+
+    function savePricesAndSnapshot() {
+        // 1. Update prices in state
+        state.portfolio = state.portfolio.map(asset => {
+            const input = document.getElementById(`price-input-${asset.ticker}`);
+            if (input) {
+                const newPrice = parseFloat(input.value);
+                if (!isNaN(newPrice)) {
+                    return { ...asset, currentPrice: newPrice };
+                }
+            }
+            return asset;
+        });
+
+        // 2. Calculate Totals
+        const totalValue = state.portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
+        const totalCost = state.portfolio.reduce((sum, a) => sum + a.totalCost, 0);
+        const pnl = totalValue - totalCost;
+
+        // 3. Create Snapshot
+        const snapshot = {
+            date: new Date().toISOString(),
+            totalValue,
+            totalCost,
+            pnl
+        };
+
+        // Add to history (keep last 50 maybe? For now unlimited)
+        state.snapshots.push(snapshot);
+        state.lastUpdate = new Date().toISOString();
+
+        saveState();
+        closePriceModal();
+    }
+
+    // --- UI RENDERING ---
+
+    function fmtMoney(num) {
+        return num.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+    }
+
+    function renderAll() {
+        renderAssetsTable();
+        renderKPIs();
+        renderHistory();
+        renderChart();
+        renderHistoryChart();
+        document.getElementById('last-update-time').innerText = state.lastUpdate 
+            ? 'Ostatni snapshot: ' + new Date(state.lastUpdate).toLocaleString() 
+            : 'Brak zapisanych snapshotów';
+    }
+
+    function renderKPIs() {
+        const totalValue = state.portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
+        const totalCost = state.portfolio.reduce((sum, a) => sum + a.totalCost, 0);
+        const pnlValue = totalValue - totalCost;
+        const pnlPercent = totalCost > 0 ? (pnlValue / totalCost) * 100 : 0;
+
+        document.getElementById('total-portfolio-value').innerText = fmtMoney(totalValue);
+        document.getElementById('portfolio-change').innerText = `Koszt zakupu: ${fmtMoney(totalCost)}`;
+        
+        const pnlEl = document.getElementById('total-pnl-value');
+        pnlEl.innerText = (pnlValue > 0 ? '+' : '') + fmtMoney(pnlValue);
+        pnlEl.className = 'value ' + (pnlValue >= 0 ? 'pnl-positive' : 'pnl-negative');
+
+        const pnlPercEl = document.getElementById('total-pnl-percent');
+        pnlPercEl.innerText = `${pnlPercent.toFixed(2)}% od początku`;
+        pnlPercEl.className = 'trend ' + (pnlPercent >= 0 ? 'pnl-positive' : 'pnl-negative');
+
+        // Weekly Logic
+        const today = new Date();
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)); // Monday
+        startOfWeek.setHours(0,0,0,0);
+
+        const investedThisWeek = state.transactions
+            .filter(tx => tx.operation === 'buy' && new Date(tx.date) >= startOfWeek)
+            .reduce((sum, tx) => sum + tx.total, 0);
+
+        const target = 500;
+        const remaining = Math.max(0, target - investedThisWeek);
+        const progress = Math.min(100, (investedThisWeek / target) * 100);
+
+        document.getElementById('weekly-invested').innerText = fmtMoney(investedThisWeek);
+        document.getElementById('weekly-remaining').innerText = remaining > 0 ? `Brakuje: ${fmtMoney(remaining)}` : 'Cel osiągnięty! 🎉';
+        document.getElementById('weekly-progress-bar').style.width = `${progress}%`;
+    }
+
+    function renderAssetsTable() {
+        const tbody = document.getElementById('assets-table-body');
+        tbody.innerHTML = '';
+
+        if (state.portfolio.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Brak aktywów. Dodaj pierwszą transakcję!</td></tr>';
+            return;
+        }
+
+        state.portfolio.forEach(asset => {
+            const currentValue = asset.quantity * asset.currentPrice;
+            const pnl = currentValue - asset.totalCost;
+            const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+            const pnlPercent = asset.totalCost > 0 ? (pnl / asset.totalCost) * 100 : 0;
+
+            const iconMap = { 'stock': '📈', 'crypto': '🪙', 'currency': '💱', 'gold': '🥇' };
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div style="display:flex; align-items:center; gap: 10px;">
+                        <div class="asset-icon">${iconMap[asset.type] || '📦'}</div>
+                        <div>
+                            <div style="font-weight:600;">${asset.name}</div>
+                            <span class="ticker-badge">${asset.ticker}</span>
+                        </div>
+                    </div>
+                </td>
+                <td>${parseFloat(asset.quantity.toFixed(6))}</td>
+                <td>${fmtMoney(asset.avgPrice)}</td>
+                <td style="font-weight:700;">${fmtMoney(asset.currentPrice)}</td>
+                <td>${fmtMoney(currentValue)}</td>
+                <td>
+                    <div class="${pnlClass}">${(pnl>0?'+':'') + fmtMoney(pnl)}</div>
+                    <div class="tiny muted">${pnlPercent.toFixed(2)}%</div>
+                </td>
+                <td>
+                    <button class="btn tiny ghost" onclick="prefillSell('${asset.ticker}')">Sprzedaj</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('history-table-body');
+        tbody.innerHTML = '';
+        
+        // Show last 10 transactions
+        const reversed = [...state.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+
+        reversed.forEach(tx => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="tiny">${tx.date}</td>
+                <td><span class="badge ${tx.operation === 'buy' ? 'success' : 'warn'}">${tx.operation === 'buy' ? 'Kupno' : 'Sprzedaż'}</span></td>
+                <td><b>${tx.ticker}</b></td>
+                <td>${fmtMoney(tx.price)}</td>
+                <td>${tx.quantity}</td>
+                <td>${fmtMoney(tx.total)}</td>
+                <td><button class="btn tiny danger" onclick="deleteTransaction('${tx.id}')">×</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- CHARTS ---
+    let allocationChart = null;
+    let historyChart = null;
+
+    function renderChart() {
+        const ctx = document.getElementById('allocation-chart');
+        const emptyState = document.getElementById('chart-empty-state');
+
+        if (state.portfolio.length === 0) {
+            emptyState.style.display = 'flex';
+            if (allocationChart) allocationChart.destroy();
+            return;
+        }
+        emptyState.style.display = 'none';
+
+        const data = state.portfolio.map(a => a.quantity * a.currentPrice);
+        const labels = state.portfolio.map(a => a.ticker);
+        const colors = ['#2563eb', '#16a34a', '#eab308', '#dc2626', '#9333ea', '#06b6d4', '#f97316'];
+
+        if (allocationChart) allocationChart.destroy();
+
+        allocationChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
+
+    function renderHistoryChart() {
+        const ctx = document.getElementById('history-chart');
+        const emptyState = document.getElementById('history-empty-state');
+
+        if (!state.snapshots || state.snapshots.length < 2) {
+            emptyState.style.display = 'flex';
+            emptyState.innerText = state.snapshots.length === 1 ? "Dodaj więcej snapshotów by zobaczyć trend" : "Zrób pierwszą aktualizację wyceny (Snapshot)";
+            if (historyChart) historyChart.destroy();
+            return;
+        }
+        emptyState.style.display = 'none';
+
+        const labels = state.snapshots.map(s => new Date(s.date).toLocaleDateString());
+        const values = state.snapshots.map(s => s.totalValue);
+        const costs = state.snapshots.map(s => s.totalCost);
+
+        if (historyChart) historyChart.destroy();
+
+        historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Wartość Portfela',
+                        data: values,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Koszt Zakupu',
+                        data: costs,
+                        borderColor: '#94a3b8',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: { beginAtZero: false }
+                }
+            }
+        });
+    }
+
+    // --- ACTIONS ---
+
+    function openTransactionModal() {
+        document.getElementById('modal-overlay').style.display = 'flex';
+        document.getElementById('inp-date').valueAsDate = new Date();
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').style.display = 'none';
+        clearInputs();
+    }
+
+    function clearInputs() {
+        document.getElementById('inp-ticker').value = '';
+        document.getElementById('inp-name').value = '';
+        document.getElementById('inp-quantity').value = '';
+        document.getElementById('inp-price').value = '';
+        document.getElementById('inp-total').value = '';
+    }
+
+    // Auto-calculate total
+    ['inp-quantity', 'inp-price'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const q = parseFloat(document.getElementById('inp-quantity').value) || 0;
+            const p = parseFloat(document.getElementById('inp-price').value) || 0;
+            document.getElementById('inp-total').value = (q * p).toFixed(2);
+        });
+    });
+
+    document.querySelectorAll('.type-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+        });
+    });
+
+    function saveTransaction() {
+        const type = document.querySelector('.type-option.active').dataset.value;
+        const ticker = document.getElementById('inp-ticker').value.toUpperCase();
+        const name = document.getElementById('inp-name').value || ticker;
+        const date = document.getElementById('inp-date').value;
+        const operation = document.getElementById('inp-operation').value;
+        const quantity = parseFloat(document.getElementById('inp-quantity').value);
+        const price = parseFloat(document.getElementById('inp-price').value);
+        const total = parseFloat(document.getElementById('inp-total').value);
+
+        if (!ticker || !quantity || !price) {
+            alert('Wypełnij wszystkie pola!');
+            return;
+        }
+
+        const newTx = {
+            id: Date.now().toString(),
+            date, type, ticker, name, operation, quantity, price, total
+        };
+
+        state.transactions.push(newTx);
+        recalcPortfolio();
+        saveState();
+        closeModal();
+    }
+
+    function deleteTransaction(id) {
+        if(confirm("Czy na pewno usunąć tę transakcję?")) {
+            state.transactions = state.transactions.filter(t => t.id !== id);
+            recalcPortfolio();
+            saveState();
+        }
+    }
+
+    function clearHistory() {
+        if(confirm("To usunie wszystkie transakcje i historię snapshotów. Kontynuować?")) {
+            state.transactions = [];
+            state.portfolio = [];
+            state.snapshots = [];
+            saveState();
+        }
+    }
+
+    function prefillSell(ticker) {
+        const asset = state.portfolio.find(a => a.ticker === ticker);
+        if(!asset) return;
+        openTransactionModal();
+        document.getElementById('inp-ticker').value = ticker;
+        document.getElementById('inp-name').value = asset.name;
+        document.getElementById('inp-operation').value = 'sell';
+        document.getElementById('inp-price').value = asset.currentPrice;
+        document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
+        document.querySelector(`.type-option[data-value="${asset.type}"]`).classList.add('active');
+    }
+
+    document.getElementById('refresh-prices-btn').addEventListener('click', fetchMarketData);
+
+    // Sidebar activation logic
+    (function activateSidebarLink() {
+      const currentPage = document.body.dataset.page;
+      if (!currentPage) return;
+      document.querySelectorAll('.sidebar__link[data-page]').forEach((link) => {
+        if (link.dataset.page === currentPage) {
+          link.classList.add('sidebar__link--active');
+          link.setAttribute('aria-current', 'page');
+        } else {
+          link.classList.remove('sidebar__link--active');
+          link.removeAttribute('aria-current');
+        }
+      });
+    })();
+
+    // Init
+    loadState();
+    renderAll();
+
+</script>
+</body>
+</html>

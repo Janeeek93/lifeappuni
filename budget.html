@@ -2012,6 +2012,19 @@
       box-shadow: 0 12px 28px rgba(37, 99, 235, 0.22);
     }
 
+    .card.mom-detail-shell,
+    .card.mom-detail-shell:hover,
+    .card.mom-detail-shell:focus-within,
+    .card.mom-detail-shell:active {
+      transform: none;
+    }
+
+    body.mom-detail-open #tab-mom.card,
+    body.mom-detail-open #tab-mom.card:hover {
+      transform: none;
+      transition: none;
+    }
+
     .mom-detail-backdrop {
       position: fixed;
       inset: 0;
@@ -2019,7 +2032,8 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity .25s ease;
-      z-index: 40;
+      will-change: opacity;
+      z-index: 1000;
     }
 
     .mom-detail-backdrop.is-visible {
@@ -2043,7 +2057,8 @@
       transform: translateX(36px);
       pointer-events: none;
       transition: opacity .28s ease, transform .28s ease;
-      z-index: 41;
+      will-change: transform, opacity;
+      z-index: 1001;
       --mom-detail-gutter: clamp(24px, 4vw, 56px);
     }
 
@@ -2075,13 +2090,41 @@
       background: rgba(248, 250, 252, 0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-      z-index: 2;
+      transition: padding 0.2s ease, backdrop-filter 0.2s ease;
+      z-index: 10;
+    }
+
+    .mom-detail-header.scrolled {
+      padding: 16px var(--mom-detail-gutter) 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .mom-detail-header.scrolled .mom-detail-title {
+      font-size: 16px;
+    }
+
+    .mom-detail-header.scrolled .mom-detail-subtitle {
+      display: none;
     }
 
     .mom-detail-heading {
       display: flex;
       flex-direction: column;
       gap: 6px;
+    }
+
+    .mom-detail-breadcrumb {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .mom-detail-breadcrumb::after {
+      content: '';
     }
 
     .mom-detail-eyebrow {
@@ -2125,10 +2168,61 @@
     }
 
     .mom-detail-toolbar {
-      padding: 16px var(--mom-detail-gutter) 0;
+      position: sticky;
+      top: 72px;
+      z-index: 2;
+      padding: 12px var(--mom-detail-gutter);
       display: flex;
-      justify-content: flex-end;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .mom-detail-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mom-detail-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mom-detail-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .2s ease;
+      white-space: nowrap;
+    }
+
+    .mom-detail-tab:hover,
+    .mom-detail-tab:focus-visible {
+      outline: none;
+      color: var(--ink);
+      background: rgba(37, 99, 235, 0.16);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .mom-detail-tab.is-active {
+      background: linear-gradient(135deg, var(--accent), rgba(37, 99, 235, 0.9));
+      color: #fff;
+      box-shadow: 0 10px 26px rgba(37, 99, 235, 0.32);
+      transform: translateY(-2px);
     }
 
     .mom-detail-sort {
@@ -2138,6 +2232,10 @@
       border-radius: 999px;
       background: rgba(148, 163, 184, 0.18);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
+    .mom-detail-sort[hidden] {
+      display: none !important;
     }
 
     .mom-detail-sort button {
@@ -2183,13 +2281,879 @@
     .mom-detail-body {
       display: flex;
       flex-direction: column;
-      gap: clamp(28px, 5vw, 42px);
+      gap: 40px;
+    }
+
+    .mom-detail-tabpanels {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .mom-detail-tabpanel {
+      display: none;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    .mom-detail-tabpanel.is-active {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      opacity: 1;
+      transform: translateY(0);
+      animation: momDetailTabFade 0.35s ease;
+      will-change: opacity, transform;
+    }
+
+    @keyframes momDetailTabFade {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .mom-detail-section {
       display: flex;
       flex-direction: column;
       gap: 18px;
+    }
+
+    .mom-detail-hero {
+      min-height: 180px;
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      background: linear-gradient(140deg, rgba(226, 232, 240, 0.65), rgba(248, 250, 252, 0.9));
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .mom-detail-hero-label {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mom-detail-hero-value {
+      font-size: clamp(36px, 6vw, 48px);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .mom-detail-hero-value.positive {
+      color: #16a34a;
+    }
+
+    .mom-detail-hero-value.negative {
+      color: #dc2626;
+    }
+
+    .mom-detail-hero-value.neutral {
+      color: var(--ink);
+    }
+
+    .mom-detail-hero-change {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .mom-detail-hero-change.positive {
+      color: #16a34a;
+    }
+
+    .mom-detail-hero-change.negative {
+      color: #dc2626;
+    }
+
+    .mom-detail-hero-change.neutral {
+      color: var(--ink);
+    }
+
+    .mom-detail-hero-summary {
+      margin: 0;
+      max-width: 540px;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .mom-detail-insights-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .mom-detail-insight-card {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.55), rgba(248, 250, 252, 0.88));
+      padding: 16px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .mom-detail-insight-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .mom-detail-insight-text {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    .mom-detail-forecast-block {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 4px 0 0;
+    }
+
+    .mom-detail-forecast-heading {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mom-detail-forecast-note {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .mom-detail-compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .mom-detail-compare-card {
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(248, 250, 252, 0.86);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mom-detail-compare-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mom-detail-compare-values {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mom-detail-compare-delta {
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+    }
+
+    .mom-detail-compare-delta .mom-detail-metric-delta {
+      font-size: 13px;
+    }
+
+    .mom-detail-forecast {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-forecast-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .mom-detail-forecast-card {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.72));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mom-detail-forecast-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.45), transparent 55%);
+    }
+
+    .mom-detail-forecast-card.optimistic {
+      border-color: rgba(22, 163, 74, 0.32);
+    }
+
+    .mom-detail-forecast-card.optimistic::after {
+      background: radial-gradient(circle at top right, rgba(22, 163, 74, 0.45), transparent 55%);
+    }
+
+    .mom-detail-forecast-card.pessimistic {
+      border-color: rgba(220, 38, 38, 0.32);
+    }
+
+    .mom-detail-forecast-card.pessimistic::after {
+      background: radial-gradient(circle at top right, rgba(220, 38, 38, 0.46), transparent 55%);
+    }
+
+    .mom-detail-forecast-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .mom-detail-forecast-card-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .mom-detail-forecast-card-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .mom-detail-forecast-card-meta {
+      margin-top: auto;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mom-detail-forecast-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .mom-detail-forecast-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+    }
+
+    .mom-detail-forecast-chart {
+      position: relative;
+      height: clamp(220px, 36vh, 320px);
+      border-radius: 18px;
+      padding: 16px;
+      background: linear-gradient(145deg, rgba(226, 232, 240, 0.4), rgba(248, 250, 252, 0.86));
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .mom-detail-forecast-alert {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid rgba(220, 38, 38, 0.32);
+      background: rgba(254, 226, 226, 0.72);
+      color: #991b1b;
+    }
+
+    .mom-detail-forecast-alert strong {
+      font-weight: 600;
+    }
+
+    .mom-detail-forecast-alert-icon {
+      font-size: 16px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .mom-detail-patterns-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .mom-detail-pattern-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.7));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .mom-detail-pattern-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .mom-detail-pattern-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .mom-detail-pattern-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .mom-detail-heatmap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-heatmap-scroll {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .mom-detail-heatmap-grid {
+      display: grid;
+      grid-template-columns: minmax(112px, 0.9fr) repeat(7, minmax(88px, 1fr));
+      gap: 8px;
+      align-items: stretch;
+      min-width: 100%;
+    }
+
+    .mom-detail-heatmap-head {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mom-detail-heatmap-corner {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .mom-detail-heatmap-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+      white-space: nowrap;
+    }
+
+    .mom-detail-heatmap-cell {
+      position: relative;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      min-height: 82px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      text-align: left;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-cell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: var(--mom-heat-bg, var(--surface));
+      opacity: 1;
+      z-index: 0;
+      transition: opacity .2s ease;
+    }
+
+    .mom-detail-heatmap-cell > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .mom-detail-heatmap-cell:hover,
+    .mom-detail-heatmap-cell:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+      border-color: var(--mom-heat-border, rgba(148, 163, 184, 0.35));
+      outline: none;
+    }
+
+    .mom-detail-heatmap-cell.is-empty {
+      cursor: default;
+    }
+
+    .mom-detail-heatmap-cell.is-empty:hover,
+    .mom-detail-heatmap-cell.is-empty:focus-visible {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .mom-detail-heatmap-cell.is-top {
+      border-width: 2px;
+      border-color: var(--mom-heat-border, rgba(37, 99, 235, 0.45));
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+    }
+
+    .mom-detail-heatmap-total {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .mom-detail-heatmap-count {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .mom-detail-heatmap-metric {
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.3), rgba(248, 250, 252, 0.86));
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mom-detail-heatmap-metric-eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-metric-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .mom-detail-heatmap-metric-value {
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-tooltip {
+      position: fixed;
+      z-index: 1002;
+      background: rgba(255, 255, 255, 0.98);
+      color: var(--ink);
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+      padding: 14px 16px;
+      max-width: min(320px, calc(100vw - 32px));
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .mom-detail-heatmap-tooltip.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .mom-detail-heatmap-tooltip-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .mom-detail-heatmap-tooltip-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-tooltip-day {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .mom-detail-heatmap-tooltip-total {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .mom-detail-heatmap-tooltip-count {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    .mom-detail-heatmap-tooltip-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 260px;
+      overflow: hidden;
+    }
+
+    .mom-detail-heatmap-tooltip-item {
+      display: grid;
+      grid-template-columns: minmax(68px, auto) minmax(72px, auto) 1fr;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    .mom-detail-heatmap-tooltip-item-note {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mom-detail-heatmap-tooltip-empty {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-heatmap-tooltip-more {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+
+    .mom-detail-contrib-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-contrib-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(15, 23, 42, 0.7);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .mom-detail-contrib-filter-input {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.06);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+    }
+
+    .mom-detail-contrib-filter-input input {
+      width: 72px;
+      border: 0;
+      background: transparent;
+      color: rgba(15, 23, 42, 0.9);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0;
+      appearance: textfield;
+    }
+
+    .mom-detail-contrib-filter-input input::-webkit-inner-spin-button,
+    .mom-detail-contrib-filter-input input::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .mom-detail-contrib-top {
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px 16px;
+    }
+
+    .mom-detail-contrib-top > summary {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      color: rgba(15, 23, 42, 0.78);
+      list-style: none;
+    }
+
+    .mom-detail-contrib-top > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mom-detail-contrib-count {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(15, 23, 42, 0.6);
+    }
+
+    .mom-detail-contrib-table-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+    }
+
+    .mom-detail-contrib-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+    }
+
+    .mom-detail-contrib-table thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: rgba(15, 23, 42, 0.55);
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .mom-detail-contrib-table tbody td {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      vertical-align: middle;
+      font-size: 13px;
+      color: rgba(15, 23, 42, 0.82);
+    }
+
+    .mom-detail-contrib-table tbody tr:first-child td {
+      border-top: 0;
+    }
+
+    .mom-detail-contrib-table tbody tr:hover td,
+    .mom-detail-contrib-table tbody tr:focus-within td {
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+    .mom-detail-contrib-date {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .mom-detail-contrib-amount {
+      font-weight: 600;
+      color: rgba(15, 23, 42, 0.88);
+    }
+
+    .mom-detail-contrib-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      margin-right: 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mom-detail-contrib-badge.month-a {
+      background: rgba(34, 197, 94, 0.14);
+      color: rgb(22, 163, 74);
+    }
+
+    .mom-detail-contrib-badge.month-b {
+      background: rgba(59, 130, 246, 0.14);
+      color: rgb(37, 99, 235);
+    }
+
+    .mom-detail-contrib-note {
+      color: rgba(15, 23, 42, 0.7);
+      max-width: 320px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .mom-detail-contrib-note .muted {
+      color: rgba(15, 23, 42, 0.45);
+      font-style: italic;
+    }
+
+    .mom-detail-contrib-impact {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .mom-detail-contrib-impact.positive {
+      color: rgb(22, 163, 74);
+    }
+
+    .mom-detail-contrib-impact.negative {
+      color: rgb(239, 68, 68);
+    }
+
+    .mom-detail-contrib-impact.neutral {
+      color: rgba(15, 23, 42, 0.55);
+    }
+
+    .mom-detail-contrib-unique {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(244, 114, 182, 0.16);
+      color: rgb(219, 39, 119);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mom-detail-contrib-toggle {
+      align-self: flex-start;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      border-radius: 999px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.92);
+      color: rgba(15, 23, 42, 0.82);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .mom-detail-contrib-toggle:hover,
+    .mom-detail-contrib-toggle:focus-visible {
+      background: rgba(15, 23, 42, 0.08);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+    }
+
+    .mom-detail-contrib-toggle:disabled,
+    .mom-detail-contrib-toggle[disabled] {
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+    }
+
+    .mom-detail-contrib-all[hidden] {
+      display: none;
+    }
+
+    .mom-detail-contrib-empty {
+      text-align: center;
+      padding: 24px;
+      color: rgba(15, 23, 42, 0.6);
+      font-size: 14px;
+      border: 1px dashed rgba(15, 23, 42, 0.2);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    @media (max-width: 720px) {
+      .mom-detail-heatmap-grid {
+        grid-template-columns: minmax(96px, 0.8fr) repeat(7, minmax(72px, 1fr));
+      }
+
+      .mom-detail-heatmap-cell {
+        min-height: 72px;
+        padding: 10px;
+      }
+    }
+
+    .mom-detail-waterfall-chart {
+      position: relative;
+      height: clamp(260px, 45vh, 360px);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.45), rgba(248, 250, 252, 0.9));
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 12px;
+    }
+
+    .mom-detail-waterfall-chart canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mom-detail-section-footnote {
+      margin: -6px 0 0;
+      font-size: 11px;
+      color: var(--muted);
     }
 
     .mom-detail-section-header {
@@ -2216,7 +3180,8 @@
     .mom-detail-kpi-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
+      grid-auto-rows: minmax(100px, auto);
     }
 
     @media (max-width: 1100px) {
@@ -2236,29 +3201,32 @@
       --mom-kpi-stop: rgba(37, 99, 235, 0.32);
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding: 18px;
+      gap: 8px;
+      padding: 14px 16px;
       border-radius: 18px;
       background: linear-gradient(135deg, var(--mom-kpi-start), var(--mom-kpi-stop));
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 16px 32px rgba(15, 23, 42, 0.12);
+      min-height: unset;
     }
 
     .mom-detail-kpi-card .label {
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.3;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: rgba(15, 23, 42, 0.7);
     }
 
     .mom-detail-kpi-value {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 700;
+      line-height: 1.2;
       color: var(--ink);
       margin: 0;
     }
 
     .mom-detail-kpi-trend {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -2268,26 +3236,37 @@
     .mom-detail-kpi-card.month-a {
       --mom-kpi-start: rgba(14, 165, 233, 0.16);
       --mom-kpi-stop: rgba(14, 165, 233, 0.4);
+      min-height: 100px;
     }
 
     .mom-detail-kpi-card.month-b {
       --mom-kpi-start: rgba(249, 115, 22, 0.16);
       --mom-kpi-stop: rgba(249, 115, 22, 0.4);
+      min-height: 100px;
     }
 
     .mom-detail-kpi-card.positive {
       --mom-kpi-start: rgba(34, 197, 94, 0.14);
       --mom-kpi-stop: rgba(16, 185, 129, 0.38);
+      min-height: 110px;
     }
 
     .mom-detail-kpi-card.negative {
       --mom-kpi-start: rgba(239, 68, 68, 0.16);
       --mom-kpi-stop: rgba(239, 68, 68, 0.42);
+      min-height: 110px;
     }
 
     .mom-detail-kpi-card.neutral {
       --mom-kpi-start: rgba(148, 163, 184, 0.1);
       --mom-kpi-stop: rgba(148, 163, 184, 0.24);
+      min-height: 110px;
+    }
+
+    .mom-detail-kpi-card.positive .mom-detail-kpi-value,
+    .mom-detail-kpi-card.negative .mom-detail-kpi-value {
+      font-size: 28px;
+      font-weight: 800;
     }
 
     .mom-detail-kpi-trend.positive { color: #047857; }
@@ -2296,34 +3275,30 @@
 
     .mom-detail-metric-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      padding: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, auto);
+      gap: 16px 20px;
+      padding: 12px 14px;
       border-radius: 16px;
       border: 1px solid rgba(148, 163, 184, 0.22);
       background: rgba(248, 250, 252, 0.76);
     }
 
-    @media (max-width: 1100px) {
-      .mom-detail-metric-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
     @media (max-width: 640px) {
       .mom-detail-metric-grid {
         grid-template-columns: repeat(1, minmax(0, 1fr));
+        grid-template-rows: auto;
       }
     }
 
     .mom-detail-metric {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
     }
 
     .mom-detail-metric-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -2334,17 +3309,17 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 10px 14px;
+      gap: 8px 12px;
     }
 
     .mom-detail-metric-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
+      padding: 3px 10px;
       border-radius: 999px;
       background: rgba(15, 23, 42, 0.05);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--ink);
     }
@@ -2360,6 +3335,237 @@
       align-items: center;
       gap: 6px;
       margin-left: auto;
+    }
+
+    .mom-detail-advanced-grid {
+      margin-top: 20px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .mom-detail-advanced-card {
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 16px;
+      background: rgba(248, 250, 252, 0.75);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    }
+
+    .mom-detail-advanced-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .mom-detail-advanced-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mom-detail-advanced-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mom-detail-advanced-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mom-detail-advanced-row-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .mom-detail-advanced-row-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mom-detail-advanced-empty {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-metric-help {
+      position: relative;
+      border: none;
+      border-radius: 999px;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      cursor: help;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .mom-detail-metric-help:hover,
+    .mom-detail-metric-help:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      background: rgba(37, 99, 235, 0.18);
+    }
+
+    .mom-detail-metric-help::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.32);
+      width: max(220px, min(280px, 70vw));
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: left;
+      z-index: 5;
+      white-space: normal;
+    }
+
+    .mom-detail-metric-help:focus-visible::after,
+    .mom-detail-metric-help:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .mom-detail-metric-help::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% - 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(15, 23, 42, 0.92) transparent transparent transparent;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .mom-detail-metric-help:focus-visible::before,
+    .mom-detail-metric-help:hover::before {
+      opacity: 1;
+    }
+
+    .mom-detail-boxplot {
+      margin-top: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.04);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mom-detail-boxplot-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mom-detail-boxplot-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mom-detail-boxplot-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mom-detail-boxplot-track {
+      position: relative;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.18);
+      overflow: hidden;
+    }
+
+    .mom-detail-boxplot-whisker,
+    .mom-detail-boxplot-box,
+    .mom-detail-boxplot-median {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .mom-detail-boxplot-whisker {
+      height: 4px;
+      background: rgba(15, 23, 42, 0.25);
+      min-width: 4px;
+      border-radius: 2px;
+    }
+
+    .mom-detail-boxplot-box {
+      height: 14px;
+      border-radius: 6px;
+      min-width: 6px;
+      border: 2px solid rgba(37, 99, 235, 0.45);
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .mom-detail-boxplot-row.month-b .mom-detail-boxplot-box {
+      border-color: rgba(244, 114, 182, 0.55);
+      background: rgba(244, 114, 182, 0.2);
+    }
+
+    .mom-detail-boxplot-median {
+      width: 2px;
+      height: 22px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 1px;
+    }
+
+    .mom-detail-boxplot-values {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mom-detail-boxplot-scale {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .mom-detail-boxplot-row.is-empty .mom-detail-boxplot-track {
+      display: none;
+    }
+
+    .mom-detail-boxplot-row.is-empty .mom-detail-boxplot-values {
+      color: var(--muted);
     }
 
     .mom-detail-metric-delta.positive { color: #047857; }
@@ -2396,6 +3602,64 @@
       display: flex;
       flex-direction: column;
       gap: 18px;
+    }
+
+    .mom-detail-calendar-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .mom-detail-calendar-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(226, 232, 240, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .mom-detail-calendar-pill::before {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mom-detail-calendar-pill.month-a::before {
+      background: rgba(37, 99, 235, 0.85);
+    }
+
+    .mom-detail-calendar-pill.month-b::before {
+      background: rgba(16, 185, 129, 0.85);
+    }
+
+    .mom-detail-calendar-pill.delta::before {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .mom-detail-calendar-pill.delta.positive::before {
+      background: rgba(34, 197, 94, 0.75);
+    }
+
+    .mom-detail-calendar-pill.delta.negative::before {
+      background: rgba(239, 68, 68, 0.75);
+    }
+
+    .mom-detail-calendar-pill.delta.neutral::before {
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .mom-detail-calendar-pill.delta.positive {
+      color: #047857;
+    }
+
+    .mom-detail-calendar-pill.delta.negative {
+      color: #b91c1c;
     }
 
     .mom-detail-calendar-heading,
@@ -2440,17 +3704,19 @@
       border-radius: 14px;
       border: 1px solid rgba(148, 163, 184, 0.2);
       background: rgba(248, 250, 252, 0.85);
-      padding: 12px 12px 14px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-height: 140px;
+      min-height: 110px;
       position: relative;
     }
 
     .mom-detail-calendar-cell.is-empty {
       background: rgba(248, 250, 252, 0.4);
       border-style: dashed;
+      min-height: 80px;
+      opacity: 0.5;
     }
 
     .mom-detail-calendar-cell.placeholder {
@@ -2474,19 +3740,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .mom-detail-calendar-day {
       font-weight: 600;
       color: var(--ink);
-      font-size: 15px;
+      font-size: 13px;
     }
 
     .mom-detail-calendar-delta {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      padding: 3px 8px;
+      padding: 2px 7px;
       border-radius: 999px;
       white-space: nowrap;
       background: rgba(148, 163, 184, 0.18);
@@ -2534,7 +3800,7 @@
     }
 
     .mom-detail-calendar-amount {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--ink);
     }
@@ -2546,9 +3812,9 @@
     }
 
     .mom-detail-calendar-entry {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--ink);
-      line-height: 1.35;
+      line-height: 1.3;
     }
 
     .mom-detail-calendar-entry .muted {
@@ -2569,6 +3835,50 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
       gap: 18px;
+    }
+
+    .mom-detail-daylist-panel {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 18px;
+      background: rgba(248, 250, 252, 0.72);
+      padding: 12px 16px;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .mom-detail-daylist-panel > summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      list-style: none;
+    }
+
+    .mom-detail-daylist-panel > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mom-detail-daylist-panel > summary::after {
+      content: '▼';
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mom-detail-daylist-panel[open] {
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+      border-color: rgba(37, 99, 235, 0.28);
+    }
+
+    .mom-detail-daylist-panel[open] > summary {
+      margin-bottom: 14px;
+      color: #1d4ed8;
+    }
+
+    .mom-detail-daylist-panel[open] > summary::after {
+      content: '▲';
+      color: #1d4ed8;
     }
 
     .mom-detail-daylist-section {
@@ -3605,7 +4915,7 @@
         </div>
         <p class="tiny muted" id="mom-diff-caption" style="margin-top:8px"></p>
       </div>
-      <div class="card" style="margin-top:12px">
+      <div class="card mom-detail-shell" style="margin-top:12px">
         <div class="mom-table-header">
           <div class="mom-table-header-meta">
             <h4 class="title">Zestawienie kategorii</h4>
@@ -3635,6 +4945,7 @@
       <aside id="mom-detail-panel" class="mom-detail-panel" role="dialog" aria-modal="true" aria-hidden="true">
         <header class="mom-detail-header">
           <div class="mom-detail-heading">
+            <div class="mom-detail-breadcrumb" id="mom-detail-breadcrumb">Porównanie MoM</div>
             <span class="mom-detail-eyebrow">Analiza kategorii</span>
             <h4 class="mom-detail-title" id="mom-detail-title">Szczegóły kategorii</h4>
             <div class="mom-detail-subtitle" id="mom-detail-subtitle">Wybierz kategorię z tabeli, aby zanurzyć się w transakcje.</div>
@@ -3642,7 +4953,14 @@
           <button type="button" class="mom-detail-close" id="mom-detail-close" data-mom-detail-close aria-label="Zamknij szczegóły">✕</button>
         </header>
         <div class="mom-detail-toolbar" id="mom-detail-toolbar" style="display:none">
-          <div class="mom-detail-sort" id="mom-detail-sort">
+          <div class="mom-detail-tabs" id="mom-detail-tabs" role="tablist" aria-label="Widoki analizy MoM">
+            <button type="button" class="mom-detail-tab is-active" data-mom-detail-tab="overview" id="mom-detail-tab-overview" role="tab" aria-selected="true" aria-controls="mom-detail-panel-overview">Przegląd</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="calendar" id="mom-detail-tab-calendar" role="tab" aria-selected="false" aria-controls="mom-detail-panel-calendar" tabindex="-1">Kalendarz</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="patterns" id="mom-detail-tab-patterns" role="tab" aria-selected="false" aria-controls="mom-detail-panel-patterns" tabindex="-1">Wzorce</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="stats" id="mom-detail-tab-stats" role="tab" aria-selected="false" aria-controls="mom-detail-panel-stats" tabindex="-1">Statystyki</button>
+            <button type="button" class="mom-detail-tab" data-mom-detail-tab="transactions" id="mom-detail-tab-transactions" role="tab" aria-selected="false" aria-controls="mom-detail-panel-transactions" tabindex="-1">Transakcje</button>
+          </div>
+          <div class="mom-detail-sort" id="mom-detail-sort" hidden>
             <button type="button" class="is-active" data-mom-detail-sort="impact">Największy wpływ</button>
             <button type="button" data-mom-detail-sort="chron">Chronologicznie</button>
           </div>
@@ -7267,6 +8585,93 @@
     });
   }
 
+  function renderMomDetailForecastChart(forecast,palette){
+    const canvas=document.getElementById('mom-detail-forecast-chart');
+    if(!canvas || !forecast){
+      destroyMomDetailForecastChart();
+      return;
+    }
+    const ctx=canvas.getContext('2d');
+    if(!ctx){
+      destroyMomDetailForecastChart();
+      return;
+    }
+    destroyMomDetailForecastChart();
+    const labels=forecast.labels;
+    const actual=forecast.actualCumulative;
+    const projected=forecast.projectedCumulative;
+    const realisticLabel=forecast.realisticLabel||'Prognoza';
+    const actualColor=colorWithAlpha(palette.ink,0.85);
+    const forecastColor=colorWithAlpha(palette.negative,0.9);
+    momDetailForecastChart=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {
+            label:'Faktycznie',
+            data:actual,
+            borderColor:actualColor,
+            backgroundColor:colorWithAlpha(palette.ink,0.12),
+            borderWidth:2,
+            tension:0.32,
+            fill:false,
+            spanGaps:false,
+            pointRadius:3,
+            pointHoverRadius:4,
+            segment:{borderDash:ctx=>ctx.p0?.skip&&ctx.p1?.skip?[6,6]:undefined}
+          },
+          {
+            label:`Prognoza (${realisticLabel})`,
+            data:projected,
+            borderColor:forecastColor,
+            backgroundColor:colorWithAlpha(palette.negative,0.08),
+            borderWidth:2,
+            tension:0.34,
+            fill:false,
+            spanGaps:true,
+            pointRadius:0,
+            borderDash:[6,5]
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'nearest',intersect:false},
+        plugins:{
+          legend:{labels:{color:palette.ink,font:{size:12}}},
+          tooltip:{
+            callbacks:{
+              label(context){
+                const value=context.parsed.y;
+                if(!Number.isFinite(value)) return context.dataset.label||'';
+                return `${context.dataset.label||''}: ${fmt(value,state.currency)}`;
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            ticks:{color:palette.muted,font:{size:11}},
+            grid:{color:colorWithAlpha(palette.muted,0.18)}
+          },
+          y:{
+            beginAtZero:true,
+            ticks:{
+              color:palette.muted,
+              font:{size:11},
+              callback(value){
+                return fmt(value,state.currency);
+              }
+            },
+            grid:{color:colorWithAlpha(palette.muted,0.14)}
+          }
+        }
+      }
+    });
+  }
+
   function renderNetWorthMonthCard(detail){
     const container = document.getElementById('eom-networth-month-card');
     if(!container) return;
@@ -9401,7 +10806,11 @@
   };
   let momChart=null;
   let momDiffChart=null;
+  let momDetailWaterfallChart=null;
+  let momDetailForecastChart=null;
   let momLastContext=null;
+  let momDetailHeatmapData=new Map();
+  let momDetailHeatmapTooltip=null;
 
   function momPalette(){
     return {
@@ -9410,7 +10819,8 @@
       positive: cssVar('--red', MOM_DIFF_COLORS.positive),
       negative: cssVar('--green', MOM_DIFF_COLORS.negative),
       neutral: cssVar('--muted', MOM_DIFF_COLORS.neutral),
-      ink: cssVar('--ink', '#0f172a')
+      ink: cssVar('--ink', '#0f172a'),
+      muted: cssVar('--muted', '#475569')
     };
   }
 
@@ -9420,6 +10830,163 @@
 
   function destroyMomDiffChart(){
     if(momDiffChart){momDiffChart.destroy(); momDiffChart=null;}
+  }
+
+  function destroyMomDetailWaterfallChart(){
+    if(momDetailWaterfallChart){
+      momDetailWaterfallChart.destroy();
+      momDetailWaterfallChart=null;
+    }
+  }
+
+  function destroyMomDetailForecastChart(){
+    if(momDetailForecastChart){
+      momDetailForecastChart.destroy();
+      momDetailForecastChart=null;
+    }
+  }
+
+  function renderMomDetailWaterfallChart(detail){
+    const canvas=document.getElementById('mom-detail-waterfall');
+    if(!canvas){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    if(!detail || !Array.isArray(detail.days)){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    const ctx=canvas.getContext('2d');
+    if(!ctx){
+      destroyMomDetailWaterfallChart();
+      return;
+    }
+    const palette=momPalette();
+    const ranked=detail.days
+      .map((day,index)=>({index,impact:Math.abs(day.delta)}))
+      .filter(item=>item.impact>0)
+      .sort((a,b)=>b.impact-a.impact)
+      .slice(0,3)
+      .map(item=>item.index);
+    const highlightSet=new Set(ranked);
+    let cumulative=0;
+    const dataPoints=detail.days.map(day=>{
+      const start=cumulative;
+      cumulative+=day.delta;
+      return [start,cumulative];
+    });
+    const totalDiff=detail.totalA-detail.totalB;
+    destroyMomDetailWaterfallChart();
+    momDetailWaterfallChart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:detail.days.map(day=>day.label),
+        datasets:[{
+          label:'Wpływ dnia',
+          data:dataPoints,
+          borderRadius:6,
+          barPercentage:0.9,
+          categoryPercentage:0.9,
+          backgroundColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            const alpha=highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?0.88:0.65;
+            return colorWithAlpha(tone,alpha);
+          },
+          borderColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            const alpha=highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?0.95:0.55;
+            return colorWithAlpha(tone,alpha);
+          },
+          borderWidth:context=>{
+            const day=detail.days[context.dataIndex];
+            return highlightSet.has(context.dataIndex)&&Math.abs(day.delta)>0.01?3:1;
+          },
+          hoverBackgroundColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            return colorWithAlpha(tone,0.95);
+          },
+          hoverBorderColor:context=>{
+            const day=detail.days[context.dataIndex];
+            const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+            return colorWithAlpha(tone,0.95);
+          }
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:{duration:420},
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:colorWithAlpha(cssVar('--surface','#f8fafc'),0.98),
+            borderColor:colorWithAlpha(cssVar('--ink','#0f172a'),0.12),
+            borderWidth:1,
+            padding:12,
+            caretSize:6,
+            titleColor:cssVar('--ink','#0f172a'),
+            titleFont:{
+              family:"Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+              size:13,
+              weight:'600'
+            },
+            bodyColor:cssVar('--ink','#0f172a'),
+            bodyFont:{
+              family:"Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+              size:12,
+              weight:'500'
+            },
+            callbacks:{
+              title:items=>{
+                if(!items.length) return '';
+                const day=detail.days[items[0].dataIndex];
+                const sampleIso=day.isoA||day.isoB;
+                const weekday=formatWeekdayShort(sampleIso);
+                return weekday?`Dzień ${day.label} • ${weekday}`:`Dzień ${day.label}`;
+              },
+              label:context=>{
+                const day=detail.days[context.dataIndex];
+                const diff=day.delta;
+                const diffAbs=fmt(Math.abs(diff), state.currency);
+                const diffLabel=diff>0?`+${diffAbs}`:diff<0?`−${diffAbs}`:diffAbs;
+                let pctLabel='—';
+                if(totalDiff!==0){
+                  const pct=(diff/totalDiff)*100;
+                  const pctSign=pct>0?'+':pct<0?'−':'';
+                  pctLabel=`${pctSign}${Math.abs(pct).toFixed(1)}%`;
+                }
+                return [
+                  `Miesiąc A: ${fmt(day.totalA,state.currency)}`,
+                  `Miesiąc B: ${fmt(day.totalB,state.currency)}`,
+                  `Różnica: ${diffLabel}`,
+                  `Udział: ${pctLabel}`
+                ];
+              },
+              labelColor:context=>{
+                const day=detail.days[context.dataIndex];
+                const tone=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.neutral;
+                return {borderColor:tone,backgroundColor:tone};
+              },
+              labelTextColor:()=>cssVar('--ink','#0f172a')
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false},
+            ticks:{color:cssVar('--muted','#475569')}
+          },
+          y:{
+            grid:{color:colorWithAlpha(palette.ink,0.08)},
+            ticks:{callback:value=>currencyTicks(value)}
+          }
+        }
+      }
+    });
   }
 
   function ensureMomState(months){
@@ -9542,11 +11109,87 @@
     });
   }
 
+  const MOM_DETAIL_TABS=['overview','calendar','patterns','stats','transactions'];
   let momDetailOpen=false;
   let momDetailSort='impact';
+  let momDetailTab='overview';
+  let momDetailTabCache={};
   let momDetailBound=false;
   let momDetailKeyBound=false;
   let momDetailScrollRestore=0;
+
+  function isValidMomDetailTab(value){
+    return MOM_DETAIL_TABS.includes(value);
+  }
+
+  function updateMomDetailTabButtons(){
+    document.querySelectorAll('[data-mom-detail-tab]').forEach(btn=>{
+      const value=btn.dataset.momDetailTab||'overview';
+      const isActive=value===momDetailTab;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-selected', isActive?'true':'false');
+      if(isActive){
+        btn.removeAttribute('tabindex');
+      }else{
+        btn.setAttribute('tabindex','-1');
+      }
+    });
+  }
+
+  function updateMomDetailSortVisibility(){
+    const sortWrap=document.getElementById('mom-detail-sort');
+    if(!sortWrap) return;
+    const shouldShow=momDetailTab==='transactions';
+    sortWrap.hidden=!shouldShow;
+  }
+
+  function activateMomDetailTab(){
+    const bodyEl=document.getElementById('mom-detail-body');
+    if(!bodyEl) return;
+    hideMomDetailHeatmapTooltip();
+    const panels=bodyEl.querySelectorAll('[data-mom-detail-panel]');
+    panels.forEach(panel=>{
+      const key=panel.dataset.momDetailPanel;
+      const isActive=key===momDetailTab;
+      panel.classList.toggle('is-active', isActive);
+      panel.setAttribute('aria-hidden', isActive?'false':'true');
+      if(isActive){
+        const cache=momDetailTabCache[key];
+        if(cache && !cache.loaded){
+          cache.render(panel);
+          cache.loaded=true;
+        }else if(!cache && !panel.dataset.momPlaceholder){
+          panel.innerHTML='<div class="mom-detail-empty">Brak danych do wyświetlenia.</div>';
+          panel.dataset.momPlaceholder='1';
+        }
+      }
+    });
+    updateMomDetailTabButtons();
+    updateMomDetailSortVisibility();
+    if(momDetailTab==='transactions'){
+      updateMomDetailSortButtons();
+    }
+  }
+
+  function setMomDetailTab(value){
+    const valid=isValidMomDetailTab(value)?value:'overview';
+    if(momDetailTab===valid){
+      activateMomDetailTab();
+      return;
+    }
+    momDetailTab=valid;
+    updateMomDetailTabButtons();
+    updateMomDetailSortVisibility();
+    const scrollWrap=document.querySelector('.mom-detail-scroll');
+    const header=document.querySelector('.mom-detail-header');
+    if(scrollWrap){
+      scrollWrap.scrollTop=0;
+      if(header){
+        header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+      }
+    }
+    activateMomDetailTab();
+  }
 
   function momDetailEligible(catId){
     return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
@@ -9576,6 +11219,16 @@
         });
       });
     }
+    const tabsWrap=document.getElementById('mom-detail-tabs');
+    if(tabsWrap && !tabsWrap.dataset.bound){
+      tabsWrap.dataset.bound='1';
+      tabsWrap.querySelectorAll('button[data-mom-detail-tab]').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const value=btn.dataset.momDetailTab||'overview';
+          setMomDetailTab(value);
+        });
+      });
+    }
     if(!momDetailKeyBound){
       document.addEventListener('keydown',evt=>{
         if(evt.key==='Escape' && momDetailOpen){
@@ -9594,11 +11247,14 @@
     if(document.body) document.body.classList.add('mom-detail-open');
     momDetailOpen=true;
     renderMomDetail();
-    panel.classList.add('is-visible');
-    panel.setAttribute('aria-hidden','false');
     backdrop.hidden=false;
-    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>backdrop.classList.add('is-visible'));
-    else backdrop.classList.add('is-visible');
+    panel.setAttribute('aria-hidden','false');
+    const showElements=()=>{
+      panel.classList.add('is-visible');
+      backdrop.classList.add('is-visible');
+    };
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(showElements);
+    else showElements();
     const closeBtn=document.getElementById('mom-detail-close');
     if(closeBtn) closeBtn.focus({preventScroll:true});
   }
@@ -9608,7 +11264,15 @@
     const panel=document.getElementById('mom-detail-panel');
     const backdrop=document.getElementById('mom-detail-backdrop');
     if(!panel || !backdrop) return;
+    const header=document.querySelector('.mom-detail-header');
+    if(header){
+      header.classList.remove('scrolled');
+    }
+    hideMomDetailHeatmapTooltip();
+    momDetailHeatmapData.clear();
     momDetailOpen=false;
+    destroyMomDetailWaterfallChart();
+    destroyMomDetailForecastChart();
     panel.classList.remove('is-visible');
     panel.setAttribute('aria-hidden','true');
     backdrop.classList.remove('is-visible');
@@ -9684,6 +11348,81 @@
     }
   }
 
+  function percentile(sorted, p){
+    if(!Array.isArray(sorted) || !sorted.length) return 0;
+    const clamped=Math.min(Math.max(p,0),1);
+    if(sorted.length===1) return sorted[0];
+    const idx=(sorted.length-1)*clamped;
+    const lower=Math.floor(idx);
+    const upper=Math.ceil(idx);
+    const weight=idx-lower;
+    if(upper>=sorted.length) return sorted[sorted.length-1];
+    if(lower===upper) return sorted[lower];
+    return sorted[lower]+(sorted[upper]-sorted[lower])*weight;
+  }
+
+  function computeDistributionStats(values){
+    const arr=Array.isArray(values)?values.filter(val=>Number.isFinite(val)&&val>=0):[];
+    const count=arr.length;
+    if(!count){
+      return {
+        count:0,
+        sum:0,
+        mean:0,
+        stdDev:0,
+        cv:0,
+        p25:0,
+        median:0,
+        p75:0,
+        p90:0,
+        iqr:0,
+        outliers:0,
+        outlierThreshold:0,
+        gini:0,
+        min:0,
+        max:0
+      };
+    }
+    const sorted=[...arr].sort((a,b)=>a-b);
+    const sum=sorted.reduce((acc,val)=>acc+val,0);
+    const mean=sum/count;
+    const variance=count>1?sorted.reduce((acc,val)=>acc+Math.pow(val-mean,2),0)/(count-1):0;
+    const stdDev=Math.sqrt(Math.max(variance,0));
+    const cv=mean>0?stdDev/mean:0;
+    const p25=percentile(sorted,0.25);
+    const median=percentile(sorted,0.5);
+    const p75=percentile(sorted,0.75);
+    const p90=percentile(sorted,0.9);
+    const iqr=Math.max(p75-p25,0);
+    const outlierThreshold=p75+1.5*iqr;
+    const outliers=sorted.filter(val=>val>outlierThreshold).length;
+    const min=sorted[0];
+    const max=sorted[sorted.length-1];
+    let gini=0;
+    if(sum>0){
+      const cumulative=sorted.reduce((acc,val,idx)=>acc+((idx+1)*val),0);
+      gini=(2*cumulative)/(count*sum)-(count+1)/count;
+      gini=Math.max(0, Math.min(1, gini));
+    }
+    return {
+      count,
+      sum,
+      mean,
+      stdDev,
+      cv,
+      p25,
+      median,
+      p75,
+      p90,
+      iqr,
+      outliers,
+      outlierThreshold,
+      gini,
+      min,
+      max
+    };
+  }
+
   function buildMomDetailData(monthA, monthB, categoryId, dayLimit){
     const limit=Math.max(1, Number(dayLimit)||1);
     const collect=ym=>{
@@ -9754,17 +11493,8 @@
     const totalB=runningB;
     const avgA=totalCountA>0?totalA/totalCountA:0;
     const avgB=totalCountB>0?totalB/totalCountB:0;
-    const calcMedian=arr=>{
-      if(!arr.length) return 0;
-      const sorted=[...arr].sort((a,b)=>a-b);
-      const mid=Math.floor(sorted.length/2);
-      if(sorted.length%2===1) return sorted[mid];
-      return (sorted[mid-1]+sorted[mid])/2;
-    };
-    const medianA=calcMedian(amountsA);
-    const medianB=calcMedian(amountsB);
-    const maxA=amountsA.length?Math.max(...amountsA):0;
-    const maxB=amountsB.length?Math.max(...amountsB):0;
+    const statsA=computeDistributionStats(amountsA);
+    const statsB=computeDistributionStats(amountsB);
     return {
       days,
       totalA,
@@ -9774,15 +11504,773 @@
       countB:totalCountB,
       avgA,
       avgB,
-      medianA,
-      medianB,
-      maxA,
-      maxB,
+      medianA:statsA.median,
+      medianB:statsB.median,
+      maxA:statsA.max,
+      maxB:statsB.max,
+      statsA,
+      statsB,
       crossoverDay,
       ledFromStart,
       everLed,
       finalDelta: totalA-totalB
     };
+  }
+
+  function computeMomDetailForecast(detail, monthA, monthB, categoryId){
+    if(!detail || !monthA || !categoryId) return null;
+    if(categoryId==='__all' || categoryId===MOM_NO_FIXED_ID) return null;
+    const now=new Date();
+    const [yearStr, monthStr]=monthA.split('-');
+    const year=Number(yearStr);
+    const monthIndex=Number(monthStr);
+    if(!Number.isFinite(year) || !Number.isFinite(monthIndex)) return null;
+    if(now.getFullYear()!==year || (now.getMonth()+1)!==monthIndex) return null;
+    const daysInMonth=daysInYm(monthA);
+    if(!Number.isFinite(daysInMonth) || daysInMonth<=0) return null;
+    const today=Math.min(daysInMonth, Math.max(0, now.getDate()));
+    const daysElapsed=today;
+    const remainingDays=Math.max(0, daysInMonth-daysElapsed);
+    const dailyTotals=Array(daysInMonth).fill(0);
+    const currentEntries=entriesForMonth(monthA).filter(entry=>entry.categoryId===categoryId);
+    for(const entry of currentEntries){
+      const day=Number(entry.date?.slice(-2));
+      if(Number.isFinite(day) && day>=1 && day<=daysInMonth){
+        dailyTotals[day-1]+=Math.abs(entry.amount);
+      }
+    }
+    const spentSoFar=dailyTotals.slice(0, Math.max(0, daysElapsed)).reduce((sum,value)=>sum+value,0);
+    const averageDaily=daysElapsed>0?spentSoFar/daysElapsed:0;
+    let linearProjection=spentSoFar+averageDaily*remainingDays;
+    if(!Number.isFinite(linearProjection)) linearProjection=spentSoFar;
+    const recentWindow=Math.min(7, daysElapsed);
+    const recentSlice=recentWindow>0?dailyTotals.slice(daysElapsed-recentWindow, daysElapsed):[];
+    const recentAverage=recentSlice.length?recentSlice.reduce((sum,value)=>sum+value,0)/recentSlice.length:averageDaily;
+    let trendProjection=spentSoFar+recentAverage*remainingDays;
+    if(!Number.isFinite(trendProjection)) trendProjection=spentSoFar;
+    const allMonths=getAnalyticsAvailableMonths();
+    const historyMonths=allMonths.filter(ym=>ym<monthA);
+    const historyTotals=historyMonths.map(ym=>{
+      const monthEntries=entriesForMonth(ym).filter(entry=>entry.categoryId===categoryId);
+      return monthEntries.reduce((sum,entry)=>sum+Math.abs(entry.amount),0);
+    }).filter(value=>Number.isFinite(value));
+    const historyAverage=historyTotals.length?historyTotals.reduce((sum,value)=>sum+value,0)/historyTotals.length:null;
+    let historyProjection=historyAverage!==null?historyAverage:null;
+    const safeSpent=Math.max(0, spentSoFar);
+    if(linearProjection<safeSpent) linearProjection=safeSpent;
+    if(trendProjection<safeSpent) trendProjection=safeSpent;
+    if(historyProjection!==null && historyProjection<safeSpent) historyProjection=safeSpent;
+    const monthBTotal=monthB
+      ? entriesForMonth(monthB).filter(entry=>entry.categoryId===categoryId).reduce((sum,entry)=>sum+Math.abs(entry.amount),0)
+      : null;
+    const methodLabels={
+      linear:'Liniowa ekstrapolacja',
+      trend:'Trend 7 dni',
+      history:'Średnia historyczna'
+    };
+    const methodDescriptions={
+      linear:'Średnie tempo z dotychczasowych dni miesiąca.',
+      trend:'Tempo z ostatnich 7 dni (jeśli dostępne).',
+      history:'Średnia z poprzednich miesięcy dla tej kategorii.'
+    };
+    const projections=[];
+    const pushProjection=(key,value,pace)=>{
+      if(!Number.isFinite(value)) return;
+      const safeValue=Math.max(safeSpent, value);
+      const safePace=Math.max(0, Number.isFinite(pace)?pace:0);
+      projections.push({
+        key,
+        label:methodLabels[key]||key,
+        description:methodDescriptions[key]||'',
+        value:safeValue,
+        pace:safePace
+      });
+    };
+    pushProjection('linear', linearProjection, averageDaily);
+    if(recentWindow>0) pushProjection('trend', trendProjection, recentAverage);
+    if(historyProjection!==null) pushProjection('history', historyProjection, remainingDays>0?(historyProjection-safeSpent)/remainingDays:0);
+    if(!projections.length){
+      projections.push({
+        key:'linear',
+        label:methodLabels.linear,
+        description:'Brak danych do predykcji — przyjęto dotychczasowy poziom wydatków.',
+        value:safeSpent,
+        pace:0
+      });
+    }
+    const realistic=projections.find(p=>p.key==='trend')||projections.find(p=>p.key==='linear')||projections[0];
+    const optimistic=projections.reduce((best,proj)=>best && best.value<=proj.value?best:proj, realistic);
+    const pessimistic=projections.reduce((best,proj)=>best && best.value>=proj.value?best:proj, realistic);
+    const labels=Array.from({length:daysInMonth},(_,i)=>String(i+1).padStart(2,'0'));
+    const actualCumulative=Array(daysInMonth).fill(null);
+    let running=0;
+    for(let i=0;i<daysInMonth;i++){
+      running+=dailyTotals[i];
+      if(i<daysElapsed){
+        actualCumulative[i]=running;
+      }
+    }
+    const projectedCumulative=Array(daysInMonth).fill(null);
+    const remainingTarget=Math.max(0, realistic.value-safeSpent);
+    const projectedPace=remainingDays>0?remainingTarget/remainingDays:0;
+    let projectedRunning=daysElapsed>0?safeSpent:0;
+    for(let i=0;i<daysInMonth;i++){
+      if(i<daysElapsed){
+        projectedCumulative[i]=actualCumulative[i];
+      }else{
+        if(daysElapsed===0 && i===0){
+          projectedRunning=0;
+        }
+        if(i===daysElapsed && daysElapsed>0){
+          projectedRunning=safeSpent;
+        }
+        if(daysElapsed===0 || i>=daysElapsed){
+          projectedRunning+=projectedPace;
+        }
+        projectedCumulative[i]=projectedRunning;
+      }
+    }
+    let alert=null;
+    if(Number.isFinite(monthBTotal) && monthBTotal>0 && realistic.value>monthBTotal){
+      const overrun=realistic.value-monthBTotal;
+      const pct=overrun/monthBTotal;
+      if(pct>=0.1){
+        alert={
+          type:'overrun',
+          amount:overrun,
+          percent:pct
+        };
+      }
+    }else if((!Number.isFinite(monthBTotal) || monthBTotal<=0) && realistic.value>safeSpent){
+      alert={
+        type:'new-spend',
+        amount:realistic.value,
+        percent:null
+      };
+    }
+    return {
+      isCurrent:true,
+      daysElapsed,
+      daysInMonth,
+      remainingDays,
+      spentSoFar:safeSpent,
+      averageDaily,
+      recentAverage,
+      historyAverage,
+      projections,
+      scenarios:{
+        optimistic,
+        realistic,
+        pessimistic
+      },
+      labels,
+      actualCumulative,
+      projectedCumulative,
+      realisticLabel:realistic?.label||'Prognoza',
+      monthBTotal,
+      alert
+    };
+  }
+
+  function detectPatterns(dayData, monthA, monthB){
+    const patterns=[];
+    const days=Array.isArray(dayData)?dayData.map(day=>({
+      day:Number(day.day)||0,
+      totalA:Math.max(0, Number(day.totalA)||0),
+      totalB:Math.max(0, Number(day.totalB)||0),
+      delta:Number(day.delta)||0,
+      isoA:day.isoA||null,
+      isoB:day.isoB||null,
+      cumulativeDelta:Number(day.cumulativeDelta)||0
+    })).filter(day=>day.day>0):[];
+
+    const ensureIso=(dayNumber)=>{
+      const base=monthA||monthB;
+      if(!base) return null;
+      const padded=String(dayNumber).padStart(2,'0');
+      const max=daysInYm(base);
+      if(dayNumber>max) return null;
+      return `${base}-${padded}`;
+    };
+
+    const totalCombined=days.reduce((sum,day)=>sum+day.totalA+day.totalB,0);
+    if(totalCombined<=0){
+      return [
+        {key:'clustering',icon:'📅',title:'Klaster wydatków',description:'Brak wydatków w analizowanym zakresie.'},
+        {key:'spike',icon:'🚨',title:'Nagły skok',description:'Brak odchyleń przekraczających próg 2σ.'},
+        {key:'weekend',icon:'🛍️',title:'Efekt weekendu',description:'Za mało danych, aby porównać weekendy z dniami roboczymi.'},
+        {key:'trend',icon:'📈',title:'Trend miesiąca',description:'Brak danych do analizy trendu różnicy A-B.'},
+        {key:'regularity',icon:'🔁',title:'Regularność',description:'Brak danych do wykrycia powtarzalnego rytmu wydatków.'}
+      ];
+    }
+
+    // Klasterowanie
+    const buckets={early:0,mid:0,late:0};
+    days.forEach(day=>{
+      const bucket=day.day<=10?'early':day.day<=20?'mid':'late';
+      buckets[bucket]+=day.totalA+day.totalB;
+    });
+    const bucketEntries=Object.entries(buckets).sort((a,b)=>b[1]-a[1]);
+    const [topBucketKey,topBucketValue]=bucketEntries[0];
+    const bucketShare=topBucketValue/totalCombined;
+    const bucketLabel=topBucketKey==='early'?'początek':topBucketKey==='mid'?'środek':'koniec';
+    const bucketPercent=Math.round(bucketShare*100);
+    patterns.push({
+      key:'clustering',
+      icon:'📅',
+      title:'Klaster wydatków',
+      description:`${bucketPercent}% wydatków przypada na ${bucketLabel} miesiąca.`
+    });
+
+    // Spike detection
+    const deltas=days.map(day=>Math.abs(day.delta));
+    const meanDelta=deltas.reduce((sum,val)=>sum+val,0)/deltas.length;
+    const variance=deltas.reduce((sum,val)=>sum+Math.pow(val-meanDelta,2),0)/deltas.length;
+    const stdDev=Math.sqrt(variance);
+    const threshold=meanDelta+2*stdDev;
+    let spike=null;
+    days.forEach(day=>{
+      const impact=Math.abs(day.delta);
+      if(impact>threshold && (!spike || impact>spike.impact)){
+        spike={day,impact};
+      }
+    });
+    if(spike){
+      const direction=spike.day.delta>0?'Miesiąc A wydał więcej':'Miesiąc B wydał więcej';
+      patterns.push({
+        key:'spike',
+        icon:'🚨',
+        title:'Nagły skok',
+        description:`Dzień ${String(spike.day.day).padStart(2,'0')} wygenerował różnicę ${fmt(Math.abs(spike.day.delta), state.currency)} (${direction}).`
+      });
+    }else{
+      patterns.push({
+        key:'spike',
+        icon:'🚨',
+        title:'Nagły skok',
+        description:'Brak odchyleń przekraczających próg 2σ.'
+      });
+    }
+
+    // Weekend effect
+    let weekendSum=0;
+    let weekdaySum=0;
+    let weekendCount=0;
+    let weekdayCount=0;
+    days.forEach(day=>{
+      const iso=day.isoA||day.isoB||ensureIso(day.day);
+      if(!iso) return;
+      const date=new Date(`${iso}T00:00:00`);
+      if(Number.isNaN(date.getTime())) return;
+      const jsDay=date.getDay();
+      const isWeekend=jsDay===0||jsDay===6;
+      const combined=day.totalA+day.totalB;
+      if(isWeekend){
+        weekendSum+=combined;
+        weekendCount++;
+      }else{
+        weekdaySum+=combined;
+        weekdayCount++;
+      }
+    });
+    let weekendDescription='Za mało danych, aby porównać weekendy z dniami roboczymi.';
+    if(weekendCount>0 && weekdayCount>0 && (weekendSum+weekdaySum)>0){
+      const weekendAvg=weekendSum/weekendCount;
+      const weekdayAvg=weekdaySum/weekdayCount;
+      if(weekendAvg>weekdayAvg*1.1){
+        weekendDescription=`Weekendy generują średnio ${fmt(weekendAvg, state.currency)} dziennie vs ${fmt(weekdayAvg, state.currency)} w dni robocze.`;
+      }else if(weekdayAvg>weekendAvg*1.1){
+        weekendDescription=`Dni robocze są cięższe: ${fmt(weekdayAvg, state.currency)} dziennie vs ${fmt(weekendAvg, state.currency)} w weekendy.`;
+      }else{
+        weekendDescription=`Weekend i dni robocze są zbliżone (${fmt(weekendAvg, state.currency)} vs ${fmt(weekdayAvg, state.currency)} na dzień).`;
+      }
+    }
+    patterns.push({
+      key:'weekend',
+      icon:'🛍️',
+      title:'Efekt weekendu',
+      description:weekendDescription
+    });
+
+    // Trend
+    let trendDescription='Różnica A-B pozostaje stabilna przez miesiąc.';
+    if(days.length>=2){
+      const n=days.length;
+      const yValues=days.map(day=>Number.isFinite(day.cumulativeDelta)?day.cumulativeDelta:0);
+      const meanX=(n+1)/2;
+      const meanY=yValues.reduce((sum,val)=>sum+val,0)/n;
+      let numerator=0;
+      let denominator=0;
+      days.forEach((day,idx)=>{
+        const x=idx+1;
+        const y=yValues[idx];
+        numerator+=(x-meanX)*(y-meanY);
+        denominator+=(x-meanX)*(x-meanX);
+      });
+      const slope=denominator!==0?numerator/denominator:0;
+      const avgAbsDelta=days.reduce((sum,day)=>sum+Math.abs(day.delta),0)/n;
+      const threshold=Math.max(avgAbsDelta*0.1, 0.01);
+      if(slope>threshold){
+        trendDescription=`Różnica A-B rośnie — średnio +${fmt(Math.abs(slope), state.currency)} dziennie.`;
+      }else if(slope<-threshold){
+        trendDescription=`Różnica A-B maleje — średnio −${fmt(Math.abs(slope), state.currency)} dziennie.`;
+      }
+    }
+    patterns.push({
+      key:'trend',
+      icon:'📈',
+      title:'Trend miesiąca',
+      description:trendDescription
+    });
+
+    // Regularity
+    let regularDescription='Brak powtarzalnego cyklu — odstępy między wydatkami są nieregularne.';
+    const activeDays=days.filter(day=>day.totalA+day.totalB>0).map(day=>day.day).sort((a,b)=>a-b);
+    if(activeDays.length>=3){
+      const gapCounts=new Map();
+      for(let i=1;i<activeDays.length;i++){
+        const gap=activeDays[i]-activeDays[i-1];
+        if(gap<=0) continue;
+        gapCounts.set(gap,(gapCounts.get(gap)||0)+1);
+      }
+      if(gapCounts.size>0){
+        const sortedGaps=[...gapCounts.entries()].sort((a,b)=>{
+          if(b[1]!==a[1]) return b[1]-a[1];
+          return a[0]-b[0];
+        });
+        const [bestGap,bestCount]=sortedGaps[0];
+        if(bestCount>=2){
+          const occur=bestCount+1;
+          let label=`co ${bestGap} dni`;
+          if(bestGap===7) label='około co tydzień';
+          else if(bestGap===14) label='mniej więcej co dwa tygodnie';
+          regularDescription=`Wydatki pojawiają się ${label} (${occur} powtórzenia).`;
+        }
+      }
+    }else{
+      regularDescription='Zbyt mało dni z wydatkami, aby wykryć rytm.';
+    }
+    patterns.push({
+      key:'regularity',
+      icon:'🔁',
+      title:'Regularność',
+      description:regularDescription
+    });
+
+    return patterns;
+  }
+
+  function buildMomDetailWeeklySection(detail, monthA, monthB, palette){
+    const weekdaysShort=['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+    const weekdaysLong=['Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'];
+    const buckets=weekdaysLong.map((label,idx)=>({
+      idx,
+      label,
+      short:weekdaysShort[idx],
+      totalA:0,
+      totalB:0,
+      countA:0,
+      countB:0,
+      entriesA:[],
+      entriesB:[]
+    }));
+    const getWeekdayIndex=iso=>{
+      if(!iso) return -1;
+      const date=new Date(iso);
+      if(Number.isNaN(date.getTime())) return -1;
+      const jsDay=date.getDay();
+      return (jsDay+6)%7;
+    };
+    (detail?.days||[]).forEach(day=>{
+      if(day.isoA){
+        const idx=getWeekdayIndex(day.isoA);
+        if(idx>=0){
+          const bucket=buckets[idx];
+          bucket.totalA+=day.totalA;
+          bucket.countA+=day.entriesA.length;
+          day.entriesA.forEach(entry=>{
+            bucket.entriesA.push({
+              amount:Math.abs(entry.amount)||0,
+              note:entry.note||'',
+              date:entry.date||day.isoA
+            });
+          });
+        }
+      }
+      if(day.isoB){
+        const idx=getWeekdayIndex(day.isoB);
+        if(idx>=0){
+          const bucket=buckets[idx];
+          bucket.totalB+=day.totalB;
+          bucket.countB+=day.entriesB.length;
+          day.entriesB.forEach(entry=>{
+            bucket.entriesB.push({
+              amount:Math.abs(entry.amount)||0,
+              note:entry.note||'',
+              date:entry.date||day.isoB
+            });
+          });
+        }
+      }
+    });
+    const maxValue=buckets.reduce((max,b)=>Math.max(max,b.totalA,b.totalB),0);
+    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
+    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
+    const formatCount=count=>{
+      if(!count) return 'Brak';
+      if(count===1) return '1 trans.';
+      return `${count} trans.`;
+    };
+    const formatCountAria=count=>{
+      if(!count) return 'Brak transakcji';
+      if(count===1) return '1 transakcja';
+      return `${count} transakcje`;
+    };
+    const topA=buckets.reduce((acc,b)=>b.totalA>(acc?.total||0)?{index:b.idx,total:b.totalA,label:b.label}:acc,null);
+    const topB=buckets.reduce((acc,b)=>b.totalB>(acc?.total||0)?{index:b.idx,total:b.totalB,label:b.label}:acc,null);
+    const headerCells=weekdaysShort.map(short=>`<div class="mom-detail-heatmap-head" aria-hidden="true">${short}</div>`).join('');
+    const cellMap=new Map();
+    const rows=[
+      {key:'A',label:humanMonthA,color:palette.monthA,totalKey:'totalA',countKey:'countA',entriesKey:'entriesA',top:topA},
+      {key:'B',label:humanMonthB,color:palette.monthB,totalKey:'totalB',countKey:'countB',entriesKey:'entriesB',top:topB}
+    ].map(config=>{
+      const cells=buckets.map(bucket=>{
+        const total=bucket[config.totalKey];
+        const count=bucket[config.countKey];
+        const entries=bucket[config.entriesKey];
+        const id=`${config.key}-${bucket.idx}`;
+        const ratio=maxValue>0?Math.min(1,total/maxValue):0;
+        const hasValue=total>0;
+        const background=hasValue?colorWithAlpha(config.color,0.18+0.45*ratio):colorWithAlpha(palette.ink,0.05);
+        const border=hasValue?colorWithAlpha(config.color,0.35+0.3*ratio):colorWithAlpha(palette.ink,0.12);
+        const classes=['mom-detail-heatmap-cell'];
+        if(!hasValue) classes.push('is-empty');
+        if(config.top && config.top.index===bucket.idx && hasValue) classes.push('is-top');
+        const ariaLabel=`${config.label} — ${bucket.label}: ${hasValue?fmt(total,state.currency):'Brak wydatków'}, ${formatCountAria(count)}`;
+        cellMap.set(id,{
+          monthKey:config.key,
+          monthLabel:config.label,
+          dowIndex:bucket.idx,
+          dowLabel:bucket.label,
+          total,
+          count,
+          transactions:entries.map(entry=>({
+            amount:entry.amount,
+            note:entry.note,
+            date:entry.date
+          }))
+        });
+        return `<button type="button" class="${classes.join(' ')}" data-mom-heatmap="${id}" style="--mom-heat-bg:${background};--mom-heat-border:${border};" aria-label="${escapeHtml(ariaLabel)}"><span class="mom-detail-heatmap-total">${hasValue?fmt(total,state.currency):'—'}</span><span class="mom-detail-heatmap-count">${formatCount(count)}</span></button>`;
+      }).join('');
+      return `<div class="mom-detail-heatmap-label">${escapeHtml(config.label)}</div>${cells}`;
+    }).join('');
+    const gridHtml=`<div class="mom-detail-heatmap-scroll"><div class="mom-detail-heatmap-grid"><div class="mom-detail-heatmap-corner" aria-hidden="true">Dzień</div>${headerCells}${rows}</div></div>`;
+    const metricCard=(label, top)=>{
+      const hasData=top && top.total>0;
+      const value=hasData?`${escapeHtml(top.label)} • ${fmt(top.total,state.currency)}`:'Brak danych';
+      return `<article class="mom-detail-heatmap-metric"><span class="mom-detail-heatmap-metric-eyebrow">${escapeHtml(label)}</span><h6 class="mom-detail-heatmap-metric-title">Najdroższy dzień tygodnia</h6><p class="mom-detail-heatmap-metric-value">${value}</p></article>`;
+    };
+    const metricsHtml=`<div class="mom-detail-heatmap-metrics">${metricCard(humanMonthA, topA)}${metricCard(humanMonthB, topB)}</div>`;
+    const limitLabel=String(detail?.dayLimit||0).padStart(2,'0');
+    const subtitle=`Do dnia ${limitLabel} • ${humanMonthA} / ${humanMonthB}`;
+    const sectionHtml=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🗓️ Które dni tygodnia?</h5><p class="mom-detail-section-subtitle">${subtitle}</p></div></div><div class="mom-detail-heatmap">${gridHtml}${metricsHtml}</div></section>`;
+    return {section:sectionHtml,cells:cellMap};
+  }
+
+  function buildMomDetailForecastSection(forecast){
+    if(!forecast) return '';
+    const {daysElapsed, daysInMonth, remainingDays, spentSoFar, averageDaily, recentAverage, historyAverage, scenarios, alert, monthBTotal}=forecast;
+    const scenarioOrder=[['optimistic','optimistyczny'],['realistic','realistyczny'],['pessimistic','pesymistyczny']];
+    const scenarioCards=scenarioOrder.map(([key,label])=>{
+      const scenario=scenarios?.[key];
+      if(!scenario) return '';
+      const paceLabel=scenario.pace>0?`${fmt(scenario.pace,state.currency)}/dzień`:'Stały poziom';
+      const methodNote=scenario.description?escapeHtml(scenario.description):escapeHtml(scenario.label);
+      const valueLabel=fmt(scenario.value,state.currency);
+      return `<article class="mom-detail-forecast-card ${escapeHtml(key)}"><span class="mom-detail-forecast-card-title">Scenariusz ${escapeHtml(label)}</span><span class="mom-detail-forecast-card-value">${valueLabel}</span><p class="mom-detail-forecast-card-note">${methodNote}</p><div class="mom-detail-forecast-card-meta"><span>${paceLabel}</span><span>•</span><span>${escapeHtml(scenario.label)}</span></div></article>`;
+    }).join('');
+    const metrics=[];
+    metrics.push(`<span class="mom-detail-forecast-metric">Do dziś: <strong>${fmt(spentSoFar,state.currency)}</strong></span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Pozostało dni: <strong>${remainingDays}</strong></span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Śr. tempo: <strong>${averageDaily>0?fmt(averageDaily,state.currency):'—'}</strong>/dzień</span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Trend 7 dni: <strong>${recentAverage>0?fmt(recentAverage,state.currency):'—'}</strong>/dzień</span>`);
+    metrics.push(`<span class="mom-detail-forecast-metric">Śr. historyczna: <strong>${Number.isFinite(historyAverage)?fmt(historyAverage,state.currency):'—'}</strong></span>`);
+    if(Number.isFinite(monthBTotal)){
+      metrics.push(`<span class="mom-detail-forecast-metric">Miesiąc B: <strong>${fmt(monthBTotal,state.currency)}</strong></span>`);
+    }
+    const metricsHtml=`<div class="mom-detail-forecast-metrics">${metrics.join('')}</div>`;
+    let alertHtml='';
+    if(alert){
+      if(alert.type==='overrun'){
+        const pctLabel=`${Math.round((alert.percent||0)*1000)/10}%`;
+        alertHtml=`<div class="mom-detail-forecast-alert"><span class="mom-detail-forecast-alert-icon">⚠️</span><div><strong>Ryzyko przekroczenia</strong><br/>Prognoza wskazuje wydatki wyższe od miesiąca B o ${fmt(alert.amount,state.currency)} (${pctLabel}). Rozważ korektę budżetu.</div></div>`;
+      }else if(alert.type==='new-spend'){
+        alertHtml=`<div class="mom-detail-forecast-alert"><span class="mom-detail-forecast-alert-icon">⚠️</span><div><strong>Nowe wydatki</strong><br/>Prognoza zakłada dodatkowe wydatki do końca miesiąca. Monitoruj kategorię, aby uniknąć niespodzianek.</div></div>`;
+      }
+    }
+    const subtitleParts=[];
+    subtitleParts.push(daysElapsed>0?`Na podstawie ${daysElapsed} dni (${Math.round((daysElapsed/daysInMonth)*100)}% miesiąca).`:'Brak wydatków w bieżącym miesiącu.');
+    if(remainingDays>0){
+      subtitleParts.push(`Pozostało ${remainingDays} dni.`);
+    }
+    const subtitle=subtitleParts.join(' ');
+    return `<div class="mom-detail-forecast-block"><div class="mom-detail-forecast-heading">🔮 Prognoza do końca miesiąca</div><p class="mom-detail-forecast-note">${escapeHtml(subtitle)}</p><div class="mom-detail-forecast"><div class="mom-detail-forecast-grid">${scenarioCards}</div>${metricsHtml}${alertHtml}<div class="mom-detail-forecast-chart"><canvas id="mom-detail-forecast-chart" role="img" aria-label="Porównanie wydatków faktycznych i prognozowanych"></canvas></div></div></div>`;
+  }
+
+  function formatMomContributionDate(iso){
+    if(!iso) return '—';
+    const date=new Date(iso);
+    if(Number.isNaN(date.getTime())) return iso;
+    try{
+      const day=date.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'});
+      const weekday=date.toLocaleDateString('pl-PL',{weekday:'short'});
+      return `${day} · ${weekday}`;
+    }catch(err){
+      return iso;
+    }
+  }
+
+  function buildMomDetailContributionsSection(detail, monthA, monthB){
+    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
+    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
+    const rows=[];
+    const signatureCounts=new Map();
+    const totalDiff=(detail?.totalA||0)-(detail?.totalB||0);
+    const addEntry=(entry, monthKey)=>{
+      const amount=Math.abs(entry?.amount)||0;
+      if(amount<=0) return;
+      const iso=entry?.date||null;
+      const note=entry?.note||'';
+      const signature=`${amount.toFixed(2)}|${note.trim().toLowerCase().replace(/\s+/g,' ')}`;
+      const base={
+        id:`${monthKey}-${entry?.parentId||entry?.id||iso||Math.random().toString(36).slice(2)}-${rows.length}`,
+        monthKey,
+        iso,
+        dateLabel:formatMomContributionDate(iso),
+        amount,
+        note,
+        signature,
+        impact:monthKey==='A'?amount:-amount
+      };
+      rows.push(base);
+      const current=signatureCounts.get(signature)||{A:0,B:0};
+      current[monthKey]=(current[monthKey]||0)+1;
+      signatureCounts.set(signature,current);
+    };
+    (detail?.days||[]).forEach(day=>{
+      (day?.entriesA||[]).forEach(entry=>addEntry(entry,'A'));
+      (day?.entriesB||[]).forEach(entry=>addEntry(entry,'B'));
+    });
+    const contributions=rows.map(row=>{
+      const signatureStat=signatureCounts.get(row.signature)||{A:0,B:0};
+      const isUnique=row.monthKey==='A'?signatureStat.B===0:signatureStat.A===0;
+      const monthLabel=row.monthKey==='A'?humanMonthA:humanMonthB;
+      const impactClass=row.impact>0?'negative':row.impact<0?'positive':'neutral';
+      const impactLabel=row.impact===0?'—':`${row.impact>0?'+':'−'}${fmt(Math.abs(row.impact), state.currency)}`;
+      const noteHtml=row.note?escapeHtml(row.note):'<span class="muted">Brak notatki</span>';
+      const uniqueHtml=isUnique?`<span class="mom-detail-contrib-unique">Unikalna ${row.monthKey}</span>`:'';
+      const monthClass=row.monthKey==='A'?'month-a':'month-b';
+      const amountLabel=fmt(row.amount,state.currency);
+      return {
+        ...row,
+        isUnique,
+        monthLabel,
+        impactLabel,
+        impactClass,
+        noteHtml,
+        uniqueHtml,
+        monthClass,
+        amountLabel,
+        rowHtml:`<tr><td class="mom-detail-contrib-date">${escapeHtml(row.dateLabel)}</td><td><span class="mom-detail-contrib-badge ${monthClass}" title="${escapeHtml(monthLabel)}">${row.monthKey}</span><span class="mom-detail-contrib-amount">${amountLabel}</span>${uniqueHtml}</td><td class="mom-detail-contrib-note">${noteHtml}</td><td><span class="mom-detail-contrib-impact ${impactClass}">${impactLabel}</span></td></tr>`
+      };
+    });
+    contributions.sort((a,b)=>{
+      const diff=Math.abs(b.impact)-Math.abs(a.impact);
+      if(Math.abs(diff)>0.005) return diff;
+      if(b.impact!==a.impact) return b.impact-a.impact;
+      return (a.iso||'').localeCompare(b.iso||'');
+    });
+    const totalCount=contributions.length;
+    const filterLabel=`Tylko transakcje >`;
+    const topDetails=totalCount
+      ? `<details class="mom-detail-contrib-top"><summary>Top 10 transakcji <span class="mom-detail-contrib-count" data-mom-contrib-count></span></summary><div class="mom-detail-contrib-table-wrap"><table class="mom-detail-contrib-table" aria-label="Top transakcje wpływające na różnicę"><thead><tr><th>Data</th><th>Kwota</th><th>Notatka</th><th>Miesięczny wpływ</th></tr></thead><tbody data-mom-contrib-table="top"></tbody></table></div></details>`
+      : '<div class="mom-detail-contrib-empty">Brak transakcji wpływających na różnicę pomiędzy miesiącami.</div>';
+    const filterControl=`<label class="mom-detail-contrib-filter">${filterLabel}<span class="mom-detail-contrib-filter-input"><input type="number" inputmode="decimal" min="0" step="10" value="0" data-mom-contrib-filter aria-label="Filtruj minimalną kwotę"/><span>zł</span></span></label>`;
+    const topSectionHtml=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">💥 Największe wpływy</h5><p class="mom-detail-section-subtitle">Największy wpływ na różnicę między ${escapeHtml(humanMonthA)} a ${escapeHtml(humanMonthB)}.</p></div>${filterControl}</div><div class="mom-detail-contrib-body" data-mom-contrib-container data-mom-contrib-total="${totalDiff}">${topDetails}</div></section>`;
+    const fullTable=totalCount
+      ? `<div class="mom-detail-contrib-table-wrap mom-detail-contrib-all" data-mom-contrib-all hidden><table class="mom-detail-contrib-table" aria-label="Lista wszystkich transakcji wpływających na różnicę"><thead><tr><th>Data</th><th>Kwota</th><th>Notatka</th><th>Miesięczny wpływ</th></tr></thead><tbody data-mom-contrib-table="all"></tbody></table></div>`
+      : '<div class="mom-detail-contrib-empty">Brak transakcji do wyświetlenia.</div>';
+    const fullControls=totalCount
+      ? `<button type="button" class="mom-detail-contrib-toggle" data-mom-contrib-toggle>▶ Zobacz wszystkie transakcje</button>`
+      : '';
+    const fullSectionHtml=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🗂️ Pełna lista transakcji</h5><p class="mom-detail-section-subtitle">Zobacz każdą transakcję wpływającą na różnicę miesiąc do miesiąca.</p></div></div>${fullControls}${fullTable}</section>`;
+    return {topSection:topSectionHtml,fullSection:fullSectionHtml,rows:contributions};
+  }
+
+  function bindMomDetailContributions(root, contributions){
+    if(!root) return;
+    const container=root.querySelector('[data-mom-contrib-container]');
+    const filterInput=root.querySelector('[data-mom-contrib-filter]');
+    const topBody=root.querySelector('[data-mom-contrib-table="top"]');
+    const allBody=root.querySelector('[data-mom-contrib-table="all"]');
+    const countEl=root.querySelector('[data-mom-contrib-count]');
+    const toggleButton=root.querySelector('[data-mom-contrib-toggle]');
+    const allWrap=root.querySelector('[data-mom-contrib-all]');
+    if(!container || !filterInput){
+      return;
+    }
+    const renderRows=(rows)=>rows.map(row=>row.rowHtml).join('');
+    const applyFilter=()=>{
+      const thresholdRaw=Number(String(filterInput.value||'').replace(',','.'));
+      const threshold=Number.isFinite(thresholdRaw)&&thresholdRaw>0?thresholdRaw:0;
+      const filtered=contributions.filter(row=>row.amount>=threshold);
+      const topEntries=filtered.slice(0,10);
+      if(topBody) topBody.innerHTML=topEntries.length?renderRows(topEntries):'<tr><td colspan="4" class="mom-detail-contrib-note"><span class="muted">Brak transakcji spełniających próg.</span></td></tr>';
+      if(allBody) allBody.innerHTML=filtered.length?renderRows(filtered):'<tr><td colspan="4" class="mom-detail-contrib-note"><span class="muted">Brak transakcji do wyświetlenia.</span></td></tr>';
+      if(countEl) countEl.textContent=`${topEntries.length} z ${filtered.length}`;
+      const hasMore=filtered.length>10;
+      if(toggleButton){
+        toggleButton.hidden=!hasMore;
+        toggleButton.disabled=!hasMore;
+        toggleButton.textContent=hasMore && allWrap?.hasAttribute('hidden')? '▶ Zobacz wszystkie transakcje' : '▼ Ukryj pełną listę';
+      }
+      if(!hasMore && allWrap){
+        allWrap.setAttribute('hidden','');
+      }
+    };
+    filterInput.addEventListener('input',()=>{
+      applyFilter();
+    });
+    if(toggleButton && allWrap){
+      toggleButton.addEventListener('click',()=>{
+        const isHidden=allWrap.hasAttribute('hidden');
+        if(isHidden){
+          allWrap.removeAttribute('hidden');
+          toggleButton.textContent='▼ Ukryj pełną listę';
+        }else{
+          allWrap.setAttribute('hidden','');
+          toggleButton.textContent='▶ Zobacz wszystkie transakcje';
+        }
+      });
+    }
+    applyFilter();
+  }
+
+  function ensureMomDetailHeatmapTooltip(){
+    if(!momDetailHeatmapTooltip){
+      momDetailHeatmapTooltip=document.createElement('div');
+      momDetailHeatmapTooltip.className='mom-detail-heatmap-tooltip';
+      document.body.appendChild(momDetailHeatmapTooltip);
+    }
+    return momDetailHeatmapTooltip;
+  }
+
+  function hideMomDetailHeatmapTooltip(){
+    if(momDetailHeatmapTooltip){
+      momDetailHeatmapTooltip.classList.remove('is-visible');
+    }
+  }
+
+  function positionMomDetailHeatmapTooltip(coords){
+    if(!momDetailHeatmapTooltip || !momDetailHeatmapTooltip.classList.contains('is-visible') || !coords) return;
+    const offset=18;
+    let left=(coords.x||0)+offset;
+    let top=(coords.y||0)+offset;
+    const rect=momDetailHeatmapTooltip.getBoundingClientRect();
+    const viewportWidth=window.innerWidth||document.documentElement.clientWidth||0;
+    const viewportHeight=window.innerHeight||document.documentElement.clientHeight||0;
+    if(left+rect.width>viewportWidth-12) left=(coords.x||0)-rect.width-offset;
+    if(top+rect.height>viewportHeight-12) top=(coords.y||0)-rect.height-offset;
+    if(left<12) left=12;
+    if(top<12) top=12;
+    momDetailHeatmapTooltip.style.left=`${left}px`;
+    momDetailHeatmapTooltip.style.top=`${top}px`;
+  }
+
+  function formatHeatmapDateLabel(value){
+    if(!value) return '—';
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime())) return value;
+    try{
+      return date.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'});
+    }catch(err){
+      return value;
+    }
+  }
+
+  function showMomDetailHeatmapTooltip(data, coords){
+    if(!data) return;
+    const tooltip=ensureMomDetailHeatmapTooltip();
+    const totalLabel=data.total>0?fmt(data.total,state.currency):'—';
+    const countLabel=data.count?(data.count===1?'1 transakcja':`${data.count} trans.`):'Brak transakcji';
+    const entries=(data.transactions||[]).slice(0,6);
+    const rowsHtml=entries.length
+      ? entries.map(entry=>{
+          const dateLabel=formatHeatmapDateLabel(entry.date);
+          const amount=fmt(entry.amount,state.currency);
+          const note=entry.note?escapeHtml(entry.note):'Bez opisu';
+          return `<div class="mom-detail-heatmap-tooltip-item"><span>${escapeHtml(dateLabel)}</span><span>${amount}</span><span class="mom-detail-heatmap-tooltip-item-note">${note}</span></div>`;
+        }).join('')
+      : '<div class="mom-detail-heatmap-tooltip-empty">Brak transakcji w tym dniu tygodnia.</div>';
+    const remainder=Math.max(0,(data.transactions?.length||0)-entries.length);
+    const moreHtml=remainder>0?`<div class="mom-detail-heatmap-tooltip-more">+${remainder} kolejnych pozycji</div>`:'';
+    tooltip.innerHTML=`<div class="mom-detail-heatmap-tooltip-header"><div><span class="mom-detail-heatmap-tooltip-label">${escapeHtml(data.monthLabel)}</span><div class="mom-detail-heatmap-tooltip-day">${escapeHtml(data.dowLabel)}</div></div><div class="mom-detail-heatmap-tooltip-total">${totalLabel}</div></div><div class="mom-detail-heatmap-tooltip-count">${escapeHtml(countLabel)}</div><div class="mom-detail-heatmap-tooltip-body">${rowsHtml}${moreHtml}</div>`;
+    tooltip.classList.add('is-visible');
+    requestAnimationFrame(()=>positionMomDetailHeatmapTooltip(coords));
+  }
+
+  function bindMomDetailHeatmap(root, cellMap){
+    momDetailHeatmapData.clear();
+    if(!root || !(cellMap instanceof Map) || cellMap.size===0) return;
+    cellMap.forEach((value,key)=>{
+      momDetailHeatmapData.set(key,{
+        monthKey:value.monthKey,
+        monthLabel:value.monthLabel,
+        dowIndex:value.dowIndex,
+        dowLabel:value.dowLabel,
+        total:value.total,
+        count:value.count,
+        transactions:(value.transactions||[]).map(entry=>({
+          amount:entry.amount,
+          note:entry.note,
+          date:entry.date
+        }))
+      });
+    });
+    const cells=root.querySelectorAll('[data-mom-heatmap]');
+    cells.forEach(cell=>{
+      const id=cell.dataset.momHeatmap;
+      if(!id) return;
+      const handleEnter=evt=>{
+        const data=momDetailHeatmapData.get(id);
+        if(!data) return;
+        showMomDetailHeatmapTooltip(data,{x:evt.clientX,y:evt.clientY});
+      };
+      const handleMove=evt=>{
+        positionMomDetailHeatmapTooltip({x:evt.clientX,y:evt.clientY});
+      };
+      const handleLeave=()=>hideMomDetailHeatmapTooltip();
+      const handleFocus=evt=>{
+        const data=momDetailHeatmapData.get(id);
+        if(!data) return;
+        const rect=evt.currentTarget.getBoundingClientRect();
+        showMomDetailHeatmapTooltip(data,{x:rect.left+rect.width/2,y:rect.top});
+      };
+      cell.addEventListener('mouseenter', handleEnter);
+      cell.addEventListener('mousemove', handleMove);
+      cell.addEventListener('mouseleave', handleLeave);
+      cell.addEventListener('focus', handleFocus);
+      cell.addEventListener('blur', hideMomDetailHeatmapTooltip);
+      cell.addEventListener('keydown', evt=>{ if(evt.key==='Escape') hideMomDetailHeatmapTooltip(); });
+      cell.addEventListener('touchstart', evt=>{
+        const touch=evt.touches && evt.touches[0];
+        const data=momDetailHeatmapData.get(id);
+        if(!touch || !data) return;
+        showMomDetailHeatmapTooltip(data,{x:touch.clientX,y:touch.clientY});
+      }, {passive:true});
+      cell.addEventListener('touchend', hideMomDetailHeatmapTooltip, {passive:true});
+      cell.addEventListener('touchcancel', hideMomDetailHeatmapTooltip, {passive:true});
+    });
   }
 
   function renderMomDetailEntries(entries){
@@ -9814,16 +12302,26 @@
     const subtitleEl=document.getElementById('mom-detail-subtitle');
     const metaEl=document.getElementById('mom-detail-meta');
     const bodyEl=document.getElementById('mom-detail-body');
+    const breadcrumbEl=document.getElementById('mom-detail-breadcrumb');
     const toolbar=document.getElementById('mom-detail-toolbar');
     if(!titleEl || !subtitleEl || !metaEl || !bodyEl) return;
     updateMomDetailSortButtons();
+    hideMomDetailHeatmapTooltip();
+    momDetailHeatmapData.clear();
+    momDetailTabCache={};
+    if(!isValidMomDetailTab(momDetailTab)) momDetailTab='overview';
     const context=momLastContext;
     if(!context){
       titleEl.textContent='Szczegóły kategorii';
       subtitleEl.textContent='Wybierz miesiące oraz kategorię, aby zobaczyć transakcje.';
+      if(breadcrumbEl) breadcrumbEl.textContent='Porównanie MoM';
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak danych do analizy. Wybierz dwa miesiące do porównania.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
     const {categories,monthA,monthB,dayLimit}=context;
@@ -9831,16 +12329,25 @@
     if(!selected || !momDetailEligible(selected.id)){
       titleEl.textContent='Szczegóły kategorii';
       subtitleEl.textContent='Kliknij konkretną kategorię z tabeli, aby zobaczyć transakcje.';
+      if(breadcrumbEl) breadcrumbEl.textContent='Porównanie MoM';
       metaEl.innerHTML='';
       bodyEl.innerHTML='<div class="mom-detail-empty">Wybierz kategorię wydatków, aby wejść w szczegóły.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
     const titleLabel=momCategoryLabel(selected);
+    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
+    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
     titleEl.textContent=titleLabel;
-    subtitleEl.textContent=`${formatYmHuman(monthA)} vs ${formatYmHuman(monthB)} • do dnia ${String(dayLimit).padStart(2,'0')}`;
+    subtitleEl.textContent=`${humanMonthA} vs ${humanMonthB} • do dnia ${String(dayLimit).padStart(2,'0')}`;
+    if(breadcrumbEl) breadcrumbEl.textContent=`Porównanie MoM › ${titleLabel} › ${humanMonthA} vs ${humanMonthB}`;
     const detail=buildMomDetailData(monthA, monthB, selected.id, dayLimit);
     if(toolbar) toolbar.style.display='';
+    metaEl.innerHTML='';
     const totalDiff=detail.totalA-detail.totalB;
     const dayLimitLabel=String(detail.dayLimit).padStart(2,'0');
     const hasTransactions=(detail.countA||0)+(detail.countB||0)>0;
@@ -9892,25 +12399,171 @@
     const medianB=detail.medianB;
     const maxA=detail.maxA;
     const maxB=detail.maxB;
-    let highlightHtml='';
-    if(detail.everLed && detail.crossoverDay){
-      const crossDay=String(detail.crossoverDay).padStart(2,'0');
-      const crossTitle=detail.ledFromStart?'A prowadzi od pierwszego dnia':`Przekroczenie w dniu ${crossDay}`;
-      const crossNote=detail.ledFromStart
-        ? 'Łączne wydatki miesiąca A były wyższe od początku okresu.'
-        : 'Od tego dnia suma wydatków miesiąca A pozostaje wyższa niż w miesiącu B.';
-      highlightHtml=`<div class="mom-detail-highlight"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${crossTitle}</span><span class="mom-detail-highlight-note">${crossNote}</span></div>`;
-    }else{
-      const fallback=Number.isFinite(detail.dayLimit)?`Do dnia ${dayLimitLabel} A nie przebił wydatków B.`:'Miesiąc A nie przekroczył wydatków miesiąca B.';
-      highlightHtml=`<div class="mom-detail-highlight neutral"><span class="mom-detail-highlight-title">Moment przekroczenia</span><span class="mom-detail-highlight-note">${fallback}</span></div>`;
+    const statsA=detail.statsA||computeDistributionStats([]);
+    const statsB=detail.statsB||computeDistributionStats([]);
+    const hasStatsA=(statsA?.count||0)>0;
+    const hasStatsB=(statsB?.count||0)>0;
+    const percentFormatter=new Intl.NumberFormat('pl-PL',{style:'percent',minimumFractionDigits:0,maximumFractionDigits:1});
+    const formatCurrencyStat=(value,has)=>has?fmt(value,state.currency):'—';
+    const formatPercentStat=(value,has)=>has&&Number.isFinite(value)?percentFormatter.format(value):'—';
+    const formatGiniStat=(value,has)=>has&&Number.isFinite(value)?value.toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+    const tooltipButton=(label,text)=>`<button type="button" class="mom-detail-metric-help" aria-label="Wyjaśnienie: ${escapeHtml(label)}" data-tooltip="${escapeHtml(text)}">?</button>`;
+    const renderPercentileRow=(label,stats,has)=>{
+      if(!has){
+        return `<div class="mom-detail-advanced-row"><span class="mom-detail-advanced-row-label">${escapeHtml(label)}</span><span class="mom-detail-advanced-empty">Brak danych</span></div>`;
+      }
+      return `<div class="mom-detail-advanced-row"><span class="mom-detail-advanced-row-label">${escapeHtml(label)}</span><div class="mom-detail-advanced-row-values">${renderChip('P25', fmt(stats.p25,state.currency))}${renderChip('P50', fmt(stats.median,state.currency))}${renderChip('P75', fmt(stats.p75,state.currency))}${renderChip('P90', fmt(stats.p90,state.currency))}</div></div>`;
+    };
+    const outlierValue=(stats,has)=>has?`${stats.outliers} > ${fmt(stats.outlierThreshold,state.currency)}`:'—';
+    const realMax=Math.max(statsA.max||0, statsB.max||0);
+    const rangeMax=Math.max(realMax,1);
+    const clampPercent=value=>Math.max(0, Math.min(100, value));
+    const toPercent=value=>rangeMax>0?(value/rangeMax)*100:0;
+    const buildBoxPlotRow=(label,stats,variant)=>{
+      if(!stats || !(stats.count>0)){
+        return `<div class="mom-detail-boxplot-row is-empty ${variant}"><span class="mom-detail-boxplot-label">${escapeHtml(label)}</span><span class="mom-detail-advanced-empty">Brak danych</span></div>`;
+      }
+      const whiskerStart=clampPercent(toPercent(stats.min));
+      const whiskerEnd=clampPercent(toPercent(stats.max));
+      const boxStart=clampPercent(toPercent(stats.p25));
+      const boxEnd=clampPercent(toPercent(stats.p75));
+      const medianPos=clampPercent(toPercent(stats.median));
+      const whiskerWidth=Math.max(whiskerEnd-whiskerStart,0.6);
+      const boxWidth=Math.max(boxEnd-boxStart,0.6);
+      return `<div class="mom-detail-boxplot-row ${variant}"><span class="mom-detail-boxplot-label">${escapeHtml(label)}</span><div class="mom-detail-boxplot-track"><span class="mom-detail-boxplot-whisker" style="left:${whiskerStart}%;width:${Math.min(whiskerWidth,100)}%;"></span><span class="mom-detail-boxplot-box" style="left:${boxStart}%;width:${Math.min(boxWidth,100)}%;"></span><span class="mom-detail-boxplot-median" style="left:${medianPos}%;"></span></div><div class="mom-detail-boxplot-values">Min ${fmt(stats.min,state.currency)} • Q1 ${fmt(stats.p25,state.currency)} • Mediana ${fmt(stats.median,state.currency)} • Q3 ${fmt(stats.p75,state.currency)} • Max ${fmt(stats.max,state.currency)}</div></div>`;
+    };
+    const advancedMetricsHtml=hasTransactions
+      ? `<div class="mom-detail-advanced-grid">
+          <article class="mom-detail-advanced-card">
+            <div class="mom-detail-advanced-header"><span>Odchylenie standardowe</span>${tooltipButton('Odchylenie standardowe','Odchylenie standardowe pokazuje typowy rozrzut kwot wokół średniej. Im wyższe, tym większa zmienność wydatków.')}</div>
+            <div class="mom-detail-advanced-values">${renderChip('A', formatCurrencyStat(statsA.stdDev, hasStatsA))}${renderChip('B', formatCurrencyStat(statsB.stdDev, hasStatsB))}</div>
+          </article>
+          <article class="mom-detail-advanced-card">
+            <div class="mom-detail-advanced-header"><span>Współczynnik zmienności</span>${tooltipButton('Współczynnik zmienności','CV = σ/μ. Normalizuje zmienność względem średniej — im wyższy, tym bardziej chaotyczne wydatki.')}</div>
+            <div class="mom-detail-advanced-values">${renderChip('A', formatPercentStat(statsA.cv, hasStatsA && statsA.mean>0))}${renderChip('B', formatPercentStat(statsB.cv, hasStatsB && statsB.mean>0))}</div>
+          </article>
+          <article class="mom-detail-advanced-card">
+            <div class="mom-detail-advanced-header"><span>Percentyle</span>${tooltipButton('Percentyle','Percentyle pokazują próg, poniżej którego mieści się 25%, 50%, 75% i 90% wydatków.')}</div>
+            <div class="mom-detail-advanced-rows">${renderPercentileRow('Miesiąc A', statsA, hasStatsA)}${renderPercentileRow('Miesiąc B', statsB, hasStatsB)}</div>
+          </article>
+          <article class="mom-detail-advanced-card">
+            <div class="mom-detail-advanced-header"><span>Outliery</span>${tooltipButton('Outliery','Liczba transakcji powyżej progu Q3 + 1,5×IQR — potencjalne obserwacje odstające.')}</div>
+            <div class="mom-detail-advanced-values">${renderChip('A', escapeHtml(outlierValue(statsA, hasStatsA)))}${renderChip('B', escapeHtml(outlierValue(statsB, hasStatsB)))}</div>
+          </article>
+          <article class="mom-detail-advanced-card">
+            <div class="mom-detail-advanced-header"><span>Współczynnik Giniego</span>${tooltipButton('Współczynnik Giniego','Mierzy nierówność wydatków: 0 oznacza równy rozkład, 1 oznacza pełną koncentrację w jednej transakcji.')}</div>
+            <div class="mom-detail-advanced-values">${renderChip('A', formatGiniStat(statsA.gini, hasStatsA))}${renderChip('B', formatGiniStat(statsB.gini, hasStatsB))}</div>
+          </article>
+        </div>`
+      : '';
+    const boxPlotRows=`${buildBoxPlotRow('Miesiąc A', statsA, 'month-a')}${buildBoxPlotRow('Miesiąc B', statsB, 'month-b')}`;
+
+    const boxPlotSection=hasTransactions
+      ? `<div class="mom-detail-boxplot">
+          <div class="mom-detail-advanced-header"><span>Box plot kwot transakcji</span>${tooltipButton('Box plot','Wykres pudełkowy prezentuje minimum, kwartyle, medianę i maksimum dla obu miesięcy.')}</div>
+          <div class="mom-detail-boxplot-body">${boxPlotRows}</div>
+          <div class="mom-detail-boxplot-scale"><span>${fmt(0,state.currency)}</span><span>${fmt(realMax,state.currency)}</span></div>
+        </div>`
+      : '';
+    const diffSign=totalDiff>0?'+':totalDiff<0?'−':'';
+    const diffSummary=totalDiff===0?'Brak różnicy A-B':`Skumulowana różnica: ${diffSign}${fmt(Math.abs(totalDiff), state.currency)}`;
+    const palette=momPalette();
+    const forecast=computeMomDetailForecast(detail, monthA, monthB, selected.id);
+    const forecastSection=forecast?buildMomDetailForecastSection(forecast):'';
+    const heroSign=totalDiff>0?'+':totalDiff<0?'−':'';
+    const heroValueLabel=totalDiff===0?'—':`${heroSign}${fmt(Math.abs(totalDiff), state.currency)}`;
+    const heroToneClass=changeTone||'neutral';
+    const heroPercentClass=percentTone||'neutral';
+    const summaryDiff=Math.abs(totalDiff);
+    let heroSummary='Wydałeś tyle samo w wybranych miesiącach.';
+    if(totalDiff>0){
+      heroSummary=`Wydałeś o ${fmt(summaryDiff,state.currency)} więcej w ${humanMonthA} niż w ${humanMonthB}.`;
+    }else if(totalDiff<0){
+      heroSummary=`Wydałeś o ${fmt(summaryDiff,state.currency)} mniej w ${humanMonthA} niż w ${humanMonthB}.`;
     }
-    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthA)||'Miesiąc A'}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${formatYmHuman(monthB)||'Miesiąc B'}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-metric-grid"><div class="mom-detail-metric"><span class="mom-detail-metric-label">Liczba transakcji</span><div class="mom-detail-metric-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}${renderDelta(countDelta,'count',false)}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Średnia wartość</span><div class="mom-detail-metric-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class="mom-detail-metric-delta neutral">—</span>'}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Mediana transakcji</span><div class="mom-detail-metric-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div></div><div class="mom-detail-metric"><span class="mom-detail-metric-label">Największa transakcja</span><div class="mom-detail-metric-values">${renderChip('A', maxA>0?fmt(maxA,state.currency):'—')}${renderChip('B', maxB>0?fmt(maxB,state.currency):'—')}</div></div></div>${highlightHtml}</section>`;
-    metaEl.innerHTML=overviewSection;
+    const heroChangeText=percentValue==='—'?'Zmiana: —':`Zmiana: ${percentValue}`;
+    const heroSection=`<section class="mom-detail-hero"><div class="mom-detail-hero-label">🚀 Wynik miesiąc do miesiąca</div><div class="mom-detail-hero-value ${heroToneClass}">${heroValueLabel}</div><div class="mom-detail-hero-change ${heroPercentClass}">${heroChangeText}</div><p class="mom-detail-hero-summary">${escapeHtml(heroSummary)}</p></section>`;
+    const insights=[];
+    const pushInsight=(icon,text)=>{ if(text) insights.push({icon,text}); };
+    const topDay=detail.days.reduce((best,day)=>{
+      if(!best || Math.abs(day.delta)>Math.abs(best.delta)){ return day; }
+      return best;
+    },null);
+    if(topDay && Math.abs(topDay.delta)>0){
+      const dayLabel=String(topDay.day).padStart(2,'0');
+      const owner=topDay.delta>0?'Miesiąc A':'Miesiąc B';
+      const deltaLabel=fmt(Math.abs(topDay.delta), state.currency);
+      pushInsight('💡', `Główny winowajca: dzień ${dayLabel} — ${owner} +${deltaLabel}.`);
+    }
+    if(percentBase>0){
+      const pctRaw=((detail.totalA-detail.totalB)/percentBase)*100;
+      if(Math.abs(pctRaw)>=0.1){
+        const paceLabel=Math.abs(pctRaw).toFixed(1);
+        pushInsight('📊', pctRaw>0
+          ? `Wydajesz ${paceLabel}% szybciej niż w ${humanMonthB}.`
+          : `Wydajesz ${paceLabel}% wolniej niż w ${humanMonthB}.`);
+      }else{
+        pushInsight('📊', 'Tempo wydatków jest bardzo zbliżone do poprzedniego miesiąca.');
+      }
+    }else if(detail.totalA>0 && percentBase<=0){
+      pushInsight('📊', `${humanMonthB} nie ma porównywalnych wydatków — każda nowa transakcja mocno zmienia wynik.`);
+    }
+    if(forecast && forecast.scenarios?.realistic){
+      const realistic=forecast.scenarios.realistic;
+      const targetLabel=fmt(realistic.value,state.currency);
+      const referenceLabel=fmt(Number.isFinite(forecast.monthBTotal)?forecast.monthBTotal:detail.totalB,state.currency);
+      pushInsight('🎯', `Jeśli utrzymasz tempo, zakończysz miesiąc z ${targetLabel} (vs ${referenceLabel} w ${humanMonthB}).`);
+    }
+    if(detail.everLed){
+      if(detail.ledFromStart){
+        pushInsight('🧭', `${humanMonthA} prowadzi od pierwszego dnia okresu.`);
+      }else if(detail.crossoverDay){
+        const crossDay=String(detail.crossoverDay).padStart(2,'0');
+        pushInsight('🧭', `Przewaga miesiąca A pojawiła się w dniu ${crossDay}.`);
+      }
+    }else{
+      pushInsight('🧭', `${humanMonthB} utrzymuje prowadzenie do dnia ${dayLimitLabel}.`);
+    }
+    const fallbackInsights=[
+      'Monitoruj wydatki na bieżąco, aby szybciej reagować na odchylenia.',
+      `Masz do porównania ${detail.days.length} dni — obserwuj zmiany tempa.`,
+      'Skup się na największych transakcjach, aby poprawić wynik miesiąca.'
+    ];
+    for(const message of fallbackInsights){
+      if(insights.length>=3) break;
+      pushInsight('ℹ️', message);
+    }
+    const insightsCards=insights.slice(0,4).map(item=>`<article class="mom-detail-insight-card"><span class="mom-detail-insight-icon" aria-hidden="true">${item.icon}</span><span class="mom-detail-insight-text">${escapeHtml(item.text)}</span></article>`).join('');
+    const insightsSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🧠 Kluczowe insighty</h5><p class="mom-detail-section-subtitle">Najważniejsze wnioski dla kategorii ${escapeHtml(titleLabel)}.</p></div></div><div class="mom-detail-insights-grid">${insightsCards}</div>${forecastSection}</section>`;
+    const waterfallSubtitle=`Do dnia ${dayLimitLabel} • ${diffSummary}`;
+    const waterfallSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🌊 Gdzie się różnimy?</h5><p class="mom-detail-section-subtitle">${waterfallSubtitle}</p></div></div><div class="mom-detail-waterfall-chart"><canvas id="mom-detail-waterfall" role="img" aria-label="Wykres wodospadowy różnicy dziennej"></canvas></div><p class="mom-detail-section-footnote">Największe różnice wyróżnione grubszą obwódką.</p></section>`;
+    const overviewSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">📊 Przegląd kategorii</h5><p class="mom-detail-section-subtitle">Narastająco do dnia ${dayLimitLabel}</p></div></div><div class="mom-detail-kpi-grid"><article class="mom-detail-kpi-card month-a"><span class="label">Łączne wydatki — miesiąc A</span><p class="mom-detail-kpi-value">${fmt(detail.totalA,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${humanMonthA}</span></article><article class="mom-detail-kpi-card month-b"><span class="label">Łączne wydatki — miesiąc B</span><p class="mom-detail-kpi-value">${fmt(detail.totalB,state.currency)}</p><span class="mom-detail-kpi-trend neutral">${humanMonthB}</span></article><article class="mom-detail-kpi-card ${changeTone}"><span class="label">Zmiana absolutna</span><p class="mom-detail-kpi-value">${changeValue}</p><span class="mom-detail-kpi-trend ${changeTone}">${totalDiff===0?'Stabilnie':changeTrend}</span></article><article class="mom-detail-kpi-card ${percentTone}"><span class="label">Zmiana procentowa</span><p class="mom-detail-kpi-value">${percentValue}</p><span class="mom-detail-kpi-trend ${percentTone}">${percentTrend}</span></article></div><div class="mom-detail-compare-grid"><article class="mom-detail-compare-card"><div class="mom-detail-compare-title">🔢 Liczba transakcji</div><div class="mom-detail-compare-values">${renderChip('A', formatCount(detail.countA))}${renderChip('B', formatCount(detail.countB))}</div><span class="mom-detail-compare-delta">${renderDelta(countDelta,'count',false)}</span></article><article class="mom-detail-compare-card"><div class="mom-detail-compare-title">💳 Średnia wartość</div><div class="mom-detail-compare-values">${renderChip('A', hasTransactions?fmt(detail.avgA,state.currency):'—')}${renderChip('B', hasTransactions?fmt(detail.avgB,state.currency):'—')}</div><span class="mom-detail-compare-delta">${hasTransactions?renderDelta(avgDelta,'currency',false):'<span class=\"mom-detail-metric-delta neutral\">—</span>'}</span></article><article class="mom-detail-compare-card"><div class="mom-detail-compare-title">⚖️ Mediana</div><div class="mom-detail-compare-values">${renderChip('A', medianA>0?fmt(medianA,state.currency):'—')}${renderChip('B', medianB>0?fmt(medianB,state.currency):'—')}</div><span class="mom-detail-compare-delta">${renderDelta(medianA-medianB,'currency',false)}</span></article></div></section>`;
+    const statsPieces=[];
+    if(advancedMetricsHtml) statsPieces.push(advancedMetricsHtml);
+    if(boxPlotSection) statsPieces.push(boxPlotSection);
+    if(!statsPieces.length){
+      statsPieces.push('<div class="mom-detail-empty">Brak danych do obliczenia zaawansowanych statystyk.</div>');
+    }
+    const statsSection=hasTransactions
+      ? `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">📈 Zaawansowane statystyki</h5><p class="mom-detail-section-subtitle">Zmiany rozkładu i koncentracja wydatków.</p></div></div>${statsPieces.join('')}</section>`
+      : `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">📈 Zaawansowane statystyki</h5><p class="mom-detail-section-subtitle">Brak transakcji w wybranych miesiącach.</p></div></div><div class="mom-detail-empty">Brak danych do analizy.</div></section>`;
+    const weeklySection=buildMomDetailWeeklySection(detail, monthA, monthB, palette);
     if(!hasTransactions){
       bodyEl.innerHTML='<div class="mom-detail-empty">Brak wydatków w tej kategorii w wybranych miesiącach do wskazanego dnia.</div>';
       if(toolbar) toolbar.style.display='none';
+      destroyMomDetailWaterfallChart();
+      destroyMomDetailForecastChart();
+      updateMomDetailTabButtons();
+      updateMomDetailSortVisibility();
       return;
     }
+    const patterns=detectPatterns(detail.days, monthA, monthB);
+    const patternsCards=patterns.map(pattern=>`<article class="mom-detail-pattern-card" data-mom-pattern="${pattern.key}"><span class="mom-detail-pattern-icon" aria-hidden="true">${pattern.icon}</span><span class="mom-detail-pattern-title">${pattern.title}</span><p class="mom-detail-pattern-desc">${pattern.description}</p></article>`).join('');
+    const patternsSection=patterns.length
+      ? `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🔍 Co się wyróżnia?</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-patterns-grid">${patternsCards}</div></section>`
+      : `<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">🔍 Co się wyróżnia?</h5><p class="mom-detail-section-subtitle">Automatycznie wychwycone sygnały w wydatkach porównywanych miesięcy.</p></div></div><div class="mom-detail-empty">Brak jednoznacznych wzorców dla wybranej kategorii.</div></section>`;
+    const patternsContent=`${patternsSection}${weeklySection.section}`;
+    const contributionsSection=buildMomDetailContributionsSection(detail, monthA, monthB);
     const sortedDays=[...detail.days];
     if(momDetailSort==='impact'){
       sortedDays.sort((a,b)=>{
@@ -9923,7 +12576,6 @@
     }else{
       sortedDays.sort((a,b)=>a.day-b.day);
     }
-    const palette=momPalette();
     const formatDayCount=count=>{
       if(!count) return 'Brak';
       if(count===1) return '1 trans.';
@@ -9969,16 +12621,16 @@
     const trailingCount=(7-(totalCells%7))%7;
     const trailingPlaceholders=Array.from({length:trailingCount},()=>'<div class="mom-detail-calendar-cell placeholder" aria-hidden="true"></div>').join('');
     const calendarGridHtml=weekdayRow+leadingPlaceholders+dayCells+trailingPlaceholders;
-    const humanMonthA=formatYmHuman(monthA)||'Miesiąc A';
-    const humanMonthB=formatYmHuman(monthB)||'Miesiąc B';
     const calendarSubtitle=`Do dnia ${String(detail.dayLimit).padStart(2,'0')} • ${humanMonthA} / ${humanMonthB}`;
-    const calendarSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">Kalendarz transakcji</h5><p class="mom-detail-section-subtitle">${calendarSubtitle}</p></div></div><div class="mom-detail-calendar"><div class="mom-detail-calendar-grid">${calendarGridHtml}</div></div></section>`;
+    const deltaToneClass=changeTone||'neutral';
+    const calendarLegend=`<div class="mom-detail-calendar-legend"><span class="mom-detail-calendar-pill month-a">A: ${fmt(detail.totalA,state.currency)}</span><span class="mom-detail-calendar-pill month-b">B: ${fmt(detail.totalB,state.currency)}</span><span class="mom-detail-calendar-pill delta ${deltaToneClass}">Δ ${changeValue}</span></div>`;
+    const calendarSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">📅 Kalendarz transakcji</h5><p class="mom-detail-section-subtitle">${calendarSubtitle}</p></div></div><div class="mom-detail-calendar">${calendarLegend}<div class="mom-detail-calendar-grid">${calendarGridHtml}</div></div></section>`;
     const daysForList=sortedDays.filter(day=>day.entriesA.length>0 || day.entriesB.length>0);
     const maxImpact=daysForList.reduce((max,day)=>Math.max(max,Math.abs(day.delta)),0);
-    const listTitle=momDetailSort==='impact'?'Największe różnice dzienne':'Chronologiczna lista dni';
+    const listTitle=momDetailSort==='impact'?'🗂️ Największe różnice dzienne':'🗂️ Pełna lista dni';
     const listSubtitle=momDetailSort==='impact'
       ? 'Sortowanie według największych odchyleń pomiędzy miesiącami A i B.'
-      : 'Sortowanie według kolejnych dni w wybranym zakresie.';
+      : 'Chronologiczne zestawienie różnic dla każdego dnia zakresu.';
     const listCards=daysForList.map((day,idx)=>{
       const toneClass=day.delta>0?'positive':day.delta<0?'negative':'neutral';
       const badgeTone=day.delta>0?'positive':day.delta<0?'negative':'neutral';
@@ -9996,22 +12648,100 @@
       return `<div class="mom-detail-day ${toneClass}" data-mom-detail-day="${idx}"><div class="mom-detail-day-header"><div><div class="mom-detail-day-title">${dayTitle}</div><div class="mom-detail-day-subtitle">${subTitle}</div><div class="mom-detail-day-subline">${cumulativeLine}</div></div><div class="mom-detail-badge ${badgeTone}">${badgeText}</div></div><div class="mom-detail-columns"><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc A</span><span class="mom-detail-month-count">${countA}</span></div>${renderMomDetailEntries(day.entriesA)}</div><div class="mom-detail-month"><div class="mom-detail-month-label"><span>Miesiąc B</span><span class="mom-detail-month-count">${countB}</span></div>${renderMomDetailEntries(day.entriesB)}</div></div></div>`;
     }).join('');
     const listContent=daysForList.length
-      ? `<div class="mom-detail-daylist">${listCards}</div>`
+      ? `<details class="mom-detail-daylist-panel"><summary>Pokaż szczegóły dni (${daysForList.length})</summary><div class="mom-detail-daylist">${listCards}</div></details>`
       : '<div class="mom-detail-empty">Brak transakcji do wyświetlenia w wybranym zakresie.</div>';
     const daylistSection=`<section class="mom-detail-section"><div class="mom-detail-section-header"><div><h5 class="mom-detail-section-title">${listTitle}</h5><p class="mom-detail-section-subtitle">${listSubtitle}</p></div></div>${listContent}</section>`;
-    bodyEl.innerHTML=`${calendarSection}${daylistSection}`;
-    daysForList.forEach((day,idx)=>{
-      const el=bodyEl.querySelector(`[data-mom-detail-day="${idx}"]`);
-      if(!el) return;
-      const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
-      const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
-      const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
-      const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
-      el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
-      el.style.borderColor=border;
-    });
+    destroyMomDetailWaterfallChart();
+    destroyMomDetailForecastChart();
+    const panelsHtml=MOM_DETAIL_TABS.map(key=>`<div class="mom-detail-tabpanel" id="mom-detail-panel-${key}" data-mom-detail-panel="${key}" role="tabpanel" aria-labelledby="mom-detail-tab-${key}" aria-hidden="true"></div>`).join('');
+    bodyEl.innerHTML=`<div class="mom-detail-tabpanels">${panelsHtml}</div>`;
+    const overviewFlow=[heroSection,insightsSection,overviewSection,waterfallSection,patternsSection,weeklySection.section,calendarSection,contributionsSection.topSection,contributionsSection.fullSection,daylistSection].filter(Boolean).join('');
+    momDetailTabCache={
+      overview:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=overviewFlow;
+          destroyMomDetailWaterfallChart();
+          destroyMomDetailForecastChart();
+          const scheduleWaterfall=()=>renderMomDetailWaterfallChart(detail);
+          if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleWaterfall);
+          else scheduleWaterfall();
+          if(forecastSection){
+            const scheduleForecast=()=>renderMomDetailForecastChart(forecast,palette);
+            if(typeof requestAnimationFrame==='function') requestAnimationFrame(scheduleForecast);
+            else scheduleForecast();
+          }
+          bindMomDetailHeatmap(panel, weeklySection.cells);
+          bindMomDetailContributions(panel, contributionsSection.rows);
+          daysForList.forEach((day,idx)=>{
+            const el=panel.querySelector(`[data-mom-detail-day="${idx}"]`);
+            if(!el) return;
+            const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
+            const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
+            const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
+            const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
+            el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
+            el.style.borderColor=border;
+          });
+        }
+      },
+      calendar:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=calendarSection;
+        }
+      },
+      patterns:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=patternsContent;
+          bindMomDetailHeatmap(panel, weeklySection.cells);
+        }
+      },
+      stats:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=statsSection;
+        }
+      },
+      transactions:{
+        loaded:false,
+        render:panel=>{
+          panel.innerHTML=`${contributionsSection.topSection}${contributionsSection.fullSection}${daylistSection}`;
+          bindMomDetailContributions(panel, contributionsSection.rows);
+          daysForList.forEach((day,idx)=>{
+            const el=panel.querySelector(`[data-mom-detail-day="${idx}"]`);
+            if(!el) return;
+            const toneColor=day.delta>0?palette.positive:day.delta<0?palette.negative:palette.ink;
+            const impact=maxImpact>0?Math.min(1,Math.abs(day.delta)/maxImpact):0;
+            const background=day.delta===0?colorWithAlpha(palette.ink,0.06):colorWithAlpha(toneColor,0.14+0.22*impact);
+            const border=day.delta===0?colorWithAlpha(palette.ink,0.16):colorWithAlpha(toneColor,0.32+0.2*impact);
+            el.style.background=`linear-gradient(135deg, ${background}, rgba(255,255,255,0.92))`;
+            el.style.borderColor=border;
+          });
+        }
+      }
+    };
+    activateMomDetailTab();
     const scrollWrap=document.querySelector('.mom-detail-scroll');
-    if(scrollWrap) scrollWrap.scrollTop=0;
+    const header=document.querySelector('.mom-detail-header');
+    if(scrollWrap){
+      scrollWrap.scrollTop=0;
+      if(header){
+        header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+      }
+      if(!scrollWrap.dataset.heatmapScrollBound){
+        scrollWrap.dataset.heatmapScrollBound='1';
+        scrollWrap.addEventListener('scroll',()=>{
+          hideMomDetailHeatmapTooltip();
+          if(header){
+            header.classList.toggle('scrolled', scrollWrap.scrollTop>60);
+          }
+        },{passive:true});
+      }
+    } else if(header){
+      header.classList.remove('scrolled');
+    }
   }
 
   function renderMomComparison(){
