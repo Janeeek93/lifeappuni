@@ -38,20 +38,39 @@
         display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
     }
 
-    /* Układ formularza */
-    .asset-type-select {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;
-    }
-    .type-option {
-        border: 1px solid var(--line); border-radius: 10px; padding: 10px;
-        text-align: center; cursor: pointer; transition: all 0.2s;
-        font-size: 13px; font-weight: 500;
-    }
-    .type-option:hover { background: var(--surface); }
-    .type-option.active { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
-
     .refresh-spin { animation: spin 1s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Batch transaction form */
+    .batch-row {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: var(--surface);
+    }
+    .batch-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .batch-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        background: var(--line);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+    }
 
     /* Update Modal Styles */
     .price-update-row {
@@ -134,19 +153,23 @@
                     <div class="value" id="total-pnl-value">0,00 zł</div>
                     <div class="trend" id="total-pnl-percent">0% od początku</div>
                 </div>
-                <div class="card invest-week-card">
-                    <div class="row" style="align-items: flex-start;">
+                <div class="card">
+                    <div class="card-header">
                         <div>
-                            <div class="label" style="color: rgba(255,255,255,0.7)">Cel Tygodniowy (Pon-Ndz)</div>
-                            <div class="value" id="weekly-invested">0 zł</div>
+                            <div class="label">Kapitał wniesiony</div>
+                            <div class="tiny muted">Suma wpłat i wypłat bez celów</div>
+                        </div>
+                        <span class="tag" id="net-contribution-tag">Netto 0 zł</span>
+                    </div>
+                    <div class="row" style="align-items: baseline;">
+                        <div>
+                            <div class="tiny muted">Łączne wpłaty</div>
+                            <div class="value" id="total-invested">0,00 zł</div>
                         </div>
                         <div style="text-align: right;">
-                            <div class="tiny">Cel: 500 zł</div>
-                            <div class="tiny" id="weekly-remaining">Pozostało: 500 zł</div>
+                            <div class="tiny muted">Wypłaty / sprzedaż</div>
+                            <div class="value" id="total-withdrawn">0,00 zł</div>
                         </div>
-                    </div>
-                    <div class="progress" style="background: rgba(255,255,255,0.2); margin-top: 10px;">
-                        <i id="weekly-progress-bar" style="width: 0%; background: #4ade80;"></i>
                     </div>
                 </div>
             </div>
@@ -200,6 +223,23 @@
                 </div>
             </div>
 
+            <div class="grid g-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="title">Metryki długoterminowe</h3>
+                        <div class="tiny muted">Pomagają obserwować zdrowie portfela</div>
+                    </div>
+                    <ul class="stack" id="portfolio-metrics-list" style="gap: 8px; margin: 0; padding-left: 20px;"></ul>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="title">Wpłaty wg typu aktywa</h3>
+                        <div class="tiny muted">Widzisz gdzie realnie lokujesz kapitał</div>
+                    </div>
+                    <div id="type-breakdown" class="stack" style="gap: 8px;"></div>
+                </div>
+            </div>
+
             <!-- Transaction History -->
             <div class="card">
                 <div class="card-header">
@@ -216,6 +256,7 @@
                                 <th>Cena</th>
                                 <th>Ilość</th>
                                 <th>Wartość (PLN)</th>
+                                <th>Notatka</th>
                                 <th>Usuń</th>
                             </tr>
                         </thead>
@@ -232,52 +273,18 @@
   <!-- Modal Transakcji -->
   <div id="modal-overlay" class="modal-overlay" style="display: none;">
     <div class="modal-card">
-        <h3 class="title">Dodaj Transakcję</h3>
-        
-        <div class="asset-type-select" id="asset-type-selector">
-            <div class="type-option active" data-value="stock">📈 Akcje</div>
-            <div class="type-option" data-value="crypto">🪙 Krypto</div>
-            <div class="type-option" data-value="currency">💱 Waluty</div>
-            <div class="type-option" data-value="gold">🥇 Złoto</div>
-        </div>
+        <h3 class="title">Dodaj transakcje hurtowo</h3>
+        <p class="tiny muted">Wypełnij kilka pozycji na raz, aby szybciej dywersyfikować. Daty domyślnie ustawione na dziś.</p>
 
-        <div class="grid g-2">
-            <div class="form-group">
-                <label class="tiny">Ticker / Symbol</label>
-                <input type="text" id="inp-ticker" placeholder="np. BTC, AAPL, USD">
-            </div>
-            <div class="form-group">
-                <label class="tiny">Nazwa</label>
-                <input type="text" id="inp-name" placeholder="np. Bitcoin">
-            </div>
-            <div class="form-group">
-                <label class="tiny">Data</label>
-                <input type="date" id="inp-date">
-            </div>
-            <div class="form-group">
-                <label class="tiny">Typ operacji</label>
-                <select id="inp-operation">
-                    <option value="buy">Kupno</option>
-                    <option value="sell">Sprzedaż</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="tiny">Ilość</label>
-                <input type="number" id="inp-quantity" step="0.000001" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label class="tiny">Cena jedn. (PLN)</label>
-                <input type="number" id="inp-price" step="0.01" placeholder="0.00">
-            </div>
-        </div>
-        <div class="form-group" style="margin-top: 10px;">
-            <label class="tiny">Całkowity koszt (PLN)</label>
-            <input type="number" id="inp-total" step="0.01" placeholder="Automatycznie" readonly style="background: var(--bg);">
+        <div id="transaction-rows"></div>
+        <div class="row" style="justify-content: space-between; align-items: center; margin: 10px 0;">
+            <button class="btn ghost" onclick="addTransactionRow()">+ Dodaj wiersz</button>
+            <div class="tiny muted" id="batch-summary">0 pozycji · 0,00 zł nowych wpłat</div>
         </div>
 
         <div class="modal-actions">
             <button class="btn" onclick="closeModal()">Anuluj</button>
-            <button class="btn primary" onclick="saveTransaction()">Zapisz</button>
+            <button class="btn primary" onclick="saveTransaction()">Zapisz wszystkie</button>
         </div>
     </div>
   </div>
@@ -306,7 +313,7 @@
     // Default state structure
     let state = {
         portfolio: [], // { id, type, ticker, name, quantity, avgPrice, currentPrice }
-        transactions: [], // { id, date, type, ticker, operation, quantity, price, total }
+        transactions: [], // { id, date, type, ticker, operation, quantity, price, total, note }
         snapshots: [], // { date, totalValue, totalCost, pnl } NEW: History
         lastUpdate: null
     };
@@ -326,6 +333,162 @@
     function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         renderAll();
+    }
+
+    // --- BATCH TRANSACTION FORM ---
+    const assetTypeLabels = {
+        stock: '📈 Akcje',
+        crypto: '🪙 Krypto',
+        currency: '💱 Waluty',
+        gold: '🥇 Złoto'
+    };
+
+    function addTransactionRow(prefill = {}) {
+        const container = document.getElementById('transaction-rows');
+        const rowId = `tx-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const row = document.createElement('div');
+        row.className = 'batch-row transaction-row';
+        row.dataset.id = rowId;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        row.innerHTML = `
+            <div class="batch-actions">
+                <span class="tag">Pozycja</span>
+                <div style="display:flex; gap: 8px; align-items:center;">
+                    <button class="btn tiny ghost" onclick="duplicateRow('${rowId}')">Duplikuj</button>
+                    <button class="btn tiny danger" onclick="removeTransactionRow('${rowId}')">Usuń</button>
+                </div>
+            </div>
+            <div class="batch-grid">
+                <div class="form-group">
+                    <label class="tiny">Typ</label>
+                    <select data-field="type">
+                        ${Object.entries(assetTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Ticker / Symbol</label>
+                    <input type="text" data-field="ticker" placeholder="np. BTC, AAPL" />
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Nazwa</label>
+                    <input type="text" data-field="name" placeholder="np. Bitcoin" />
+                </div>
+            </div>
+            <div class="batch-grid">
+                <div class="form-group">
+                    <label class="tiny">Data</label>
+                    <input type="date" data-field="date" value="${prefill.date || today}" />
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Operacja</label>
+                    <select data-field="operation">
+                        <option value="buy">Kupno</option>
+                        <option value="sell">Sprzedaż</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Ilość</label>
+                    <input type="number" data-field="quantity" step="0.000001" placeholder="0.00" />
+                </div>
+            </div>
+            <div class="batch-grid">
+                <div class="form-group">
+                    <label class="tiny">Cena jedn. (PLN)</label>
+                    <input type="number" data-field="price" step="0.01" placeholder="0.00" />
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Łącznie (PLN)</label>
+                    <input type="number" data-field="total" step="0.01" placeholder="Automatycznie" readonly style="background: var(--bg);" />
+                </div>
+                <div class="form-group">
+                    <label class="tiny">Komentarz (opcjonalnie)</label>
+                    <input type="text" data-field="note" placeholder="np. DCA, dywersyfikacja" />
+                </div>
+            </div>
+        `;
+
+        container.appendChild(row);
+
+        setRowValues(row, prefill);
+        attachRowListeners(row);
+        updateBatchSummary();
+    }
+
+    function setRowValues(row, values = {}) {
+        const setters = {
+            type: v => row.querySelector('[data-field="type"]').value = v,
+            ticker: v => row.querySelector('[data-field="ticker"]').value = v || '',
+            name: v => row.querySelector('[data-field="name"]').value = v || '',
+            date: v => row.querySelector('[data-field="date"]').value = v,
+            operation: v => row.querySelector('[data-field="operation"]').value = v,
+            quantity: v => row.querySelector('[data-field="quantity"]').value = v,
+            price: v => row.querySelector('[data-field="price"]').value = v,
+            note: v => row.querySelector('[data-field="note"]').value = v || ''
+        };
+
+        Object.entries(values).forEach(([key, val]) => {
+            if (setters[key] !== undefined && val !== undefined) setters[key](val);
+        });
+        recalcRowTotal(row);
+    }
+
+    function duplicateRow(rowId) {
+        const row = document.querySelector(`[data-id="${rowId}"]`);
+        if (!row) return;
+        const data = readRowValues(row);
+        addTransactionRow(data);
+    }
+
+    function attachRowListeners(row) {
+        ['quantity', 'price'].forEach(field => {
+            row.querySelector(`[data-field="${field}"]`).addEventListener('input', () => recalcRowTotal(row));
+        });
+        row.querySelector('[data-field="operation"]').addEventListener('change', updateBatchSummary);
+    }
+
+    function recalcRowTotal(row) {
+        const quantity = parseFloat(row.querySelector('[data-field="quantity"]').value) || 0;
+        const price = parseFloat(row.querySelector('[data-field="price"]').value) || 0;
+        const totalField = row.querySelector('[data-field="total"]');
+        totalField.value = (quantity * price).toFixed(2);
+        updateBatchSummary();
+    }
+
+    function removeTransactionRow(rowId) {
+        const row = document.querySelector(`[data-id="${rowId}"]`);
+        if (!row) return;
+        row.remove();
+        if (document.querySelectorAll('.transaction-row').length === 0) {
+            addTransactionRow();
+        }
+        updateBatchSummary();
+    }
+
+    function readRowValues(row) {
+        return {
+            type: row.querySelector('[data-field="type"]').value,
+            ticker: (row.querySelector('[data-field="ticker"]').value || '').toUpperCase(),
+            name: row.querySelector('[data-field="name"]').value,
+            date: row.querySelector('[data-field="date"]').value,
+            operation: row.querySelector('[data-field="operation"]').value,
+            quantity: parseFloat(row.querySelector('[data-field="quantity"]').value),
+            price: parseFloat(row.querySelector('[data-field="price"]').value),
+            total: parseFloat(row.querySelector('[data-field="total"]').value),
+            note: row.querySelector('[data-field="note"]').value
+        };
+    }
+
+    function updateBatchSummary() {
+        const rows = Array.from(document.querySelectorAll('.transaction-row'));
+        const buyVolume = rows.reduce((sum, row) => {
+            const { operation, total } = readRowValues(row);
+            if (operation === 'buy' && !isNaN(total)) return sum + total;
+            return sum;
+        }, 0);
+        const summaryEl = document.getElementById('batch-summary');
+        if (summaryEl) summaryEl.innerText = `${rows.length} pozycji · ${fmtMoney(buyVolume)} nowych wpłat`;
     }
 
     // --- CORE LOGIC (DCA & PnL) ---
@@ -544,11 +707,13 @@
     function renderAll() {
         renderAssetsTable();
         renderKPIs();
+        renderMetrics();
+        renderTypeBreakdown();
         renderHistory();
         renderChart();
         renderHistoryChart();
-        document.getElementById('last-update-time').innerText = state.lastUpdate 
-            ? 'Ostatni snapshot: ' + new Date(state.lastUpdate).toLocaleString() 
+        document.getElementById('last-update-time').innerText = state.lastUpdate
+            ? 'Ostatni snapshot: ' + new Date(state.lastUpdate).toLocaleString()
             : 'Brak zapisanych snapshotów';
     }
 
@@ -557,6 +722,13 @@
         const totalCost = state.portfolio.reduce((sum, a) => sum + a.totalCost, 0);
         const pnlValue = totalValue - totalCost;
         const pnlPercent = totalCost > 0 ? (pnlValue / totalCost) * 100 : 0;
+        const totalInvested = state.transactions
+            .filter(tx => tx.operation === 'buy')
+            .reduce((sum, tx) => sum + (tx.total || 0), 0);
+        const totalWithdrawn = state.transactions
+            .filter(tx => tx.operation === 'sell')
+            .reduce((sum, tx) => sum + (tx.total || 0), 0);
+        const netContribution = totalInvested - totalWithdrawn;
 
         document.getElementById('total-portfolio-value').innerText = fmtMoney(totalValue);
         document.getElementById('portfolio-change').innerText = `Koszt zakupu: ${fmtMoney(totalCost)}`;
@@ -569,22 +741,82 @@
         pnlPercEl.innerText = `${pnlPercent.toFixed(2)}% od początku`;
         pnlPercEl.className = 'trend ' + (pnlPercent >= 0 ? 'pnl-positive' : 'pnl-negative');
 
-        // Weekly Logic
-        const today = new Date();
-        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)); // Monday
-        startOfWeek.setHours(0,0,0,0);
+        document.getElementById('total-invested').innerText = fmtMoney(totalInvested);
+        document.getElementById('total-withdrawn').innerText = fmtMoney(totalWithdrawn);
+        const tag = document.getElementById('net-contribution-tag');
+        tag.innerText = `Netto ${fmtMoney(netContribution)}`;
+        tag.style.color = netContribution >= 0 ? 'var(--green)' : 'var(--red)';
+        tag.style.background = 'var(--line)';
+    }
 
-        const investedThisWeek = state.transactions
-            .filter(tx => tx.operation === 'buy' && new Date(tx.date) >= startOfWeek)
-            .reduce((sum, tx) => sum + tx.total, 0);
+    function renderMetrics() {
+        const list = document.getElementById('portfolio-metrics-list');
+        if (!list) return;
+        list.innerHTML = '';
 
-        const target = 500;
-        const remaining = Math.max(0, target - investedThisWeek);
-        const progress = Math.min(100, (investedThisWeek / target) * 100);
+        if (state.portfolio.length === 0) {
+            list.innerHTML = '<li class="muted tiny">Brak aktywów — dodaj transakcje, aby zobaczyć metryki.</li>';
+            return;
+        }
 
-        document.getElementById('weekly-invested').innerText = fmtMoney(investedThisWeek);
-        document.getElementById('weekly-remaining').innerText = remaining > 0 ? `Brakuje: ${fmtMoney(remaining)}` : 'Cel osiągnięty! 🎉';
-        document.getElementById('weekly-progress-bar').style.width = `${progress}%`;
+        const assetCount = state.portfolio.length;
+        const totalValue = state.portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
+        const avgTicket = state.transactions.length
+            ? state.transactions.reduce((sum, tx) => sum + (tx.total || 0), 0) / state.transactions.length
+            : 0;
+        const topAsset = state.portfolio.reduce((prev, curr) => {
+            const prevValue = prev ? prev.quantity * prev.currentPrice : 0;
+            const currValue = curr.quantity * curr.currentPrice;
+            return currValue > prevValue ? curr : prev;
+        }, null);
+        const buySellsRatio = (() => {
+            const buys = state.transactions.filter(t => t.operation === 'buy').length;
+            const sells = state.transactions.filter(t => t.operation === 'sell').length;
+            if (sells === 0) return buys;
+            return (buys / sells).toFixed(1);
+        })();
+
+        const metrics = [
+            `Aktywa w portfelu: ${assetCount}`,
+            `Średni ticket transakcji: ${fmtMoney(avgTicket || 0)}`,
+            topAsset ? `Największa pozycja: ${topAsset.ticker} (${fmtMoney(topAsset.quantity * topAsset.currentPrice)})` : 'Brak pozycji',
+            `Relacja kupna/sprzedaż: ${buySellsRatio}:1`
+        ];
+
+        metrics.forEach(text => {
+            const li = document.createElement('li');
+            li.innerText = text;
+            list.appendChild(li);
+        });
+    }
+
+    function renderTypeBreakdown() {
+        const wrapper = document.getElementById('type-breakdown');
+        if (!wrapper) return;
+        wrapper.innerHTML = '';
+
+        const byType = state.transactions.reduce((acc, tx) => {
+            const key = tx.type || 'inne';
+            if (!acc[key]) acc[key] = 0;
+            acc[key] += tx.operation === 'sell' ? -(tx.total || 0) : (tx.total || 0);
+            return acc;
+        }, {});
+
+        if (Object.keys(byType).length === 0) {
+            wrapper.innerHTML = '<div class="empty-state">Brak historii wpłat.</div>';
+            return;
+        }
+
+        Object.entries(byType).forEach(([type, value]) => {
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.style.justifyContent = 'space-between';
+            row.innerHTML = `
+                <div class="tiny">${assetTypeLabels[type] || type}</div>
+                <div class="tiny" style="font-weight:700;">${fmtMoney(value)}</div>
+            `;
+            wrapper.appendChild(row);
+        });
     }
 
     function renderAssetsTable() {
@@ -647,6 +879,7 @@
                 <td>${fmtMoney(tx.price)}</td>
                 <td>${tx.quantity}</td>
                 <td>${fmtMoney(tx.total)}</td>
+                <td class="tiny muted">${tx.note || '-'}</td>
                 <td><button class="btn tiny danger" onclick="deleteTransaction('${tx.id}')">×</button></td>
             `;
             tbody.appendChild(tr);
@@ -753,7 +986,8 @@
 
     function openTransactionModal() {
         document.getElementById('modal-overlay').style.display = 'flex';
-        document.getElementById('inp-date').valueAsDate = new Date();
+        clearInputs();
+        addTransactionRow();
     }
 
     function closeModal() {
@@ -762,50 +996,27 @@
     }
 
     function clearInputs() {
-        document.getElementById('inp-ticker').value = '';
-        document.getElementById('inp-name').value = '';
-        document.getElementById('inp-quantity').value = '';
-        document.getElementById('inp-price').value = '';
-        document.getElementById('inp-total').value = '';
+        const container = document.getElementById('transaction-rows');
+        if (container) container.innerHTML = '';
+        updateBatchSummary();
     }
 
-    // Auto-calculate total
-    ['inp-quantity', 'inp-price'].forEach(id => {
-        document.getElementById(id).addEventListener('input', () => {
-            const q = parseFloat(document.getElementById('inp-quantity').value) || 0;
-            const p = parseFloat(document.getElementById('inp-price').value) || 0;
-            document.getElementById('inp-total').value = (q * p).toFixed(2);
-        });
-    });
-
-    document.querySelectorAll('.type-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
-            opt.classList.add('active');
-        });
-    });
-
     function saveTransaction() {
-        const type = document.querySelector('.type-option.active').dataset.value;
-        const ticker = document.getElementById('inp-ticker').value.toUpperCase();
-        const name = document.getElementById('inp-name').value || ticker;
-        const date = document.getElementById('inp-date').value;
-        const operation = document.getElementById('inp-operation').value;
-        const quantity = parseFloat(document.getElementById('inp-quantity').value);
-        const price = parseFloat(document.getElementById('inp-price').value);
-        const total = parseFloat(document.getElementById('inp-total').value);
+        const rows = Array.from(document.querySelectorAll('.transaction-row'));
+        const newTxs = rows.map(readRowValues)
+            .filter(tx => tx.ticker && !isNaN(tx.quantity) && !isNaN(tx.price));
 
-        if (!ticker || !quantity || !price) {
-            alert('Wypełnij wszystkie pola!');
+        if (newTxs.length === 0) {
+            alert('Dodaj chociaż jedną kompletną pozycję (ticker, ilość, cena).');
             return;
         }
 
-        const newTx = {
-            id: Date.now().toString(),
-            date, type, ticker, name, operation, quantity, price, total
-        };
+        const stampedTxs = newTxs.map(tx => ({
+            ...tx,
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        }));
 
-        state.transactions.push(newTx);
+        state.transactions.push(...stampedTxs);
         recalcPortfolio();
         saveState();
         closeModal();
@@ -832,12 +1043,17 @@
         const asset = state.portfolio.find(a => a.ticker === ticker);
         if(!asset) return;
         openTransactionModal();
-        document.getElementById('inp-ticker').value = ticker;
-        document.getElementById('inp-name').value = asset.name;
-        document.getElementById('inp-operation').value = 'sell';
-        document.getElementById('inp-price').value = asset.currentPrice;
-        document.querySelectorAll('.type-option').forEach(o => o.classList.remove('active'));
-        document.querySelector(`.type-option[data-value="${asset.type}"]`).classList.add('active');
+        const today = new Date().toISOString().split('T')[0];
+        clearInputs();
+        addTransactionRow({
+            type: asset.type,
+            ticker: asset.ticker,
+            name: asset.name,
+            operation: 'sell',
+            price: asset.currentPrice,
+            quantity: asset.quantity,
+            date: today
+        });
     }
 
     document.getElementById('refresh-prices-btn').addEventListener('click', fetchMarketData);
