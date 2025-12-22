@@ -52,12 +52,26 @@
       place-items: center;
     }
 
+    .inv-shell {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 4px 8px 24px;
+      display: grid;
+      gap: 22px;
+    }
+
     .inv-layout {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       gap: 24px;
       align-items: start;
-      margin-top: 10px;
+    }
+
+    @media (min-width: 1280px) {
+      .inv-layout {
+        grid-template-columns: minmax(360px, 420px) minmax(640px, 1fr);
+        gap: 26px;
+      }
     }
 
     @media (max-width: 1140px) {
@@ -72,7 +86,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 18px;
-      margin: 10px 0 6px;
+      margin: 6px 0 4px;
     }
 
     .inv-hero-card {
@@ -4537,8 +4551,9 @@
     </section>
 
     <!-- Investments -->
-    <section id="tab-investments" style="display:none" class="stack">
-      <div class="section-header">
+      <section id="tab-investments" style="display:none" class="stack">
+        <div class="inv-shell">
+        <div class="section-header">
         <div>
           <p class="eyebrow">Księgowanie & analiza</p>
           <h2 class="title">Inwestycje długoterminowe</h2>
@@ -4717,30 +4732,31 @@
         </div>
       </div>
 
-      <div class="card stack">
-        <div class="row" style="justify-content: space-between; align-items: center;">
-          <strong>Historia zakupów</strong>
-          <span class="tiny muted">Pełna ewidencja</span>
+        <div class="card stack">
+          <div class="row" style="justify-content: space-between; align-items: center;">
+            <strong>Historia zakupów</strong>
+            <span class="tiny muted">Pełna ewidencja</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="modern-table" id="inv-trades-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Aktywo</th>
+                  <th>Kwota</th>
+                  <th>Ilość</th>
+                  <th>Śr. cena</th>
+                  <th>Notatka</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-wrapper">
-          <table class="modern-table" id="inv-trades-table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Aktywo</th>
-                <th>Kwota</th>
-                <th>Ilość</th>
-                <th>Śr. cena</th>
-                <th>Notatka</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
         </div>
-      </div>
 
-      <div id="inv-asset-backdrop" class="inv-modal-backdrop" hidden></div>
+        <div id="inv-asset-backdrop" class="inv-modal-backdrop" hidden></div>
       <aside id="inv-asset-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
         <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
           <div>
