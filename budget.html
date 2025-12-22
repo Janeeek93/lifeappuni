@@ -55,46 +55,10 @@
     .inv-shell {
       max-width: 1260px;
       margin: 0 auto;
-      padding: 4px 8px 24px;
-      display: grid;
-      gap: 22px;
-    }
-
-    .inv-layout {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-      gap: 24px;
-      align-items: start;
-    }
-
-    @media (min-width: 1280px) {
-      .inv-layout {
-        grid-template-columns: minmax(360px, 420px) minmax(640px, 1fr);
-        gap: 26px;
-      }
-    }
-
-    @media (max-width: 1140px) {
-      .inv-layout { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
-    }
-
-    @media (max-width: 980px) {
-      .inv-layout { grid-template-columns: 1fr; }
-    }
-
-    .inv-hero-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      padding: 8px 10px 24px;
+      display: flex;
+      flex-direction: column;
       gap: 18px;
-      margin: 6px 0 4px;
-    }
-
-    .inv-hero-card {
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      padding: 12px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(14, 165, 233, 0.05));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
     }
 
     .inv-analytics-nav {
@@ -175,6 +139,15 @@
       display: inline-block;
       background: var(--muted);
     }
+
+    .inv-holdings-accordion { display: grid; gap: 10px; }
+    .inv-holding-group { border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 14px; overflow: hidden; background: rgba(248, 250, 252, 0.7); }
+    .inv-holding-group summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .inv-holding-group summary::-webkit-details-marker { display: none; }
+    .inv-holding-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    .inv-holding-kpis { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .inv-holding-kpis .pill { background: #fff; border: 1px solid rgba(148, 163, 184, 0.35); }
+    .inv-holding-details { padding: 0 14px 12px; }
 
     .eom-hero {
       margin-top: 16px;
@@ -4558,85 +4531,32 @@
             <button class="btn ghost" type="button" id="inv-asset-modal-open">📑 Zarządzaj aktywami</button>
           </div>
 
-          <div class="inv-hero-grid">
-            <div class="inv-hero-card">
-              <div class="muted tiny">Kapitał pracujący</div>
-              <div class="big-number" id="inv-total">Łącznie: —</div>
-              <div class="trend" id="inv-last-trade">Ostatni zakup: —</div>
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Nowy zakup</strong>
+              <span class="badge ghost">Automatyczne księgowanie</span>
             </div>
-            <div class="inv-hero-card">
-              <div class="muted tiny">Liczba aktywów</div>
-              <div class="big-number" id="inv-asset-count">—</div>
-              <div class="trend" id="inv-groups">Grupy: —</div>
-            </div>
-            <div class="inv-hero-card">
-              <div class="muted tiny">Transakcje</div>
-              <div class="big-number" id="inv-hero-trades">—</div>
-              <div class="trend" id="inv-hero-trades-month">Ten miesiąc: —</div>
-            </div>
-            <div class="inv-hero-card">
-              <div class="muted tiny">Wkład w tym roku</div>
-              <div class="big-number" id="inv-hero-ytd">—</div>
-              <div class="trend" id="inv-hero-month">Bieżący miesiąc: —</div>
-            </div>
-          </div>
-
-          <div class="inv-layout">
-            <div class="stack" style="gap:12px;">
-              <div class="card stack">
-                <div class="row" style="justify-content: space-between; align-items: center;">
-                  <strong>Nowy zakup</strong>
-                  <span class="badge ghost">Automatyczne księgowanie</span>
-                </div>
-                <form id="inv-trade-form" class="stack" style="gap:10px">
-                  <label>Aktywo
-                    <select name="assetId" required></select>
-                  </label>
-                  <label>Data zakupu
-                    <input type="date" name="date" required />
-                  </label>
-                  <div class="row">
-                    <label style="flex:1">Kwota wydana
-                      <input name="amount" inputmode="decimal" placeholder="0,00" required />
-                    </label>
-                    <label style="flex:1">Ilość
-                      <input name="quantity" inputmode="decimal" placeholder="0" required />
-                    </label>
-                  </div>
-                  <label>Notatka
-                    <input name="note" placeholder="np. DCA, promo, HODL" />
-                  </label>
-                  <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
-                  <button class="btn" type="submit">Zapisz zakup</button>
-                </form>
+            <form id="inv-trade-form" class="stack" style="gap:10px">
+              <label>Aktywo
+                <select name="assetId" required></select>
+              </label>
+              <label>Data zakupu
+                <input type="date" name="date" required />
+              </label>
+              <div class="row">
+                <label style="flex:1">Kwota wydana
+                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
+                </label>
+                <label style="flex:1">Ilość
+                  <input name="quantity" inputmode="decimal" placeholder="0" required />
+                </label>
               </div>
-            </div>
-
-            <div class="stack" style="gap:12px;">
-              <div class="card stack">
-                <div class="row" style="justify-content: space-between; align-items: center;">
-                  <div>
-                    <p class="eyebrow">Portfel</p>
-                    <h3 class="title" style="margin:0">Stan posiadania i średnie ceny</h3>
-                  </div>
-                  <span class="pill ghost" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:#2563eb"></span> Średnia cena zakupu</span>
-                </div>
-                <div class="table-wrapper">
-                  <table class="modern-table" id="inv-holdings">
-                    <thead>
-                      <tr>
-                        <th>Aktywo</th>
-                        <th>Grupa</th>
-                        <th>Ilość</th>
-                    <th>Śr. cena zakupu</th>
-                    <th>Zainwestowano</th>
-                    <th>Ostatni zakup</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
+              <label>Notatka
+                <input name="note" placeholder="np. DCA, promo, HODL" />
+              </label>
+              <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
+              <button class="btn" type="submit">Zapisz zakup</button>
+            </form>
           </div>
 
           <div class="card stack">
@@ -4660,86 +4580,94 @@
               </table>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div class="card stack">
-        <div class="row" style="justify-content: space-between; align-items: center;">
-          <strong>Analityka inwestycji</strong>
-          <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
-            <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
-            <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Skumulowany kapitał</button>
-            <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation" aria-selected="false">Struktura portfela</button>
-          </div>
-        </div>
-
-        <div class="inv-analytics-panels">
-          <div class="inv-analytics-panel is-active" data-panel="weekly">
-            <div class="chart-box">
-              <canvas id="inv-weekly-chart"></canvas>
-              <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <div>
+                <p class="eyebrow">Portfel</p>
+                <h3 class="title" style="margin:0">Stan posiadania wg grup</h3>
+              </div>
+              <span class="tiny muted">Rozwiń grupę, aby zobaczyć aktywa i statystyki</span>
             </div>
+            <div id="inv-holdings-groups" class="inv-holdings-accordion"></div>
           </div>
 
-          <div class="inv-analytics-panel" data-panel="cumulative">
-            <div class="chart-box">
-              <canvas id="inv-cumulative-chart"></canvas>
-              <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Analityka inwestycji</strong>
+              <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
+                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Skumulowany kapitał</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation" aria-selected="false">Struktura portfela</button>
+              </div>
             </div>
-          </div>
 
-          <div class="inv-analytics-panel" data-panel="allocation">
-            <div class="inv-allocation-grid">
-              <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
-                <div class="row" style="justify-content: space-between; align-items: center;">
-                  <strong>Struktura główna</strong>
-                  <span class="tiny muted">Udział % wg grup</span>
-                </div>
-                <div class="chart-box" style="height:220px">
-                  <canvas id="inv-allocation-chart"></canvas>
-                  <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
+            <div class="inv-analytics-panels">
+              <div class="inv-analytics-panel is-active" data-panel="weekly">
+                <div class="chart-box">
+                  <canvas id="inv-weekly-chart"></canvas>
+                  <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
                 </div>
               </div>
 
-              <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
-                <div class="row" style="justify-content: space-between; align-items: center;">
-                  <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
-                  <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
+              <div class="inv-analytics-panel" data-panel="cumulative">
+                <div class="chart-box">
+                  <canvas id="inv-cumulative-chart"></canvas>
+                  <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
                 </div>
-                <div class="chart-box" style="height:220px">
-                  <canvas id="inv-allocation-detail-chart"></canvas>
-                  <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+              </div>
+
+              <div class="inv-analytics-panel" data-panel="allocation">
+                <div class="inv-allocation-grid">
+                  <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                    <div class="row" style="justify-content: space-between; align-items: center;">
+                      <strong>Struktura główna</strong>
+                      <span class="tiny muted">Udział % wg grup</span>
+                    </div>
+                    <div class="chart-box" style="height:220px">
+                      <canvas id="inv-allocation-chart"></canvas>
+                      <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
+                    </div>
+                  </div>
+
+                  <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                    <div class="row" style="justify-content: space-between; align-items: center;">
+                      <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
+                      <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
+                    </div>
+                    <div class="chart-box" style="height:220px">
+                      <canvas id="inv-allocation-detail-chart"></canvas>
+                      <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Historia zakupów</strong>
-            <span class="tiny muted">Pełna ewidencja</span>
-          </div>
-          <div class="table-wrapper">
-            <table class="modern-table" id="inv-trades-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Aktywo</th>
-                  <th>Kwota</th>
-                  <th>Ilość</th>
-                  <th>Śr. cena</th>
-                  <th>Notatka</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Historia zakupów</strong>
+              <span class="tiny muted">Pełna ewidencja</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-trades-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Aktywo</th>
+                    <th>Kwota</th>
+                    <th>Ilość</th>
+                    <th>Śr. cena</th>
+                    <th>Notatka</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </div>
-        </div>
-
         <div id="inv-asset-backdrop" class="inv-modal-backdrop" hidden></div>
       <aside id="inv-asset-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
         <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
@@ -6866,6 +6794,70 @@
     }
   }
 
+  function renderInvestmentHoldingsAccordion(holdings,trades){
+    const container=document.getElementById('inv-holdings-groups');
+    if(!container) return;
+    container.innerHTML='';
+    if(!holdings.length){
+      container.innerHTML='<div class="muted" style="padding:8px 0;">Brak aktywów — dodaj pierwsze powyżej.</div>';
+      return;
+    }
+    const groups=[...new Set(holdings.map(h=>h.group||'Inne'))];
+    groups.sort((a,b)=>{
+      const ta=holdings.filter(h=>(h.group||'Inne')===a).reduce((s,h)=>s+h.invested,0);
+      const tb=holdings.filter(h=>(h.group||'Inne')===b).reduce((s,h)=>s+h.invested,0);
+      return tb-ta;
+    });
+    for(const [idx,g] of groups.entries()){
+      const groupHoldings=holdings.filter(h=>(h.group||'Inne')===g);
+      const assetIds=new Set(groupHoldings.map(h=>h.id));
+      const groupTrades=trades.filter(t=>assetIds.has(t.assetId));
+      const invested=groupHoldings.reduce((s,h)=>s+h.invested,0);
+      const avgTicket=invested/Math.max(groupTrades.length,1);
+      const last=groupTrades.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+      const details=document.createElement('details');
+      details.className='inv-holding-group';
+      if(idx===0) details.open=true;
+      const summary=document.createElement('summary');
+      summary.innerHTML=`<div class="stack" style="gap:4px;">
+          <strong>${g}</strong>
+          <div class="inv-holding-meta">Aktywa: ${groupHoldings.length} • Zakupy: ${groupTrades.length} • Ostatni zakup: ${last}</div>
+        </div>
+        <div class="inv-holding-kpis">
+          <span class="pill">${fmt(invested,state.currency)}</span>
+          <span class="pill ghost">Śr. ticket: ${groupTrades.length?fmt(avgTicket,state.currency):'—'}</span>
+        </div>`;
+      details.appendChild(summary);
+      const body=document.createElement('div');
+      body.className='inv-holding-details';
+      const table=document.createElement('table');
+      table.className='modern-table';
+      table.innerHTML=`<thead><tr><th>Aktywo</th><th>Ilość</th><th>Śr. cena</th><th>Zainwestowano</th><th>Zakupy</th><th>Ostatni zakup</th><th></th></tr></thead>`;
+      const tbody=document.createElement('tbody');
+      if(!groupHoldings.length){
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak aktywów w tej grupie.</td>';
+        tbody.appendChild(tr);
+      } else {
+        for(const h of groupHoldings){
+          const assetTrades=groupTrades.filter(t=>t.assetId===h.id);
+          const lastTrade=assetTrades.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td><strong>${h.name}</strong></td><td>${h.qty.toFixed(4)}</td><td>${h.qty?fmt(h.avg,state.currency):'—'}</td><td>${fmt(h.invested,state.currency)}</td><td>${assetTrades.length}</td><td>${lastTrade}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
+          tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć aktywo i powiązane zakupy?')) return; deleteInvestmentAsset(h.id); };
+          tbody.appendChild(tr);
+        }
+      }
+      table.appendChild(tbody);
+      const wrap=document.createElement('div');
+      wrap.className='table-wrapper';
+      wrap.appendChild(table);
+      body.appendChild(wrap);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
+  }
+
   function toggleInvestmentModal(open){
     const backdrop=document.getElementById('inv-asset-backdrop');
     const modal=document.getElementById('inv-asset-modal');
@@ -7208,23 +7200,7 @@
     const holdings=investmentHoldings();
     updateInvestmentSnapshot(holdings, data.trades, data.assets);
     renderInvestmentGroupTable(holdings,data.trades);
-
-    const holdingsBody=document.querySelector('#inv-holdings tbody');
-    if(holdingsBody){
-      holdingsBody.innerHTML='';
-      if(holdings.length===0){
-        const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak aktywów — dodaj pierwsze.</td>';
-        holdingsBody.appendChild(tr);
-      } else {
-        for(const h of holdings){
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td><strong>${h.name}</strong></td><td>${h.group||'—'}</td><td>${h.qty.toFixed(4)}</td><td>${h.qty?fmt(h.avg,state.currency):'—'}</td><td>${fmt(h.invested,state.currency)}</td><td>${h.last||'—'}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
-          tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć aktywo i powiązane zakupy?')) return; deleteInvestmentAsset(h.id); };
-          holdingsBody.appendChild(tr);
-        }
-      }
-    }
+    renderInvestmentHoldingsAccordion(holdings,data.trades);
 
     const tradesBody=document.querySelector('#inv-trades-table tbody');
     if(tradesBody){
