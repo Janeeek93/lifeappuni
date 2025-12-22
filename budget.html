@@ -95,6 +95,43 @@
       gap: 18px;
     }
 
+    .inv-top-grid {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.1fr) minmax(320px, 0.9fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .inv-kpi-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inv-kpi-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .inv-kpi-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .inv-kpi-label { font-weight: 600; color: var(--ink); }
+    .inv-kpi-value { font-weight: 700; font-size: 18px; }
+    .inv-kpi-meta { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 960px) {
+      .inv-top-grid { grid-template-columns: 1fr; }
+    }
+
     .inv-analytics-nav {
       display: inline-flex;
       gap: 6px;
@@ -4573,30 +4610,62 @@
             <button class="btn ghost" type="button" id="inv-asset-modal-open">📑 Zarządzaj aktywami</button>
           </div>
 
-          <div class="card stack">
-            <div class="row" style="justify-content: space-between; align-items: center;">
-              <strong>Nowy zakup</strong>
-              <span class="badge ghost">Automatyczne księgowanie</span>
+          <div class="inv-top-grid">
+            <div class="card stack">
+              <div class="row" style="justify-content: space-between; align-items: center;">
+                <strong>Nowy zakup</strong>
+                <span class="badge ghost">Automatyczne księgowanie</span>
+              </div>
+              <form id="inv-trade-form" class="inv-compact-form">
+                <label class="inv-compact-field grow">Aktywo
+                  <select name="assetId" required></select>
+                </label>
+                <label class="inv-compact-field">Data zakupu
+                  <input type="date" name="date" required />
+                </label>
+                <label class="inv-compact-field">Kwota wydana
+                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
+                </label>
+                <label class="inv-compact-field">Ilość
+                  <input name="quantity" inputmode="decimal" placeholder="0" required />
+                </label>
+                <label class="inv-compact-field grow">Notatka
+                  <input name="note" placeholder="np. DCA, promo, HODL" />
+                </label>
+                <div class="inv-compact-footnote">Kwota trafia do „Wydatków zmiennych” &rarr; Inwestycje.</div>
+                <button class="btn" type="submit">Zapisz zakup</button>
+              </form>
             </div>
-            <form id="inv-trade-form" class="inv-compact-form">
-              <label class="inv-compact-field grow">Aktywo
-                <select name="assetId" required></select>
-              </label>
-              <label class="inv-compact-field">Data zakupu
-                <input type="date" name="date" required />
-              </label>
-              <label class="inv-compact-field">Kwota wydana
-                <input name="amount" inputmode="decimal" placeholder="0,00" required />
-              </label>
-              <label class="inv-compact-field">Ilość
-                <input name="quantity" inputmode="decimal" placeholder="0" required />
-              </label>
-              <label class="inv-compact-field grow">Notatka
-                <input name="note" placeholder="np. DCA, promo, HODL" />
-              </label>
-              <div class="inv-compact-footnote">Kwota trafia do „Wydatków zmiennych” &rarr; Inwestycje.</div>
-              <button class="btn" type="submit">Zapisz zakup</button>
-            </form>
+
+            <div class="card stack">
+              <div class="row" style="justify-content: space-between; align-items: center;">
+                <strong>KPI inwestycyjne</strong>
+                <span class="badge ghost">Rytm co poniedziałek</span>
+              </div>
+              <ul class="inv-kpi-list">
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Wszystkie inwestycje</span>
+                    <span id="inv-kpi-total" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Suma zapisanych zakupów (bez wyceny rynkowej).</div>
+                </li>
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Ostatni zakup</span>
+                    <span id="inv-kpi-last" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Następny poniedziałek: <span id="inv-kpi-next">—</span></div>
+                </li>
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Aktywność 30 dni</span>
+                    <span id="inv-kpi-pace" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Liczba zakupów i wkład za ostatnie 30 dni.</div>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div class="card stack">
@@ -7337,6 +7406,45 @@
     }
   }
 
+  function nextInvestmentMondayCountdown(ref=new Date()){
+    const base=new Date(ref);
+    const day=base.getDay();
+    const delta=(8-day)%7; // Monday target; 0 means dziś poniedziałek
+    const target=new Date(base);
+    target.setHours(0,0,0,0);
+    target.setDate(base.getDate()+delta);
+    return {days:delta, date:target.toISOString().slice(0,10)};
+  }
+
+  function updateInvestmentKpis(holdings,trades){
+    const totalEl=document.getElementById('inv-kpi-total');
+    const lastEl=document.getElementById('inv-kpi-last');
+    const nextEl=document.getElementById('inv-kpi-next');
+    const paceEl=document.getElementById('inv-kpi-pace');
+    const total=holdings.reduce((s,h)=>s+h.invested,0);
+    if(totalEl) totalEl.textContent=fmt(total,state.currency);
+
+    const last=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+    if(lastEl) lastEl.textContent=last?.date || 'Brak danych';
+
+    if(nextEl){
+      const {days,date}=nextInvestmentMondayCountdown();
+      const dayLabel=days===0?'dzisiaj':`za ${days} dni`;
+      const gap=last?.date ? Math.max(0, Math.floor((new Date()-new Date(last.date))/86400000)) : null;
+      const gapLabel=gap!==null?` • od ostatniego zakupu ${gap} dni`:' • brak historii zakupów';
+      nextEl.textContent=`${dayLabel} (${date})${gapLabel}`;
+    }
+
+    if(paceEl){
+      const now=new Date();
+      const cutoff=new Date(now);
+      cutoff.setDate(now.getDate()-30);
+      const recent=trades.filter(t=>t.date && new Date(t.date)>=cutoff);
+      const sum=recent.reduce((s,t)=>s+num(t.amount),0);
+      paceEl.textContent=recent.length ? `${recent.length} zak. / ${fmt(sum,state.currency)}` : 'Brak zakupów';
+    }
+  }
+
 
   function renderInvestments(){
     ensureInvestmentCategory();
@@ -7408,6 +7516,7 @@
 
     const holdings=investmentHoldings();
     updateInvestmentSnapshot(holdings, data.trades, data.assets);
+    updateInvestmentKpis(holdings, data.trades);
     renderInvestmentGroupTable(holdings,data.trades);
     renderInvestmentHoldingsAccordion(holdings,data.trades);
 
