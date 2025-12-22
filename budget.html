@@ -4634,6 +4634,29 @@
 
           <div class="card stack">
             <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Historia zakupów</strong>
+              <span class="tiny muted">Pełna ewidencja</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-trades-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Aktywo</th>
+                    <th>Kwota</th>
+                    <th>Ilość</th>
+                    <th>Śr. cena</th>
+                    <th>Notatka</th>
+                    <th>Akcje</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
               <strong>Analityka inwestycji</strong>
               <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
                 <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
@@ -4682,29 +4705,6 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="card stack">
-            <div class="row" style="justify-content: space-between; align-items: center;">
-              <strong>Historia zakupów</strong>
-              <span class="tiny muted">Pełna ewidencja</span>
-            </div>
-            <div class="table-wrapper">
-              <table class="modern-table" id="inv-trades-table">
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Aktywo</th>
-                    <th>Kwota</th>
-                    <th>Ilość</th>
-                    <th>Śr. cena</th>
-                    <th>Notatka</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
             </div>
           </div>
         </div>
@@ -7014,6 +7014,72 @@
     save(state); renderAll();
   }
 
+  function updateInvestmentTrade(tradeId, updates){
+    const data=investments();
+    const trade=data.trades.find(t=>t.id===tradeId);
+    if(!trade) return;
+    const asset=data.assets.find(a=>a.id===updates.assetId);
+    if(!asset) {alert('Wybierz aktywo z listy.'); return;}
+    const amount=Math.abs(num(updates.amount));
+    const quantity=num(updates.quantity);
+    if(!amount || amount<=0 || !quantity || quantity<=0){
+      alert('Kwota i ilość muszą być większe od zera.');
+      return;
+    }
+    trade.assetId=asset.id;
+    trade.date=updates.date;
+    trade.amount=amount;
+    trade.quantity=quantity;
+    trade.note=updates.note||'';
+    if(trade.txId){
+      const tx=b().transactions.find(tx=>tx.id===trade.txId);
+      const catId=ensureInvestmentCategory();
+      if(tx){
+        tx.date=updates.date;
+        tx.amount=signFor(catId, amount);
+        tx.note=`Inwestycja: ${asset.name}${trade.note?` (${trade.note})`:''}`;
+        tx.categoryId=catId;
+      }
+    }
+    save(state); renderAll();
+  }
+
+  function renderInvestmentTradeRow(tr, trade, data){
+    const asset=data.assets.find(a=>a.id===trade.assetId);
+    const avg=trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—';
+    tr.innerHTML=`<td>${trade.date}</td><td>${asset?.name||'—'}</td><td>${fmt(trade.amount,state.currency)}</td><td>${trade.quantity}</td><td>${avg}</td><td>${trade.note||''}</td><td class="row" style="justify-content:flex-end;gap:6px"><button class="btn ghost" data-act="edit">Edytuj</button><button class="btn ghost" data-act="del">Usuń</button></td>`;
+    const del=tr.querySelector('[data-act="del"]');
+    del.onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+    const edit=tr.querySelector('[data-act="edit"]');
+    edit.onclick=()=>enterInvestmentTradeEdit(tr, trade, data);
+  }
+
+  function enterInvestmentTradeEdit(tr, trade, data){
+    const assetOptions=data.assets.map(a=>`<option value="${a.id}" ${a.id===trade.assetId?'selected':''}>${a.name} (${a.group||'Inne'})</option>`).join('');
+    tr.innerHTML=`
+      <td><input type="date" name="date" value="${trade.date||''}" /></td>
+      <td><select name="assetId">${assetOptions}</select></td>
+      <td><input name="amount" inputmode="decimal" value="${trade.amount}" /></td>
+      <td><input name="quantity" inputmode="decimal" value="${trade.quantity}" /></td>
+      <td class="muted">${trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—'}</td>
+      <td><input name="note" value="${trade.note||''}" placeholder="Notatka" /></td>
+      <td class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn" data-act="save">Zapisz</button>
+        <button class="btn soft" data-act="cancel">Anuluj</button>
+        <button class="btn ghost" data-act="del">Usuń</button>
+      </td>`;
+    tr.querySelector('[data-act="save"]').onclick=()=>{
+      const date=String(tr.querySelector('[name="date"]').value||trade.date||'');
+      const assetId=String(tr.querySelector('[name="assetId"]').value||'');
+      const amount=tr.querySelector('[name="amount"]').value;
+      const quantity=tr.querySelector('[name="quantity"]').value;
+      const note=tr.querySelector('[name="note"]').value;
+      updateInvestmentTrade(trade.id,{date,assetId,amount,quantity,note});
+    };
+    tr.querySelector('[data-act="cancel"]').onclick=()=>renderInvestments();
+    tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+  }
+
   function deleteInvestmentAsset(assetId){
     const data=investments();
     const relatedTxIds=new Set(data.trades.filter(t=>t.assetId===assetId).map(t=>t.txId).filter(Boolean));
@@ -7292,11 +7358,8 @@
         tradesBody.appendChild(tr);
       } else {
         for(const t of trades){
-          const asset=data.assets.find(a=>a.id===t.assetId);
-          const avg=t.quantity?fmt(t.amount/t.quantity,state.currency):'—';
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${t.date}</td><td>${asset?.name||'—'}</td><td>${fmt(t.amount,state.currency)}</td><td>${t.quantity}</td><td>${avg}</td><td>${t.note||''}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
-          tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(t.id); };
+          renderInvestmentTradeRow(tr, t, data);
           tradesBody.appendChild(tr);
         }
       }
