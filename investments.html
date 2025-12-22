@@ -190,6 +190,31 @@
         max-height: 90vh; overflow-y: auto;
         border: 1px solid var(--line);
     }
+
+    .modal-card.shake { animation: shake 0.4s ease; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-4px); } }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-group label { font-weight: 600; font-size: 14px; }
+    .form-group input, .form-group select { padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+    .form-group input.invalid, .form-group select.invalid { border-color: var(--red); box-shadow: 0 0 0 2px rgba(239,68,68,0.12); }
+    .form-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted-inline { font-size: 12px; color: var(--muted); }
+
+    .modal-summary { background: var(--surface); border: 1px dashed var(--line); padding: 10px; border-radius: 10px; font-size: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; }
+
+    .toast { position: fixed; bottom: 18px; right: 18px; background: #0f172a; color: white; padding: 12px 14px; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.25); display: none; z-index: 10000; }
+    .toast.show { display: flex; align-items: center; gap: 8px; }
+
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row input[type="range"] { flex: 1; }
+
+    .inline-radio { display: flex; gap: 10px; align-items: center; }
+    .inline-radio label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .inline-radio input { margin: 0; }
+
+    .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
   </style>
 </head>
 <body data-page="investments">
@@ -396,9 +421,113 @@
     </div>
   </div>
 
+  <!-- Quick Transaction Modal -->
+  <div id="tx-modal-overlay" class="modal-overlay">
+    <div class="modal-card" id="tx-modal-card">
+        <h3 class="title" id="tx-modal-title">Nowe kupno</h3>
+        <div class="chip-row" id="tx-asset-chips"></div>
+        <div class="form-group">
+            <label>Kwota w PLN</label>
+            <input type="number" step="0.01" id="tx-amount" placeholder="np. 200" autofocus>
+            <div class="muted-inline" id="tx-amount-hint"></div>
+        </div>
+        <div class="form-inline">
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" id="tx-date">
+            </div>
+            <div class="form-group">
+                <label>Notatka (opcjonalne)</label>
+                <input type="text" id="tx-note" placeholder="np. szybkie DCA">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Cena jednostkowa</label>
+            <input type="number" step="0.0001" id="tx-price" placeholder="Auto z API">
+            <div class="muted-inline" id="tx-price-source"></div>
+        </div>
+        <div class="modal-summary" id="tx-summary">Wpisz kwotę, aby obliczyć ilość.</div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeTxModal()">Anuluj</button>
+            <button class="btn primary" id="tx-confirm" disabled>✓ Potwierdź zakup</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Bulk Custom Modal -->
+  <div id="bulk-modal-overlay" class="modal-overlay">
+    <div class="modal-card" id="bulk-modal-card">
+        <h3 class="title">Dodaj własne aktywa</h3>
+        <div class="form-group">
+            <label>Ticker / symbol</label>
+            <input list="known-tickers" type="text" id="bulk-ticker" placeholder="np. XYZ">
+            <datalist id="known-tickers"></datalist>
+        </div>
+        <div class="form-group">
+            <label>Nazwa</label>
+            <input type="text" id="bulk-name" placeholder="Nazwa aktywa">
+        </div>
+        <div class="form-group">
+            <label>Typ</label>
+            <select id="bulk-type">
+                <option value="stock">Akcje</option>
+                <option value="crypto">Krypto</option>
+                <option value="currency">Waluta</option>
+                <option value="gold">Złoto</option>
+                <option value="custom" selected>Własne</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Kwota w PLN</label>
+            <input type="number" step="0.01" id="bulk-amount" placeholder="np. 150">
+        </div>
+        <div class="modal-summary" id="bulk-summary">Podaj szczegóły aby dodać transakcję.</div>
+        <div class="modal-actions" style="justify-content: space-between;">
+            <button class="btn" onclick="closeBulkModal()">Zamknij</button>
+            <div class="row" style="gap:8px;">
+                <button class="btn ghost" id="bulk-add-more">Dodaj kolejne</button>
+                <button class="btn primary" id="bulk-done">Gotowe</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Sell Modal -->
+  <div id="sell-modal-overlay" class="modal-overlay">
+    <div class="modal-card" id="sell-modal-card">
+        <h3 class="title">Sprzedaż aktywa</h3>
+        <div class="chip-row" id="sell-asset-chips"></div>
+        <div class="inline-radio">
+            <label><input type="radio" name="sell-mode" value="all" checked>Sprzedaj wszystko</label>
+            <label><input type="radio" name="sell-mode" value="partial">Sprzedaj część</label>
+        </div>
+        <div class="form-group" id="sell-partial-group" style="display:none;">
+            <label>Ilość (lub użyj slidera)</label>
+            <div class="slider-row">
+                <input type="number" step="0.0001" id="sell-quantity" placeholder="np. 0.5">
+                <input type="range" id="sell-slider" min="0" max="100" value="0">
+                <span class="tiny" id="sell-percent">0%</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Cena sprzedaży</label>
+            <input type="number" step="0.0001" id="sell-price">
+            <div class="muted-inline" id="sell-price-source"></div>
+        </div>
+        <div class="modal-summary" id="sell-summary">Wybierz tryb sprzedaży.</div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeSellModal()">Anuluj</button>
+            <button class="btn primary" id="sell-confirm">Potwierdź sprzedaż</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
 <script>
     // --- STATE MANAGEMENT ---
     const STORAGE_KEY = 'lifeos_investments_v1';
+    const PRICE_CACHE_KEY = 'lifeos_price_cache_v1';
     
     // Default state structure
     let state = {
@@ -412,6 +541,11 @@
     let assetSortConfig = { field: 'value', dir: 'desc' };
     let heroSparklineChart = null;
     let totalsAnimated = false;
+    let priceCache = {};
+    let txModalAsset = null;
+    let sellModalAsset = null;
+    let txPriceSource = 'manual';
+    let sellPriceSource = 'manual';
 
     function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -423,6 +557,21 @@
             } catch(e) { console.error("Error loading state", e); }
         }
         recalcPortfolio(); // Ensure portfolio matches transactions
+    }
+
+    function loadPriceCache() {
+        const raw = localStorage.getItem(PRICE_CACHE_KEY);
+        if (raw) {
+            try {
+                priceCache = JSON.parse(raw) || {};
+            } catch (e) {
+                priceCache = {};
+            }
+        }
+    }
+
+    function savePriceCache() {
+        localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(priceCache));
     }
 
     function saveState() {
@@ -486,11 +635,20 @@
         return lastTx ? lastTx.price : null;
     }
 
-    async function fetchPriceForAsset(asset) {
-        const { ticker, type, name } = asset;
-        const lastKnown = getLastKnownPrice(ticker);
-        if (lastKnown) return lastKnown;
+    function getCachedPrice(ticker) {
+        const cached = priceCache[ticker];
+        if (!cached) return null;
+        const isFresh = Date.now() - cached.timestamp < 3600000; // 1h
+        return isFresh ? cached : null;
+    }
 
+    function setCachedPrice(ticker, price, source = 'api') {
+        priceCache[ticker] = { price, timestamp: Date.now(), source };
+        savePriceCache();
+    }
+
+    async function fetchPriceFromApis(asset) {
+        const { ticker, type, name } = asset;
         try {
             if (type === 'currency') {
                 const nbpResponse = await fetch('https://api.nbp.pl/api/exchangerates/tables/a/?format=json');
@@ -522,6 +680,24 @@
         return null;
     }
 
+    async function resolvePrice(asset) {
+        const cached = getCachedPrice(asset.ticker);
+        if (cached) return { price: cached.price, source: 'cache' };
+
+        const apiPrice = await fetchPriceFromApis(asset);
+        if (apiPrice) {
+            setCachedPrice(asset.ticker, apiPrice, 'api');
+            return { price: apiPrice, source: 'api' };
+        }
+
+        const fallback = getLastKnownPrice(asset.ticker) || asset.currentPrice || asset.avgPrice || null;
+        if (fallback) {
+            setCachedPrice(asset.ticker, fallback, 'fallback');
+            return { price: fallback, source: 'fallback' };
+        }
+        return { price: null, source: 'manual' };
+    }
+
     function quickRipple(card, event) {
         const rect = card.getBoundingClientRect();
         const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -533,43 +709,13 @@
     async function handleQuickAdd(key) {
         const asset = quickAssets.find(a => a.key === key);
         if (!asset) return;
-        const amountInput = document.querySelector(`[data-quick="${key}"]`);
-        const amount = parseFloat(amountInput?.value);
-        if (isNaN(amount) || amount <= 0) {
-            alert('Podaj kwotę w PLN, którą chcesz zainwestować.');
+        if (asset.key === 'CUSTOM') {
+            openBulkModal();
             return;
         }
-
-        const today = new Date().toISOString().split('T')[0];
-        let preparedAsset = { ...asset };
-        if (asset.key === 'CUSTOM') {
-            const customTicker = prompt('Podaj ticker/symbol aktywa:', 'TICKER');
-            const customName = prompt('Nazwa aktywa:', 'Moje aktywo');
-            if (!customTicker || !customName) return;
-            preparedAsset = { ...asset, ticker: customTicker.toUpperCase(), name: customName, type: 'custom' };
-        }
-
-        const price = await fetchPriceForAsset(preparedAsset);
-        const unitPrice = price || amount;
-        const quantity = unitPrice > 0 ? amount / unitPrice : 0;
-
-        const newTx = {
-            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            date: today,
-            type: preparedAsset.type,
-            ticker: preparedAsset.ticker.toUpperCase(),
-            name: preparedAsset.name,
-            operation: 'buy',
-            quantity: parseFloat(quantity.toFixed(6)),
-            price: parseFloat(unitPrice.toFixed(2)),
-            total: parseFloat(amount.toFixed(2)),
-            note: 'Szybkie dodanie'
-        };
-
-        state.transactions.push(newTx);
-        recalcPortfolio();
-        saveState();
-        amountInput.value = '';
+        const amountInput = document.querySelector(`[data-quick="${key}"]`);
+        const preset = parseFloat(amountInput?.value) || '';
+        openTxModal(asset, preset);
     }
 
     // --- CORE LOGIC (DCA & PnL) ---
@@ -1293,6 +1439,324 @@
 
     // --- ACTIONS ---
 
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function resetValidation(inputs = []) {
+        inputs.forEach(i => i?.classList?.remove('invalid'));
+    }
+
+    function setInvalid(input) {
+        if (input) input.classList.add('invalid');
+        const card = input?.closest('.modal-card');
+        if (card) {
+            card.classList.remove('shake');
+            void card.offsetWidth;
+            card.classList.add('shake');
+        }
+    }
+
+    async function openTxModal(asset, presetAmount = '') {
+        txModalAsset = asset;
+        const overlay = document.getElementById('tx-modal-overlay');
+        const chips = document.getElementById('tx-asset-chips');
+        const amountEl = document.getElementById('tx-amount');
+        const dateEl = document.getElementById('tx-date');
+        const priceEl = document.getElementById('tx-price');
+        const hint = document.getElementById('tx-amount-hint');
+        const priceSource = document.getElementById('tx-price-source');
+        const summary = document.getElementById('tx-summary');
+
+        chips.innerHTML = `<span class="pill">${asset.icon || '💠'} ${asset.name}</span><span class="pill">${asset.ticker}</span><span class="pill">${assetTypeLabels[asset.type] || 'Inne'}</span>`;
+        hint.textContent = 'Wpisz kwotę aby obliczyć ilość';
+        amountEl.value = presetAmount || '';
+        priceEl.value = '';
+        priceSource.textContent = 'Ładowanie ceny z API...';
+        summary.textContent = 'Wpisz kwotę, aby obliczyć ilość.';
+        document.getElementById('tx-note').value = '';
+        document.getElementById('tx-confirm').disabled = true;
+        resetValidation([amountEl, priceEl, dateEl]);
+        txPriceSource = 'manual';
+
+        const today = new Date().toISOString().split('T')[0];
+        dateEl.value = today;
+
+        overlay.style.display = 'flex';
+        amountEl.focus();
+
+        const { price, source } = await resolvePrice(asset);
+        if (price) {
+            priceEl.value = parseFloat(price).toFixed(4);
+            txPriceSource = source;
+            priceSource.textContent = source === 'api' ? '💰 Cena z API' : (source === 'cache' ? '💰 Cena z API (cache <1h)' : '📝 Cena ręczna');
+        } else {
+            txPriceSource = 'manual';
+            priceSource.textContent = '📝 Cena ręczna — podaj własną';
+        }
+        updateTxSummary();
+    }
+
+    function closeTxModal() {
+        document.getElementById('tx-modal-overlay').style.display = 'none';
+        txModalAsset = null;
+    }
+
+    function updateTxSummary() {
+        const amountEl = document.getElementById('tx-amount');
+        const priceEl = document.getElementById('tx-price');
+        const dateEl = document.getElementById('tx-date');
+        const summary = document.getElementById('tx-summary');
+        const confirmBtn = document.getElementById('tx-confirm');
+
+        const amount = parseFloat(amountEl.value);
+        const price = parseFloat(priceEl.value);
+        const dateValid = Boolean(dateEl.value);
+
+        resetValidation([amountEl, priceEl, dateEl]);
+        let valid = true;
+        if (!amount || amount <= 0) { valid = false; }
+        if (!price || price <= 0) { valid = false; }
+        if (!dateValid) { valid = false; }
+
+        if (valid && txModalAsset) {
+            const qty = amount / price;
+            summary.textContent = `Kupujesz ${qty.toFixed(4)} ${txModalAsset.ticker} po ${price.toFixed(2)} PLN`;
+        } else {
+            summary.textContent = 'Wpisz poprawne dane aby zobaczyć podgląd.';
+        }
+        confirmBtn.disabled = !valid;
+    }
+
+    async function confirmTx() {
+        const amountEl = document.getElementById('tx-amount');
+        const priceEl = document.getElementById('tx-price');
+        const dateEl = document.getElementById('tx-date');
+        if (!txModalAsset) return;
+        const amount = parseFloat(amountEl.value);
+        const price = parseFloat(priceEl.value);
+        const date = dateEl.value;
+        if (!amount || !price || !date) {
+            [amountEl, priceEl, dateEl].forEach(el => { if (!el.value || parseFloat(el.value) <= 0) setInvalid(el); });
+            return;
+        }
+        const qty = amount / price;
+        const tx = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            date,
+            type: txModalAsset.type,
+            ticker: txModalAsset.ticker.toUpperCase(),
+            name: txModalAsset.name,
+            operation: 'buy',
+            quantity: parseFloat(qty.toFixed(6)),
+            price: parseFloat(price.toFixed(4)),
+            total: parseFloat(amount.toFixed(2)),
+            note: document.getElementById('tx-note').value || 'Szybki zakup'
+        };
+        state.transactions.push(tx);
+        setCachedPrice(tx.ticker, tx.price, txPriceSource || 'manual');
+        recalcPortfolio();
+        saveState();
+        showToast(`✓ Dodano ${qty.toFixed(4)} ${tx.ticker} za ${fmtMoney(amount)}`);
+        closeTxModal();
+    }
+
+    function openBulkModal() {
+        const overlay = document.getElementById('bulk-modal-overlay');
+        resetValidation([document.getElementById('bulk-ticker'), document.getElementById('bulk-name'), document.getElementById('bulk-amount')]);
+        document.getElementById('bulk-summary').textContent = 'Podaj szczegóły aby dodać transakcję.';
+        document.getElementById('bulk-ticker').value = '';
+        document.getElementById('bulk-name').value = '';
+        document.getElementById('bulk-amount').value = '';
+        document.getElementById('bulk-type').value = 'custom';
+
+        const datalist = document.getElementById('known-tickers');
+        datalist.innerHTML = '';
+        const tickers = Array.from(new Set(state.transactions.map(t => t.ticker)));
+        tickers.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            datalist.appendChild(opt);
+        });
+        overlay.style.display = 'flex';
+        document.getElementById('bulk-ticker').focus();
+    }
+
+    function closeBulkModal() {
+        document.getElementById('bulk-modal-overlay').style.display = 'none';
+    }
+
+    async function handleBulkAdd(closeAfter = false) {
+        const tickerEl = document.getElementById('bulk-ticker');
+        const nameEl = document.getElementById('bulk-name');
+        const typeEl = document.getElementById('bulk-type');
+        const amountEl = document.getElementById('bulk-amount');
+        resetValidation([tickerEl, nameEl, amountEl]);
+        const ticker = tickerEl.value.trim().toUpperCase();
+        const name = nameEl.value.trim();
+        const type = typeEl.value;
+        const amount = parseFloat(amountEl.value);
+        if (!ticker) setInvalid(tickerEl);
+        if (!name) setInvalid(nameEl);
+        if (!amount || amount <= 0) setInvalid(amountEl);
+        if (!ticker || !name || !amount || amount <= 0) return;
+
+        const asset = { ticker, name, type };
+        const { price, source } = await resolvePrice(asset);
+        const finalPrice = price || amount;
+        const qty = amount / finalPrice;
+        const today = new Date().toISOString().split('T')[0];
+        const tx = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            date: today,
+            type,
+            ticker,
+            name,
+            operation: 'buy',
+            quantity: parseFloat(qty.toFixed(6)),
+            price: parseFloat(finalPrice.toFixed(4)),
+            total: parseFloat(amount.toFixed(2)),
+            note: 'Dodane w trybie Własne'
+        };
+        if (price) setCachedPrice(ticker, finalPrice, source);
+        state.transactions.push(tx);
+        recalcPortfolio();
+        saveState();
+        document.getElementById('bulk-summary').textContent = `Dodano ${qty.toFixed(4)} ${ticker} (${fmtMoney(amount)})`;
+        showToast(`✓ Dodano ${ticker}`);
+        if (closeAfter) {
+            closeBulkModal();
+        } else {
+            amountEl.value = '';
+            tickerEl.value = '';
+            nameEl.value = '';
+            tickerEl.focus();
+        }
+    }
+
+    async function openSellModal(ticker) {
+        const asset = state.portfolio.find(a => a.ticker === ticker);
+        if (!asset) return;
+        sellModalAsset = asset;
+        const overlay = document.getElementById('sell-modal-overlay');
+        document.querySelector('input[name="sell-mode"][value="all"]').checked = true;
+        document.getElementById('sell-partial-group').style.display = 'none';
+        document.getElementById('sell-slider').value = 0;
+        document.getElementById('sell-quantity').value = '';
+        document.getElementById('sell-percent').innerText = '0%';
+        resetValidation([document.getElementById('sell-price')]);
+        sellPriceSource = 'manual';
+
+        const chips = document.getElementById('sell-asset-chips');
+        chips.innerHTML = `<span class="pill">${asset.ticker}</span><span class="pill">${asset.name}</span><span class="pill">Posiadasz ${asset.quantity.toFixed(4)}</span>`;
+
+        overlay.style.display = 'flex';
+        const { price, source } = await resolvePrice(asset);
+        const priceEl = document.getElementById('sell-price');
+        const srcEl = document.getElementById('sell-price-source');
+        if (price) {
+            priceEl.value = parseFloat(price).toFixed(4);
+            sellPriceSource = source;
+            srcEl.textContent = source === 'api' ? '💰 Cena z API' : (source === 'cache' ? '💰 Cena z API (cache <1h)' : '📝 Cena ręczna');
+        } else {
+            priceEl.value = asset.currentPrice || asset.avgPrice || '';
+            sellPriceSource = 'manual';
+            srcEl.textContent = '📝 Cena ręczna — podaj wartość';
+        }
+        updateSellSummary();
+    }
+
+    function closeSellModal() {
+        document.getElementById('sell-modal-overlay').style.display = 'none';
+        sellModalAsset = null;
+    }
+
+    function updateSellSummary() {
+        if (!sellModalAsset) return;
+        const mode = document.querySelector('input[name="sell-mode"]:checked').value;
+        const price = parseFloat(document.getElementById('sell-price').value);
+        let quantity = mode === 'partial' ? 0 : sellModalAsset.quantity;
+        if (mode === 'partial') {
+            const qtyInput = parseFloat(document.getElementById('sell-quantity').value);
+            if (!isNaN(qtyInput)) quantity = Math.min(qtyInput, sellModalAsset.quantity);
+        }
+        const total = price ? quantity * price : 0;
+        document.getElementById('sell-summary').textContent = price && quantity ? `Sprzedajesz ${quantity.toFixed(4)} ${sellModalAsset.ticker} za ${fmtMoney(total)}` : 'Uzupełnij dane sprzedaży';
+    }
+
+    function handleSellModeChange(value) {
+        const partialGroup = document.getElementById('sell-partial-group');
+        if (value === 'partial') {
+            partialGroup.style.display = 'block';
+        } else {
+            partialGroup.style.display = 'none';
+            document.getElementById('sell-slider').value = 0;
+            document.getElementById('sell-quantity').value = '';
+            document.getElementById('sell-percent').innerText = '0%';
+        }
+        updateSellSummary();
+    }
+
+    function syncSellSlider(value) {
+        const slider = document.getElementById('sell-slider');
+        const percentEl = document.getElementById('sell-percent');
+        slider.value = value;
+        percentEl.textContent = `${Math.round(value)}%`;
+        if (sellModalAsset) {
+            const qty = (value / 100) * sellModalAsset.quantity;
+            document.getElementById('sell-quantity').value = qty.toFixed(4);
+        }
+        updateSellSummary();
+    }
+
+    function syncSellQuantity(value) {
+        if (!sellModalAsset) return;
+        const slider = document.getElementById('sell-slider');
+        const percentEl = document.getElementById('sell-percent');
+        const qty = parseFloat(value) || 0;
+        const pct = Math.min(Math.max((qty / sellModalAsset.quantity) * 100, 0), 100);
+        slider.value = pct;
+        percentEl.textContent = `${Math.round(pct)}%`;
+        updateSellSummary();
+    }
+
+    function confirmSell() {
+        if (!sellModalAsset) return;
+        const mode = document.querySelector('input[name="sell-mode"]:checked').value;
+        const priceEl = document.getElementById('sell-price');
+        const price = parseFloat(priceEl.value);
+        if (!price || price <= 0) { setInvalid(priceEl); return; }
+        let quantity = sellModalAsset.quantity;
+        if (mode === 'partial') {
+            quantity = parseFloat(document.getElementById('sell-quantity').value);
+            if (!quantity || quantity <= 0 || quantity > sellModalAsset.quantity) { setInvalid(document.getElementById('sell-quantity')); return; }
+        }
+        const total = quantity * price;
+        const today = new Date().toISOString().split('T')[0];
+        const tx = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            date: today,
+            type: sellModalAsset.type,
+            ticker: sellModalAsset.ticker,
+            name: sellModalAsset.name,
+            operation: 'sell',
+            quantity: parseFloat(quantity.toFixed(6)),
+            price: parseFloat(price.toFixed(4)),
+            total: parseFloat(total.toFixed(2)),
+            note: 'Szybka sprzedaż'
+        };
+        state.transactions.push(tx);
+        setCachedPrice(tx.ticker, tx.price, sellPriceSource || 'manual');
+        recalcPortfolio();
+        saveState();
+        showToast(`✓ Sprzedano ${tx.quantity} ${tx.ticker}`);
+        closeSellModal();
+    }
+
     function scrollToHistory() {
         const historyCard = document.getElementById('history-card');
         if (historyCard) historyCard.scrollIntoView({ behavior: 'smooth' });
@@ -1318,67 +1782,27 @@
     function buyMore(ticker) {
         const asset = state.portfolio.find(a => a.ticker === ticker);
         if (!asset) return;
-        const priceStr = prompt('Cena zakupu (PLN):', asset.currentPrice.toFixed(2));
-        if (priceStr === null) return;
-        const totalStr = prompt('Kwota zakupu (PLN):', '200');
-        if (totalStr === null) return;
-
-        const price = parseFloat(priceStr);
-        const total = parseFloat(totalStr);
-        if (isNaN(price) || isNaN(total) || price <= 0 || total <= 0) { alert('Podaj poprawne wartości.'); return; }
-        const quantity = total / price;
-        const today = new Date().toISOString().split('T')[0];
-
-        const tx = {
-            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            date: today,
-            type: asset.type,
-            ticker: asset.ticker,
-            name: asset.name,
-            operation: 'buy',
-            quantity: quantity,
-            price: price,
-            total: total,
-            note: 'Dokup z tabeli'
-        };
-
-        state.transactions.push(tx);
-        recalcPortfolio();
-        saveState();
+        openTxModal({ ...asset, icon: '➕' });
     }
 
     function prefillSell(ticker) {
-        const asset = state.portfolio.find(a => a.ticker === ticker);
-        if(!asset) return;
-        const quantityStr = prompt('Ile sztuk chcesz sprzedać?', asset.quantity.toFixed(4));
-        if (quantityStr === null) return;
-        const priceStr = prompt('Cena sprzedaży (PLN):', asset.currentPrice.toFixed(2));
-        if (priceStr === null) return;
-
-        const quantity = parseFloat(quantityStr);
-        const price = parseFloat(priceStr);
-        if (isNaN(quantity) || isNaN(price)) { alert('Podaj prawidłowe liczby.'); return; }
-
-        const total = quantity * price;
-        const today = new Date().toISOString().split('T')[0];
-        const sellTx = {
-            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            date: today,
-            type: asset.type,
-            ticker: asset.ticker,
-            name: asset.name,
-            operation: 'sell',
-            quantity: quantity,
-            price: price,
-            total: total,
-            note: 'Szybka sprzedaż'
-        };
-        state.transactions.push(sellTx);
-        recalcPortfolio();
-        saveState();
+        openSellModal(ticker);
     }
 
     document.getElementById('refresh-prices-btn').addEventListener('click', fetchMarketData);
+    document.getElementById('tx-amount').addEventListener('input', updateTxSummary);
+    document.getElementById('tx-price').addEventListener('input', () => { txPriceSource = 'manual'; updateTxSummary(); });
+    document.getElementById('tx-date').addEventListener('input', updateTxSummary);
+    document.getElementById('tx-confirm').addEventListener('click', confirmTx);
+
+    document.getElementById('bulk-add-more').addEventListener('click', () => handleBulkAdd(false));
+    document.getElementById('bulk-done').addEventListener('click', () => handleBulkAdd(true));
+
+    document.querySelectorAll('input[name="sell-mode"]').forEach(r => r.addEventListener('change', (e) => handleSellModeChange(e.target.value)));
+    document.getElementById('sell-slider').addEventListener('input', (e) => syncSellSlider(e.target.value));
+    document.getElementById('sell-quantity').addEventListener('input', (e) => syncSellQuantity(e.target.value));
+    document.getElementById('sell-price').addEventListener('input', () => { sellPriceSource = 'manual'; updateSellSummary(); });
+    document.getElementById('sell-confirm').addEventListener('click', confirmSell);
 
     // Sidebar activation logic
     (function activateSidebarLink() {
@@ -1396,6 +1820,7 @@
     })();
 
     // Init
+    loadPriceCache();
     loadState();
     renderAll();
 
