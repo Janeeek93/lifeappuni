@@ -4719,17 +4719,18 @@
           <button class="btn ghost" type="button" id="inv-asset-modal-close">✕</button>
         </header>
         <div class="inv-modal-body" style="margin-top:12px;">
-          <div class="inv-asset-toolbar">
-            <div>
-              <strong>Pełna lista aktywów</strong>
-              <p class="tiny muted" style="margin:2px 0 0">Dodaj kilka na raz, a następnie zapisz hurtowo.</p>
+            <div class="inv-asset-toolbar">
+              <div>
+                <strong>Pełna lista aktywów</strong>
+                <p class="tiny muted" style="margin:2px 0 0">Dodaj kilka na raz, a następnie zapisz hurtowo.</p>
+              </div>
+              <div class="actions">
+                <button class="btn soft" type="button" id="inv-asset-add-group">Nowa grupa</button>
+                <button class="btn soft" type="button" id="inv-asset-add-row">+ Dodaj wiersz</button>
+                <button class="btn" type="button" id="inv-asset-save-all">Zapisz wszystkie</button>
+                <button class="btn ghost" type="button" id="inv-asset-cancel">Zamknij</button>
+              </div>
             </div>
-            <div class="actions">
-              <button class="btn soft" type="button" id="inv-asset-add-row">+ Dodaj wiersz</button>
-              <button class="btn" type="button" id="inv-asset-save-all">Zapisz wszystkie</button>
-              <button class="btn ghost" type="button" id="inv-asset-cancel">Zamknij</button>
-            </div>
-          </div>
           <div class="table-wrapper" style="margin-top:6px;">
             <table class="modern-table inv-asset-table">
               <thead>
@@ -5464,9 +5465,10 @@
     if(!Array.isArray(bud.recurringLog)) bud.recurringLog=[];
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
-    if(!bud.investments) bud.investments={assets:[], trades:[]};
+    if(!bud.investments) bud.investments={assets:[], trades:[], groups:[]};
     if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
+    if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
 
     return st;
   }
@@ -5490,7 +5492,7 @@
         createTxOnFixedPay:true,
         recurringTemplates:[],recurringLog:[],
         fixedTemplates:[],
-        investments:{assets:[], trades:[]}
+        investments:{assets:[], trades:[], groups:[]}
       }}
     });
   }
@@ -6699,10 +6701,63 @@
 
   const investments=()=>{
     if(!b().investments){
-      b().investments={assets:[], trades:[]};
+      b().investments={assets:[], trades:[], groups:[]};
     }
+    if(!Array.isArray(b().investments.assets)) b().investments.assets=[];
+    if(!Array.isArray(b().investments.trades)) b().investments.trades=[];
+    if(!Array.isArray(b().investments.groups)) b().investments.groups=[];
     return b().investments;
   };
+
+  const allInvestmentGroups=()=>{
+    const data=investments();
+    const derivedFromAssets=(data.assets||[]).map(a=>a.group||'Inne');
+    const combined=new Set([...invGroupOptions,...(data.groups||[]),...derivedFromAssets]);
+    return Array.from(combined).sort((a,b)=>a.localeCompare(b));
+  };
+
+  const addInvestmentGroup=(name)=>{
+    const g=(name||'').trim();
+    if(!g) return;
+    const data=investments();
+    if(!data.groups.includes(g) && !invGroupOptions.includes(g)){
+      data.groups.push(g);
+      save(state);
+    }
+    return g;
+  };
+
+  const sortAssetsByGroupThenName=(assets)=>{
+    return [...assets].sort((a,b)=>{
+      const gA=(a.group||'Inne');
+      const gB=(b.group||'Inne');
+      const gComp=gA.localeCompare(gB);
+      if(gComp!==0) return gComp;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+  };
+
+  function populateAssetGroupSelect(select,current){
+    if(!select) return;
+    const currentVal=current || current===0 ? current : (select.value||'');
+    const options=allInvestmentGroups();
+    select.innerHTML='';
+    for(const opt of options){
+      select.add(new Option(opt,opt,false,opt===currentVal));
+    }
+    select.add(new Option('🆕 Nowa grupa…','__new',false,false));
+    select.onchange=()=>{
+      if(select.value==='__new'){
+        const name=prompt('Podaj nazwę nowej grupy aktyw:');
+        if(name){
+          const added=addInvestmentGroup(name);
+          populateAssetGroupSelect(select, added || currentVal);
+        } else {
+          populateAssetGroupSelect(select, currentVal || 'Inne');
+        }
+      }
+    };
+  }
 
   function ensureInvestmentCategory(){
     const existing=b().categories.find(c=>c.id==='c_invest' || c.name==='Inwestycje');
@@ -6723,12 +6778,12 @@
       if(!sel) continue;
       const current=sel.value;
       sel.innerHTML='';
-      const assetsList=investments().assets;
+      const assetsList=sortAssetsByGroupThenName(investments().assets);
       if(assetsList.length===0){
         sel.add(new Option('Dodaj aktywo, aby rejestrować zakupy', '', true, true));
       }
       for(const a of assetsList){
-        sel.add(new Option(`${a.name}`, a.id, false, a.id===current));
+        sel.add(new Option(`${a.name} (${a.group||'Inne'})`, a.id, false, a.id===current));
       }
       sel.value=current || sel.value;
     }
@@ -6773,10 +6828,7 @@
         <button class="btn ghost" data-act="delete">Usuń</button>
       </td>`;
     const select=tr.querySelector('.inv-asset-group');
-    if(asset.group && !invGroupOptions.includes(asset.group)){
-      select.add(new Option(asset.group,asset.group,false,true));
-    }
-    invGroupOptions.forEach(opt=>select.add(new Option(opt,opt,false,opt===(asset.group||'Inne'))));
+    populateAssetGroupSelect(select, asset.group||'Inne');
     tr.querySelector('[data-act="save"]').onclick=()=>saveAssetRow(tr);
     tr.querySelector('[data-act="delete"]').onclick=()=>{
       const id=tr.dataset.assetId;
@@ -6791,7 +6843,7 @@
     const empty=document.getElementById('inv-asset-empty');
     if(!tbody || !empty) return;
     tbody.innerHTML='';
-    const sorted=[...assets].sort((a,b)=>a.name.localeCompare(b.name));
+    const sorted=sortAssetsByGroupThenName(assets);
     for(const asset of sorted){
       tbody.appendChild(createAssetRow(asset,trades));
     }
@@ -7055,7 +7107,7 @@
   }
 
   function enterInvestmentTradeEdit(tr, trade, data){
-    const assetOptions=data.assets.map(a=>`<option value="${a.id}" ${a.id===trade.assetId?'selected':''}>${a.name} (${a.group||'Inne'})</option>`).join('');
+    const assetOptions=sortAssetsByGroupThenName(data.assets).map(a=>`<option value="${a.id}" ${a.id===trade.assetId?'selected':''}>${a.name} (${a.group||'Inne'})</option>`).join('');
     tr.innerHTML=`
       <td><input type="date" name="date" value="${trade.date||''}" /></td>
       <td><select name="assetId">${assetOptions}</select></td>
@@ -7293,8 +7345,19 @@
     bindInvestmentAnalyticsNav();
     renderAssetManagerList(data.assets,data.trades);
     const addRowBtn=document.getElementById('inv-asset-add-row');
+    const addGroupBtn=document.getElementById('inv-asset-add-group');
     const saveAllBtn=document.getElementById('inv-asset-save-all');
     if(addRowBtn && !addRowBtn._bound){ addRowBtn._bound=true; addRowBtn.onclick=addBlankAssetRow; }
+    if(addGroupBtn && !addGroupBtn._bound){
+      addGroupBtn._bound=true;
+      addGroupBtn.onclick=()=>{
+        const name=prompt('Nazwa nowej grupy aktyw:');
+        if(!name) return;
+        addInvestmentGroup(name);
+        document.querySelectorAll('.inv-asset-group').forEach(sel=>populateAssetGroupSelect(sel, sel.value||name));
+        fillInvestmentAssetSelects();
+      };
+    }
     if(saveAllBtn && !saveAllBtn._bound){ saveAllBtn._bound=true; saveAllBtn.onclick=saveAllAssetRows; }
 
     const tradeForm=document.getElementById('inv-trade-form');
