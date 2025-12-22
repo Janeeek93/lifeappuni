@@ -50,6 +50,41 @@
       position: relative;
     }
 
+    .inv-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+
+    .inv-modal {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      max-width: 520px;
+      width: calc(100% - 32px);
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+      z-index: 65;
+    }
+
+    .inv-modal[hidden],
+    .inv-modal-backdrop[hidden] { display: none; }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--muted);
+    }
+
     .eom-hero {
       margin-top: 16px;
       display: flex;
@@ -4432,33 +4467,13 @@
           <h2 class="title">Księgowanie inwestycji</h2>
           <p class="muted">Dodawaj transakcje na akcje, ETF-y, krypto, metale i waluty. Kwota trafia automatycznie do kategorii „Inwestycje”.</p>
         </div>
-        <div class="badge">📈 Tracker inwestycyjny</div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button class="btn ghost" type="button" id="inv-asset-modal-open">+ Dodaj aktywo</button>
+          <div class="badge">📈 Tracker inwestycyjny</div>
+        </div>
       </div>
 
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start;">
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Nowy walor</strong>
-            <span class="badge ghost">Definicja aktywa</span>
-          </div>
-          <form id="inv-asset-form" class="stack" style="gap:10px">
-            <label>Typ aktywa
-              <select name="group" required>
-                <option value="Akcje">Akcje / ETF</option>
-                <option value="Dywidenda">Spółka dywidendowa</option>
-                <option value="Krypto">Krypto</option>
-                <option value="Metal">Złoto / srebro</option>
-                <option value="Waluta">USD / inne FX</option>
-                <option value="Inne">Inne</option>
-              </select>
-            </label>
-            <label>Nazwa
-              <input name="name" placeholder="np. VOO, BTC, złoto" required />
-            </label>
-            <button class="btn" type="submit">Dodaj aktywo</button>
-          </form>
-        </div>
-
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start;">
         <div class="card stack">
           <div class="row" style="justify-content: space-between; align-items: center;">
             <strong>Nowy zakup</strong>
@@ -4486,6 +4501,22 @@
             <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
           </form>
         </div>
+
+        <div class="card stack" style="gap:10px">
+          <div class="row" style="justify-content: space-between; align-items: flex-start;">
+            <div>
+              <p class="eyebrow">Portfel w skrócie</p>
+              <h3 class="title" style="margin:0">Bieżące inwestycje</h3>
+            </div>
+            <span id="inv-total" class="pill">Łącznie: 0</span>
+          </div>
+          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px;">
+            <div class="pill muted" id="inv-asset-count">Aktywa: 0</div>
+            <div class="pill muted" id="inv-last-trade">Ostatni zakup: —</div>
+            <div class="pill muted" id="inv-groups">Grupy: —</div>
+          </div>
+          <p class="tiny muted">Dodaj nowe walory w oknie modalnym. Rejestruj zakupy i śledź średnie ceny w tabelach poniżej.</p>
+        </div>
       </div>
 
       <div class="card stack">
@@ -4494,7 +4525,7 @@
             <p class="eyebrow">Portfel</p>
             <h3 class="title" style="margin:0">Stan posiadania i średnie ceny</h3>
           </div>
-          <span id="inv-total" class="pill">Łącznie: 0</span>
+          <span class="pill ghost" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:#2563eb"></span> Średnia cena zakupu</span>
         </div>
         <div class="table-wrapper">
           <table class="modern-table" id="inv-holdings">
@@ -4528,27 +4559,93 @@
 
         <div class="card stack">
           <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Historia zakupów</strong>
-            <span class="tiny muted">Pełna ewidencja</span>
+            <strong>Skumulowane inwestycje</strong>
+            <span class="tiny muted">Progres w czasie</span>
           </div>
-          <div class="table-wrapper">
-            <table class="modern-table" id="inv-trades-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Aktywo</th>
-                  <th>Kwota</th>
-                  <th>Ilość</th>
-                  <th>Śr. cena</th>
-                  <th>Notatka</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="chart-box">
+            <canvas id="inv-cumulative-chart"></canvas>
+            <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
           </div>
         </div>
       </div>
+
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch;">
+        <div class="card stack">
+          <div class="row" style="justify-content: space-between; align-items: center;">
+            <strong>Struktura portfela</strong>
+            <span class="tiny muted">Udział % wg grup</span>
+          </div>
+          <div class="chart-box" style="height:220px">
+            <canvas id="inv-allocation-chart"></canvas>
+            <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
+          </div>
+        </div>
+
+        <div class="card stack">
+          <div class="row" style="justify-content: space-between; align-items: center;">
+            <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
+            <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
+          </div>
+          <div class="chart-box" style="height:220px">
+            <canvas id="inv-allocation-detail-chart"></canvas>
+            <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <strong>Historia zakupów</strong>
+          <span class="tiny muted">Pełna ewidencja</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="modern-table" id="inv-trades-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Aktywo</th>
+                <th>Kwota</th>
+                <th>Ilość</th>
+                <th>Śr. cena</th>
+                <th>Notatka</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="inv-asset-backdrop" class="inv-modal-backdrop" hidden></div>
+      <aside id="inv-asset-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
+        <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
+          <div>
+            <p class="eyebrow" style="margin:0">Nowy walor</p>
+            <h3 class="title" style="margin:0">Definicja aktywa</h3>
+            <p class="tiny muted" style="margin-top:4px">Dodaj nazwę i grupę. Aktywa są przechowywane lokalnie w przeglądarce.</p>
+          </div>
+          <button class="btn ghost" type="button" id="inv-asset-modal-close">✕</button>
+        </header>
+        <form id="inv-asset-form" class="stack" style="margin-top:12px; gap:10px;">
+          <label>Typ aktywa
+            <select name="group" required>
+              <option value="Akcje">Akcje / ETF</option>
+              <option value="Dywidenda">Spółka dywidendowa</option>
+              <option value="Krypto">Krypto</option>
+              <option value="Metal">Złoto / srebro</option>
+              <option value="Waluta">USD / inne FX</option>
+              <option value="Inne">Inne</option>
+            </select>
+          </label>
+          <label>Nazwa
+            <input name="name" placeholder="np. VOO, BTC, złoto" required />
+          </label>
+          <div class="row" style="justify-content: flex-end; gap:8px;">
+            <button class="btn ghost" type="button" id="inv-asset-cancel">Anuluj</button>
+            <button class="btn" type="submit">Dodaj aktywo</button>
+          </div>
+        </form>
+      </aside>
     </section>
 
     <!-- Categories -->
@@ -6492,8 +6589,18 @@
   // --- Investments -------------------------------------------------------------
   const invPalette=['#2563eb','#22c55e','#f59e0b','#0ea5e9','#8b5cf6','#ef4444'];
   let invWeeklyChart=null;
+  let invCumulativeChart=null;
+  let invAllocationChart=null;
+  let invAllocationDetailChart=null;
+  let invSelectedAllocationGroup=null;
+  let invModalBound=false;
 
-  const investments=()=>b().investments||{assets:[], trades:[]};
+  const investments=()=>{
+    if(!b().investments){
+      b().investments={assets:[], trades:[]};
+    }
+    return b().investments;
+  };
 
   function ensureInvestmentCategory(){
     const existing=b().categories.find(c=>c.id==='c_invest' || c.name==='Inwestycje');
@@ -6514,11 +6621,47 @@
       if(!sel) continue;
       const current=sel.value;
       sel.innerHTML='';
-      for(const a of investments().assets){
+      const assetsList=investments().assets;
+      if(assetsList.length===0){
+        sel.add(new Option('Dodaj aktywo, aby rejestrować zakupy', '', true, true));
+      }
+      for(const a of assetsList){
         sel.add(new Option(`${a.name}`, a.id, false, a.id===current));
       }
       sel.value=current || sel.value;
     }
+  }
+
+  function toggleInvestmentModal(open){
+    const backdrop=document.getElementById('inv-asset-backdrop');
+    const modal=document.getElementById('inv-asset-modal');
+    if(!backdrop || !modal) return;
+    if(open){
+      backdrop.hidden=false; modal.hidden=false;
+      backdrop.style.display='flex';
+      modal.setAttribute('aria-hidden','false');
+    } else {
+      backdrop.hidden=true; modal.hidden=true;
+      backdrop.style.display='none';
+      modal.setAttribute('aria-hidden','true');
+    }
+  }
+
+  function bindInvestmentModal(){
+    if(invModalBound) return;
+    invModalBound=true;
+    const openBtn=document.getElementById('inv-asset-modal-open');
+    const closeBtn=document.getElementById('inv-asset-modal-close');
+    const cancelBtn=document.getElementById('inv-asset-cancel');
+    const backdrop=document.getElementById('inv-asset-backdrop');
+    [openBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentModal(true)));
+    [closeBtn,cancelBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentModal(false)));
+    if(backdrop){
+      backdrop.onclick=(e)=>{ if(e.target===backdrop) toggleInvestmentModal(false); };
+    }
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape') toggleInvestmentModal(false);
+    });
   }
 
   function investmentHoldings(){
@@ -6602,9 +6745,145 @@
     });
   }
 
+  function renderInvestmentCumulativeChart(trades, assets){
+    const canvas=document.getElementById('inv-cumulative-chart');
+    const empty=document.getElementById('inv-cumulative-empty');
+    if(invCumulativeChart){invCumulativeChart.destroy(); invCumulativeChart=null;}
+    if(!canvas || !empty) return;
+    if(!trades.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      return;
+    }
+    empty.style.display='none';
+    canvas.style.display='block';
+    const sorted=[...trades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const dates=[...new Set(sorted.map(t=>t.date))];
+    const groups=[...new Set(assets.map(a=>a.group||'Inne'))];
+    if(!groups.length) groups.push('Inne');
+    const datasets=groups.map((group,idx)=>{
+      let running=0;
+      const data=dates.map(date=>{
+        const daySum=sorted.filter(t=>t.date===date).filter(t=>{
+          const asset=assets.find(a=>a.id===t.assetId);
+          return (asset?.group||'Inne')===group;
+        }).reduce((s,t)=>s+num(t.amount),0);
+        running+=daySum;
+        return running;
+      });
+      const color=invPalette[idx%invPalette.length];
+      return {
+        label:group,
+        data,
+        borderColor:color,
+        backgroundColor:colorWithAlpha(color,0.15),
+        fill:true,
+        tension:0.32,
+        borderWidth:2
+      };
+    });
+    invCumulativeChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{labels:dates, datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
+        interaction:{mode:'index', intersect:false},
+        scales:{
+          x:{grid:{display:false}},
+          y:{ticks:{callback:v=>currencyTicks(v)}}
+        }
+      }
+    });
+  }
+
+  function renderInvestmentAllocationDetail(holdings){
+    const canvas=document.getElementById('inv-allocation-detail-chart');
+    const empty=document.getElementById('inv-allocation-detail-empty');
+    const title=document.getElementById('inv-allocation-detail-title');
+    const meta=document.getElementById('inv-allocation-detail-meta');
+    if(invAllocationDetailChart){invAllocationDetailChart.destroy(); invAllocationDetailChart=null;}
+    if(!canvas || !empty) return;
+    const currentGroup=invSelectedAllocationGroup;
+    if(!currentGroup){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      if(title) title.textContent='Struktura szczegółowa';
+      if(meta) meta.textContent='Wybierz grupę na wykresie';
+      return;
+    }
+    const subset=holdings.filter(h=>(h.group||'Inne')===currentGroup);
+    if(title) title.textContent=`Struktura — ${currentGroup}`;
+    if(meta) meta.textContent=subset.length? 'Udział aktywów w wybranej grupie' : 'Brak aktywów w tej grupie';
+    if(!subset.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      return;
+    }
+    empty.style.display='none';
+    canvas.style.display='block';
+    const labels=subset.map(h=>h.name);
+    const data=subset.map(h=>h.invested);
+    invAllocationDetailChart=new Chart(canvas.getContext('2d'),{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:labels.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],0.8)),borderColor:'#fff',borderWidth:1}]},
+      options:{
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)}`}}}
+      }
+    });
+  }
+
+  function renderInvestmentAllocations(holdings){
+    const canvas=document.getElementById('inv-allocation-chart');
+    const empty=document.getElementById('inv-allocation-empty');
+    if(invAllocationChart){invAllocationChart.destroy(); invAllocationChart=null;}
+    if(!canvas || !empty) return;
+    if(!holdings.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      invSelectedAllocationGroup=null;
+      renderInvestmentAllocationDetail([]);
+      return;
+    }
+    const groups=Array.from(new Set(holdings.map(h=>h.group||'Inne')));
+    const totals=groups.map(g=>holdings.filter(h=>(h.group||'Inne')===g).reduce((s,h)=>s+h.invested,0));
+    const totalSum=totals.reduce((a,b)=>a+b,0);
+    invSelectedAllocationGroup=invSelectedAllocationGroup && groups.includes(invSelectedAllocationGroup) ? invSelectedAllocationGroup : groups[0];
+    empty.style.display='none';
+    canvas.style.display='block';
+    invAllocationChart=new Chart(canvas.getContext('2d'),{
+      type:'doughnut',
+      data:{labels:groups,datasets:[{data:totals,backgroundColor:groups.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],0.85)),borderColor:'#fff',borderWidth:1}]},
+      options:{
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)} (${totalSum?((ctx.parsed/totalSum)*100).toFixed(1):'0.0'}%)`}}},
+        onClick:(evt,elements)=>{
+          if(!elements.length) return;
+          invSelectedAllocationGroup=groups[elements[0].index];
+          renderInvestmentAllocationDetail(holdings);
+        }
+      }
+    });
+    renderInvestmentAllocationDetail(holdings);
+  }
+
+  function updateInvestmentSnapshot(holdings,trades,assets){
+    const totalEl=document.getElementById('inv-total');
+    const countEl=document.getElementById('inv-asset-count');
+    const lastEl=document.getElementById('inv-last-trade');
+    const groupEl=document.getElementById('inv-groups');
+    const totalInvested=holdings.reduce((s,h)=>s+h.invested,0);
+    if(totalEl) totalEl.textContent=`Łącznie: ${fmt(totalInvested,state.currency)}`;
+    if(countEl) countEl.textContent=`Aktywa: ${holdings.length}`;
+    if(groupEl) groupEl.textContent=`Grupy: ${new Set(holdings.map(h=>h.group||'Inne')).size || '—'}`;
+    const lastTrade=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+    if(lastEl) lastEl.textContent=lastTrade ? `Ostatni zakup: ${lastTrade.date}` : 'Ostatni zakup: —';
+  }
+
   function renderInvestments(){
     ensureInvestmentCategory();
     const data=investments();
+    bindInvestmentModal();
     const assetForm=document.getElementById('inv-asset-form');
     if(assetForm && !assetForm._bound){
       assetForm._bound=true;
@@ -6616,6 +6895,7 @@
         if(!name) return;
         data.assets.push({id:'inv_asset_'+Math.random().toString(36).slice(2), name, group});
         save(state); assetForm.reset();
+        toggleInvestmentModal(false);
         renderInvestments();
       };
     }
@@ -6628,7 +6908,7 @@
         const f=new FormData(tradeForm);
         const assetId=String(f.get('assetId'));
         const asset=data.assets.find(a=>a.id===assetId);
-        if(!asset){alert('Dodaj najpierw aktywo.'); return;}
+        if(!asset){alert('Dodaj najpierw aktywo (przycisk + Dodaj aktywo).'); return;}
         const date=f.get('date')||new Date().toISOString().slice(0,10);
         const amount=Math.abs(num(f.get('amount')));
         const quantity=num(f.get('quantity'));
@@ -6667,8 +6947,7 @@
     if(tradeDate && !tradeDate.value) tradeDate.value=new Date().toISOString().slice(0,10);
 
     const holdings=investmentHoldings();
-    const totalInvested=holdings.reduce((s,h)=>s+h.invested,0);
-    const totalEl=document.getElementById('inv-total'); if(totalEl) totalEl.textContent=`Łącznie: ${fmt(totalInvested,state.currency)}`;
+    updateInvestmentSnapshot(holdings, data.trades, data.assets);
 
     const holdingsBody=document.querySelector('#inv-holdings tbody');
     if(holdingsBody){
@@ -6708,6 +6987,8 @@
     }
 
     renderInvestmentWeeklyChart(data.trades, data.assets);
+    renderInvestmentCumulativeChart(data.trades, data.assets);
+    renderInvestmentAllocations(holdings);
     bindMoneyInputs(document.getElementById('tab-investments'));
   }
 
