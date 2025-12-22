@@ -7408,12 +7408,15 @@
 
   function nextInvestmentMondayCountdown(ref=new Date()){
     const base=new Date(ref);
+    base.setHours(0,0,0,0);
     const day=base.getDay();
     const delta=(8-day)%7; // Monday target; 0 means dziś poniedziałek
     const target=new Date(base);
-    target.setHours(0,0,0,0);
     target.setDate(base.getDate()+delta);
-    return {days:delta, date:target.toISOString().slice(0,10)};
+    const y=target.getFullYear();
+    const m=String(target.getMonth()+1).padStart(2,'0');
+    const d=String(target.getDate()).padStart(2,'0');
+    return {days:delta, date:`${y}-${m}-${d}`};
   }
 
   function updateInvestmentKpis(holdings,trades){
