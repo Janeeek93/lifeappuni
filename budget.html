@@ -48,7 +48,78 @@
     .chart-box {
       height: 240px;
       position: relative;
+      display: grid;
+      place-items: center;
     }
+
+    .inv-layout {
+      display: grid;
+      grid-template-columns: 2fr 3fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 1060px) {
+      .inv-layout { grid-template-columns: 1fr; }
+    }
+
+    .inv-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .inv-hero-card {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(14, 165, 233, 0.05));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    .inv-analytics-nav {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.14);
+    }
+
+    .inv-analytics-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+    .inv-analytics-btn:hover,
+    .inv-analytics-btn:focus-visible { background: rgba(255,255,255,0.7); color: var(--ink); outline: none; }
+
+    .inv-analytics-btn.is-active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    .inv-analytics-panels { display: grid; gap: 12px; }
+    .inv-analytics-panel { display: none; }
+    .inv-analytics-panel.is-active { display: block; }
+
+    .inv-allocation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .inv-modal-body { display: grid; gap: 12px; }
+    .inv-asset-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(148,163,184,0.2); }
+    .inv-asset-row:last-child { border-bottom: none; }
+    .inv-asset-row .meta { font-size: 12px; color: var(--muted); }
 
     .inv-modal-backdrop {
       position: fixed;
@@ -4463,132 +4534,179 @@
     <section id="tab-investments" style="display:none" class="stack">
       <div class="section-header">
         <div>
-          <p class="eyebrow">Nowe zakupy</p>
-          <h2 class="title">Księgowanie inwestycji</h2>
-          <p class="muted">Dodawaj transakcje na akcje, ETF-y, krypto, metale i waluty. Kwota trafia automatycznie do kategorii „Inwestycje”.</p>
+          <p class="eyebrow">Księgowanie & analiza</p>
+          <h2 class="title">Inwestycje długoterminowe</h2>
+          <p class="muted">Dodawaj zakupy akcji, spółek dywidendowych, krypto, metali czy walut. Kwota automatycznie zapisuje się w wydatkach zmiennych – kategorii „Inwestycje”.</p>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
-          <button class="btn ghost" type="button" id="inv-asset-modal-open">+ Dodaj aktywo</button>
+          <button class="btn ghost" type="button" id="inv-asset-modal-open">📑 Zarządzaj aktywami</button>
           <div class="badge">📈 Tracker inwestycyjny</div>
         </div>
       </div>
 
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start;">
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Nowy zakup</strong>
-            <span class="badge ghost">Automatyczne księgowanie</span>
-          </div>
-          <form id="inv-trade-form" class="stack" style="gap:10px">
-            <label>Aktywo
-              <select name="assetId" required></select>
-            </label>
-            <label>Data zakupu
-              <input type="date" name="date" required />
-            </label>
-            <div class="row">
-              <label style="flex:1">Kwota wydana
-                <input name="amount" inputmode="decimal" placeholder="0,00" required />
-              </label>
-              <label style="flex:1">Ilość
-                <input name="quantity" inputmode="decimal" placeholder="0" required />
-              </label>
+      <div class="inv-hero-grid">
+        <div class="inv-hero-card">
+          <div class="muted tiny">Kapitał pracujący</div>
+          <div class="big-number" id="inv-total">Łącznie: —</div>
+          <div class="trend" id="inv-last-trade">Ostatni zakup: —</div>
+        </div>
+        <div class="inv-hero-card">
+          <div class="muted tiny">Liczba aktywów</div>
+          <div class="big-number" id="inv-asset-count">—</div>
+          <div class="trend" id="inv-groups">Grupy: —</div>
+        </div>
+        <div class="inv-hero-card">
+          <div class="muted tiny">Strategia</div>
+          <div class="big-number">DCA + akumulacja</div>
+          <div class="trend">Zachowaj dyscyplinę i notuj zakupy.</div>
+        </div>
+        <div class="inv-hero-card">
+          <div class="muted tiny">Kontrola</div>
+          <div class="big-number">Panel analityczny</div>
+          <div class="trend">Wybierz wykresy i tabele poniżej.</div>
+        </div>
+      </div>
+
+      <div class="inv-layout">
+        <div class="stack" style="gap:12px;">
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Nowy zakup</strong>
+              <span class="badge ghost">Automatyczne księgowanie</span>
             </div>
-            <label>Notatka
-              <input name="note" placeholder="np. broker, prowizja" />
-            </label>
-            <button class="btn" type="submit">Zapisz zakup i dodaj wydatek</button>
-            <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
-          </form>
+            <form id="inv-trade-form" class="stack" style="gap:10px">
+              <label>Aktywo
+                <select name="assetId" required></select>
+              </label>
+              <label>Data zakupu
+                <input type="date" name="date" required />
+              </label>
+              <div class="row">
+                <label style="flex:1">Kwota wydana
+                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
+                </label>
+                <label style="flex:1">Ilość
+                  <input name="quantity" inputmode="decimal" placeholder="0" required />
+                </label>
+              </div>
+              <label>Notatka
+                <input name="note" placeholder="np. DCA, promo, HODL" />
+              </label>
+              <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
+              <button class="btn" type="submit">Zapisz zakup</button>
+            </form>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Rytm zakupów</strong>
+              <span class="tiny muted">Średni ticket i ilość</span>
+            </div>
+            <div class="row" id="inv-pace" style="gap:12px; flex-wrap:wrap;"></div>
+            <div class="tiny muted">Pomaga utrzymać regularne zakupy i kontrolować średnią cenę wejścia.</div>
+          </div>
         </div>
 
-        <div class="card stack" style="gap:10px">
-          <div class="row" style="justify-content: space-between; align-items: flex-start;">
-            <div>
-              <p class="eyebrow">Portfel w skrócie</p>
-              <h3 class="title" style="margin:0">Bieżące inwestycje</h3>
+        <div class="stack" style="gap:12px;">
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <div>
+                <p class="eyebrow">Portfel</p>
+                <h3 class="title" style="margin:0">Stan posiadania i średnie ceny</h3>
+              </div>
+              <span class="pill ghost" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:#2563eb"></span> Średnia cena zakupu</span>
             </div>
-            <span id="inv-total" class="pill">Łącznie: 0</span>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-holdings">
+                <thead>
+                  <tr>
+                    <th>Aktywo</th>
+                    <th>Grupa</th>
+                    <th>Ilość</th>
+                    <th>Śr. cena zakupu</th>
+                    <th>Zainwestowano</th>
+                    <th>Ostatni zakup</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px;">
-            <div class="pill muted" id="inv-asset-count">Aktywa: 0</div>
-            <div class="pill muted" id="inv-last-trade">Ostatni zakup: —</div>
-            <div class="pill muted" id="inv-groups">Grupy: —</div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Podsumowanie grup</strong>
+              <span class="tiny muted">Długoterminowy udział kapitału</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-group-table">
+                <thead>
+                  <tr>
+                    <th>Grupa</th>
+                    <th>Łącznie</th>
+                    <th>Udział</th>
+                    <th>Śr. ticket</th>
+                    <th>Zakupy</th>
+                    <th>Ostatnia aktywność</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-          <p class="tiny muted">Dodaj nowe walory w oknie modalnym. Rejestruj zakupy i śledź średnie ceny w tabelach poniżej.</p>
         </div>
       </div>
 
       <div class="card stack">
         <div class="row" style="justify-content: space-between; align-items: center;">
-          <div>
-            <p class="eyebrow">Portfel</p>
-            <h3 class="title" style="margin:0">Stan posiadania i średnie ceny</h3>
-          </div>
-          <span class="pill ghost" style="display:flex;align-items:center;gap:6px"><span class="dot" style="background:#2563eb"></span> Średnia cena zakupu</span>
-        </div>
-        <div class="table-wrapper">
-          <table class="modern-table" id="inv-holdings">
-            <thead>
-              <tr>
-                <th>Aktywo</th>
-                <th>Grupa</th>
-                <th>Ilość</th>
-                <th>Śr. cena zakupu</th>
-                <th>Zainwestowano</th>
-                <th>Ostatni zakup</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch;">
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Wydatki tygodniowe</strong>
-            <span class="tiny muted">Grupy aktywów</span>
-          </div>
-          <div class="chart-box">
-            <canvas id="inv-weekly-chart"></canvas>
-            <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
+          <strong>Analityka inwestycji</strong>
+          <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
+            <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
+            <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Skumulowany kapitał</button>
+            <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation" aria-selected="false">Struktura portfela</button>
           </div>
         </div>
 
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Skumulowane inwestycje</strong>
-            <span class="tiny muted">Progres w czasie</span>
+        <div class="inv-analytics-panels">
+          <div class="inv-analytics-panel is-active" data-panel="weekly">
+            <div class="chart-box">
+              <canvas id="inv-weekly-chart"></canvas>
+              <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
+            </div>
           </div>
-          <div class="chart-box">
-            <canvas id="inv-cumulative-chart"></canvas>
-            <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch;">
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong>Struktura portfela</strong>
-            <span class="tiny muted">Udział % wg grup</span>
+          <div class="inv-analytics-panel" data-panel="cumulative">
+            <div class="chart-box">
+              <canvas id="inv-cumulative-chart"></canvas>
+              <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
+            </div>
           </div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="inv-allocation-chart"></canvas>
-            <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
-          </div>
-        </div>
 
-        <div class="card stack">
-          <div class="row" style="justify-content: space-between; align-items: center;">
-            <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
-            <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
-          </div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="inv-allocation-detail-chart"></canvas>
-            <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+          <div class="inv-analytics-panel" data-panel="allocation">
+            <div class="inv-allocation-grid">
+              <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                <div class="row" style="justify-content: space-between; align-items: center;">
+                  <strong>Struktura główna</strong>
+                  <span class="tiny muted">Udział % wg grup</span>
+                </div>
+                <div class="chart-box" style="height:220px">
+                  <canvas id="inv-allocation-chart"></canvas>
+                  <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
+                </div>
+              </div>
+
+              <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                <div class="row" style="justify-content: space-between; align-items: center;">
+                  <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
+                  <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
+                </div>
+                <div class="chart-box" style="height:220px">
+                  <canvas id="inv-allocation-detail-chart"></canvas>
+                  <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4620,34 +4738,43 @@
       <aside id="inv-asset-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
         <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
           <div>
-            <p class="eyebrow" style="margin:0">Nowy walor</p>
-            <h3 class="title" style="margin:0">Definicja aktywa</h3>
-            <p class="tiny muted" style="margin-top:4px">Dodaj nazwę i grupę. Aktywa są przechowywane lokalnie w przeglądarce.</p>
+            <p class="eyebrow" style="margin:0">Portfel</p>
+            <h3 class="title" style="margin:0">Zarządzanie aktywami</h3>
+            <p class="tiny muted" style="margin-top:4px">Dodawaj i edytuj aktywa, aby zachować porządek w portfelu. Dane są lokalne.</p>
           </div>
           <button class="btn ghost" type="button" id="inv-asset-modal-close">✕</button>
         </header>
-        <form id="inv-asset-form" class="stack" style="margin-top:12px; gap:10px;">
-          <label>Typ aktywa
-            <select name="group" required>
-              <option value="Akcje">Akcje / ETF</option>
-              <option value="Dywidenda">Spółka dywidendowa</option>
-              <option value="Krypto">Krypto</option>
-              <option value="Metal">Złoto / srebro</option>
-              <option value="Waluta">USD / inne FX</option>
-              <option value="Inne">Inne</option>
-            </select>
-          </label>
-          <label>Nazwa
-            <input name="name" placeholder="np. VOO, BTC, złoto" required />
-          </label>
-          <div class="row" style="justify-content: flex-end; gap:8px;">
-            <button class="btn ghost" type="button" id="inv-asset-cancel">Anuluj</button>
-            <button class="btn" type="submit">Dodaj aktywo</button>
+        <div class="inv-modal-body" style="margin-top:12px;">
+          <form id="inv-asset-form" class="grid g-3" style="gap:10px;">
+            <label>Typ aktywa
+              <select name="group" required>
+                <option value="Akcje">Akcje / ETF</option>
+                <option value="Dywidenda">Spółka dywidendowa</option>
+                <option value="Krypto">Krypto</option>
+                <option value="Metal">Złoto / srebro</option>
+                <option value="Waluta">USD / inne FX</option>
+                <option value="Inne">Inne</option>
+              </select>
+            </label>
+            <label style="grid-column: span 2;">Nazwa
+              <input name="name" placeholder="np. VOO, BTC, złoto" required />
+            </label>
+            <div class="row" style="grid-column: 1 / -1; justify-content: flex-end; gap:8px;">
+              <button class="btn ghost" type="button" id="inv-asset-cancel">Anuluj</button>
+              <button class="btn" type="submit">Dodaj aktywo</button>
+            </div>
+          </form>
+
+          <div class="stack" style="gap:8px;">
+            <div class="row" style="justify-content: space-between; align-items:center;">
+              <strong>Twoja lista</strong>
+              <span class="tiny muted">Kliknij „Zapisz”, aby aktualizować.</span>
+            </div>
+            <div id="inv-asset-list"></div>
           </div>
-        </form>
+        </div>
       </aside>
     </section>
-
     <!-- Categories -->
     <section id="tab-categories" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Kategorie</h3>
@@ -6588,12 +6715,14 @@
 
   // --- Investments -------------------------------------------------------------
   const invPalette=['#2563eb','#22c55e','#f59e0b','#0ea5e9','#8b5cf6','#ef4444'];
+  const invGroupOptions=['Akcje','Dywidenda','Krypto','Metal','Waluta','Inne'];
   let invWeeklyChart=null;
   let invCumulativeChart=null;
   let invAllocationChart=null;
   let invAllocationDetailChart=null;
   let invSelectedAllocationGroup=null;
   let invModalBound=false;
+  let invActivePanel='weekly';
 
   const investments=()=>{
     if(!b().investments){
@@ -6632,11 +6761,148 @@
     }
   }
 
+  function setInvestmentPanel(panel){
+    invActivePanel=panel;
+    document.querySelectorAll('.inv-analytics-btn').forEach(btn=>{
+      const isActive=btn.dataset.invPanelBtn===panel;
+      btn.classList.toggle('is-active',isActive);
+      btn.setAttribute('aria-selected',String(isActive));
+      btn.tabIndex=isActive?0:-1;
+    });
+    document.querySelectorAll('.inv-analytics-panel').forEach(p=>{
+      p.classList.toggle('is-active',p.dataset.panel===panel);
+    });
+  }
+
+  function bindInvestmentAnalyticsNav(){
+    const buttons=document.querySelectorAll('[data-inv-panel-btn]');
+    if(!buttons.length) return;
+    buttons.forEach(btn=>{
+      if(btn._bound) return;
+      btn._bound=true;
+      btn.onclick=()=>setInvestmentPanel(btn.dataset.invPanelBtn||'weekly');
+    });
+    setInvestmentPanel(invActivePanel);
+  }
+
+  function renderAssetManagerList(assets,trades){
+    const list=document.getElementById('inv-asset-list');
+    if(!list) return;
+    list.innerHTML='';
+    if(!assets.length){
+      list.innerHTML='<div class="tiny muted">Brak aktywów — dodaj pierwsze powyżej.</div>';
+      return;
+    }
+    for(const asset of assets){
+      const row=document.createElement('div');
+      row.className='inv-asset-row';
+      const usage=trades.filter(t=>t.assetId===asset.id);
+      const last=usage.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+      row.innerHTML=`
+        <div class="stack" style="gap:6px;">
+          <div class="row" style="gap:10px; align-items:center;">
+            <input class="inv-asset-name" value="${asset.name}" />
+            <select class="inv-asset-group"></select>
+          </div>
+          <div class="meta">Zakupy: ${usage.length || 0} • Ostatni zakup: ${last}</div>
+        </div>
+        <div class="row" style="gap:6px;">
+          <button class="btn soft" data-act="save">Zapisz</button>
+          <button class="btn ghost" data-act="delete">Usuń</button>
+        </div>`;
+      const select=row.querySelector('.inv-asset-group');
+      if(asset.group && !invGroupOptions.includes(asset.group)){
+        select.add(new Option(asset.group,asset.group,false,true));
+      }
+      invGroupOptions.forEach(opt=>select.add(new Option(opt,opt,false,opt===(asset.group||'Inne'))));
+      row.querySelector('[data-act="save"]').onclick=()=>{
+        const newName=row.querySelector('.inv-asset-name').value.trim();
+        const newGroup=select.value||'Inne';
+        if(!newName){alert('Podaj nazwę aktywa.'); return;}
+        asset.name=newName; asset.group=newGroup; save(state); renderInvestments();
+      };
+      row.querySelector('[data-act="delete"]').onclick=()=>{ if(confirm('Usunąć aktywo i powiązane zakupy?')) deleteInvestmentAsset(asset.id); };
+      list.appendChild(row);
+    }
+  }
+
+  function renderInvestmentPace(trades){
+    const container=document.getElementById('inv-pace');
+    if(!container) return;
+    container.innerHTML='';
+    if(!trades.length){
+      container.innerHTML='<span class="tiny muted">Brak zapisanych zakupów.</span>';
+      return;
+    }
+    const total=trades.reduce((s,t)=>s+num(t.amount),0);
+    const avgTicket=total/Math.max(trades.length,1);
+    const weeksCount=new Set(trades.map(t=>investmentWeekKey(t.date))).size || 1;
+    const avgWeek=total/weeksCount;
+    const now=new Date();
+    const last30=trades.filter(t=>{
+      const d=new Date(t.date||now);
+      return (now-d)<=1000*60*60*24*30;
+    });
+    const last30Sum=last30.reduce((s,t)=>s+num(t.amount),0);
+    const last30Count=last30.length;
+    const cards=[
+      {label:'Śr. ticket', value:fmt(avgTicket,state.currency), note:'na transakcję'},
+      {label:'Tempo tygodniowe', value:fmt(avgWeek,state.currency), note:'średni kapitał / tydzień'},
+      {label:'Ostatnie 30 dni', value:`${fmt(last30Sum,state.currency)}`, note:`${last30Count} zak.`}
+    ];
+    for(const card of cards){
+      const pill=document.createElement('div');
+      pill.className='pill ghost';
+      pill.style.display='flex';
+      pill.style.flexDirection='column';
+      pill.style.alignItems='flex-start';
+      pill.style.gap='2px';
+      pill.innerHTML=`<div class="tiny muted">${card.label}</div><div><strong>${card.value}</strong></div><div class="tiny muted">${card.note}</div>`;
+      container.appendChild(pill);
+    }
+  }
+
+  function renderInvestmentGroupTable(holdings,trades){
+    const tbody=document.querySelector('#inv-group-table tbody');
+    if(!tbody) return;
+    tbody.innerHTML='';
+    if(!holdings.length){
+      tbody.innerHTML='<tr><td colspan="6" class="muted" style="text-align:center">Brak danych — dodaj pierwsze aktywo.</td></tr>';
+      return;
+    }
+    const total=holdings.reduce((s,h)=>s+h.invested,0) || 1;
+    const groups=[...new Set(holdings.map(h=>h.group||'Inne'))];
+    const tradesByGroup={};
+    for(const t of trades){
+      const asset=holdings.find(h=>h.id===t.assetId);
+      const grp=asset?.group||'Inne';
+      if(!tradesByGroup[grp]) tradesByGroup[grp]=[];
+      tradesByGroup[grp].push(t);
+    }
+    groups.sort((a,b)=>{
+      const ta=holdings.filter(h=>(h.group||'Inne')===a).reduce((s,h)=>s+h.invested,0);
+      const tb=holdings.filter(h=>(h.group||'Inne')===b).reduce((s,h)=>s+h.invested,0);
+      return tb-ta;
+    });
+    for(const g of groups){
+      const invested=holdings.filter(h=>(h.group||'Inne')===g).reduce((s,h)=>s+h.invested,0);
+      const pct=(invested/total)*100;
+      const tradesInGroup=tradesByGroup[g]||[];
+      const avgTicket=invested/Math.max(tradesInGroup.length,1);
+      const last=tradesInGroup.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${g}</td><td>${fmt(invested,state.currency)}</td><td>${pct.toFixed(1)}%</td><td>${fmt(avgTicket,state.currency)}</td><td>${tradesInGroup.length}</td><td>${last}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
   function toggleInvestmentModal(open){
     const backdrop=document.getElementById('inv-asset-backdrop');
     const modal=document.getElementById('inv-asset-modal');
     if(!backdrop || !modal) return;
     if(open){
+      const data=investments();
+      renderAssetManagerList(data.assets,data.trades);
       backdrop.hidden=false; modal.hidden=false;
       backdrop.style.display='flex';
       modal.setAttribute('aria-hidden','false');
@@ -6884,6 +7150,8 @@
     ensureInvestmentCategory();
     const data=investments();
     bindInvestmentModal();
+    bindInvestmentAnalyticsNav();
+    renderAssetManagerList(data.assets,data.trades);
     const assetForm=document.getElementById('inv-asset-form');
     if(assetForm && !assetForm._bound){
       assetForm._bound=true;
@@ -6908,7 +7176,7 @@
         const f=new FormData(tradeForm);
         const assetId=String(f.get('assetId'));
         const asset=data.assets.find(a=>a.id===assetId);
-        if(!asset){alert('Dodaj najpierw aktywo (przycisk + Dodaj aktywo).'); return;}
+        if(!asset){alert('Dodaj najpierw aktywo (przycisk „Zarządzaj aktywami”).'); return;}
         const date=f.get('date')||new Date().toISOString().slice(0,10);
         const amount=Math.abs(num(f.get('amount')));
         const quantity=num(f.get('quantity'));
@@ -6948,6 +7216,8 @@
 
     const holdings=investmentHoldings();
     updateInvestmentSnapshot(holdings, data.trades, data.assets);
+    renderInvestmentPace(data.trades);
+    renderInvestmentGroupTable(holdings,data.trades);
 
     const holdingsBody=document.querySelector('#inv-holdings tbody');
     if(holdingsBody){
