@@ -52,6 +52,40 @@
       place-items: center;
     }
 
+    .inv-compact-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .inv-compact-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 160px;
+      flex: 0 1 auto;
+    }
+
+    .inv-compact-field.grow { flex: 1 1 220px; }
+
+    .inv-compact-field input,
+    .inv-compact-field select {
+      height: 38px;
+    }
+
+    .inv-compact-footnote {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    @media (max-width: 720px) {
+      .inv-compact-form { flex-direction: column; align-items: stretch; }
+      .inv-compact-footnote { margin-left: 0; }
+    }
+
     .inv-shell {
       max-width: 1260px;
       margin: 0 auto;
@@ -4536,25 +4570,23 @@
               <strong>Nowy zakup</strong>
               <span class="badge ghost">Automatyczne księgowanie</span>
             </div>
-            <form id="inv-trade-form" class="stack" style="gap:10px">
-              <label>Aktywo
+            <form id="inv-trade-form" class="inv-compact-form">
+              <label class="inv-compact-field grow">Aktywo
                 <select name="assetId" required></select>
               </label>
-              <label>Data zakupu
+              <label class="inv-compact-field">Data zakupu
                 <input type="date" name="date" required />
               </label>
-              <div class="row">
-                <label style="flex:1">Kwota wydana
-                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
-                </label>
-                <label style="flex:1">Ilość
-                  <input name="quantity" inputmode="decimal" placeholder="0" required />
-                </label>
-              </div>
-              <label>Notatka
+              <label class="inv-compact-field">Kwota wydana
+                <input name="amount" inputmode="decimal" placeholder="0,00" required />
+              </label>
+              <label class="inv-compact-field">Ilość
+                <input name="quantity" inputmode="decimal" placeholder="0" required />
+              </label>
+              <label class="inv-compact-field grow">Notatka
                 <input name="note" placeholder="np. DCA, promo, HODL" />
               </label>
-              <p class="tiny muted">Kwota zakupu zostanie zapisana w „Wydatkach zmiennych” w kategorii Inwestycje.</p>
+              <div class="inv-compact-footnote">Kwota trafia do „Wydatków zmiennych” &rarr; Inwestycje.</div>
               <button class="btn" type="submit">Zapisz zakup</button>
             </form>
           </div>
