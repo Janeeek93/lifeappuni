@@ -101,6 +101,68 @@
         .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
+    @media (max-width: 900px) {
+        .grid[style*="grid-template-columns: 2fr 1.3fr 1fr"] { grid-template-columns: 1fr; }
+        .hero-value { font-size: 32px; }
+        .table-wrapper table th:first-child, .table-wrapper table td:first-child { position: sticky; left: 0; background: var(--card); }
+    }
+
+    /* KPI & Cards */
+    .hero-portfolio {
+        background: radial-gradient(circle at 20% 20%, #0f172a 0, #0b1226 45%, #000814 100%);
+        color: white;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-portfolio::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(16,185,129,0.18));
+        pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-value { font-size: 42px; font-weight: 800; text-align: center; margin: 6px 0; }
+    .hero-pnl { display: flex; justify-content: center; gap: 8px; align-items: baseline; }
+    .mini-badges { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .mini-badge { background: rgba(255,255,255,0.08); color: white; padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid rgba(255,255,255,0.08); }
+    .hero-sparkline { height: 80px; position: relative; }
+    .fade-in-card { animation: fadeInUp 0.5s ease both; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .allocation-card .top-assets { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .allocation-card .top-row { display: flex; justify-content: space-between; align-items: center; }
+
+    .quick-stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .quick-stat { background: var(--surface); padding: 10px; border-radius: 10px; border: 1px solid var(--line); }
+    .quick-stat .label { font-size: 12px; color: var(--muted); }
+    .quick-stat .value { font-weight: 700; }
+
+    /* Assets table */
+    .table-filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .tab-filter { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; transition: all 0.2s ease; }
+    .tab-filter.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .tab-filter:hover { transform: translateY(-1px); }
+    table thead th.sortable { cursor: pointer; user-select: none; }
+    table thead th.sortable span { display: inline-flex; align-items: center; gap: 4px; }
+    table thead th.sortable .sort-indicator { font-size: 12px; color: var(--muted); }
+    .table-wrapper { position: relative; }
+    .table-wrapper table { width: 100%; }
+    .table-wrapper table th:first-child, .table-wrapper table td:first-child { position: sticky; left: 0; background: var(--card); z-index: 2; }
+    tbody tr { transition: background 0.2s ease, transform 0.2s ease; }
+    tbody tr:hover { background: rgba(37,99,235,0.05); transform: translateX(2px); }
+    .quick-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .quick-actions .btn { padding: 6px 10px; }
+    @media(max-width: 720px) {
+        .quick-actions .btn span { display: none; }
+        .quick-actions .btn { width: 32px; height: 32px; display: grid; place-items: center; }
+    }
+    .trend-icon { font-size: 12px; margin-right: 4px; }
+
+    /* Animations */
+    .counting { transition: color 0.3s ease; }
+
     /* Update Modal Styles */
     .price-update-row {
         display: grid;
@@ -189,35 +251,44 @@
             </div>
 
             <!-- KPI Cards -->
-            <div class="grid g-3">
-                <div class="stat-card">
-                    <div class="label">Wartość Portfela</div>
-                    <div class="value" id="total-portfolio-value">0,00 zł</div>
-                    <div class="trend" id="portfolio-change">Koszt: 0,00 zł</div>
+            <div class="grid" style="grid-template-columns: 2fr 1.3fr 1fr; gap: 16px; align-items: stretch;">
+                <div class="card hero-portfolio fade-in-card">
+                    <div class="hero-content stack" style="gap: 6px;">
+                        <p class="tiny" style="color: rgba(255,255,255,0.8); text-align:center;">Wartość portfela</p>
+                        <div class="hero-value counting" id="total-portfolio-value">0,00 zł</div>
+                        <div class="hero-pnl">
+                            <span id="total-pnl-value">0,00 zł</span>
+                            <span id="total-pnl-percent" class="tiny"></span>
+                        </div>
+                        <div class="mini-badges">
+                            <span class="mini-badge" id="portfolio-change">Koszt: 0,00 zł</span>
+                            <span class="mini-badge" id="net-contribution-tag">Wpłaty: 0,00 zł</span>
+                        </div>
+                        <div class="hero-sparkline">
+                            <canvas id="hero-sparkline-canvas"></canvas>
+                            <div id="hero-sparkline-empty" class="tiny muted" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">Dodaj snapshot aby zobaczyć trend</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="label">Zysk/Strata (PnL)</div>
-                    <div class="value" id="total-pnl-value">0,00 zł</div>
-                    <div class="trend" id="total-pnl-percent">0% od początku</div>
+                <div class="card allocation-card fade-in-card">
+                    <div class="card-header" style="align-items: flex-start;">
+                        <div>
+                            <h3 class="title">Twoja dywersyfikacja</h3>
+                            <div class="tiny muted">Rozkład według wartości rynkowej</div>
+                        </div>
+                    </div>
+                    <div class="chart-box" style="height: 220px; position: relative;">
+                        <canvas id="allocation-chart"></canvas>
+                        <div id="chart-empty-state" class="empty-state" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center;">Brak danych</div>
+                    </div>
+                    <div class="top-assets" id="top-assets-list"></div>
                 </div>
-                <div class="card">
+                <div class="card fade-in-card">
                     <div class="card-header">
-                        <div>
-                            <div class="label">Kapitał wniesiony</div>
-                            <div class="tiny muted">Suma wpłat i wypłat bez celów</div>
-                        </div>
-                        <span class="tag" id="net-contribution-tag">Netto 0 zł</span>
+                        <h3 class="title">Szybkie statystyki</h3>
+                        <div class="tiny muted">Podsumowanie kondycji portfela</div>
                     </div>
-                    <div class="row" style="align-items: baseline;">
-                        <div>
-                            <div class="tiny muted">Łączne wpłaty</div>
-                            <div class="value" id="total-invested">0,00 zł</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="tiny muted">Wypłaty / sprzedaż</div>
-                            <div class="value" id="total-withdrawn">0,00 zł</div>
-                        </div>
-                    </div>
+                    <div class="quick-stats" id="quick-stats"></div>
                 </div>
             </div>
 
@@ -233,40 +304,31 @@
                 </div>
             </div>
 
-            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 20px;">
-                <!-- Main Assets Table -->
-                <div class="card">
-                    <div class="card-header">
+            <div class="card fade-in-card">
+                <div class="card-header" style="align-items: flex-start;">
+                    <div>
                         <h3 class="title">Twoje Aktywa</h3>
                         <div class="tiny muted">Ceny uśrednione (DCA)</div>
                     </div>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Aktywo</th>
-                                    <th>Ilość</th>
-                                    <th>Śr. Cena Kupna</th>
-                                    <th>Aktualna Cena</th>
-                                    <th>Wartość</th>
-                                    <th>PnL</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="assets-table-body">
-                                <!-- JS populated -->
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
-
-                <!-- Allocation Chart -->
-                <div class="card">
-                    <h3 class="title">Alokacja</h3>
-                    <div class="chart-box" style="height: 300px; position: relative;">
-                        <canvas id="allocation-chart"></canvas>
-                        <div id="chart-empty-state" class="empty-state" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center;">Brak danych</div>
-                    </div>
+                <div class="table-filters" id="asset-type-filters"></div>
+                <div class="table-wrapper" style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="name"><span>Nazwa<span class="sort-indicator">↕</span></span></th>
+                                <th class="sortable" data-sort="quantity"><span>Ilość<span class="sort-indicator">↕</span></span></th>
+                                <th class="sortable" data-sort="avgPrice"><span>Śr. Cena<span class="sort-indicator">↕</span></span></th>
+                                <th class="sortable" data-sort="currentPrice"><span>Aktualna<span class="sort-indicator">↕</span></span></th>
+                                <th class="sortable" data-sort="value"><span>Wartość<span class="sort-indicator">↕</span></span></th>
+                                <th class="sortable" data-sort="pnl"><span>PnL<span class="sort-indicator">↕</span></span></th>
+                                <th style="width: 120px;">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assets-table-body">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -345,6 +407,11 @@
         snapshots: [], // { date, totalValue, totalCost, pnl } NEW: History
         lastUpdate: null
     };
+
+    let assetFilter = 'all';
+    let assetSortConfig = { field: 'value', dir: 'desc' };
+    let heroSparklineChart = null;
+    let totalsAnimated = false;
 
     function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -729,6 +796,98 @@
         renderWeeklyHub();
     }
 
+    function renderSparkline() {
+        const canvas = document.getElementById('hero-sparkline-canvas');
+        const empty = document.getElementById('hero-sparkline-empty');
+        if (!canvas) return;
+
+        if (!state.snapshots || state.snapshots.length < 2) {
+            if (heroSparklineChart) heroSparklineChart.destroy();
+            empty.style.display = 'flex';
+            return;
+        }
+        empty.style.display = 'none';
+
+        const lastSnapshots = state.snapshots.slice(-7);
+        const labels = lastSnapshots.map(s => new Date(s.date).toLocaleDateString());
+        const values = lastSnapshots.map(s => s.totalValue);
+
+        if (heroSparklineChart) heroSparklineChart.destroy();
+
+        heroSparklineChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.15)',
+                    fill: true,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false }, y: { display: false } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    function renderQuickStats() {
+        const container = document.getElementById('quick-stats');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const assetCount = state.portfolio.length;
+        const avgTicket = state.transactions.length
+            ? state.transactions.reduce((sum, tx) => sum + (tx.total || 0), 0) / state.transactions.length
+            : 0;
+
+        const bestPosition = state.portfolio.reduce((best, asset) => {
+            const pnl = asset.totalCost > 0 ? ((asset.quantity * asset.currentPrice - asset.totalCost) / asset.totalCost) * 100 : 0;
+            if (!best || pnl > best.pnl) return { ticker: asset.ticker, pnl };
+            return best;
+        }, null);
+
+        const activity = state.transactions.filter(tx => {
+            const date = new Date(tx.date);
+            const now = new Date();
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }).length;
+
+        const stats = [
+            { label: 'Liczba aktywów', value: assetCount },
+            { label: 'Średni ticket DCA', value: fmtMoney(avgTicket || 0) },
+            { label: 'Najlepsza pozycja', value: bestPosition ? `${bestPosition.ticker} (${bestPosition.pnl.toFixed(1)}%)` : '—' },
+            { label: 'Aktywność (miesiąc)', value: activity }
+        ];
+
+        stats.forEach(stat => {
+            const div = document.createElement('div');
+            div.className = 'quick-stat';
+            div.innerHTML = `<div class="label">${stat.label}</div><div class="value">${stat.value}</div>`;
+            container.appendChild(div);
+        });
+    }
+
+    function animateCountUp(el, target) {
+        if (!el) return;
+        const duration = 800;
+        const start = 0;
+        const startTime = performance.now();
+        const animate = (time) => {
+            const progress = Math.min((time - startTime) / duration, 1);
+            const value = start + (target - start) * progress;
+            el.innerText = fmtMoney(value);
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }
+
     function renderKPIs() {
         const totalValue = state.portfolio.reduce((sum, a) => sum + (a.quantity * a.currentPrice), 0);
         const totalCost = state.portfolio.reduce((sum, a) => sum + a.totalCost, 0);
@@ -742,23 +901,31 @@
             .reduce((sum, tx) => sum + (tx.total || 0), 0);
         const netContribution = totalInvested - totalWithdrawn;
 
-        document.getElementById('total-portfolio-value').innerText = fmtMoney(totalValue);
-        document.getElementById('portfolio-change').innerText = `Koszt zakupu: ${fmtMoney(totalCost)}`;
-        
+        const totalValueEl = document.getElementById('total-portfolio-value');
+        if (!totalsAnimated) {
+            animateCountUp(totalValueEl, totalValue);
+            totalsAnimated = true;
+        } else {
+            totalValueEl.innerText = fmtMoney(totalValue);
+        }
+
+        document.getElementById('portfolio-change').innerText = `Koszt: ${fmtMoney(totalCost)}`;
+
         const pnlEl = document.getElementById('total-pnl-value');
         pnlEl.innerText = (pnlValue > 0 ? '+' : '') + fmtMoney(pnlValue);
-        pnlEl.className = 'value ' + (pnlValue >= 0 ? 'pnl-positive' : 'pnl-negative');
+        pnlEl.className = (pnlValue >= 0 ? 'pnl-positive' : 'pnl-negative');
 
         const pnlPercEl = document.getElementById('total-pnl-percent');
-        pnlPercEl.innerText = `${pnlPercent.toFixed(2)}% od początku`;
-        pnlPercEl.className = 'trend ' + (pnlPercent >= 0 ? 'pnl-positive' : 'pnl-negative');
+        pnlPercEl.innerText = `${pnlPercent.toFixed(2)}%`;
+        pnlPercEl.className = (pnlPercent >= 0 ? 'pnl-positive' : 'pnl-negative');
 
-        document.getElementById('total-invested').innerText = fmtMoney(totalInvested);
-        document.getElementById('total-withdrawn').innerText = fmtMoney(totalWithdrawn);
         const tag = document.getElementById('net-contribution-tag');
-        tag.innerText = `Netto ${fmtMoney(netContribution)}`;
-        tag.style.color = netContribution >= 0 ? 'var(--green)' : 'var(--red)';
-        tag.style.background = 'var(--line)';
+        tag.innerText = `Wpłaty: ${fmtMoney(totalInvested)} • Netto ${fmtMoney(netContribution)}`;
+        tag.style.color = 'white';
+        tag.style.background = 'rgba(255,255,255,0.08)';
+
+        renderSparkline();
+        renderQuickStats();
     }
 
     function renderMetrics() {
@@ -833,18 +1000,49 @@
 
     function renderAssetsTable() {
         const tbody = document.getElementById('assets-table-body');
+        const filtersContainer = document.getElementById('asset-type-filters');
         tbody.innerHTML = '';
+
+        if (filtersContainer) {
+            filtersContainer.innerHTML = '';
+            const filters = [
+                { key: 'all', label: 'Wszystko' },
+                { key: 'crypto', label: 'Crypto' },
+                { key: 'stock', label: 'Akcje' },
+                { key: 'currency', label: 'Waluty' },
+                { key: 'gold', label: 'Złoto' }
+            ];
+            filters.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = `tab-filter ${assetFilter === f.key ? 'active' : ''}`;
+                btn.innerText = f.label;
+                btn.onclick = () => { assetFilter = f.key; renderAssetsTable(); };
+                filtersContainer.appendChild(btn);
+            });
+        }
 
         if (state.portfolio.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Brak aktywów. Dodaj pierwszą transakcję!</td></tr>';
             return;
         }
 
-        state.portfolio.forEach(asset => {
+        const filtered = state.portfolio.filter(asset => assetFilter === 'all' || asset.type === assetFilter);
+        const sorted = filtered.sort((a, b) => {
+            const aVal = getSortValue(a, assetSortConfig.field);
+            const bVal = getSortValue(b, assetSortConfig.field);
+            if (typeof aVal === 'string' || typeof bVal === 'string') {
+                return assetSortConfig.dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            }
+            if (aVal === bVal) return 0;
+            return assetSortConfig.dir === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+
+        sorted.forEach(asset => {
             const currentValue = asset.quantity * asset.currentPrice;
             const pnl = currentValue - asset.totalCost;
             const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
             const pnlPercent = asset.totalCost > 0 ? (pnl / asset.totalCost) * 100 : 0;
+            const trendIcon = pnl >= 0 ? '⬆️' : '⬇️';
 
             const iconMap = { 'stock': '📈', 'crypto': '🪙', 'currency': '💱', 'gold': '🥇' };
 
@@ -864,14 +1062,45 @@
                 <td style="font-weight:700;">${fmtMoney(asset.currentPrice)}</td>
                 <td>${fmtMoney(currentValue)}</td>
                 <td>
-                    <div class="${pnlClass}">${(pnl>0?'+':'') + fmtMoney(pnl)}</div>
+                    <div class="trend-indicator ${pnlClass}"><span class="trend-icon">${trendIcon}</span>${(pnl>0?'+':'') + fmtMoney(pnl)}</div>
                     <div class="tiny muted">${pnlPercent.toFixed(2)}%</div>
                 </td>
                 <td>
-                    <button class="btn tiny ghost" onclick="prefillSell('${asset.ticker}')">Sprzedaj</button>
+                    <div class="quick-actions">
+                        <button class="btn tiny ghost" title="Dokup" onclick="buyMore('${asset.ticker}')">➕ <span>Dokup</span></button>
+                        <button class="btn tiny ghost" title="Sprzedaj" onclick="prefillSell('${asset.ticker}')">➖ <span>Sprzedaj</span></button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+
+        bindSortHandlers();
+    }
+
+    function getSortValue(asset, field) {
+        switch(field) {
+            case 'quantity': return asset.quantity;
+            case 'avgPrice': return asset.avgPrice;
+            case 'currentPrice': return asset.currentPrice;
+            case 'value': return asset.quantity * asset.currentPrice;
+            case 'pnl': return (asset.quantity * asset.currentPrice) - asset.totalCost;
+            case 'name': return asset.name?.toLowerCase() || '';
+            default: return 0;
+        }
+    }
+
+    function bindSortHandlers() {
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.onclick = () => {
+                const field = th.dataset.sort;
+                if (assetSortConfig.field === field) {
+                    assetSortConfig.dir = assetSortConfig.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    assetSortConfig = { field, dir: 'asc' };
+                }
+                renderAssetsTable();
+            };
         });
     }
 
@@ -990,6 +1219,21 @@
                 }
             }
         });
+
+        const list = document.getElementById('top-assets-list');
+        if (list) {
+            list.innerHTML = '';
+            const sorted = [...state.portfolio]
+                .map(a => ({ ...a, value: a.quantity * a.currentPrice }))
+                .sort((a,b) => b.value - a.value)
+                .slice(0,3);
+            sorted.forEach(asset => {
+                const row = document.createElement('div');
+                row.className = 'top-row';
+                row.innerHTML = `<span><b>${asset.ticker}</b> • ${asset.name}</span><span class="tiny muted">${((asset.value / data.reduce((s,v) => s+v,0)) * 100 || 0).toFixed(1)}%</span>`;
+                list.appendChild(row);
+            });
+        }
     }
 
     function renderHistoryChart() {
@@ -1069,6 +1313,38 @@
             state.snapshots = [];
             saveState();
         }
+    }
+
+    function buyMore(ticker) {
+        const asset = state.portfolio.find(a => a.ticker === ticker);
+        if (!asset) return;
+        const priceStr = prompt('Cena zakupu (PLN):', asset.currentPrice.toFixed(2));
+        if (priceStr === null) return;
+        const totalStr = prompt('Kwota zakupu (PLN):', '200');
+        if (totalStr === null) return;
+
+        const price = parseFloat(priceStr);
+        const total = parseFloat(totalStr);
+        if (isNaN(price) || isNaN(total) || price <= 0 || total <= 0) { alert('Podaj poprawne wartości.'); return; }
+        const quantity = total / price;
+        const today = new Date().toISOString().split('T')[0];
+
+        const tx = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            date: today,
+            type: asset.type,
+            ticker: asset.ticker,
+            name: asset.name,
+            operation: 'buy',
+            quantity: quantity,
+            price: price,
+            total: total,
+            note: 'Dokup z tabeli'
+        };
+
+        state.transactions.push(tx);
+        recalcPortfolio();
+        saveState();
     }
 
     function prefillSell(ticker) {
