@@ -11987,6 +11987,10 @@
   const MOM_DIFF_COLORS={positive:'#ef4444',negative:'#22c55e',neutral:'#94a3b8'};
   const MOM_NO_FIXED_ID='__all_no_fixed';
   const MOM_NO_FIXED_LABEL='Wszystkie bez wydatków stałych';
+  const MOM_NO_FIXED_SAVINGS_ID='__all_no_fixed_savings';
+  const MOM_NO_FIXED_SAVINGS_LABEL='Wszystkie bez stałych i oszczędności';
+  const MOM_SAVINGS_ID='__all_savings';
+  const MOM_SAVINGS_LABEL='Wszystkie oszczędności';
   const MOM_FIXED_CATEGORY_ID='c_fixed';
   const momState={
     monthA:null,
@@ -12234,15 +12238,25 @@
     const entries=entriesForMonth(ym);
     for(const entry of entries){
       const cat=catsById()[entry.categoryId];
-      if(!cat || cat.type!=='expense') continue;
-      if(!catSet.has(entry.categoryId)) continue;
+      if(!cat || (cat.type!=='expense' && cat.type!=='saving')) continue;
+      const isSaving=cat.type==='saving';
+      const isExpense=cat.type==='expense';
+      if(!catSet.has(entry.categoryId) && !isSaving) continue;
       const day=Math.min(days,Math.max(1,Number(entry.date.slice(-2))||1));
       const idx=day-1;
       const amount=Math.abs(entry.amount);
-      out.series[entry.categoryId][idx]+=amount;
+      if(out.series[entry.categoryId]){
+        out.series[entry.categoryId][idx]+=amount;
+      }
       if(out.series.__all) out.series.__all[idx]+=amount;
-      if(out.series[MOM_NO_FIXED_ID] && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
+      if(out.series[MOM_SAVINGS_ID] && isSaving){
+        out.series[MOM_SAVINGS_ID][idx]+=amount;
+      }
+      if(out.series[MOM_NO_FIXED_ID] && isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
         out.series[MOM_NO_FIXED_ID][idx]+=amount;
+      }
+      if(out.series[MOM_NO_FIXED_SAVINGS_ID] && isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
+        out.series[MOM_NO_FIXED_SAVINGS_ID][idx]+=amount;
       }
     }
     for(const id of categoryIds){
@@ -12382,7 +12396,7 @@
   }
 
   function momDetailEligible(catId){
-    return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
+    return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID && catId!==MOM_NO_FIXED_SAVINGS_ID && catId!==MOM_SAVINGS_ID;
   }
 
   function ensureMomDetailBindings(){
@@ -14025,12 +14039,19 @@
     if(colA) colA.textContent = momState.monthA ? `Miesiąc A (${momState.monthA})` : 'Miesiąc A';
     if(colB) colB.textContent = momState.monthB ? `Miesiąc B (${momState.monthB})` : 'Miesiąc B';
 
-    const expenseCats=(b().categories||[]).filter(c=>c.type==='expense');
+    const allCats=(b().categories||[]);
+    const expenseCats=allCats.filter(c=>c.type==='expense');
+    const savingCats=allCats.filter(c=>c.type==='saving');
     const categories=[
       {id:'__all',name:'Wszystkie kategorie',emoji:'📊'},
-      {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'}
+      {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'},
+      {id:MOM_NO_FIXED_SAVINGS_ID,name:MOM_NO_FIXED_SAVINGS_LABEL,emoji:'📂'},
+      {id:MOM_SAVINGS_ID,name:MOM_SAVINGS_LABEL,emoji:'💰'}
     ];
     for(const cat of expenseCats){
+      categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
+    }
+    for(const cat of savingCats){
       categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
     }
     if(!categories.some(c=>c.id===momState.selectedCategory)){
