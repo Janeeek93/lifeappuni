@@ -12252,8 +12252,9 @@
       if(out.series[MOM_SAVINGS_ID] && isSaving){
         out.series[MOM_SAVINGS_ID][idx]+=amount;
       }
-      if(out.series[MOM_NO_FIXED_ID] && isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
-        out.series[MOM_NO_FIXED_ID][idx]+=amount;
+      if(out.series[MOM_NO_FIXED_ID]){
+        const eligible = (isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID) || isSaving;
+        if(eligible) out.series[MOM_NO_FIXED_ID][idx]+=amount;
       }
       if(out.series[MOM_NO_FIXED_SAVINGS_ID] && isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
         out.series[MOM_NO_FIXED_SAVINGS_ID][idx]+=amount;
@@ -14042,12 +14043,13 @@
     const allCats=(b().categories||[]);
     const expenseCats=allCats.filter(c=>c.type==='expense');
     const savingCats=allCats.filter(c=>c.type==='saving');
-    const categories=[
+    const aggregateCategories=[
       {id:'__all',name:'Wszystkie kategorie',emoji:'📊'},
+      {id:MOM_SAVINGS_ID,name:MOM_SAVINGS_LABEL,emoji:'💰'},
       {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'},
-      {id:MOM_NO_FIXED_SAVINGS_ID,name:MOM_NO_FIXED_SAVINGS_LABEL,emoji:'📂'},
-      {id:MOM_SAVINGS_ID,name:MOM_SAVINGS_LABEL,emoji:'💰'}
+      {id:MOM_NO_FIXED_SAVINGS_ID,name:MOM_NO_FIXED_SAVINGS_LABEL,emoji:'📂'}
     ];
+    const categories=[...aggregateCategories];
     for(const cat of expenseCats){
       categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
     }
@@ -14067,9 +14069,14 @@
       const totalB=momSeriesValue(monthBData,cat.id,effectiveDay);
       return {cat,totalA,totalB,diff:totalA-totalB};
     });
-    const overall=rows.shift();
-    const others=rows.sort((a,b)=>b.totalA-a.totalA);
-    const ordered=overall?[overall,...others]:others;
+    const aggregateOrder=new Map(aggregateCategories.map((cat,idx)=>[cat.id,idx]));
+    const aggregateRows=rows
+      .filter(row=>aggregateOrder.has(row.cat.id))
+      .sort((a,b)=>aggregateOrder.get(a.cat.id)-aggregateOrder.get(b.cat.id));
+    const detailRows=rows
+      .filter(row=>!aggregateOrder.has(row.cat.id))
+      .sort((a,b)=>b.totalA-a.totalA);
+    const ordered=[...aggregateRows,...detailRows];
 
     if(tableBody){
       tableBody.innerHTML='';
