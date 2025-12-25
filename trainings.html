@@ -779,7 +779,7 @@
 }
 
 .analytics-chart {
-  height: 180px;
+  height: 150px;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
   background: #f9fafb;
@@ -816,7 +816,7 @@
 
 @media (max-width: 980px) {
   .analytics-grid { grid-template-columns: 1fr; }
-  .analytics-chart { height: 160px; }
+  .analytics-chart { height: 140px; }
 }
 
 @media (max-width: 1080px) {
@@ -1246,6 +1246,7 @@ let saveTimeout;
 let bodyMetrics = [];
 let selectedCut = 'all';
 let analyticsCharts = {};
+let analyticsPluginsRegistered = false;
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -2437,9 +2438,12 @@ function renderAnalytics12Weeks() {
   if (!canvas) return;
   const totals = calculateWeeklyActivityTotals();
   const weeks = getLastWeeks(12);
-  const gymValues = weeks.map(week => totals[week.key]?.gym || 0);
-  const runValues = weeks.map(week => totals[week.key]?.running || 0);
-  const readValues = weeks.map(week => totals[week.key]?.reading || 0);
+  const gymTarget = GOAL_DEFINITIONS.gym?.target || 1;
+  const runTarget = GOAL_DEFINITIONS.running?.target || 1;
+  const readTarget = GOAL_DEFINITIONS.reading?.target || 1;
+  const gymValues = weeks.map(week => Math.min(100, Math.round(((totals[week.key]?.gym || 0) / gymTarget) * 100)));
+  const runValues = weeks.map(week => Math.min(100, Math.round(((totals[week.key]?.running || 0) / runTarget) * 100)));
+  const readValues = weeks.map(week => Math.min(100, Math.round(((totals[week.key]?.reading || 0) / readTarget) * 100)));
 
   const label = document.getElementById('analytics-12w-label');
   if (label) {
@@ -2457,9 +2461,9 @@ function renderAnalytics12Weeks() {
     data: {
       labels: weeks.map(week => week.label),
       datasets: [
-        { label: 'Siłownia', data: gymValues, borderColor: gymColor, tension: 0.35, fill: false, pointRadius: 3 },
-        { label: 'Bieganie', data: runValues, borderColor: runColor, tension: 0.35, fill: false, pointRadius: 3 },
-        { label: 'Czytanie', data: readValues, borderColor: readColor, tension: 0.35, fill: false, pointRadius: 3 }
+        { label: 'Siłownia', data: gymValues, borderColor: gymColor, tension: 0.35, fill: false, pointRadius: 2 },
+        { label: 'Bieganie', data: runValues, borderColor: runColor, tension: 0.35, fill: false, pointRadius: 2 },
+        { label: 'Czytanie', data: readValues, borderColor: readColor, tension: 0.35, fill: false, pointRadius: 2 }
       ]
     },
     options: {
@@ -2468,7 +2472,7 @@ function renderAnalytics12Weeks() {
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { beginAtZero: true, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+        y: { beginAtZero: true, max: 100, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: value => `${value}%` } }
       }
     }
   });
@@ -2609,13 +2613,37 @@ function renderAnalyticsMonthlyComparison() {
   });
 
   const monthLabels = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+  if (!analyticsPluginsRegistered) {
+    Chart.register({
+      id: 'monthlyPercentLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx, data } = chart;
+        ctx.save();
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        data.labels.forEach((label, index) => {
+          const meta = chart.getDatasetMeta(1);
+          const bar = meta.data[index];
+          const total = data.datasets[1].data[index] + data.datasets[0].data[index];
+          const percent = total ? Math.round((data.datasets[1].data[index] / total) * 100) : 0;
+          if (bar) {
+            ctx.fillText(`${percent}%`, bar.x, bar.y - 6);
+          }
+        });
+        ctx.restore();
+      }
+    });
+    analyticsPluginsRegistered = true;
+  }
   if (analyticsCharts.monthly) analyticsCharts.monthly.destroy();
   analyticsCharts.monthly = new Chart(canvas, {
     type: 'bar',
     data: {
       labels: monthLabels,
       datasets: [
-        { label: 'Wszystkie tygodnie', data: monthTotals.map(item => item.total), backgroundColor: '#e2e8f0', borderRadius: 8 },
+        { label: 'Pozostałe tygodnie', data: monthTotals.map(item => Math.max(0, item.total - item.completed)), backgroundColor: '#e2e8f0', borderRadius: 8 },
         { label: 'Ukończone tygodnie', data: monthTotals.map(item => item.completed), backgroundColor: '#22c55e', borderRadius: 8 }
       ]
     },
@@ -2624,8 +2652,8 @@ function renderAnalyticsMonthlyComparison() {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { beginAtZero: true, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 } } }
       }
     }
   });
