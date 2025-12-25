@@ -777,10 +777,10 @@
 }
 
 .analytics-chart {
-  min-height: 160px;
+  min-height: 120px;
   border-radius: 14px;
-  border: 1px dashed #e2e8f0;
-  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  background: #f9fafb;
   padding: 12px;
 }
 
@@ -850,38 +850,6 @@
   letter-spacing: 0.08em;
   font-size: 10px;
   color: var(--muted);
-}
-
-.analytics-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.analytics-tabs button {
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.analytics-tabs button.is-active {
-  background: var(--primary-soft);
-  color: var(--accent);
-  border-color: var(--primary-border);
-}
-
-.analytics-panel {
-  display: none;
-}
-
-.analytics-panel.is-active {
-  display: block;
 }
 
 .analytics-tooltip {
@@ -1165,14 +1133,6 @@
             </div>
             <div class="analytics-grid">
               <div class="analytics-card">
-                <div class="analytics-tabs" role="tablist" aria-label="Wybór wykresu">
-                  <button type="button" class="is-active" data-analytics-target="analytics-12w">12 tygodni</button>
-                  <button type="button" data-analytics-target="analytics-week">Tydzień</button>
-                  <button type="button" data-analytics-target="analytics-month">Miesiące</button>
-                </div>
-              </div>
-
-              <div class="analytics-card analytics-panel is-active" id="analytics-12w">
                 <div class="analytics-card-header">
                   <i data-lucide="trending-up" class="icon"></i>
                   <div>Postęp ostatnich 12 tygodni <span id="analytics-12w-label">--</span></div>
@@ -1185,7 +1145,7 @@
                 </div>
               </div>
 
-              <div class="analytics-card analytics-panel" id="analytics-week">
+              <div class="analytics-card">
                 <div class="analytics-card-header">
                   <i data-lucide="zap" class="icon"></i>
                   <div>Postęp bieżącego tygodnia <span id="analytics-week-label">--</span></div>
@@ -1196,7 +1156,7 @@
                 </div>
               </div>
 
-              <div class="analytics-card analytics-panel" id="analytics-month">
+              <div class="analytics-card">
                 <div class="analytics-card-header">
                   <i data-lucide="bar-chart" class="icon"></i>
                   <div>Porównanie miesięczne <span class="muted">na podstawie tygodni</span></div>
@@ -1205,6 +1165,17 @@
                 <div class="analytics-legend">
                   <span><i class="legend-dot" style="background: #cbd5f5;"></i>Wszystkie tygodnie</span>
                   <span><i class="legend-dot" style="background: var(--success);"></i>Ukończone tygodnie</span>
+                </div>
+              </div>
+
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <i data-lucide="activity" class="icon"></i>
+                  <div>Rytm tygodniowy <span class="muted">dni aktywne</span></div>
+                </div>
+                <div class="analytics-chart" id="analytics-weekly-consistency"></div>
+                <div class="analytics-legend">
+                  <span><i class="legend-dot" style="background: var(--primary);"></i>Aktywne dni</span>
                 </div>
               </div>
 
@@ -2629,7 +2600,7 @@ function renderAnalyticsWeekRadar() {
     weekStats.goalPercents.reading?.percent || 0
   ];
   const width = 320;
-  const height = 240;
+  const height = 180;
   const centerX = width / 2;
   const centerY = height / 2 + 10;
   const radius = 80;
@@ -2671,6 +2642,45 @@ function renderAnalyticsWeekRadar() {
 function getMonthIndexByWeekEnd(weekStart) {
   const weekEnd = addDays(weekStart, 6);
   return weekEnd.getMonth();
+}
+
+function renderAnalyticsWeeklyConsistency() {
+  const container = document.getElementById('analytics-weekly-consistency');
+  if (!container) return;
+  const weeks = getLastWeeks(8);
+  const activeDaysByWeek = weeks.map(week => {
+    const days = new Set();
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(week.start, i);
+      const key = toYYYYMMDD(date);
+      const hasActivity = (state.activities[key] || []).some(activity => activity.completed)
+        || (state.extras[key] || []).some(extra => extra.completed);
+      if (hasActivity) days.add(key);
+    }
+    return days.size;
+  });
+  const maxValue = 7;
+  const width = 320;
+  const height = 160;
+  const padding = 24;
+  const barWidth = (width - padding * 2) / weeks.length;
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}">
+      ${[1, 2, 3, 4, 5, 6, 7].map(level => `
+        <line x1="${padding}" y1="${height - padding - (level / maxValue) * (height - padding * 2)}" x2="${width - padding}" y2="${height - padding - (level / maxValue) * (height - padding * 2)}" stroke="#e2e8f0" stroke-dasharray="4 4" />
+      `).join('')}
+      ${weeks.map((week, index) => {
+        const value = activeDaysByWeek[index];
+        const barHeight = (value / maxValue) * (height - padding * 2);
+        const x = padding + index * barWidth + 6;
+        const y = height - padding - barHeight;
+        return `
+          <rect x="${x}" y="${y}" width="${barWidth - 12}" height="${barHeight}" rx="6" fill="var(--primary)" data-tooltip="Tydz. ${week.info.week}: ${value}/7 aktywnych dni" />
+          <text x="${x + (barWidth - 12) / 2}" y="${height - 6}" font-size="10" fill="#94a3b8" text-anchor="middle">${week.label}</text>
+        `;
+      }).join('')}
+    </svg>
+  `;
 }
 
 function renderAnalyticsMonthlyComparison() {
@@ -2825,6 +2835,7 @@ function renderAnalytics() {
   renderAnalytics12Weeks();
   renderAnalyticsWeekRadar();
   renderAnalyticsMonthlyComparison();
+  renderAnalyticsWeeklyConsistency();
   renderAnalyticsMetrics();
   setupAnalyticsTooltip();
 }
@@ -3319,15 +3330,6 @@ function setupEventListeners() {
     });
   });
 
-  const analyticsTabs = document.querySelectorAll('[data-analytics-target]');
-  const analyticsPanels = document.querySelectorAll('.analytics-panel');
-  analyticsTabs.forEach(button => {
-    button.addEventListener('click', () => {
-      const target = button.dataset.analyticsTarget;
-      analyticsTabs.forEach(tab => tab.classList.toggle('is-active', tab === button));
-      analyticsPanels.forEach(panel => panel.classList.toggle('is-active', panel.id === target));
-    });
-  });
 
   document.getElementById('prev-month-btn').addEventListener('click', () => {
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
