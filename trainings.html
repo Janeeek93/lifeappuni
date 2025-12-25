@@ -706,7 +706,7 @@
   margin: 8px 0 20px;
 }
 
-.subnav a {
+.subnav button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -717,14 +717,29 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
-  text-decoration: none;
+  cursor: pointer;
   transition: var(--transition);
 }
 
-.subnav a:hover {
+.subnav button:hover {
   color: var(--accent);
   border-color: var(--primary-border);
   box-shadow: var(--shadow-sm);
+}
+
+.subnav button.is-active {
+  color: var(--accent);
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-panel {
+  display: none;
+}
+
+.section-panel.is-active {
+  display: block;
 }
 
 @media (max-width: 1080px) {
@@ -829,15 +844,15 @@
       </header>
 
       <nav class="subnav" aria-label="Podmenu sekcji">
-        <a href="#activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</a>
-        <a href="#activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</a>
-        <a href="#body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</a>
+        <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
+        <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
+        <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
       </nav>
 
       <div class="content">
         <main class="page-content content-main stack">
           <!-- New Activity Hub Layout -->
-          <div class="card activity-hub" id="activity-hub">
+          <div class="card activity-hub section-panel is-active" id="activity-hub">
             <div class="calendar-wrapper">
               <div class="calendar-header">
                 <h3>Dziennik aktywności</h3>
@@ -871,7 +886,7 @@
           </div>
           <!-- End of Activity Hub -->
 
-          <section class="card heatmap-card" id="activity-heatmap">
+          <section class="card heatmap-card section-panel" id="activity-heatmap">
             <div class="card-header">
               <div>
                 <h3>Historia aktywności</h3>
@@ -893,7 +908,7 @@
             </div>
           </section>
 
-          <section class="card body-metrics-card" id="body-metrics">
+          <section class="card body-metrics-card section-panel" id="body-metrics">
             <div class="card-header">
               <div>
                 <h3>Log wagi i składu ciała</h3>
@@ -2689,6 +2704,18 @@ function showModal(config) {
 }
 
 function setupEventListeners() {
+  const sectionButtons = document.querySelectorAll('.subnav [data-section-target]');
+  const sectionPanels = document.querySelectorAll('.section-panel');
+  sectionButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.sectionTarget;
+      sectionButtons.forEach(btn => btn.classList.toggle('is-active', btn === button));
+      sectionPanels.forEach(panel => panel.classList.toggle('is-active', panel.id === target));
+      const main = document.querySelector('.page-content');
+      if (main) main.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
   document.getElementById('prev-month-btn').addEventListener('click', () => {
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     render();
