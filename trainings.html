@@ -746,6 +746,112 @@
   display: grid;
 }
 
+/* Analytics */
+.analytics-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.analytics-card {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analytics-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.analytics-card-header span {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.analytics-chart {
+  min-height: 220px;
+  border-radius: 14px;
+  border: 1px dashed #e2e8f0;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.analytics-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+.analytics-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.analytics-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.analytics-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.analytics-metric-card {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.analytics-metric-value {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.analytics-table th,
+.analytics-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.analytics-table th {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--muted);
+}
+
 @media (max-width: 1080px) {
   .activity-hub { grid-template-columns: 1fr; }
   .day-detail, .day-detail-placeholder { min-height: 380px; }
@@ -851,6 +957,7 @@
         <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
         <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
         <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
+        <button type="button" data-section-target="analytics"><i data-lucide="bar-chart-2" class="icon"></i>Analityka</button>
       </nav>
 
       <div class="content">
@@ -993,6 +1100,119 @@
                   <h4>Historia logów</h4>
                   <div id="metrics-log-list" class="metrics-log-list"></div>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card section-panel" id="analytics">
+            <div class="card-header">
+              <div>
+                <h3>Analityka nawyków</h3>
+                <p class="muted tiny">Szybki podgląd trendów i dyscypliny w treningach.</p>
+              </div>
+              <span class="month-chip" id="analytics-range-label">--</span>
+            </div>
+            <div class="analytics-grid">
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <i data-lucide="trending-up" class="icon"></i>
+                  <div>Postęp ostatnich 12 tygodni <span id="analytics-12w-label">--</span></div>
+                </div>
+                <div class="analytics-chart" id="analytics-12w-chart"></div>
+                <div class="analytics-legend">
+                  <span><i class="legend-dot" style="background: var(--gym-color);"></i>Siłownia</span>
+                  <span><i class="legend-dot" style="background: var(--run-color);"></i>Bieganie</span>
+                  <span><i class="legend-dot" style="background: var(--read-color);"></i>Czytanie</span>
+                </div>
+              </div>
+
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <i data-lucide="zap" class="icon"></i>
+                  <div>Postęp bieżącego tygodnia <span id="analytics-week-label">--</span></div>
+                </div>
+                <div class="analytics-chart" id="analytics-week-radar"></div>
+                <div class="analytics-legend">
+                  <span><i class="legend-dot" style="background: var(--primary);"></i>Cel tygodniowy</span>
+                </div>
+              </div>
+
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <i data-lucide="bar-chart" class="icon"></i>
+                  <div>Porównanie miesięczne <span class="muted">na podstawie tygodni</span></div>
+                </div>
+                <div class="analytics-chart" id="analytics-monthly-chart"></div>
+                <div class="analytics-legend">
+                  <span><i class="legend-dot" style="background: #cbd5f5;"></i>Wszystkie tygodnie</span>
+                  <span><i class="legend-dot" style="background: var(--success);"></i>Ukończone tygodnie</span>
+                </div>
+              </div>
+
+              <div class="analytics-metrics">
+                <div class="analytics-metric-card">
+                  <span class="muted tiny">Skuteczność tygodni</span>
+                  <span class="analytics-metric-value" id="analytics-week-success">0%</span>
+                  <span class="tiny muted" id="analytics-week-success-note">--</span>
+                </div>
+                <div class="analytics-metric-card">
+                  <span class="muted tiny">Najdłuższa seria tygodni</span>
+                  <span class="analytics-metric-value" id="analytics-best-streak">0 tyg.</span>
+                  <span class="tiny muted" id="analytics-best-streak-note">--</span>
+                </div>
+                <div class="analytics-metric-card">
+                  <span class="muted tiny">Najlepsza aktywność</span>
+                  <span class="analytics-metric-value" id="analytics-top-activity">--</span>
+                  <span class="tiny muted" id="analytics-top-activity-note">--</span>
+                </div>
+                <div class="analytics-metric-card">
+                  <span class="muted tiny">Konsekwencja dni</span>
+                  <span class="analytics-metric-value" id="analytics-consistency">0%</span>
+                  <span class="tiny muted" id="analytics-consistency-note">--</span>
+                </div>
+              </div>
+
+              <div class="analytics-card">
+                <div class="analytics-card-header">
+                  <i data-lucide="clipboard-list" class="icon"></i>
+                  <div>Warto monitorować</div>
+                </div>
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Metryka</th>
+                      <th>Wartość</th>
+                      <th>Wskazówka</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Średnie treningi / tydzień</td>
+                      <td id="analytics-avg-weekly">0</td>
+                      <td>Cel: ≥ 3</td>
+                    </tr>
+                    <tr>
+                      <td>Dni aktywne / tydzień</td>
+                      <td id="analytics-active-days-week">0</td>
+                      <td>Cel: ≥ 4</td>
+                    </tr>
+                    <tr>
+                      <td>Najczęstszy dzień aktywności</td>
+                      <td id="analytics-best-day">--</td>
+                      <td>Plan: zabezpiecz ten dzień</td>
+                    </tr>
+                    <tr>
+                      <td>Najtrudniejszy dzień</td>
+                      <td id="analytics-worst-day">--</td>
+                      <td>Dodaj rytuał startowy</td>
+                    </tr>
+                    <tr>
+                      <td>Aktywności dodatkowe</td>
+                      <td id="analytics-extra-count">0</td>
+                      <td>Cel: min. 1 tygodniowo</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>
@@ -1598,6 +1818,7 @@ function render() {
   renderHeatmap();
   renderPlanningIndicator();
   renderBodyMetrics();
+  renderAnalytics();
   lucide.createIcons();
 }
 
@@ -2250,6 +2471,294 @@ function renderBodyMetrics() {
     });
   }
   lucide.createIcons();
+}
+
+function getWeekKey(date) {
+  const info = getISOWeekInfo(date);
+  return `${info.year}-W${String(info.week).padStart(2, '0')}`;
+}
+
+function calculateWeeklyActivityTotals() {
+  const totals = {};
+  Object.entries(state.activities).forEach(([dateString, activities]) => {
+    const date = parseDate(dateString);
+    const weekKey = getWeekKey(date);
+    if (!totals[weekKey]) totals[weekKey] = { gym: 0, running: 0, reading: 0, days: new Set() };
+    activities.forEach(activity => {
+      if (!activity.completed) return;
+      if (activity.type === 'gym') totals[weekKey].gym += 1;
+      if (activity.type === 'running') totals[weekKey].running += Number(activity.loggedValue || activity.plannedValue || 0);
+      if (activity.type === 'reading') totals[weekKey].reading += Number(activity.loggedValue || activity.plannedValue || 0);
+      totals[weekKey].days.add(dateString);
+    });
+  });
+  Object.entries(state.extras).forEach(([dateString, extras]) => {
+    const date = parseDate(dateString);
+    const weekKey = getWeekKey(date);
+    if (!totals[weekKey]) totals[weekKey] = { gym: 0, running: 0, reading: 0, days: new Set() };
+    if (extras.some(extra => extra.completed)) totals[weekKey].days.add(dateString);
+  });
+  return totals;
+}
+
+function getLastWeeks(count) {
+  const result = [];
+  const today = normalizeDate(new Date());
+  for (let i = count - 1; i >= 0; i--) {
+    const date = addDays(today, -7 * i);
+    const weekInfo = getISOWeekInfo(date);
+    const weekStart = startOfWeek(date);
+    result.push({ key: getWeekKey(date), label: `${weekInfo.week}`, start: weekStart, end: addDays(weekStart, 6), info: weekInfo });
+  }
+  return result;
+}
+
+function renderAnalytics12Weeks() {
+  const container = document.getElementById('analytics-12w-chart');
+  if (!container) return;
+  const totals = calculateWeeklyActivityTotals();
+  const weeks = getLastWeeks(12);
+  const maxValue = Math.max(1, ...weeks.map(week => {
+    const data = totals[week.key];
+    if (!data) return 0;
+    return Math.max(data.gym, data.running, data.reading);
+  }));
+
+  const width = 520;
+  const height = 220;
+  const padding = 30;
+  const toX = (index) => padding + (index / Math.max(weeks.length - 1, 1)) * (width - padding * 2);
+  const toY = (value) => height - padding - (value / maxValue) * (height - padding * 2);
+
+  const createLine = (values) => values.map((value, idx) => `${toX(idx)},${toY(value)}`).join(' ');
+  const gymValues = weeks.map(week => totals[week.key]?.gym || 0);
+  const runValues = weeks.map(week => totals[week.key]?.running || 0);
+  const readValues = weeks.map(week => totals[week.key]?.reading || 0);
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <g stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4">
+        ${[0.25, 0.5, 0.75, 1].map(step => `<line x1="${padding}" y1="${toY(maxValue * step)}" x2="${width - padding}" y2="${toY(maxValue * step)}" />`).join('')}
+      </g>
+      <polyline fill="none" stroke="var(--gym-color)" stroke-width="2.5" points="${createLine(gymValues)}" />
+      <polyline fill="none" stroke="var(--run-color)" stroke-width="2.5" points="${createLine(runValues)}" />
+      <polyline fill="none" stroke="var(--read-color)" stroke-width="2.5" points="${createLine(readValues)}" />
+      ${weeks.map((week, idx) => `<text x="${toX(idx)}" y="${height - 8}" font-size="10" text-anchor="middle" fill="#94a3b8">${week.label}</text>`).join('')}
+    </svg>
+  `;
+
+  const label = document.getElementById('analytics-12w-label');
+  if (label) {
+    const start = weeks[0]?.start;
+    const end = weeks[weeks.length - 1]?.end;
+    label.textContent = start && end ? `${formatRange(start, end)}` : '--';
+  }
+}
+
+function renderAnalyticsWeekRadar() {
+  const container = document.getElementById('analytics-week-radar');
+  if (!container) return;
+  const weekStats = calculateWeeklyGoalStats(new Date());
+  const values = [
+    weekStats.goalPercents.gym?.percent || 0,
+    weekStats.goalPercents.running?.percent || 0,
+    weekStats.goalPercents.reading?.percent || 0
+  ];
+  const width = 320;
+  const height = 240;
+  const centerX = width / 2;
+  const centerY = height / 2 + 10;
+  const radius = 80;
+  const angles = [-90, 30, 150].map(deg => (Math.PI / 180) * deg);
+  const points = values.map((value, index) => {
+    const r = (Math.min(100, value) / 100) * radius;
+    return {
+      x: centerX + r * Math.cos(angles[index]),
+      y: centerY + r * Math.sin(angles[index])
+    };
+  });
+
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+  const labels = ['Bieganie', 'Czytanie', 'Siłownia'];
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}">
+      ${gridLevels.map(level => {
+        const r = radius * level;
+        const coords = angles.map(angle => `${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`).join(' ');
+        return `<polygon points="${coords}" fill="none" stroke="#e2e8f0" />`;
+      }).join('')}
+      ${angles.map((angle, idx) => `
+        <line x1="${centerX}" y1="${centerY}" x2="${centerX + radius * Math.cos(angle)}" y2="${centerY + radius * Math.sin(angle)}" stroke="#cbd5f5" />
+        <text x="${centerX + (radius + 16) * Math.cos(angle)}" y="${centerY + (radius + 16) * Math.sin(angle)}" font-size="11" text-anchor="middle" fill="#64748b">${labels[idx]}</text>
+      `).join('')}
+      <polygon points="${points.map(point => `${point.x},${point.y}`).join(' ')}" fill="rgba(99, 102, 241, 0.25)" stroke="var(--primary)" stroke-width="2" />
+    </svg>
+  `;
+
+  const label = document.getElementById('analytics-week-label');
+  if (label && weekStats.range) {
+    label.textContent = formatRange(weekStats.range.start, weekStats.range.end);
+  }
+}
+
+function getMonthIndexByWeekEnd(weekStart) {
+  const weekEnd = addDays(weekStart, 6);
+  return weekEnd.getMonth();
+}
+
+function renderAnalyticsMonthlyComparison() {
+  const container = document.getElementById('analytics-monthly-chart');
+  if (!container) return;
+
+  const totals = calculateWeeklyActivityTotals();
+  const year = currentMonth.getFullYear();
+  const monthTotals = Array.from({ length: 12 }, () => ({ total: 0, completed: 0 }));
+  const completedWeeks = new Set();
+
+  Object.keys(totals).forEach(weekKey => {
+    const [isoYear, weekStr] = weekKey.split('-W');
+    const week = Number(weekStr);
+    const yearNum = Number(isoYear);
+    if (!Number.isFinite(week) || !Number.isFinite(yearNum)) return;
+    const weekStart = getISOWeekStart(yearNum, week);
+    const monthIndex = getMonthIndexByWeekEnd(weekStart);
+    if (weekStart.getFullYear() !== year && addDays(weekStart, 6).getFullYear() !== year) return;
+    if (addDays(weekStart, 6).getFullYear() !== year) return;
+    monthTotals[monthIndex].total += 1;
+  });
+
+  const weekCompletion = calculateWeekCompletionToDate();
+  for (let week = 1; week <= weekCompletion.totalWeeks; week++) {
+    const weekStart = getISOWeekStart(weekCompletion.isoYear, week);
+    const stats = calculateWeeklyGoalStats(weekStart);
+    const goals = Object.values(stats.goalPercents || {});
+    if (goals.length && goals.every(goal => Number(goal.percent || 0) >= 100)) {
+      completedWeeks.add(`${weekCompletion.isoYear}-W${String(week).padStart(2, '0')}`);
+    }
+  }
+
+  completedWeeks.forEach(weekKey => {
+    const [isoYear, weekStr] = weekKey.split('-W');
+    const week = Number(weekStr);
+    const yearNum = Number(isoYear);
+    if (!Number.isFinite(week) || !Number.isFinite(yearNum)) return;
+    const weekStart = getISOWeekStart(yearNum, week);
+    const monthIndex = getMonthIndexByWeekEnd(weekStart);
+    if (addDays(weekStart, 6).getFullYear() !== year) return;
+    monthTotals[monthIndex].completed += 1;
+  });
+
+  const maxTotal = Math.max(1, ...monthTotals.map(item => item.total));
+  const width = 520;
+  const height = 220;
+  const padding = 26;
+  const barWidth = (width - padding * 2) / 12;
+  const monthLabels = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}">
+      <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#94a3b8" />
+      ${monthTotals.map((item, index) => {
+        const totalHeight = (item.total / maxTotal) * (height - padding * 2);
+        const completedHeight = (item.completed / maxTotal) * (height - padding * 2);
+        const x = padding + index * barWidth + 6;
+        const yTotal = height - padding - totalHeight;
+        const yCompleted = height - padding - completedHeight;
+        return `
+          <rect x="${x}" y="${yTotal}" width="${barWidth - 12}" height="${totalHeight}" fill="#e2e8f0" rx="6" />
+          <rect x="${x}" y="${yCompleted}" width="${barWidth - 12}" height="${completedHeight}" fill="var(--success)" rx="6" />
+          <text x="${x + (barWidth - 12) / 2}" y="${height - 6}" font-size="10" fill="#94a3b8" text-anchor="middle">${monthLabels[index]}</text>
+        `;
+      }).join('')}
+    </svg>
+  `;
+}
+
+function renderAnalyticsMetrics() {
+  const totals = calculateWeeklyActivityTotals();
+  const totalWeeks = Object.keys(totals).length;
+  const completedWeeks = Object.keys(totals).filter(weekKey => {
+    const [isoYear, weekStr] = weekKey.split('-W');
+    const week = Number(weekStr);
+    const yearNum = Number(isoYear);
+    if (!Number.isFinite(week) || !Number.isFinite(yearNum)) return false;
+    const stats = calculateWeeklyGoalStats(getISOWeekStart(yearNum, week));
+    const goals = Object.values(stats.goalPercents || {});
+    return goals.length && goals.every(goal => Number(goal.percent || 0) >= 100);
+  });
+
+  const weekSuccess = totalWeeks ? Math.round((completedWeeks.length / totalWeeks) * 100) : 0;
+  document.getElementById('analytics-week-success').textContent = `${weekSuccess}%`;
+  document.getElementById('analytics-week-success-note').textContent = `${completedWeeks.length} / ${totalWeeks} tygodni ukończonych`;
+
+  let bestStreak = 0;
+  let currentStreak = 0;
+  const sortedKeys = Object.keys(totals).sort();
+  sortedKeys.forEach(key => {
+    if (completedWeeks.includes(key)) {
+      currentStreak += 1;
+      bestStreak = Math.max(bestStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+  });
+  document.getElementById('analytics-best-streak').textContent = `${bestStreak} tyg.`;
+  document.getElementById('analytics-best-streak-note').textContent = bestStreak ? 'Najdłuższa seria pełnych tygodni' : 'Brak ukończonych tygodni';
+
+  const totalsByType = { gym: 0, running: 0, reading: 0 };
+  Object.values(totals).forEach(weekData => {
+    totalsByType.gym += weekData.gym;
+    totalsByType.running += weekData.running;
+    totalsByType.reading += weekData.reading;
+  });
+  const topType = Object.entries(totalsByType).sort((a, b) => b[1] - a[1])[0];
+  const topLabel = topType ? GOAL_DEFINITIONS[topType[0]].label : '--';
+  document.getElementById('analytics-top-activity').textContent = topLabel;
+  document.getElementById('analytics-top-activity-note').textContent = topType ? `${topType[1].toFixed(1)} łącznie` : '--';
+
+  const activeDays = new Set();
+  Object.entries(state.activities).forEach(([dateString, activities]) => {
+    if (activities.some(activity => activity.completed)) activeDays.add(dateString);
+  });
+  Object.entries(state.extras).forEach(([dateString, extras]) => {
+    if (extras.some(extra => extra.completed)) activeDays.add(dateString);
+  });
+  const totalDays = Object.keys(state.activities).length || 1;
+  const consistency = Math.round((activeDays.size / totalDays) * 100);
+  document.getElementById('analytics-consistency').textContent = `${consistency}%`;
+  document.getElementById('analytics-consistency-note').textContent = `${activeDays.size} dni z aktywnością`;
+
+  const weeklyTotals = calculateWeeklyActivityTotals();
+  const avgWeekly = totalWeeks ? (Object.values(weeklyTotals).reduce((acc, week) => acc + week.gym, 0) / totalWeeks) : 0;
+  document.getElementById('analytics-avg-weekly').textContent = avgWeekly.toFixed(1);
+
+  const weeklyActiveDays = totalWeeks
+    ? (Object.values(weeklyTotals).reduce((acc, week) => acc + week.days.size, 0) / totalWeeks)
+    : 0;
+  document.getElementById('analytics-active-days-week').textContent = weeklyActiveDays.toFixed(1);
+
+  const dayCounts = Array(7).fill(0);
+  Object.keys(state.activities).forEach(dateString => {
+    const date = parseDate(dateString);
+    const dayIndex = (date.getDay() + 6) % 7;
+    dayCounts[dayIndex] += (state.activities[dateString] || []).filter(activity => activity.completed).length;
+  });
+  const dayLabels = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+  const maxDayIndex = dayCounts.indexOf(Math.max(...dayCounts));
+  const minDayIndex = dayCounts.indexOf(Math.min(...dayCounts));
+  document.getElementById('analytics-best-day').textContent = dayLabels[maxDayIndex] || '--';
+  document.getElementById('analytics-worst-day').textContent = dayLabels[minDayIndex] || '--';
+
+  const extraCount = Object.values(state.extras).reduce((acc, extras) => acc + extras.filter(extra => extra.completed).length, 0);
+  document.getElementById('analytics-extra-count').textContent = `${extraCount}`;
+}
+
+function renderAnalytics() {
+  const label = document.getElementById('analytics-range-label');
+  if (label) label.textContent = `${currentMonth.getFullYear()}`;
+  renderAnalytics12Weeks();
+  renderAnalyticsWeekRadar();
+  renderAnalyticsMonthlyComparison();
+  renderAnalyticsMetrics();
 }
 
 function showEditMetricsModal(entry) {
