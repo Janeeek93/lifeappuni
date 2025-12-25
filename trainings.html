@@ -520,7 +520,7 @@
   transition: width 0.4s ease;
 }
 
-/* Body metrics + habits */
+/* Body metrics */
 .body-metrics-card {
   display: flex;
   flex-direction: column;
@@ -528,17 +528,25 @@
 }
 
 .metrics-layout {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 .metrics-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.metrics-form-row {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
-.metrics-form-grid label {
+.metrics-form-grid label,
+.metrics-form-row label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -548,7 +556,9 @@
 }
 
 .metrics-form-grid input,
-.metrics-form-grid select {
+.metrics-form-grid select,
+.metrics-form-row input,
+.metrics-form-row select {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -556,7 +566,7 @@
   background: var(--surface);
 }
 
-.metrics-form-grid .metrics-actions {
+.metrics-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -590,11 +600,17 @@
   color: var(--danger);
 }
 
+.metrics-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .metrics-log-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 260px;
+  max-height: 320px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -633,13 +649,13 @@
   font-weight: 600;
 }
 
-.metrics-chart-grid {
+.metrics-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
 }
 
-.metrics-chart-card {
+.metrics-kpi-card {
   border-radius: 16px;
   border: 1px solid var(--line);
   padding: 12px;
@@ -650,7 +666,7 @@
   min-height: 180px;
 }
 
-.metrics-chart-header {
+.metrics-kpi-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -681,94 +697,40 @@
   text-align: center;
 }
 
-.habits-card {
+/* Sub navigation */
+.subnav {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 20px;
 }
 
-.habits-layout {
-  display: grid;
-  grid-template-columns: minmax(200px, 0.6fr) minmax(0, 1fr);
-  gap: 18px;
-}
-
-.habit-streak {
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: var(--bg-alt);
-  display: flex;
-  flex-direction: column;
+.subnav a {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-}
-
-.habit-streak-value {
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.habit-progress {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.habit-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.habit-actions input {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.habit-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.habit-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface);
-}
-
-.habit-item label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.habit-coach {
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--primary-soft);
-  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.subnav a:hover {
+  color: var(--accent);
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 1080px) {
   .activity-hub { grid-template-columns: 1fr; }
   .day-detail, .day-detail-placeholder { min-height: 380px; }
-  .metrics-layout,
-  .habits-layout { grid-template-columns: 1fr; }
+  .metrics-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .wrap { padding: 24px 18px 40px; }
@@ -866,10 +828,16 @@
         </div>
       </header>
 
+      <nav class="subnav" aria-label="Podmenu sekcji">
+        <a href="#activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</a>
+        <a href="#activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</a>
+        <a href="#body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</a>
+      </nav>
+
       <div class="content">
         <main class="page-content content-main stack">
           <!-- New Activity Hub Layout -->
-          <div class="card activity-hub">
+          <div class="card activity-hub" id="activity-hub">
             <div class="calendar-wrapper">
               <div class="calendar-header">
                 <h3>Dziennik aktywności</h3>
@@ -903,7 +871,7 @@
           </div>
           <!-- End of Activity Hub -->
 
-          <section class="card heatmap-card">
+          <section class="card heatmap-card" id="activity-heatmap">
             <div class="card-header">
               <div>
                 <h3>Historia aktywności</h3>
@@ -929,44 +897,42 @@
             <div class="card-header">
               <div>
                 <h3>Log wagi i składu ciała</h3>
-                <p class="muted tiny">Zapisuj każdy cut, buduj progres i śledź wykresy w czasie.</p>
+                <p class="muted tiny">Zapisuj każdy cut, buduj progres i śledź trendy.</p>
               </div>
               <span class="month-chip">2026+</span>
             </div>
             <div class="metrics-layout">
               <div class="metrics-form">
                 <form id="metrics-form" class="metrics-form-grid">
-                  <label>Data logu
-                    <input type="date" id="metrics-date" required>
-                  </label>
-                  <label>Cut / cykl
-                    <input type="text" id="metrics-cut" list="metrics-cut-list" placeholder="np. Cut 2026 Wiosna" required>
-                    <datalist id="metrics-cut-list"></datalist>
-                  </label>
-                  <label>Waga (kg)
-                    <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="np. 84.2">
-                  </label>
-                  <label>BMI
-                    <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="np. 24.8">
-                  </label>
-                  <label>BF (%)
-                    <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="np. 17.5">
-                  </label>
-                  <label>Waga mięśni (kg)
-                    <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="np. 34.0">
-                  </label>
+                  <div class="metrics-form-row">
+                    <label>Data logu
+                      <input type="date" id="metrics-date" required>
+                    </label>
+                    <label>Cut / cykl
+                      <input type="text" id="metrics-cut" list="metrics-cut-list" placeholder="np. Cut 2026 Wiosna" required>
+                      <datalist id="metrics-cut-list"></datalist>
+                    </label>
+                    <label>Waga (kg)
+                      <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="np. 84.2">
+                    </label>
+                    <label>BMI
+                      <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="np. 24.8">
+                    </label>
+                    <label>BF (%)
+                      <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="np. 17.5">
+                    </label>
+                    <label>Waga mięśni (kg)
+                      <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="np. 34.0">
+                    </label>
+                  </div>
                   <div class="metrics-actions">
                     <button class="btn" type="submit"><i data-lucide="save" class="icon"></i>Zapisz log</button>
                     <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczyść pola</button>
                   </div>
                 </form>
                 <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy log, a zobaczysz trendy i komunikaty o progresie.</div>
-                <div class="metrics-recent">
-                  <h4>Ostatnie logi</h4>
-                  <div id="metrics-log-list" class="metrics-log-list"></div>
-                </div>
               </div>
-              <div class="metrics-charts">
+              <div>
                 <div class="metrics-toolbar">
                   <div class="metrics-filter">
                     <span class="tiny muted">Cut:</span>
@@ -974,65 +940,40 @@
                   </div>
                   <div id="metrics-cut-summary" class="metrics-summary"></div>
                 </div>
-                <div class="metrics-chart-grid">
-                  <div class="metrics-chart-card">
-                    <div class="metrics-chart-header">
+                <div class="metrics-kpi-grid">
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
                       <span>Waga</span>
                       <span id="metrics-weight-stat">--</span>
                     </div>
                     <div class="metrics-chart" id="metrics-chart-weight"></div>
                   </div>
-                  <div class="metrics-chart-card">
-                    <div class="metrics-chart-header">
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
                       <span>BMI</span>
                       <span id="metrics-bmi-stat">--</span>
                     </div>
                     <div class="metrics-chart" id="metrics-chart-bmi"></div>
                   </div>
-                  <div class="metrics-chart-card">
-                    <div class="metrics-chart-header">
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
                       <span>BF %</span>
                       <span id="metrics-bf-stat">--</span>
                     </div>
                     <div class="metrics-chart" id="metrics-chart-bf"></div>
                   </div>
-                  <div class="metrics-chart-card">
-                    <div class="metrics-chart-header">
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
                       <span>Waga mięśni</span>
                       <span id="metrics-muscle-stat">--</span>
                     </div>
                     <div class="metrics-chart" id="metrics-chart-muscle"></div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="card habits-card" id="habits">
-            <div class="card-header">
-              <div>
-                <h3>Rutyna i nawyki</h3>
-                <p class="muted tiny">Codzienny rytuał, streaki i szybkie przypomnienia.</p>
-              </div>
-              <span class="month-chip">Konsekwencja</span>
-            </div>
-            <div class="habits-layout">
-              <div class="habit-streak">
-                <span class="muted tiny">Aktualny streak</span>
-                <span id="habit-streak-count" class="habit-streak-value">0 dni</span>
-                <div class="habit-progress">
-                  <span id="habit-today-progress">0/0 na dziś</span>
-                  <span id="habit-week-progress">• 0% tygodnia</span>
+                <div class="metrics-history">
+                  <h4>Historia logów</h4>
+                  <div id="metrics-log-list" class="metrics-log-list"></div>
                 </div>
-                <div class="muted tiny">Wybierz stałą godzinę i trzymaj rytm.</div>
-              </div>
-              <div>
-                <div class="habit-actions">
-                  <input type="text" id="habit-input" placeholder="Dodaj nowy nawyk (np. 20 min czytania)">
-                  <button id="habit-add-btn" class="btn">Dodaj</button>
-                </div>
-                <div id="habit-list" class="habit-list" style="margin-top: 12px;"></div>
-                <div id="habit-coach" class="habit-coach" style="margin-top: 12px;"></div>
               </div>
             </div>
           </section>
@@ -1131,13 +1072,6 @@ const EXTRA_CATEGORY_LABELS = EXTRA_ACTIVITY_CATEGORIES.reduce((acc, item) => {
   return acc;
 }, {});
 const BODY_METRICS_KEY = 'lifeos_body_metrics_v1';
-const HABITS_KEY = 'lifeos_habits_v1';
-const DEFAULT_HABITS = [
-  'Trening siłowy',
-  'Czytanie 20 min',
-  'Woda 2L',
-  'Sen 7h'
-];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -1158,7 +1092,6 @@ let selectedDate = toYYYYMMDD(new Date());
 let planningMode = null;
 let saveTimeout;
 let bodyMetrics = [];
-let habitState = { items: [], log: {} };
 let selectedCut = 'all';
 
 function startOfMonth(date) {
@@ -1646,7 +1579,6 @@ function render() {
   renderHeatmap();
   renderPlanningIndicator();
   renderBodyMetrics();
-  renderHabits();
   lucide.createIcons();
 }
 
@@ -2250,30 +2182,6 @@ function renderBodyMetrics() {
   if (!cuts.includes(selectedCut) && selectedCut !== 'all') selectedCut = 'all';
   cutFilter.value = selectedCut;
 
-  const sorted = sortMetricsByDate(bodyMetrics);
-  if (!sorted.length) {
-    logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
-  } else {
-    logList.innerHTML = '';
-    sorted.slice(-8).reverse().forEach(entry => {
-      const item = document.createElement('div');
-      item.className = 'metrics-log-item';
-      item.innerHTML = `
-        <div>
-          <strong>${entry.date}</strong>
-          <div class="tiny muted">${entry.cut || 'Bez cutu'} · ${entry.weight ?? '--'} kg</div>
-        </div>
-        <button class="btn ghost small" data-id="${entry.id}"><i data-lucide="trash-2" class="icon"></i></button>
-      `;
-      item.querySelector('button')?.addEventListener('click', () => {
-        bodyMetrics = bodyMetrics.filter(item => item.id !== entry.id);
-        saveBodyMetrics('Usunięto log');
-        renderBodyMetrics();
-      });
-      logList.appendChild(item);
-    });
-  }
-
   const filtered = getMetricsForCut(selectedCut);
   const summary = document.getElementById('metrics-cut-summary');
   if (summary) {
@@ -2295,7 +2203,65 @@ function renderBodyMetrics() {
   document.getElementById('metrics-bmi-stat').textContent = getMetricSummary(filtered, 'bmi', '', 'down');
   document.getElementById('metrics-bf-stat').textContent = getMetricSummary(filtered, 'bf', '%', 'down');
   document.getElementById('metrics-muscle-stat').textContent = getMetricSummary(filtered, 'muscle', 'kg', 'up');
+
+  if (!filtered.length) {
+    logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
+  } else {
+    logList.innerHTML = '';
+    filtered.slice().reverse().forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'metrics-log-item';
+      item.innerHTML = `
+        <div>
+          <strong>${entry.date}</strong>
+          <div class="tiny muted">${entry.cut || 'Bez cutu'} · W: ${entry.weight ?? '--'} kg · BMI: ${entry.bmi ?? '--'} · BF: ${entry.bf ?? '--'}% · M: ${entry.muscle ?? '--'} kg</div>
+        </div>
+        <div class="metrics-actions">
+          <button class="btn ghost small" data-edit-id="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
+          <button class="btn ghost small" data-delete-id="${entry.id}"><i data-lucide="trash-2" class="icon"></i></button>
+        </div>
+      `;
+      item.querySelector('[data-delete-id]')?.addEventListener('click', () => {
+        bodyMetrics = bodyMetrics.filter(item => item.id !== entry.id);
+        saveBodyMetrics('Usunięto log');
+        renderBodyMetrics();
+      });
+      item.querySelector('[data-edit-id]')?.addEventListener('click', () => showEditMetricsModal(entry));
+      logList.appendChild(item);
+    });
+  }
   lucide.createIcons();
+}
+
+function showEditMetricsModal(entry) {
+  if (!entry) return;
+  showModal({
+    title: 'Edytuj log',
+    text: 'Zmień dane i zapisz ponownie.',
+    inputs: [
+      { label: 'Data', type: 'date', value: entry.date, key: 'date' },
+      { label: 'Cut / cykl', type: 'text', value: entry.cut, key: 'cut' },
+      { label: 'Waga (kg)', type: 'number', value: entry.weight ?? '', step: '0.1', key: 'weight' },
+      { label: 'BMI', type: 'number', value: entry.bmi ?? '', step: '0.1', key: 'bmi' },
+      { label: 'BF (%)', type: 'number', value: entry.bf ?? '', step: '0.1', key: 'bf' },
+      { label: 'Waga mięśni (kg)', type: 'number', value: entry.muscle ?? '', step: '0.1', key: 'muscle' }
+    ],
+    buttons: [
+      { text: 'Anuluj', class: 'btn soft', action: 'close' },
+      { text: 'Zapisz', class: 'btn', action: (value) => {
+          if (!value || !value.cut) return false;
+          entry.date = value.date || entry.date;
+          entry.cut = value.cut || entry.cut;
+          entry.weight = parseMetricValue(value.weight);
+          entry.bmi = parseMetricValue(value.bmi);
+          entry.bf = parseMetricValue(value.bf);
+          entry.muscle = parseMetricValue(value.muscle);
+          selectedCut = entry.cut;
+          saveBodyMetrics('Zaktualizowano log');
+          renderBodyMetrics();
+        } }
+    ]
+  });
 }
 
 function evaluateProgress(current, previous) {
@@ -2330,119 +2296,6 @@ function evaluateProgress(current, previous) {
     return { tone: 'danger', message: `Uwaga: brak progresu w (${declines.join(', ')}). Wróć do rutyny i pilnuj powtarzalności.` };
   }
   return { tone: 'warning', message: 'Stabilnie. Jest trend, ale warto dopiąć rutynę i konsekwencję.' };
-}
-
-function loadHabits() {
-  const parsed = safeParse(localStorage.getItem(HABITS_KEY), () => ({}));
-  habitState.items = Array.isArray(parsed.items) ? parsed.items : [];
-  habitState.log = parsed.log && typeof parsed.log === 'object' ? parsed.log : {};
-  if (!habitState.items.length) {
-    habitState.items = DEFAULT_HABITS.map(title => ({
-      id: `habit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      title
-    }));
-  }
-}
-
-function saveHabits(message = 'Zapisano nawyki') {
-  localStorage.setItem(HABITS_KEY, JSON.stringify(habitState));
-  showSaveStatus(message);
-}
-
-function getHabitLog(dateString) {
-  if (!habitState.log[dateString]) habitState.log[dateString] = {};
-  return habitState.log[dateString];
-}
-
-function calculateHabitStreak() {
-  if (!habitState.items.length) return 0;
-  let streak = 0;
-  let cursor = normalizeDate(new Date());
-  let guard = 0;
-  while (guard < 365) {
-    const dateString = toYYYYMMDD(cursor);
-    const dayLog = habitState.log[dateString] || {};
-    const allDone = habitState.items.every(item => dayLog[item.id]);
-    if (!allDone) break;
-    streak += 1;
-    cursor = addDays(cursor, -1);
-    guard += 1;
-  }
-  return streak;
-}
-
-function calculateWeeklyHabitRate() {
-  if (!habitState.items.length) return 0;
-  const weekStart = startOfWeek(new Date());
-  let completed = 0;
-  let total = 0;
-  for (let i = 0; i < 7; i++) {
-    const date = addDays(weekStart, i);
-    const dayLog = habitState.log[toYYYYMMDD(date)] || {};
-    habitState.items.forEach(item => {
-      total += 1;
-      if (dayLog[item.id]) completed += 1;
-    });
-  }
-  return total ? Math.round((completed / total) * 100) : 0;
-}
-
-function renderHabits() {
-  const list = document.getElementById('habit-list');
-  const streakEl = document.getElementById('habit-streak-count');
-  const todayProgress = document.getElementById('habit-today-progress');
-  const weekProgress = document.getElementById('habit-week-progress');
-  const coach = document.getElementById('habit-coach');
-  if (!list || !streakEl || !todayProgress || !weekProgress || !coach) return;
-
-  const today = toYYYYMMDD(new Date());
-  const todayLog = getHabitLog(today);
-  list.innerHTML = '';
-
-  if (!habitState.items.length) {
-    list.innerHTML = `<p class="muted tiny">Dodaj pierwszy nawyk, by zbudować rytuał.</p>`;
-  } else {
-    habitState.items.forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'habit-item';
-      const checked = Boolean(todayLog[item.id]);
-      row.innerHTML = `
-        <label>
-          <input type="checkbox" ${checked ? 'checked' : ''} data-habit-id="${item.id}">
-          <span>${item.title}</span>
-        </label>
-        <button class="btn ghost small" data-remove-id="${item.id}"><i data-lucide="trash-2" class="icon"></i></button>
-      `;
-      row.querySelector('input')?.addEventListener('change', event => {
-        todayLog[item.id] = event.target.checked;
-        saveHabits('Zapisano rytuał dnia');
-        renderHabits();
-      });
-      row.querySelector('button')?.addEventListener('click', () => {
-        habitState.items = habitState.items.filter(habit => habit.id !== item.id);
-        Object.values(habitState.log).forEach(dayLog => delete dayLog[item.id]);
-        saveHabits('Usunięto nawyk');
-        renderHabits();
-      });
-      list.appendChild(row);
-    });
-  }
-
-  const completedToday = habitState.items.filter(item => todayLog[item.id]).length;
-  const total = habitState.items.length;
-  const streak = calculateHabitStreak();
-  streakEl.textContent = `${streak} dni`;
-  todayProgress.textContent = `${completedToday}/${total} na dziś`;
-  weekProgress.textContent = `• ${calculateWeeklyHabitRate()}% tygodnia`;
-
-  if (!total) {
-    coach.textContent = 'Dodaj pierwszy nawyk i wybierz stałą porę na rytuał.';
-  } else if (completedToday === total) {
-    coach.textContent = 'Pięknie! Rutyna zaliczona. Podtrzymaj tempo jutro.';
-  } else {
-    coach.textContent = `Zostało ${total - completedToday} nawyków. Zaplanuj stałą porę i zamknij dzień.`;
-  }
-  lucide.createIcons();
 }
 
 
@@ -2911,24 +2764,11 @@ function setupEventListeners() {
     renderBodyMetrics();
   });
 
-  document.getElementById('habit-add-btn')?.addEventListener('click', () => {
-    const input = document.getElementById('habit-input');
-    const title = input?.value?.trim();
-    if (!title) return;
-    habitState.items.push({
-      id: `habit_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      title
-    });
-    input.value = '';
-    saveHabits('Dodano nowy nawyk');
-    renderHabits();
-  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   loadBodyMetrics();
-  loadHabits();
   ensureDay(selectedDate);
   render();
   setupEventListeners();
