@@ -2436,6 +2436,8 @@ function getLastWeeks(count) {
 function renderAnalytics12Weeks() {
   const canvas = document.getElementById('analytics-12w-chart');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const totals = calculateWeeklyActivityTotals();
   const weeks = getLastWeeks(12);
   const gymTarget = GOAL_DEFINITIONS.gym?.target || 1;
@@ -2456,7 +2458,7 @@ function renderAnalytics12Weeks() {
   const gymColor = getCssVar('--gym-color', '#7c3aed');
   const runColor = getCssVar('--run-color', '#22c55e');
   const readColor = getCssVar('--read-color', '#6366f1');
-  analyticsCharts.week12 = new Chart(canvas, {
+  analyticsCharts.week12 = new Chart(ctx, {
     type: 'line',
     data: {
       labels: weeks.map(week => week.label),
@@ -2472,7 +2474,7 @@ function renderAnalytics12Weeks() {
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-        y: { beginAtZero: true, max: 100, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: value => `${value}%` } }
+        y: { beginAtZero: true, min: 0, max: 100, grid: { color: '#e2e8f0', borderDash: [4, 4] }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: value => `${value}%` } }
       }
     }
   });
@@ -2481,6 +2483,8 @@ function renderAnalytics12Weeks() {
 function renderAnalyticsWeekRadar() {
   const canvas = document.getElementById('analytics-week-radar');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const weekStats = calculateWeeklyGoalStats(new Date());
   const values = [
     weekStats.goalPercents.gym?.percent || 0,
@@ -2494,7 +2498,7 @@ function renderAnalyticsWeekRadar() {
 
   if (analyticsCharts.radar) analyticsCharts.radar.destroy();
   const primaryColor = getCssVar('--primary', '#6366f1');
-  analyticsCharts.radar = new Chart(canvas, {
+  analyticsCharts.radar = new Chart(ctx, {
     type: 'radar',
     data: {
       labels: ['Siłownia', 'Bieganie', 'Czytanie'],
@@ -2533,6 +2537,8 @@ function getMonthIndexByWeekEnd(weekStart) {
 function renderAnalyticsWeeklyConsistency() {
   const canvas = document.getElementById('analytics-weekly-consistency');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const weeks = getLastWeeks(8);
   const activeDaysByWeek = weeks.map(week => {
     const days = new Set();
@@ -2547,7 +2553,7 @@ function renderAnalyticsWeeklyConsistency() {
   });
   if (analyticsCharts.consistency) analyticsCharts.consistency.destroy();
   const primaryColor = getCssVar('--primary', '#6366f1');
-  analyticsCharts.consistency = new Chart(canvas, {
+  analyticsCharts.consistency = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: weeks.map(week => week.label),
@@ -2573,6 +2579,8 @@ function renderAnalyticsWeeklyConsistency() {
 function renderAnalyticsMonthlyComparison() {
   const canvas = document.getElementById('analytics-monthly-chart');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
   const totals = calculateWeeklyActivityTotals();
   const year = currentMonth.getFullYear();
@@ -2638,7 +2646,7 @@ function renderAnalyticsMonthlyComparison() {
     analyticsPluginsRegistered = true;
   }
   if (analyticsCharts.monthly) analyticsCharts.monthly.destroy();
-  analyticsCharts.monthly = new Chart(canvas, {
+  analyticsCharts.monthly = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: monthLabels,
