@@ -1434,6 +1434,42 @@
       background: var(--surface);
     }
 
+    .eom-account-config {
+      margin: 12px 0;
+      padding: 12px 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 14px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .eom-account-config-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .eom-account-config table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .eom-account-config th,
+    .eom-account-config td {
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      text-align: left;
+    }
+
+    .eom-account-config select {
+      min-width: 190px;
+    }
+
     .eom-control-bar .filter-group {
       display: flex;
       flex-direction: column;
@@ -4919,6 +4955,7 @@
                 <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
                 <button class="btn soft" type="submit">Dodaj konto</button>
               </form>
+              <div class="eom-account-config" id="eom-account-config"></div>
             <div class="eom-control-bar" id="eom-control-bar">
               <label class="filter-group">
                 <span class="tiny">Typy kont</span>
@@ -7673,6 +7710,28 @@
     return 'inne';
   }
 
+  const EOM_ACCOUNT_TYPE_OPTIONS = [
+    { value:'oszczędności', label:'Oszczędności' },
+    { value:'inwestycje', label:'Inwestycje' },
+    { value:'zadłużenie', label:'Zadłużenie' },
+    { value:'gotówka', label:'Gotówka' },
+    { value:'emerytura', label:'Emerytura' },
+    { value:'inne', label:'Inne' }
+  ];
+  const EOM_ACCOUNT_TYPE_AUTO = '__auto__';
+  const EOM_ACCOUNT_TYPE_ALL = '__all__';
+
+  function getAccountTypeOptions(accounts){
+    const base = new Map(EOM_ACCOUNT_TYPE_OPTIONS.map(opt => [opt.value, opt]));
+    (accounts || []).forEach(acc => {
+      const type = inferAccountType(acc);
+      if(type && !base.has(type)){
+        base.set(type, { value: type, label: capitalizeFirst(type) });
+      }
+    });
+    return Array.from(base.values());
+  }
+
   function eomAccountStatus(balance){
     if(balance === null || balance === undefined) return 'neutralne';
     return balance >= 0 ? 'aktywa' : 'zobowiązania';
@@ -7768,6 +7827,64 @@
   function monthsForSparkline(ctx, range){
     const months = getMonthsWithinRange(ctx.months, range);
     return months.length ? months : ctx.months.slice(-6);
+  }
+
+  function renderEomAccountTypeConfigurator(ctx){
+    const container = document.getElementById('eom-account-config');
+    if(!container) return;
+    const accounts = ctx.accounts || [];
+    const options = getAccountTypeOptions(accounts);
+    if(!accounts.length){
+      container.innerHTML = '<div class="muted tiny">Dodaj konto, aby przypisać typy.</div>';
+      return;
+    }
+    const rows = accounts.map(acc => {
+      const configuredType = acc.type || acc.kind || '';
+      const effectiveType = inferAccountType(acc);
+      const hint = configuredType
+        ? `Ustawione: ${capitalizeFirst(configuredType)}`
+        : `Automatycznie: ${capitalizeFirst(effectiveType)}`;
+      const optionsHtml = [
+        `<option value="${EOM_ACCOUNT_TYPE_AUTO}" ${configuredType ? '' : 'selected'}>Automatycznie (z nazwy)</option>`,
+        ...options.map(opt => `<option value="${opt.value}" ${opt.value === configuredType ? 'selected' : ''}>${opt.label}</option>`)
+      ].join('');
+      return `
+        <tr>
+          <td><strong>${acc.name}</strong><div class="tiny muted">${hint}</div></td>
+          <td><select data-account-type="${acc.id}">${optionsHtml}</select></td>
+        </tr>
+      `;
+    }).join('');
+    container.innerHTML = `
+      <div class="eom-account-config-header">
+        <div>
+          <div class="title" style="margin:0">Konfigurator typów kont</div>
+          <div class="tiny muted">Przypisz konta do kategorii (oszczędności, inwestycje itd.), aby raporty EoM były dokładniejsze.</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Konto</th><th>Typ konta</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    container.querySelectorAll('select[data-account-type]').forEach(select => {
+      select.addEventListener('change', () => {
+        const accountId = select.dataset.accountType;
+        const value = select.value;
+        const acc = (b().accounts || []).find(item => item.id === accountId);
+        if(!acc) return;
+        if(value === EOM_ACCOUNT_TYPE_AUTO){
+          delete acc.type;
+          delete acc.kind;
+        } else {
+          acc.type = value;
+          delete acc.kind;
+        }
+        save(state);
+        renderEOM();
+        renderEOMHistory();
+      });
+    });
   }
 
   function renderEomInteractiveGrid(ctx, rows, options={}){
@@ -10284,16 +10401,37 @@
       });
     }
 
+    renderEomAccountTypeConfigurator(ctx);
+
     const typeSelect = document.getElementById('eom-account-type-filter');
     if(typeSelect){
-      const types = [...new Set((ctx.accounts || []).map(inferAccountType))].sort((a,b) => a.localeCompare(b, 'pl', { sensitivity:'base' }));
+      const typeOptions = getAccountTypeOptions(ctx.accounts);
+      const types = typeOptions.map(opt => opt.value).sort((a,b) => a.localeCompare(b, 'pl', { sensitivity:'base' }));
       const selected = new Set(eomUiState.accountTypes || []);
+      const selectAll = selected.size === 0;
       typeSelect.innerHTML = '';
+      typeSelect.add(new Option('Wszystkie konta', EOM_ACCOUNT_TYPE_ALL, false, selectAll));
       types.forEach(type => typeSelect.add(new Option(capitalizeFirst(type), type, false, selected.has(type))));
       if(!typeSelect.dataset.bound){
         typeSelect.dataset.bound = '1';
         typeSelect.addEventListener('change', () => {
-          eomUiState.accountTypes = Array.from(typeSelect.selectedOptions).map(opt => opt.value);
+          const values = Array.from(typeSelect.selectedOptions).map(opt => opt.value);
+          if(values.includes(EOM_ACCOUNT_TYPE_ALL)){
+            if(values.length > 1){
+              const filtered = values.filter(val => val !== EOM_ACCOUNT_TYPE_ALL);
+              eomUiState.accountTypes = filtered;
+              Array.from(typeSelect.options).forEach(option => {
+                option.selected = filtered.includes(option.value);
+              });
+            } else {
+              eomUiState.accountTypes = [];
+              Array.from(typeSelect.options).forEach(option => {
+                option.selected = option.value === EOM_ACCOUNT_TYPE_ALL;
+              });
+            }
+          } else {
+            eomUiState.accountTypes = values;
+          }
           renderEOM();
           renderEOMHistory();
         });
