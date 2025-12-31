@@ -48,7 +48,185 @@
     .chart-box {
       height: 240px;
       position: relative;
+      display: grid;
+      place-items: center;
     }
+
+    .inv-compact-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .inv-compact-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 160px;
+      flex: 0 1 auto;
+    }
+
+    .inv-compact-field.grow { flex: 1 1 220px; }
+
+    .inv-compact-field input,
+    .inv-compact-field select {
+      height: 38px;
+    }
+
+    .inv-compact-footnote {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    @media (max-width: 720px) {
+      .inv-compact-form { flex-direction: column; align-items: stretch; }
+      .inv-compact-footnote { margin-left: 0; }
+    }
+
+    .inv-shell {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 8px 10px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .inv-top-grid {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.1fr) minmax(320px, 0.9fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .inv-kpi-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inv-kpi-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .inv-kpi-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .inv-kpi-label { font-weight: 600; color: var(--ink); }
+    .inv-kpi-value { font-weight: 700; font-size: 18px; }
+    .inv-kpi-meta { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 960px) {
+      .inv-top-grid { grid-template-columns: 1fr; }
+    }
+
+    .inv-analytics-nav {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.14);
+    }
+
+    .inv-analytics-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+    .inv-analytics-btn:hover,
+    .inv-analytics-btn:focus-visible { background: rgba(255,255,255,0.7); color: var(--ink); outline: none; }
+
+    .inv-analytics-btn.is-active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    .inv-analytics-panels { display: grid; gap: 20px; margin-top: 10px; }
+    .inv-analytics-panel { display: none; }
+    .inv-analytics-panel.is-active { display: block; }
+
+    .inv-allocation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .inv-modal-body { display: grid; gap: 12px; }
+    .inv-asset-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(148,163,184,0.2); }
+    .inv-asset-row:last-child { border-bottom: none; }
+    .inv-asset-row .meta { font-size: 12px; color: var(--muted); }
+
+    .inv-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+
+    .inv-modal {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      max-width: 1100px;
+      width: min(1080px, 96vw);
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 18px 20px 20px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+      z-index: 65;
+    }
+
+    .inv-asset-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .inv-asset-toolbar .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .inv-asset-table { width: 100%; border-collapse: collapse; }
+    .inv-asset-table th, .inv-asset-table td { padding: 10px; text-align: left; vertical-align: middle; }
+    .inv-asset-table input, .inv-asset-table select { width: 100%; height: 38px; }
+    .inv-asset-table .muted { font-size: 12px; }
+    .inv-asset-empty { padding: 8px 0 0; }
+
+    .inv-modal[hidden],
+    .inv-modal-backdrop[hidden] { display: none; }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--muted);
+    }
+
+    .inv-holdings-accordion { display: grid; gap: 10px; }
+    .inv-holding-group { border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 14px; overflow: hidden; background: rgba(248, 250, 252, 0.7); }
+    .inv-holding-group summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .inv-holding-group summary::-webkit-details-marker { display: none; }
+    .inv-holding-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    .inv-holding-kpis { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .inv-holding-kpis .pill { background: #fff; border: 1px solid rgba(148, 163, 184, 0.35); }
+    .inv-holding-details { padding: 0 14px 12px; }
 
     .eom-hero {
       margin-top: 16px;
@@ -4190,6 +4368,7 @@
       <button class="tab" data-tab="incomes">Przychody</button>
       <button class="tab" data-tab="fixed">Stałe wydatki</button>
       <button class="tab" data-tab="variable">Wydatki zmienne</button>
+      <button class="tab" data-tab="investments">Inwestycje</button>
       <button class="tab" data-tab="categories">Kategorie</button>
       <button class="tab" data-tab="eom">Salda (EOM)</button>
       <button class="tab" data-tab="goals">Cele</button>
@@ -4423,6 +4602,222 @@
       <div class="insight-bubble" style="margin-top:12px">📊 Szczegółową tabelę transakcji znajdziesz poniżej lub w panelu „Dashboard finansowy”.</div>
     </section>
 
+    <!-- Investments -->
+      <section id="tab-investments" style="display:none" class="stack">
+        <div class="inv-shell">
+          <div class="row" style="justify-content: flex-end; align-items:center; gap:8px;">
+            <div class="badge">📈 Tracker inwestycyjny</div>
+            <button class="btn ghost" type="button" id="inv-asset-modal-open">📑 Zarządzaj aktywami</button>
+          </div>
+
+          <div class="inv-top-grid">
+            <div class="card stack">
+              <div class="row" style="justify-content: space-between; align-items: center;">
+                <strong>Nowy zakup</strong>
+                <span class="badge ghost">Automatyczne księgowanie</span>
+              </div>
+              <form id="inv-trade-form" class="inv-compact-form">
+                <label class="inv-compact-field grow">Aktywo
+                  <select name="assetId" required></select>
+                </label>
+                <label class="inv-compact-field">Data zakupu
+                  <input type="date" name="date" required />
+                </label>
+                <label class="inv-compact-field">Kwota wydana
+                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
+                </label>
+                <label class="inv-compact-field">Ilość
+                  <input name="quantity" inputmode="decimal" placeholder="0" required />
+                </label>
+                <label class="inv-compact-field grow">Notatka
+                  <input name="note" placeholder="np. DCA, promo, HODL" />
+                </label>
+                <div class="inv-compact-footnote">Kwota trafia do „Wydatków zmiennych” &rarr; Inwestycje.</div>
+                <button class="btn" type="submit">Zapisz zakup</button>
+              </form>
+            </div>
+
+            <div class="card stack">
+              <div class="row" style="justify-content: space-between; align-items: center;">
+                <strong>KPI inwestycyjne</strong>
+                <span class="badge ghost">Rytm co poniedziałek</span>
+              </div>
+              <ul class="inv-kpi-list">
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Wszystkie inwestycje</span>
+                    <span id="inv-kpi-total" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Suma zapisanych zakupów (bez wyceny rynkowej).</div>
+                </li>
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Ostatni zakup</span>
+                    <span id="inv-kpi-last" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Następny poniedziałek: <span id="inv-kpi-next">—</span></div>
+                </li>
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Aktywność 30 dni</span>
+                    <span id="inv-kpi-pace" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Liczba zakupów i wkład za ostatnie 30 dni.</div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Podsumowanie grup</strong>
+              <span class="tiny muted">Długoterminowy udział kapitału</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-group-table">
+                <thead>
+                  <tr>
+                    <th>Grupa</th>
+                    <th>Łącznie</th>
+                    <th>Udział</th>
+                    <th>Śr. ticket</th>
+                    <th>Zakupy</th>
+                    <th>Ostatnia aktywność</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <div>
+                <p class="eyebrow">Portfel</p>
+                <h3 class="title" style="margin:0">Stan posiadania wg grup</h3>
+              </div>
+              <span class="tiny muted">Rozwiń grupę, aby zobaczyć aktywa i statystyki</span>
+            </div>
+            <div id="inv-holdings-groups" class="inv-holdings-accordion"></div>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Historia zakupów</strong>
+              <span class="tiny muted">Pełna ewidencja</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="modern-table" id="inv-trades-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Aktywo</th>
+                    <th>Kwota</th>
+                    <th>Ilość</th>
+                    <th>Śr. cena</th>
+                    <th>Notatka</th>
+                    <th>Akcje</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div class="row" style="justify-content: space-between; align-items: center;">
+              <strong>Analityka inwestycji</strong>
+              <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
+                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Skumulowany kapitał</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation" aria-selected="false">Struktura portfela</button>
+              </div>
+            </div>
+
+            <div class="inv-analytics-panels">
+              <div class="inv-analytics-panel is-active" data-panel="weekly">
+                <div class="chart-box">
+                  <canvas id="inv-weekly-chart"></canvas>
+                  <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
+                </div>
+              </div>
+
+              <div class="inv-analytics-panel" data-panel="cumulative">
+                <div class="chart-box">
+                  <canvas id="inv-cumulative-chart"></canvas>
+                  <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
+                </div>
+              </div>
+
+              <div class="inv-analytics-panel" data-panel="allocation">
+                <div class="inv-allocation-grid">
+                  <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                    <div class="row" style="justify-content: space-between; align-items: center;">
+                      <strong>Struktura główna</strong>
+                      <span class="tiny muted">Udział % wg grup</span>
+                    </div>
+                    <div class="chart-box" style="height:220px">
+                      <canvas id="inv-allocation-chart"></canvas>
+                      <div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów do pokazania.</div>
+                    </div>
+                  </div>
+
+                  <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
+                    <div class="row" style="justify-content: space-between; align-items: center;">
+                      <strong id="inv-allocation-detail-title">Struktura szczegółowa</strong>
+                      <span class="tiny muted" id="inv-allocation-detail-meta">Wybierz grupę na wykresie</span>
+                    </div>
+                    <div class="chart-box" style="height:220px">
+                      <canvas id="inv-allocation-detail-chart"></canvas>
+                      <div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij segment, aby zobaczyć skład.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="inv-asset-backdrop" class="inv-modal-backdrop" hidden></div>
+      <aside id="inv-asset-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
+        <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
+          <div>
+            <p class="eyebrow" style="margin:0">Portfel</p>
+            <h3 class="title" style="margin:0">Zarządzanie aktywami</h3>
+            <p class="tiny muted" style="margin-top:4px">Dodawaj hurtowo, edytuj i usuwaj aktywa jednym widokiem tabeli.</p>
+          </div>
+          <button class="btn ghost" type="button" id="inv-asset-modal-close">✕</button>
+        </header>
+        <div class="inv-modal-body" style="margin-top:12px;">
+            <div class="inv-asset-toolbar">
+              <div>
+                <strong>Pełna lista aktywów</strong>
+                <p class="tiny muted" style="margin:2px 0 0">Dodaj kilka na raz, a następnie zapisz hurtowo.</p>
+              </div>
+              <div class="actions">
+                <button class="btn soft" type="button" id="inv-asset-add-group">Nowa grupa</button>
+                <button class="btn soft" type="button" id="inv-asset-add-row">+ Dodaj wiersz</button>
+                <button class="btn" type="button" id="inv-asset-save-all">Zapisz wszystkie</button>
+                <button class="btn ghost" type="button" id="inv-asset-cancel">Zamknij</button>
+              </div>
+            </div>
+          <div class="table-wrapper" style="margin-top:6px;">
+            <table class="modern-table inv-asset-table">
+              <thead>
+                <tr>
+                  <th>Aktywo</th>
+                  <th>Grupa</th>
+                  <th>Zakupy</th>
+                  <th>Ostatni zakup</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="inv-asset-table-body"></tbody>
+            </table>
+          </div>
+          <div id="inv-asset-empty" class="tiny muted inv-asset-empty">Brak aktywów — dodaj pierwszy wiersz.</div>
+        </div>
+      </aside>
+    </section>
     <!-- Categories -->
     <section id="tab-categories" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Kategorie</h3>
@@ -5139,6 +5534,10 @@
     if(!Array.isArray(bud.recurringLog)) bud.recurringLog=[];
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
+    if(!bud.investments) bud.investments={assets:[], trades:[], groups:[]};
+    if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
+    if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
+    if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
 
     return st;
   }
@@ -5161,7 +5560,8 @@
         workingMonth:monthKey(),
         createTxOnFixedPay:true,
         recurringTemplates:[],recurringLog:[],
-        fixedTemplates:[]
+        fixedTemplates:[],
+        investments:{assets:[], trades:[], groups:[]}
       }}
     });
   }
@@ -5204,7 +5604,7 @@
     });
   }
   const tabs=document.querySelectorAll('.tab');
-  const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),mom:tab('mom')};
+  const sections={dashboard:tab('dashboard'),overview:tab('overview'),incomes:tab('incomes'),fixed:tab('fixed'),variable:tab('variable'),investments:tab('investments'),categories:tab('categories'),eom:tab('eom'),goals:tab('goals'),analytics:tab('analytics'),mom:tab('mom')};
   const varCard=document.getElementById('var-transactions-card');
   const varSlots={dashboard:document.getElementById('var-table-dashboard-slot'),variable:document.getElementById('var-table-variable-slot')};
   function placeVarCard(target){
@@ -5225,6 +5625,7 @@
       if(t.dataset.tab==='analytics') renderAnalytics(); // Render analytics when tab is clicked
       if(t.dataset.tab==='eom') renderEOMHistory(); // Render history when tab is clicked
       if(t.dataset.tab==='mom') renderMomComparison();
+      if(t.dataset.tab==='investments') renderInvestments();
       bindMoneyInputs();
     });
   }
@@ -6354,6 +6755,795 @@
       save(state); renderAll();
     };
     row.querySelector('[data-act="cancel"]').onclick=()=>renderVariable();
+  }
+
+  // --- Investments -------------------------------------------------------------
+  const invPalette=['#2563eb','#22c55e','#f59e0b','#0ea5e9','#8b5cf6','#ef4444'];
+  const invGroupOptions=['Akcje','Dywidenda','Krypto','Metal','Waluta','Inne'];
+  let invWeeklyChart=null;
+  let invCumulativeChart=null;
+  let invAllocationChart=null;
+  let invAllocationDetailChart=null;
+  let invSelectedAllocationGroup=null;
+  let invModalBound=false;
+  let invActivePanel='weekly';
+
+  const investments=()=>{
+    if(!b().investments){
+      b().investments={assets:[], trades:[], groups:[]};
+    }
+    if(!Array.isArray(b().investments.assets)) b().investments.assets=[];
+    if(!Array.isArray(b().investments.trades)) b().investments.trades=[];
+    if(!Array.isArray(b().investments.groups)) b().investments.groups=[];
+    return b().investments;
+  };
+
+  const allInvestmentGroups=()=>{
+    const data=investments();
+    const derivedFromAssets=(data.assets||[]).map(a=>a.group||'Inne');
+    const combined=new Set([...invGroupOptions,...(data.groups||[]),...derivedFromAssets]);
+    return Array.from(combined).sort((a,b)=>a.localeCompare(b));
+  };
+
+  const addInvestmentGroup=(name)=>{
+    const g=(name||'').trim();
+    if(!g) return;
+    const data=investments();
+    if(!data.groups.includes(g) && !invGroupOptions.includes(g)){
+      data.groups.push(g);
+      save(state);
+    }
+    return g;
+  };
+
+  const sortAssetsByGroupThenName=(assets)=>{
+    return [...assets].sort((a,b)=>{
+      const gA=(a.group||'Inne');
+      const gB=(b.group||'Inne');
+      const gComp=gA.localeCompare(gB);
+      if(gComp!==0) return gComp;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+  };
+
+  function populateAssetGroupSelect(select,current){
+    if(!select) return;
+    const currentVal=current || current===0 ? current : (select.value||'');
+    const options=allInvestmentGroups();
+    select.innerHTML='';
+    for(const opt of options){
+      select.add(new Option(opt,opt,false,opt===currentVal));
+    }
+    select.add(new Option('🆕 Nowa grupa…','__new',false,false));
+    select.onchange=()=>{
+      if(select.value==='__new'){
+        const name=prompt('Podaj nazwę nowej grupy aktyw:');
+        if(name){
+          const added=addInvestmentGroup(name);
+          populateAssetGroupSelect(select, added || currentVal);
+        } else {
+          populateAssetGroupSelect(select, currentVal || 'Inne');
+        }
+      }
+    };
+  }
+
+  function ensureInvestmentCategory(){
+    const existing=b().categories.find(c=>c.id==='c_invest' || c.name==='Inwestycje');
+    if(existing){
+      existing.name=existing.name||'Inwestycje';
+      existing.type='saving';
+      existing.emoji=existing.emoji||'📈';
+      return existing.id;
+    }
+    const id='c_invest';
+    b().categories.push({id,name:'Inwestycje',type:'saving',emoji:'📈',budget:0});
+    return id;
+  }
+
+  function fillInvestmentAssetSelects(){
+    const selects=[document.querySelector('#inv-trade-form select[name="assetId"]')];
+    for(const sel of selects){
+      if(!sel) continue;
+      const current=sel.value;
+      sel.innerHTML='';
+      const assetsList=sortAssetsByGroupThenName(investments().assets);
+      if(assetsList.length===0){
+        sel.add(new Option('Dodaj aktywo, aby rejestrować zakupy', '', true, true));
+      }
+      for(const a of assetsList){
+        sel.add(new Option(`${a.name} (${a.group||'Inne'})`, a.id, false, a.id===current));
+      }
+      sel.value=current || sel.value;
+    }
+  }
+
+  function setInvestmentPanel(panel){
+    invActivePanel=panel;
+    document.querySelectorAll('.inv-analytics-btn').forEach(btn=>{
+      const isActive=btn.dataset.invPanelBtn===panel;
+      btn.classList.toggle('is-active',isActive);
+      btn.setAttribute('aria-selected',String(isActive));
+      btn.tabIndex=isActive?0:-1;
+    });
+    document.querySelectorAll('.inv-analytics-panel').forEach(p=>{
+      p.classList.toggle('is-active',p.dataset.panel===panel);
+    });
+  }
+
+  function bindInvestmentAnalyticsNav(){
+    const buttons=document.querySelectorAll('[data-inv-panel-btn]');
+    if(!buttons.length) return;
+    buttons.forEach(btn=>{
+      if(btn._bound) return;
+      btn._bound=true;
+      btn.onclick=()=>setInvestmentPanel(btn.dataset.invPanelBtn||'weekly');
+    });
+    setInvestmentPanel(invActivePanel);
+  }
+
+  function createAssetRow(asset={}, trades=[]){
+    const tr=document.createElement('tr');
+    tr.dataset.assetId=asset.id||'';
+    const usage=trades.filter(t=>t.assetId===asset.id);
+    const last=usage.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+    tr.innerHTML=`
+      <td><input class="inv-asset-name" value="${asset.name||''}" placeholder="np. VOO, BTC, złoto" /></td>
+      <td><select class="inv-asset-group"></select></td>
+      <td><span class="muted">${usage.length || 0}</span></td>
+      <td><span class="muted">${asset.id ? last : '—'}</span></td>
+      <td class="row" style="gap:6px; justify-content:flex-end;">
+        <button class="btn soft" data-act="save">Zapisz</button>
+        <button class="btn ghost" data-act="delete">Usuń</button>
+      </td>`;
+    const select=tr.querySelector('.inv-asset-group');
+    populateAssetGroupSelect(select, asset.group||'Inne');
+    tr.querySelector('[data-act="save"]').onclick=()=>saveAssetRow(tr);
+    tr.querySelector('[data-act="delete"]').onclick=()=>{
+      const id=tr.dataset.assetId;
+      if(!id){ tr.remove(); return; }
+      if(confirm('Usunąć aktywo i powiązane zakupy?')) deleteInvestmentAsset(id);
+    };
+    return tr;
+  }
+
+  function renderAssetManagerList(assets,trades){
+    const tbody=document.getElementById('inv-asset-table-body');
+    const empty=document.getElementById('inv-asset-empty');
+    if(!tbody || !empty) return;
+    tbody.innerHTML='';
+    const sorted=sortAssetsByGroupThenName(assets);
+    for(const asset of sorted){
+      tbody.appendChild(createAssetRow(asset,trades));
+    }
+    empty.style.display=sorted.length?'none':'block';
+  }
+
+  function saveAssetRow(row){
+    const name=row.querySelector('.inv-asset-name')?.value.trim();
+    const group=row.querySelector('.inv-asset-group')?.value || 'Inne';
+    if(!name){alert('Podaj nazwę aktywa.'); return;}
+    const data=investments();
+    const id=row.dataset.assetId;
+    if(id){
+      const existing=data.assets.find(a=>a.id===id);
+      if(existing){ existing.name=name; existing.group=group; }
+    } else {
+      const newId='inv_asset_'+Math.random().toString(36).slice(2);
+      data.assets.push({id:newId,name,group});
+      row.dataset.assetId=newId;
+    }
+    save(state);
+    renderInvestments();
+  }
+
+  function addBlankAssetRow(){
+    const tbody=document.getElementById('inv-asset-table-body');
+    const empty=document.getElementById('inv-asset-empty');
+    if(!tbody) return;
+    const row=createAssetRow({},[]);
+    tbody.appendChild(row);
+    if(empty) empty.style.display='none';
+    row.querySelector('.inv-asset-name')?.focus();
+  }
+
+  function saveAllAssetRows(){
+    const tbody=document.getElementById('inv-asset-table-body');
+    if(!tbody) return;
+    const rows=[...tbody.querySelectorAll('tr')];
+    const data=investments();
+    let changed=false;
+    for(const row of rows){
+      const name=row.querySelector('.inv-asset-name')?.value.trim();
+      const group=row.querySelector('.inv-asset-group')?.value || 'Inne';
+      if(!name) continue;
+      const id=row.dataset.assetId;
+      if(id){
+        const existing=data.assets.find(a=>a.id===id);
+        if(existing){ existing.name=name; existing.group=group; changed=true; }
+      } else {
+        const newId='inv_asset_'+Math.random().toString(36).slice(2);
+        data.assets.push({id:newId,name,group});
+        row.dataset.assetId=newId;
+        changed=true;
+      }
+    }
+    if(changed){ save(state); renderInvestments(); }
+  }
+
+  function renderInvestmentGroupTable(holdings,trades){
+    const tbody=document.querySelector('#inv-group-table tbody');
+    if(!tbody) return;
+    tbody.innerHTML='';
+    if(!holdings.length){
+      tbody.innerHTML='<tr><td colspan="6" class="muted" style="text-align:center">Brak danych — dodaj pierwsze aktywo.</td></tr>';
+      return;
+    }
+    const total=holdings.reduce((s,h)=>s+h.invested,0) || 1;
+    const groups=[...new Set(holdings.map(h=>h.group||'Inne'))];
+    const tradesByGroup={};
+    for(const t of trades){
+      const asset=holdings.find(h=>h.id===t.assetId);
+      const grp=asset?.group||'Inne';
+      if(!tradesByGroup[grp]) tradesByGroup[grp]=[];
+      tradesByGroup[grp].push(t);
+    }
+    groups.sort((a,b)=>{
+      const ta=holdings.filter(h=>(h.group||'Inne')===a).reduce((s,h)=>s+h.invested,0);
+      const tb=holdings.filter(h=>(h.group||'Inne')===b).reduce((s,h)=>s+h.invested,0);
+      return tb-ta;
+    });
+    for(const g of groups){
+      const invested=holdings.filter(h=>(h.group||'Inne')===g).reduce((s,h)=>s+h.invested,0);
+      const pct=(invested/total)*100;
+      const tradesInGroup=tradesByGroup[g]||[];
+      const avgTicket=invested/Math.max(tradesInGroup.length,1);
+      const last=tradesInGroup.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${g}</td><td>${fmt(invested,state.currency)}</td><td>${pct.toFixed(1)}%</td><td>${fmt(avgTicket,state.currency)}</td><td>${tradesInGroup.length}</td><td>${last}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderInvestmentHoldingsAccordion(holdings,trades){
+    const container=document.getElementById('inv-holdings-groups');
+    if(!container) return;
+    container.innerHTML='';
+    if(!holdings.length){
+      container.innerHTML='<div class="muted" style="padding:8px 0;">Brak aktywów — dodaj pierwsze powyżej.</div>';
+      return;
+    }
+    const groups=[...new Set(holdings.map(h=>h.group||'Inne'))];
+    groups.sort((a,b)=>{
+      const ta=holdings.filter(h=>(h.group||'Inne')===a).reduce((s,h)=>s+h.invested,0);
+      const tb=holdings.filter(h=>(h.group||'Inne')===b).reduce((s,h)=>s+h.invested,0);
+      return tb-ta;
+    });
+    for(const [idx,g] of groups.entries()){
+      const groupHoldings=holdings.filter(h=>(h.group||'Inne')===g);
+      const assetIds=new Set(groupHoldings.map(h=>h.id));
+      const groupTrades=trades.filter(t=>assetIds.has(t.assetId));
+      const invested=groupHoldings.reduce((s,h)=>s+h.invested,0);
+      const avgTicket=invested/Math.max(groupTrades.length,1);
+      const last=groupTrades.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+      const details=document.createElement('details');
+      details.className='inv-holding-group';
+      if(idx===0) details.open=true;
+      const summary=document.createElement('summary');
+      summary.innerHTML=`<div class="stack" style="gap:4px;">
+          <strong>${g}</strong>
+          <div class="inv-holding-meta">Aktywa: ${groupHoldings.length} • Zakupy: ${groupTrades.length} • Ostatni zakup: ${last}</div>
+        </div>
+        <div class="inv-holding-kpis">
+          <span class="pill">${fmt(invested,state.currency)}</span>
+          <span class="pill ghost">Śr. ticket: ${groupTrades.length?fmt(avgTicket,state.currency):'—'}</span>
+        </div>`;
+      details.appendChild(summary);
+      const body=document.createElement('div');
+      body.className='inv-holding-details';
+      const table=document.createElement('table');
+      table.className='modern-table';
+      table.innerHTML=`<thead><tr><th>Aktywo</th><th>Ilość</th><th>Śr. cena</th><th>Zainwestowano</th><th>Zakupy</th><th>Ostatni zakup</th><th></th></tr></thead>`;
+      const tbody=document.createElement('tbody');
+      if(!groupHoldings.length){
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak aktywów w tej grupie.</td>';
+        tbody.appendChild(tr);
+      } else {
+        for(const h of groupHoldings){
+          const assetTrades=groupTrades.filter(t=>t.assetId===h.id);
+          const lastTrade=assetTrades.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td><strong>${h.name}</strong></td><td>${h.qty.toFixed(4)}</td><td>${h.qty?fmt(h.avg,state.currency):'—'}</td><td>${fmt(h.invested,state.currency)}</td><td>${assetTrades.length}</td><td>${lastTrade}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
+          tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć aktywo i powiązane zakupy?')) return; deleteInvestmentAsset(h.id); };
+          tbody.appendChild(tr);
+        }
+      }
+      table.appendChild(tbody);
+      const wrap=document.createElement('div');
+      wrap.className='table-wrapper';
+      wrap.appendChild(table);
+      body.appendChild(wrap);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
+  }
+
+  function toggleInvestmentModal(open){
+    const backdrop=document.getElementById('inv-asset-backdrop');
+    const modal=document.getElementById('inv-asset-modal');
+    if(!backdrop || !modal) return;
+    if(open){
+      const data=investments();
+      renderAssetManagerList(data.assets,data.trades);
+      if(!data.assets.length){ addBlankAssetRow(); }
+      backdrop.hidden=false; modal.hidden=false;
+      backdrop.style.display='flex';
+      modal.setAttribute('aria-hidden','false');
+    } else {
+      backdrop.hidden=true; modal.hidden=true;
+      backdrop.style.display='none';
+      modal.setAttribute('aria-hidden','true');
+    }
+  }
+
+  function bindInvestmentModal(){
+    if(invModalBound) return;
+    invModalBound=true;
+    const openBtn=document.getElementById('inv-asset-modal-open');
+    const closeBtn=document.getElementById('inv-asset-modal-close');
+    const cancelBtn=document.getElementById('inv-asset-cancel');
+    const backdrop=document.getElementById('inv-asset-backdrop');
+    [openBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentModal(true)));
+    [closeBtn,cancelBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentModal(false)));
+    if(backdrop){
+      backdrop.onclick=(e)=>{ if(e.target===backdrop) toggleInvestmentModal(false); };
+    }
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape') toggleInvestmentModal(false);
+    });
+  }
+
+  function investmentHoldings(){
+    const data=investments();
+    return data.assets.map(asset=>{
+      const trades=data.trades.filter(t=>t.assetId===asset.id);
+      const qty=trades.reduce((s,t)=>s+num(t.quantity),0);
+      const invested=trades.reduce((s,t)=>s+num(t.amount),0);
+      const avg=qty>0 ? invested/qty : 0;
+      const last=trades.reduce((max,t)=>!max||t.date>max?t.date:max,'');
+      return {...asset, qty, invested, avg, last};
+    });
+  }
+
+  function investmentWeekKey(dateStr){
+    const d=new Date(dateStr||new Date());
+    const jan1=new Date(d.getFullYear(),0,1);
+    const day=Math.floor((d-jan1)/86400000);
+    const week=Math.ceil((day+jan1.getDay()+1)/7);
+    return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+  }
+
+  function deleteInvestmentTrade(tradeId){
+    const data=investments();
+    const trade=data.trades.find(t=>t.id===tradeId);
+    if(!trade) return;
+    if(trade.txId){
+      b().transactions=b().transactions.filter(tx=>tx.id!==trade.txId);
+    }
+    data.trades=data.trades.filter(t=>t.id!==tradeId);
+    save(state); renderAll();
+  }
+
+  function updateInvestmentTrade(tradeId, updates){
+    const data=investments();
+    const trade=data.trades.find(t=>t.id===tradeId);
+    if(!trade) return;
+    const asset=data.assets.find(a=>a.id===updates.assetId);
+    if(!asset) {alert('Wybierz aktywo z listy.'); return;}
+    const amount=Math.abs(num(updates.amount));
+    const quantity=num(updates.quantity);
+    if(!amount || amount<=0 || !quantity || quantity<=0){
+      alert('Kwota i ilość muszą być większe od zera.');
+      return;
+    }
+    trade.assetId=asset.id;
+    trade.date=updates.date;
+    trade.amount=amount;
+    trade.quantity=quantity;
+    trade.note=updates.note||'';
+    if(trade.txId){
+      const tx=b().transactions.find(tx=>tx.id===trade.txId);
+      const catId=ensureInvestmentCategory();
+      if(tx){
+        tx.date=updates.date;
+        tx.amount=signFor(catId, amount);
+        tx.note=`Inwestycja: ${asset.name}${trade.note?` (${trade.note})`:''}`;
+        tx.categoryId=catId;
+      }
+    }
+    save(state); renderAll();
+  }
+
+  function renderInvestmentTradeRow(tr, trade, data){
+    const asset=data.assets.find(a=>a.id===trade.assetId);
+    const avg=trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—';
+    tr.innerHTML=`<td>${trade.date}</td><td>${asset?.name||'—'}</td><td>${fmt(trade.amount,state.currency)}</td><td>${trade.quantity}</td><td>${avg}</td><td>${trade.note||''}</td><td class="row" style="justify-content:flex-end;gap:6px"><button class="btn ghost" data-act="edit">Edytuj</button><button class="btn ghost" data-act="del">Usuń</button></td>`;
+    const del=tr.querySelector('[data-act="del"]');
+    del.onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+    const edit=tr.querySelector('[data-act="edit"]');
+    edit.onclick=()=>enterInvestmentTradeEdit(tr, trade, data);
+  }
+
+  function enterInvestmentTradeEdit(tr, trade, data){
+    const assetOptions=sortAssetsByGroupThenName(data.assets).map(a=>`<option value="${a.id}" ${a.id===trade.assetId?'selected':''}>${a.name} (${a.group||'Inne'})</option>`).join('');
+    tr.innerHTML=`
+      <td><input type="date" name="date" value="${trade.date||''}" /></td>
+      <td><select name="assetId">${assetOptions}</select></td>
+      <td><input name="amount" inputmode="decimal" value="${trade.amount}" /></td>
+      <td><input name="quantity" inputmode="decimal" value="${trade.quantity}" /></td>
+      <td class="muted">${trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—'}</td>
+      <td><input name="note" value="${trade.note||''}" placeholder="Notatka" /></td>
+      <td class="row" style="justify-content:flex-end;gap:6px">
+        <button class="btn" data-act="save">Zapisz</button>
+        <button class="btn soft" data-act="cancel">Anuluj</button>
+        <button class="btn ghost" data-act="del">Usuń</button>
+      </td>`;
+    tr.querySelector('[data-act="save"]').onclick=()=>{
+      const date=String(tr.querySelector('[name="date"]').value||trade.date||'');
+      const assetId=String(tr.querySelector('[name="assetId"]').value||'');
+      const amount=tr.querySelector('[name="amount"]').value;
+      const quantity=tr.querySelector('[name="quantity"]').value;
+      const note=tr.querySelector('[name="note"]').value;
+      updateInvestmentTrade(trade.id,{date,assetId,amount,quantity,note});
+    };
+    tr.querySelector('[data-act="cancel"]').onclick=()=>renderInvestments();
+    tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+  }
+
+  function deleteInvestmentAsset(assetId){
+    const data=investments();
+    const relatedTxIds=new Set(data.trades.filter(t=>t.assetId===assetId).map(t=>t.txId).filter(Boolean));
+    b().transactions=b().transactions.filter(tx=>!relatedTxIds.has(tx.id));
+    data.trades=data.trades.filter(t=>t.assetId!==assetId);
+    data.assets=data.assets.filter(a=>a.id!==assetId);
+    save(state); renderAll();
+  }
+
+  function renderInvestmentWeeklyChart(trades, assets){
+    const canvas=document.getElementById('inv-weekly-chart');
+    const empty=document.getElementById('inv-weekly-empty');
+    if(invWeeklyChart){invWeeklyChart.destroy(); invWeeklyChart=null;}
+    if(!canvas || !empty) return;
+    if(!trades.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      return;
+    }
+    empty.style.display='none';
+    canvas.style.display='block';
+    const weeks=[...new Set(trades.map(t=>investmentWeekKey(t.date)))].sort();
+    const groups=[...new Set(assets.map(a=>a.group||'Inne'))];
+    const datasets=groups.map((group,idx)=>({
+      label:group,
+      data:weeks.map(week=>trades.filter(t=>{
+        const asset=assets.find(a=>a.id===t.assetId);
+        return investmentWeekKey(t.date)===week && (asset?.group||'Inne')===group;
+      }).reduce((s,t)=>s+num(t.amount),0)),
+      backgroundColor:colorWithAlpha(invPalette[idx%invPalette.length],0.35),
+      borderColor:invPalette[idx%invPalette.length],
+      borderWidth:1.5,
+      borderRadius:6,
+      stack:'weeks'
+    }));
+    invWeeklyChart=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{labels:weeks,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom'}},
+        scales:{
+          x:{stacked:true, grid:{display:false}},
+          y:{stacked:true, ticks:{callback:v=>currencyTicks(v)}}
+        }
+      }
+    });
+  }
+
+  function renderInvestmentCumulativeChart(trades, assets){
+    const canvas=document.getElementById('inv-cumulative-chart');
+    const empty=document.getElementById('inv-cumulative-empty');
+    if(invCumulativeChart){invCumulativeChart.destroy(); invCumulativeChart=null;}
+    if(!canvas || !empty) return;
+    if(!trades.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      return;
+    }
+    empty.style.display='none';
+    canvas.style.display='block';
+    const sorted=[...trades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const dates=[...new Set(sorted.map(t=>t.date))];
+    const groups=[...new Set(assets.map(a=>a.group||'Inne'))];
+    if(!groups.length) groups.push('Inne');
+    const datasets=groups.map((group,idx)=>{
+      let running=0;
+      const data=dates.map(date=>{
+        const daySum=sorted.filter(t=>t.date===date).filter(t=>{
+          const asset=assets.find(a=>a.id===t.assetId);
+          return (asset?.group||'Inne')===group;
+        }).reduce((s,t)=>s+num(t.amount),0);
+        running+=daySum;
+        return running;
+      });
+      const color=invPalette[idx%invPalette.length];
+      return {
+        label:group,
+        data,
+        borderColor:color,
+        backgroundColor:colorWithAlpha(color,0.15),
+        fill:true,
+        tension:0.32,
+        borderWidth:2
+      };
+    });
+    invCumulativeChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{labels:dates, datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
+        interaction:{mode:'index', intersect:false},
+        scales:{
+          x:{grid:{display:false}},
+          y:{ticks:{callback:v=>currencyTicks(v)}}
+        }
+      }
+    });
+  }
+
+  function renderInvestmentAllocationDetail(holdings){
+    const canvas=document.getElementById('inv-allocation-detail-chart');
+    const empty=document.getElementById('inv-allocation-detail-empty');
+    const title=document.getElementById('inv-allocation-detail-title');
+    const meta=document.getElementById('inv-allocation-detail-meta');
+    if(invAllocationDetailChart){invAllocationDetailChart.destroy(); invAllocationDetailChart=null;}
+    if(!canvas || !empty) return;
+    const currentGroup=invSelectedAllocationGroup;
+    if(!currentGroup){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      if(title) title.textContent='Struktura szczegółowa';
+      if(meta) meta.textContent='Wybierz grupę na wykresie';
+      return;
+    }
+    const subset=holdings.filter(h=>(h.group||'Inne')===currentGroup);
+    if(title) title.textContent=`Struktura — ${currentGroup}`;
+    if(meta) meta.textContent=subset.length? 'Udział aktywów w wybranej grupie' : 'Brak aktywów w tej grupie';
+    if(!subset.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      return;
+    }
+    empty.style.display='none';
+    canvas.style.display='block';
+    const labels=subset.map(h=>h.name);
+    const data=subset.map(h=>h.invested);
+    invAllocationDetailChart=new Chart(canvas.getContext('2d'),{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:labels.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],0.8)),borderColor:'#fff',borderWidth:1}]},
+      options:{
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)}`}}}
+      }
+    });
+  }
+
+  function renderInvestmentAllocations(holdings){
+    const canvas=document.getElementById('inv-allocation-chart');
+    const empty=document.getElementById('inv-allocation-empty');
+    if(invAllocationChart){invAllocationChart.destroy(); invAllocationChart=null;}
+    if(!canvas || !empty) return;
+    if(!holdings.length){
+      empty.style.display='flex';
+      canvas.style.display='none';
+      invSelectedAllocationGroup=null;
+      renderInvestmentAllocationDetail([]);
+      return;
+    }
+    const groups=Array.from(new Set(holdings.map(h=>h.group||'Inne')));
+    const totals=groups.map(g=>holdings.filter(h=>(h.group||'Inne')===g).reduce((s,h)=>s+h.invested,0));
+    const totalSum=totals.reduce((a,b)=>a+b,0);
+    invSelectedAllocationGroup=invSelectedAllocationGroup && groups.includes(invSelectedAllocationGroup) ? invSelectedAllocationGroup : groups[0];
+    empty.style.display='none';
+    canvas.style.display='block';
+    invAllocationChart=new Chart(canvas.getContext('2d'),{
+      type:'doughnut',
+      data:{labels:groups,datasets:[{data:totals,backgroundColor:groups.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],0.85)),borderColor:'#fff',borderWidth:1}]},
+      options:{
+        plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)} (${totalSum?((ctx.parsed/totalSum)*100).toFixed(1):'0.0'}%)`}}},
+        onClick:(evt,elements)=>{
+          if(!elements.length) return;
+          invSelectedAllocationGroup=groups[elements[0].index];
+          renderInvestmentAllocationDetail(holdings);
+        }
+      }
+    });
+    renderInvestmentAllocationDetail(holdings);
+  }
+
+  function updateInvestmentSnapshot(holdings,trades,assets){
+    const totalEl=document.getElementById('inv-total');
+    const countEl=document.getElementById('inv-asset-count');
+    const lastEl=document.getElementById('inv-last-trade');
+    const groupEl=document.getElementById('inv-groups');
+    const tradesEl=document.getElementById('inv-hero-trades');
+    const tradesMonthEl=document.getElementById('inv-hero-trades-month');
+    const ytdEl=document.getElementById('inv-hero-ytd');
+    const monthEl=document.getElementById('inv-hero-month');
+    const totalInvested=holdings.reduce((s,h)=>s+h.invested,0);
+    if(totalEl) totalEl.textContent=`Łącznie: ${fmt(totalInvested,state.currency)}`;
+    if(countEl) countEl.textContent=`Aktywa: ${holdings.length}`;
+    if(groupEl) groupEl.textContent=`Grupy: ${new Set(holdings.map(h=>h.group||'Inne')).size || '—'}`;
+    const lastTrade=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+    if(lastEl) lastEl.textContent=lastTrade ? `Ostatni zakup: ${lastTrade.date}` : 'Ostatni zakup: —';
+    if(tradesEl) tradesEl.textContent=trades.length ? `${trades.length} zak.` : '—';
+    if(tradesMonthEl){
+      const now=new Date();
+      const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const monthCount=trades.filter(t=>String(t.date||'').startsWith(monthKey)).length;
+      tradesMonthEl.textContent=monthCount ? `Ten miesiąc: ${monthCount}` : 'Ten miesiąc: —';
+    }
+    if(ytdEl || monthEl){
+      const now=new Date();
+      const year=now.getFullYear();
+      const month=String(now.getMonth()+1).padStart(2,'0');
+      const ytd=trades.filter(t=>String(t.date||'').startsWith(String(year))).reduce((s,t)=>s+num(t.amount),0);
+      const mtd=trades.filter(t=>String(t.date||'').startsWith(`${year}-${month}`)).reduce((s,t)=>s+num(t.amount),0);
+      if(ytdEl) ytdEl.textContent=ytd ? fmt(ytd,state.currency) : '—';
+      if(monthEl) monthEl.textContent=mtd ? `Bieżący miesiąc: ${fmt(mtd,state.currency)}` : 'Bieżący miesiąc: —';
+    }
+  }
+
+  function nextInvestmentMondayCountdown(ref=new Date()){
+    const base=new Date(ref);
+    base.setHours(0,0,0,0);
+    const day=base.getDay();
+    const delta=(8-day)%7; // Monday target; 0 means dziś poniedziałek
+    const target=new Date(base);
+    target.setDate(base.getDate()+delta);
+    const y=target.getFullYear();
+    const m=String(target.getMonth()+1).padStart(2,'0');
+    const d=String(target.getDate()).padStart(2,'0');
+    return {days:delta, date:`${y}-${m}-${d}`};
+  }
+
+  function updateInvestmentKpis(holdings,trades){
+    const totalEl=document.getElementById('inv-kpi-total');
+    const lastEl=document.getElementById('inv-kpi-last');
+    const nextEl=document.getElementById('inv-kpi-next');
+    const paceEl=document.getElementById('inv-kpi-pace');
+    const total=holdings.reduce((s,h)=>s+h.invested,0);
+    if(totalEl) totalEl.textContent=fmt(total,state.currency);
+
+    const last=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+    if(lastEl) lastEl.textContent=last?.date || 'Brak danych';
+
+    if(nextEl){
+      const {days,date}=nextInvestmentMondayCountdown();
+      const dayLabel=days===0?'dzisiaj':`za ${days} dni`;
+      const gap=last?.date ? Math.max(0, Math.floor((new Date()-new Date(last.date))/86400000)) : null;
+      const gapLabel=gap!==null?` • od ostatniego zakupu ${gap} dni`:' • brak historii zakupów';
+      nextEl.textContent=`${dayLabel} (${date})${gapLabel}`;
+    }
+
+    if(paceEl){
+      const now=new Date();
+      const cutoff=new Date(now);
+      cutoff.setDate(now.getDate()-30);
+      const recent=trades.filter(t=>t.date && new Date(t.date)>=cutoff);
+      const sum=recent.reduce((s,t)=>s+num(t.amount),0);
+      paceEl.textContent=recent.length ? `${recent.length} zak. / ${fmt(sum,state.currency)}` : 'Brak zakupów';
+    }
+  }
+
+
+  function renderInvestments(){
+    ensureInvestmentCategory();
+    const data=investments();
+    bindInvestmentModal();
+    bindInvestmentAnalyticsNav();
+    renderAssetManagerList(data.assets,data.trades);
+    const addRowBtn=document.getElementById('inv-asset-add-row');
+    const addGroupBtn=document.getElementById('inv-asset-add-group');
+    const saveAllBtn=document.getElementById('inv-asset-save-all');
+    if(addRowBtn && !addRowBtn._bound){ addRowBtn._bound=true; addRowBtn.onclick=addBlankAssetRow; }
+    if(addGroupBtn && !addGroupBtn._bound){
+      addGroupBtn._bound=true;
+      addGroupBtn.onclick=()=>{
+        const name=prompt('Nazwa nowej grupy aktyw:');
+        if(!name) return;
+        addInvestmentGroup(name);
+        document.querySelectorAll('.inv-asset-group').forEach(sel=>populateAssetGroupSelect(sel, sel.value||name));
+        fillInvestmentAssetSelects();
+      };
+    }
+    if(saveAllBtn && !saveAllBtn._bound){ saveAllBtn._bound=true; saveAllBtn.onclick=saveAllAssetRows; }
+
+    const tradeForm=document.getElementById('inv-trade-form');
+    if(tradeForm && !tradeForm._bound){
+      tradeForm._bound=true;
+      tradeForm.onsubmit=e=>{
+        e.preventDefault();
+        const f=new FormData(tradeForm);
+        const assetId=String(f.get('assetId'));
+        const asset=data.assets.find(a=>a.id===assetId);
+        if(!asset){alert('Dodaj najpierw aktywo (przycisk „Zarządzaj aktywami”).'); return;}
+        const date=f.get('date')||new Date().toISOString().slice(0,10);
+        const amount=Math.abs(num(f.get('amount')));
+        const quantity=num(f.get('quantity'));
+        const note=String(f.get('note')||'');
+        if(amount<=0 || quantity<=0){alert('Kwota i ilość muszą być większe od zera.'); return;}
+        const catId=ensureInvestmentCategory();
+        const txId=`tx_${Math.random().toString(36).slice(2)}`;
+        const signed=signFor(catId, amount);
+        b().transactions.unshift({
+          id:txId,
+          date,
+          amount:signed,
+          categoryId:catId,
+          accountId:b().accounts[0]?.id||'a_main',
+          note:`Inwestycja: ${asset.name}${note?` (${note})`:''}`
+        });
+        data.trades.unshift({
+          id:'inv_trade_'+Math.random().toString(36).slice(2),
+          assetId,
+          date,
+          amount,
+          quantity,
+          note,
+          txId
+        });
+        save(state);
+        tradeForm.reset();
+        const dateInput=tradeForm.querySelector('input[name="date"]');
+        if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
+        renderAll();
+      };
+    }
+
+    fillInvestmentAssetSelects();
+    const tradeDate=document.querySelector('#inv-trade-form input[name="date"]');
+    if(tradeDate && !tradeDate.value) tradeDate.value=new Date().toISOString().slice(0,10);
+
+    const holdings=investmentHoldings();
+    updateInvestmentSnapshot(holdings, data.trades, data.assets);
+    updateInvestmentKpis(holdings, data.trades);
+    renderInvestmentGroupTable(holdings,data.trades);
+    renderInvestmentHoldingsAccordion(holdings,data.trades);
+
+    const tradesBody=document.querySelector('#inv-trades-table tbody');
+    if(tradesBody){
+      tradesBody.innerHTML='';
+      const trades=[...data.trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+      if(trades.length===0){
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak zapisanych zakupów.</td>';
+        tradesBody.appendChild(tr);
+      } else {
+        for(const t of trades){
+          const tr=document.createElement('tr');
+          renderInvestmentTradeRow(tr, t, data);
+          tradesBody.appendChild(tr);
+        }
+      }
+    }
+
+    renderInvestmentWeeklyChart(data.trades, data.assets);
+    renderInvestmentCumulativeChart(data.trades, data.assets);
+    renderInvestmentAllocations(holdings);
+    bindMoneyInputs(document.getElementById('tab-investments'));
   }
 
   // --- Categories -------------------------------------------------------------
@@ -10797,6 +11987,10 @@
   const MOM_DIFF_COLORS={positive:'#ef4444',negative:'#22c55e',neutral:'#94a3b8'};
   const MOM_NO_FIXED_ID='__all_no_fixed';
   const MOM_NO_FIXED_LABEL='Wszystkie bez wydatków stałych';
+  const MOM_NO_FIXED_SAVINGS_ID='__all_no_fixed_savings';
+  const MOM_NO_FIXED_SAVINGS_LABEL='Wszystkie bez stałych i oszczędności';
+  const MOM_SAVINGS_ID='__all_savings';
+  const MOM_SAVINGS_LABEL='Wszystkie oszczędności';
   const MOM_FIXED_CATEGORY_ID='c_fixed';
   const momState={
     monthA:null,
@@ -11044,15 +12238,26 @@
     const entries=entriesForMonth(ym);
     for(const entry of entries){
       const cat=catsById()[entry.categoryId];
-      if(!cat || cat.type!=='expense') continue;
-      if(!catSet.has(entry.categoryId)) continue;
+      if(!cat || (cat.type!=='expense' && cat.type!=='saving')) continue;
+      const isSaving=cat.type==='saving';
+      const isExpense=cat.type==='expense';
+      if(!catSet.has(entry.categoryId) && !isSaving) continue;
       const day=Math.min(days,Math.max(1,Number(entry.date.slice(-2))||1));
       const idx=day-1;
       const amount=Math.abs(entry.amount);
-      out.series[entry.categoryId][idx]+=amount;
+      if(out.series[entry.categoryId]){
+        out.series[entry.categoryId][idx]+=amount;
+      }
       if(out.series.__all) out.series.__all[idx]+=amount;
-      if(out.series[MOM_NO_FIXED_ID] && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
-        out.series[MOM_NO_FIXED_ID][idx]+=amount;
+      if(out.series[MOM_SAVINGS_ID] && isSaving){
+        out.series[MOM_SAVINGS_ID][idx]+=amount;
+      }
+      if(out.series[MOM_NO_FIXED_ID]){
+        const eligible = (isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID) || isSaving;
+        if(eligible) out.series[MOM_NO_FIXED_ID][idx]+=amount;
+      }
+      if(out.series[MOM_NO_FIXED_SAVINGS_ID] && isExpense && entry.categoryId!==MOM_FIXED_CATEGORY_ID){
+        out.series[MOM_NO_FIXED_SAVINGS_ID][idx]+=amount;
       }
     }
     for(const id of categoryIds){
@@ -11192,7 +12397,7 @@
   }
 
   function momDetailEligible(catId){
-    return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID;
+    return !!catId && catId!=='__all' && catId!==MOM_NO_FIXED_ID && catId!==MOM_NO_FIXED_SAVINGS_ID && catId!==MOM_SAVINGS_ID;
   }
 
   function ensureMomDetailBindings(){
@@ -12835,12 +14040,20 @@
     if(colA) colA.textContent = momState.monthA ? `Miesiąc A (${momState.monthA})` : 'Miesiąc A';
     if(colB) colB.textContent = momState.monthB ? `Miesiąc B (${momState.monthB})` : 'Miesiąc B';
 
-    const expenseCats=(b().categories||[]).filter(c=>c.type==='expense');
-    const categories=[
+    const allCats=(b().categories||[]);
+    const expenseCats=allCats.filter(c=>c.type==='expense');
+    const savingCats=allCats.filter(c=>c.type==='saving');
+    const aggregateCategories=[
       {id:'__all',name:'Wszystkie kategorie',emoji:'📊'},
-      {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'}
+      {id:MOM_SAVINGS_ID,name:MOM_SAVINGS_LABEL,emoji:'💰'},
+      {id:MOM_NO_FIXED_ID,name:MOM_NO_FIXED_LABEL,emoji:'🧾'},
+      {id:MOM_NO_FIXED_SAVINGS_ID,name:MOM_NO_FIXED_SAVINGS_LABEL,emoji:'📂'}
     ];
+    const categories=[...aggregateCategories];
     for(const cat of expenseCats){
+      categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
+    }
+    for(const cat of savingCats){
       categories.push({id:cat.id,name:cat.name,emoji:cat.emoji||''});
     }
     if(!categories.some(c=>c.id===momState.selectedCategory)){
@@ -12856,9 +14069,14 @@
       const totalB=momSeriesValue(monthBData,cat.id,effectiveDay);
       return {cat,totalA,totalB,diff:totalA-totalB};
     });
-    const overall=rows.shift();
-    const others=rows.sort((a,b)=>b.totalA-a.totalA);
-    const ordered=overall?[overall,...others]:others;
+    const aggregateOrder=new Map(aggregateCategories.map((cat,idx)=>[cat.id,idx]));
+    const aggregateRows=rows
+      .filter(row=>aggregateOrder.has(row.cat.id))
+      .sort((a,b)=>aggregateOrder.get(a.cat.id)-aggregateOrder.get(b.cat.id));
+    const detailRows=rows
+      .filter(row=>!aggregateOrder.has(row.cat.id))
+      .sort((a,b)=>b.totalA-a.totalA);
+    const ordered=[...aggregateRows,...detailRows];
 
     if(tableBody){
       tableBody.innerHTML='';
@@ -13403,6 +14621,7 @@
     safeRender(renderIncomes,'Incomes');
     safeRender(renderFixed,'Fixed');
     safeRender(renderVariable,'Variable');
+    safeRender(renderInvestments,'Investments');
     safeRender(renderCategories,'Categories');
     safeRender(renderMomComparison,'MoM');
     safeRender(renderGoalsAndEOM,'Goals+EOM');

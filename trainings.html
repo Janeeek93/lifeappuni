@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LifeOS – Trainings</title>
+  <title>LifeOS – Trainings & Analytics</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
 :root {
   --bg-alt: var(--surface);
@@ -520,9 +521,362 @@
   transition: width 0.4s ease;
 }
 
+/* Body metrics */
+.body-metrics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metrics-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.metrics-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.metrics-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.metrics-form-grid label,
+.metrics-form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.metrics-form-grid input,
+.metrics-form-grid select,
+.metrics-form-row input,
+.metrics-form-row select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  background: var(--surface);
+}
+
+.metrics-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metrics-feedback {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg-alt);
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.metrics-feedback.success {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.metrics-feedback.warning {
+  background: var(--warning-soft);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+
+.metrics-feedback.danger {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.metrics-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metrics-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.metrics-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.metrics-log-item strong { font-size: 13px; }
+.metrics-log-item span { font-size: 12px; color: var(--muted); }
+
+.metrics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metrics-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metrics-summary {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metrics-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.metrics-kpi-card {
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 12px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+}
+
+.metrics-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metrics-chart {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  padding: 8px;
+}
+
+.metrics-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+.metrics-chart-empty {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Sub navigation */
+.subnav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 20px;
+}
+
+.subnav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.subnav button:hover {
+  color: var(--accent);
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.subnav button.is-active {
+  color: var(--accent);
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-panel {
+  display: none;
+}
+
+.section-panel.is-active {
+  display: block;
+}
+
+.activity-hub.section-panel.is-active {
+  display: grid;
+}
+
+/* Analytics */
+.analytics-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.analytics-top-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.analytics-score-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.score-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    border: 3px solid var(--primary-border);
+}
+.score-info h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
+.score-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.analytics-card {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.analytics-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+}
+.analytics-title .icon { color: var(--primary); width: 18px; height: 18px; }
+
+.analytics-subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.analytics-chart-container {
+  height: 220px;
+  position: relative;
+  width: 100%;
+}
+.analytics-chart-container.sm { height: 180px; }
+
+.analytics-chart canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.analytics-summary-text {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+}
+
+/* Legend Text Styles for Charts */
+.analytics-legend-text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    justify-content: center;
+    margin-top: 4px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.legend-color {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+
+@media (max-width: 980px) {
+  .analytics-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1080px) {
   .activity-hub { grid-template-columns: 1fr; }
   .day-detail, .day-detail-placeholder { min-height: 380px; }
+  .metrics-layout { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .wrap { padding: 24px 18px 40px; }
@@ -620,10 +974,17 @@
         </div>
       </header>
 
+      <nav class="subnav" aria-label="Podmenu sekcji">
+        <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
+        <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
+        <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
+        <button type="button" data-section-target="analytics"><i data-lucide="pie-chart" class="icon"></i>Analityka</button>
+      </nav>
+
       <div class="content">
         <main class="page-content content-main stack">
           <!-- New Activity Hub Layout -->
-          <div class="card activity-hub">
+          <div class="card activity-hub section-panel is-active" id="activity-hub">
             <div class="calendar-wrapper">
               <div class="calendar-header">
                 <h3>Dziennik aktywności</h3>
@@ -657,7 +1018,7 @@
           </div>
           <!-- End of Activity Hub -->
 
-          <section class="card heatmap-card">
+          <section class="card heatmap-card section-panel" id="activity-heatmap">
             <div class="card-header">
               <div>
                 <h3>Historia aktywności</h3>
@@ -678,6 +1039,205 @@
               <span>Intensywnie</span>
             </div>
           </section>
+
+          <section class="card body-metrics-card section-panel" id="body-metrics">
+            <div class="card-header">
+              <div>
+                <h3>Log wagi i składu ciała</h3>
+                <p class="muted tiny">Zapisuj każdy cut, buduj progres i śledź trendy.</p>
+              </div>
+              <span class="month-chip">2026+</span>
+            </div>
+            <div class="metrics-layout">
+              <div class="metrics-form">
+                <form id="metrics-form" class="metrics-form-grid">
+                  <div class="metrics-form-row">
+                    <label>Data logu
+                      <input type="date" id="metrics-date" required>
+                    </label>
+                    <label>Cut / cykl
+                      <input type="text" id="metrics-cut" list="metrics-cut-list" placeholder="np. Cut 2026 Wiosna" required>
+                      <datalist id="metrics-cut-list"></datalist>
+                    </label>
+                    <label>Waga (kg)
+                      <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="np. 84.2">
+                    </label>
+                    <label>BMI
+                      <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="np. 24.8">
+                    </label>
+                    <label>BF (%)
+                      <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="np. 17.5">
+                    </label>
+                    <label>Waga mięśni (kg)
+                      <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="np. 34.0">
+                    </label>
+                  </div>
+                  <div class="metrics-actions">
+                    <button class="btn" type="submit"><i data-lucide="save" class="icon"></i>Zapisz log</button>
+                    <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczyść pola</button>
+                  </div>
+                </form>
+                <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy log, a zobaczysz trendy i komunikaty o progresie.</div>
+              </div>
+              <div>
+                <div class="metrics-toolbar">
+                  <div class="metrics-filter">
+                    <span class="tiny muted">Cut:</span>
+                    <select id="metrics-cut-filter"></select>
+                  </div>
+                  <div id="metrics-cut-summary" class="metrics-summary"></div>
+                </div>
+                <div class="metrics-kpi-grid">
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
+                      <span>Waga</span>
+                      <span id="metrics-weight-stat">--</span>
+                    </div>
+                    <div class="metrics-chart" id="metrics-chart-weight"></div>
+                  </div>
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
+                      <span>BMI</span>
+                      <span id="metrics-bmi-stat">--</span>
+                    </div>
+                    <div class="metrics-chart" id="metrics-chart-bmi"></div>
+                  </div>
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
+                      <span>BF %</span>
+                      <span id="metrics-bf-stat">--</span>
+                    </div>
+                    <div class="metrics-chart" id="metrics-chart-bf"></div>
+                  </div>
+                  <div class="metrics-kpi-card">
+                    <div class="metrics-kpi-header">
+                      <span>Waga mięśni</span>
+                      <span id="metrics-muscle-stat">--</span>
+                    </div>
+                    <div class="metrics-chart" id="metrics-chart-muscle"></div>
+                  </div>
+                </div>
+                <div class="metrics-history">
+                  <h4>Historia logów</h4>
+                  <div id="metrics-log-list" class="metrics-log-list"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- MODERN ANALYTICS DASHBOARD -->
+          <section class="section-panel" id="analytics">
+            <div class="analytics-dashboard">
+                <div class="card-header">
+                    <div>
+                      <h3>Dashboard Analityczny</h3>
+                      <p class="muted tiny">Twoje centrum dowodzenia nawykami.</p>
+                    </div>
+                    <span class="month-chip">Live</span>
+                </div>
+
+                <div class="analytics-top-row">
+                    <div class="analytics-score-card">
+                        <div class="score-circle" id="habit-score-value">--</div>
+                        <div class="score-info">
+                            <h4>Habit Score</h4>
+                            <p>Ogólny wskaźnik dyscypliny (ost. 30 dni)</p>
+                        </div>
+                    </div>
+                    <div class="analytics-score-card">
+                        <div class="score-circle" id="streak-value" style="color: var(--warning); border-color: var(--warning-border); background: var(--warning-soft);">--</div>
+                        <div class="score-info">
+                            <h4>Aktualna Seria</h4>
+                            <p>Dni z rzędu z jakąkolwiek aktywnością</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+                    <!-- Chart 1: 12-Week Progress Trend -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-header">
+                            <div class="analytics-title">
+                                <i data-lucide="trending-up" class="icon"></i>
+                                Trend 12 Tygodni
+                            </div>
+                            <span class="analytics-subtitle">Konsekwencja</span>
+                        </div>
+                        <div class="analytics-chart-container">
+                            <canvas id="analytics-12w-chart"></canvas>
+                        </div>
+                        <div class="analytics-summary-text">
+                            Analiza trendu pokazuje Twoje zaangażowanie w czasie.
+                        </div>
+                        <div class="analytics-legend-text">
+                            <div class="legend-item"><span class="legend-color" style="background: var(--primary);"></span>Liczba ukończonych sesji (Wszystkie typy)</div>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Current Week Radar -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-header">
+                            <div class="analytics-title">
+                                <i data-lucide="zap" class="icon"></i>
+                                Bieżący Tydzień
+                            </div>
+                            <span class="analytics-subtitle">Balans</span>
+                        </div>
+                        <div class="analytics-chart-container">
+                            <canvas id="analytics-week-radar"></canvas>
+                        </div>
+                        <div class="analytics-summary-text">
+                            Czy nie zaniedbujesz jednej sfery kosztem innej?
+                        </div>
+                        <div class="analytics-legend-text">
+                            <div class="legend-item"><span class="legend-color" style="background: rgba(99,102,241,0.5);"></span>Realizacja celu w % dla każdej kategorii</div>
+                        </div>
+                    </div>
+
+                     <!-- Chart 3: Monthly Comparisons (Gray Bar Logic) -->
+                     <div class="analytics-card">
+                        <div class="analytics-card-header">
+                            <div class="analytics-title">
+                                <i data-lucide="bar-chart-2" class="icon"></i>
+                                Dyscyplina Miesięczna
+                            </div>
+                            <span class="analytics-subtitle">Tygodnie Idealne</span>
+                        </div>
+                        <div class="analytics-chart-container sm">
+                            <canvas id="analytics-monthly-chart"></canvas>
+                        </div>
+                        <div class="analytics-summary-text">
+                            Tydzień zaliczony do miesiąca wg daty niedzieli.
+                        </div>
+                        <div class="analytics-legend-text">
+                            <div class="legend-item"><span class="legend-color" style="background: var(--success);"></span>Tygodnie idealne (100% celów)</div>
+                            <div class="legend-item"><span class="legend-color" style="background: #e2e8f0;"></span>Pozostałe tygodnie miesiąca</div>
+                        </div>
+                    </div>
+
+                    <!-- Chart 4: Weekly Rhythm -->
+                    <div class="analytics-card">
+                        <div class="analytics-card-header">
+                            <div class="analytics-title">
+                                <i data-lucide="calendar-clock" class="icon"></i>
+                                Rytm Tygodnia
+                            </div>
+                            <span class="analytics-subtitle">Dni Aktywne</span>
+                        </div>
+                        <div class="analytics-chart-container sm" style="display: flex; justify-content: center;">
+                            <canvas id="analytics-weekly-consistency"></canvas>
+                        </div>
+                        <div class="analytics-summary-text">
+                            Twoje najsilniejsze dni w tygodniu.
+                        </div>
+                        <div class="analytics-legend-text">
+                            <div class="legend-item"><span class="legend-color" style="background: var(--primary);"></span>Suma aktywności w dany dzień (ost. 90 dni)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </section>
+
         </main>
 
         <aside class="right-rail">
@@ -772,6 +1332,7 @@ const EXTRA_CATEGORY_LABELS = EXTRA_ACTIVITY_CATEGORIES.reduce((acc, item) => {
   acc[item.value] = item.label;
   return acc;
 }, {});
+const BODY_METRICS_KEY = 'lifeos_body_metrics_v1';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -791,6 +1352,9 @@ let currentMonth = startOfMonth(new Date());
 let selectedDate = toYYYYMMDD(new Date());
 let planningMode = null;
 let saveTimeout;
+let bodyMetrics = [];
+let selectedCut = 'all';
+let analyticsCharts = {};
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -1017,7 +1581,13 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  showSaveStatus('Zapisano zmiany');
+}
+
+function showSaveStatus(message) {
   const status = document.getElementById('save-status');
+  if (!status) return;
+  status.textContent = message || 'Zapisano zmiany';
   status.classList.add('visible');
   clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => status.classList.remove('visible'), 1600);
@@ -1270,6 +1840,11 @@ function render() {
   renderGoalProgress(weekStats.goalPercents);
   renderHeatmap();
   renderPlanningIndicator();
+  renderBodyMetrics();
+  // Analytics is rendered only when active tab is clicked to prevent canvas issues
+  if (document.getElementById('analytics').classList.contains('is-active')) {
+      renderNewAnalytics();
+  }
   lucide.createIcons();
 }
 
@@ -1755,6 +2330,561 @@ function renderHeatmap() {
   }
 }
 
+function loadBodyMetrics() {
+  const parsed = safeParse(localStorage.getItem(BODY_METRICS_KEY), () => []);
+  bodyMetrics = Array.isArray(parsed) ? parsed : [];
+}
+
+function saveBodyMetrics(message = 'Zapisano log wagi') {
+  localStorage.setItem(BODY_METRICS_KEY, JSON.stringify(bodyMetrics));
+  showSaveStatus(message);
+}
+
+function parseMetricValue(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function getUniqueCuts() {
+  const cuts = new Set();
+  bodyMetrics.forEach(entry => {
+    if (entry && entry.cut) cuts.add(entry.cut);
+  });
+  return Array.from(cuts);
+}
+
+function sortMetricsByDate(list) {
+  return list.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getMetricsForCut(cut) {
+  if (!cut || cut === 'all') return sortMetricsByDate(bodyMetrics);
+  return sortMetricsByDate(bodyMetrics.filter(entry => entry.cut === cut));
+}
+
+function renderMetricChart(containerId, entries, metricKey, unit, trendDirection) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const points = entries
+    .map(entry => ({ date: entry.date, value: entry[metricKey] }))
+    .filter(point => Number.isFinite(point.value));
+
+  if (points.length === 0) {
+    container.innerHTML = `<div class="metrics-chart-empty">Brak danych dla tego parametru.</div>`;
+    return;
+  }
+
+  const width = 260;
+  const height = 120;
+  const padding = 14;
+  const values = points.map(point => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  const coords = points.map((point, index) => {
+    const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2);
+    const y = height - padding - ((point.value - min) / range) * (height - padding * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const path = coords.join(' ');
+  const first = points[0];
+  const last = points[points.length - 1];
+  const trend = last.value - first.value;
+  const trendLabel = trendDirection === 'down'
+    ? (trend <= 0 ? '⬇️' : '⬆️')
+    : (trend >= 0 ? '⬆️' : '⬇️');
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <polyline fill="none" stroke="var(--primary)" stroke-width="2.5" points="${path}" />
+      <polyline fill="rgba(99, 102, 241, 0.1)" stroke="none"
+        points="${path} ${width - padding},${height - padding} ${padding},${height - padding}" />
+      <circle cx="${coords[coords.length - 1].split(',')[0]}" cy="${coords[coords.length - 1].split(',')[1]}" r="3.5" fill="var(--primary)" />
+    </svg>
+    <div class="tiny muted" style="margin-top: -4px;">${first.date} → ${last.date} ${trendLabel}</div>
+  `;
+}
+
+function getMetricSummary(entries, metricKey, unit, trendDirection) {
+  const values = entries.map(entry => entry[metricKey]).filter(value => Number.isFinite(value));
+  if (values.length === 0) return '--';
+  const first = values[0];
+  const last = values[values.length - 1];
+  const diff = last - first;
+  const arrow = trendDirection === 'down'
+    ? (diff <= 0 ? '▼' : '▲')
+    : (diff >= 0 ? '▲' : '▼');
+  const unitLabel = unit ? ` ${unit}` : '';
+  const diffLabel = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}${unitLabel}`;
+  return `${last.toFixed(1)}${unitLabel} (${arrow} ${diffLabel})`;
+}
+
+function updateMetricsFeedback(message, tone = '') {
+  const feedback = document.getElementById('metrics-feedback');
+  if (!feedback) return;
+  feedback.classList.remove('success', 'warning', 'danger');
+  if (tone) feedback.classList.add(tone);
+  feedback.textContent = message;
+}
+
+function renderBodyMetrics() {
+  const logList = document.getElementById('metrics-log-list');
+  const cutFilter = document.getElementById('metrics-cut-filter');
+  const cutList = document.getElementById('metrics-cut-list');
+  if (!logList || !cutFilter || !cutList) return;
+
+  const cuts = getUniqueCuts();
+  const formDate = document.getElementById('metrics-date');
+  if (formDate && !formDate.value) formDate.value = toYYYYMMDD(new Date());
+
+  cutList.innerHTML = cuts.map(cut => `<option value="${cut}"></option>`).join('');
+  cutFilter.innerHTML = `
+    <option value="all">Wszystkie</option>
+    ${cuts.map(cut => `<option value="${cut}">${cut}</option>`).join('')}
+  `;
+  if (!cuts.includes(selectedCut) && selectedCut !== 'all') selectedCut = 'all';
+  cutFilter.value = selectedCut;
+
+  const filtered = getMetricsForCut(selectedCut);
+  const summary = document.getElementById('metrics-cut-summary');
+  if (summary) {
+    if (!filtered.length) {
+      summary.textContent = 'Brak danych dla wybranego cutu.';
+    } else {
+      const start = filtered[0].date;
+      const end = filtered[filtered.length - 1].date;
+      summary.textContent = `${filtered.length} logów · ${start} → ${end}`;
+    }
+  }
+
+  renderMetricChart('metrics-chart-weight', filtered, 'weight', 'kg', 'down');
+  renderMetricChart('metrics-chart-bmi', filtered, 'bmi', '', 'down');
+  renderMetricChart('metrics-chart-bf', filtered, 'bf', '%', 'down');
+  renderMetricChart('metrics-chart-muscle', filtered, 'muscle', 'kg', 'up');
+
+  document.getElementById('metrics-weight-stat').textContent = getMetricSummary(filtered, 'weight', 'kg', 'down');
+  document.getElementById('metrics-bmi-stat').textContent = getMetricSummary(filtered, 'bmi', '', 'down');
+  document.getElementById('metrics-bf-stat').textContent = getMetricSummary(filtered, 'bf', '%', 'down');
+  document.getElementById('metrics-muscle-stat').textContent = getMetricSummary(filtered, 'muscle', 'kg', 'up');
+
+  if (!filtered.length) {
+    logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
+  } else {
+    logList.innerHTML = '';
+    filtered.slice().reverse().forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'metrics-log-item';
+      item.innerHTML = `
+        <div>
+          <strong>${entry.date}</strong>
+          <div class="tiny muted">${entry.cut || 'Bez cutu'} · W: ${entry.weight ?? '--'} kg · BMI: ${entry.bmi ?? '--'} · BF: ${entry.bf ?? '--'}% · M: ${entry.muscle ?? '--'} kg</div>
+        </div>
+        <div class="metrics-actions">
+          <button class="btn ghost small" data-edit-id="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
+          <button class="btn ghost small" data-delete-id="${entry.id}"><i data-lucide="trash-2" class="icon"></i></button>
+        </div>
+      `;
+      item.querySelector('[data-delete-id]')?.addEventListener('click', () => {
+        bodyMetrics = bodyMetrics.filter(item => item.id !== entry.id);
+        saveBodyMetrics('Usunięto log');
+        renderBodyMetrics();
+      });
+      item.querySelector('[data-edit-id]')?.addEventListener('click', () => showEditMetricsModal(entry));
+      logList.appendChild(item);
+    });
+  }
+  lucide.createIcons();
+}
+
+function getWeekKey(date) {
+  const info = getISOWeekInfo(date);
+  return `${info.year}-W${String(info.week).padStart(2, '0')}`;
+}
+
+function getCssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+function getLastWeeks(count) {
+  const result = [];
+  const today = normalizeDate(new Date());
+  for (let i = count - 1; i >= 0; i--) {
+    const date = addDays(today, -7 * i);
+    const weekInfo = getISOWeekInfo(date);
+    const weekStart = startOfWeek(date);
+    result.push({ key: getWeekKey(date), label: `${weekInfo.week}`, start: weekStart, end: addDays(weekStart, 6), info: weekInfo });
+  }
+  return result;
+}
+
+// ==========================================
+// NEW ANALYTICS LOGIC
+// ==========================================
+
+function calculateHabitScore() {
+    const today = normalizeDate(new Date());
+    let activeDays = 0;
+    
+    // Last 30 days
+    for(let i=0; i<30; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const k = toYYYYMMDD(d);
+        const acts = (state.activities[k] || []).filter(a => a.completed);
+        const extras = (state.extras[k] || []).filter(e => e.completed);
+        if (acts.length > 0 || extras.length > 0) activeDays++;
+    }
+    
+    const consistency = (activeDays / 30) * 100;
+    return Math.round(consistency);
+}
+
+function calculateStreak() {
+    const today = normalizeDate(new Date());
+    let streak = 0;
+    let checkDate = new Date(today);
+    
+    // Check up to 365 days back
+    for(let i=0; i<365; i++) {
+        const k = toYYYYMMDD(checkDate);
+        const acts = (state.activities[k] || []).filter(a => a.completed);
+        const extras = (state.extras[k] || []).filter(e => e.completed);
+        
+        // If today has no activity yet, don't break streak, just don't count it yet
+        if (i === 0 && acts.length === 0 && extras.length === 0) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            continue;
+        }
+
+        if (acts.length > 0 || extras.length > 0) {
+            streak++;
+        } else {
+            break;
+        }
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+    return streak;
+}
+
+function getAnalyticsData() {
+    // 1. Momentum (Last 12 weeks activity volume)
+    const weeks = getLastWeeks(12);
+    const momentumData = weeks.map(w => {
+        let count = 0;
+        let d = new Date(w.start);
+        while(d <= w.end) {
+            const k = toYYYYMMDD(d);
+            const acts = (state.activities[k] || []).filter(a => a.completed);
+            count += acts.length;
+            d.setDate(d.getDate() + 1);
+        }
+        return count;
+    });
+
+    // 2. Current Week Radar Data
+    const weekStats = calculateWeeklyGoalStats(new Date());
+    const weekRadarData = [
+        weekStats.goalPercents.gym?.percent || 0,
+        weekStats.goalPercents.running?.percent || 0,
+        weekStats.goalPercents.reading?.percent || 0
+    ];
+
+    // 3. Rhythm (Day of week frequency - all time or last 90 days)
+    const rhythmCounts = [0,0,0,0,0,0,0]; // Mon-Sun
+    const dayMap = [6, 0, 1, 2, 3, 4, 5]; // Sun(0)->6, Mon(1)->0
+    const today = normalizeDate(new Date());
+    
+    const ninetyDaysAgo = new Date(today);
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    let cursor = new Date(ninetyDaysAgo);
+    while(cursor <= today) {
+        const k = toYYYYMMDD(cursor);
+        const acts = (state.activities[k] || []).filter(a => a.completed);
+        if(acts.length > 0) {
+            const jsDay = cursor.getDay();
+            const idx = dayMap[jsDay];
+            rhythmCounts[idx] += acts.length; // Count volume not just days
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return { weeks, momentumData, weekRadarData, rhythmCounts };
+}
+
+function renderNewAnalytics() {
+    if (typeof Chart === 'undefined') return;
+    
+    const data = getAnalyticsData();
+    const score = calculateHabitScore();
+    const streak = calculateStreak();
+
+    // Update DOM Score Cards
+    document.getElementById('habit-score-value').textContent = score;
+    document.getElementById('streak-value').textContent = streak;
+
+    const colors = {
+        primary: getCssVar('--primary', '#6366f1'),
+        success: getCssVar('--success', '#22c55e'),
+        warning: getCssVar('--warning', '#f59e0b'),
+        surface: getCssVar('--surface', '#ffffff'),
+        gray: '#e2e8f0'
+    };
+
+    // 1. Momentum Chart (Last 12 Weeks)
+    const ctxMomentum = document.getElementById('analytics-12w-chart')?.getContext('2d');
+    if (ctxMomentum) {
+        if (analyticsCharts.momentum) analyticsCharts.momentum.destroy();
+        
+        const gradient = ctxMomentum.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        analyticsCharts.momentum = new Chart(ctxMomentum, {
+            type: 'line',
+            data: {
+                labels: data.weeks.map(w => w.label),
+                datasets: [{
+                    label: 'Ukończone sesje',
+                    data: data.momentumData,
+                    borderColor: colors.primary,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: colors.primary,
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                    y: { beginAtZero: true, grid: { color: '#e2e8f0', borderDash: [5, 5] }, ticks: { color: '#94a3b8', stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 2. Current Week Radar
+    const ctxRadar = document.getElementById('analytics-week-radar')?.getContext('2d');
+    if (ctxRadar) {
+        if (analyticsCharts.radar) analyticsCharts.radar.destroy();
+        analyticsCharts.radar = new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['Siłownia', 'Bieganie', 'Czytanie'],
+                datasets: [{
+                    label: 'Postęp %',
+                    data: data.weekRadarData,
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    borderColor: colors.primary,
+                    pointBackgroundColor: colors.primary,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: colors.primary
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: '#e2e8f0' },
+                        grid: { color: '#e2e8f0' },
+                        pointLabels: { color: '#64748b', font: { size: 11, weight: 600 } },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: { backdropColor: 'transparent', display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Monthly Consistency (Stacked Bar with specific "Week end determines month" logic)
+    renderAnalyticsMonthlyComparison(colors);
+
+    // 4. Rhythm Chart (Bar)
+    const ctxRhythm = document.getElementById('analytics-weekly-consistency')?.getContext('2d');
+    if (ctxRhythm) {
+        if (analyticsCharts.rhythm) analyticsCharts.rhythm.destroy();
+        analyticsCharts.rhythm = new Chart(ctxRhythm, {
+            type: 'bar',
+            data: {
+                labels: ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'],
+                datasets: [{
+                    label: 'Wolumen aktywności',
+                    data: data.rhythmCounts,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                    y: { display: false }
+                }
+            }
+        });
+    }
+}
+
+function renderAnalyticsMonthlyComparison(colors) {
+    const canvas = document.getElementById('analytics-monthly-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const year = currentMonth.getFullYear();
+    const monthStats = Array.from({ length: 12 }, () => ({ totalWeeks: 0, completedWeeks: 0 }));
+    
+    // Logic: Iterate all weeks of the year. Week belongs to Month of the Sunday (End of week).
+    // Start from Week 1 of the year.
+    let currentWeekStart = getISOWeekStart(year, 1);
+    // Safety break loop
+    let guard = 0;
+    
+    while (guard < 60) { // Max 53 weeks
+        const weekEnd = addDays(currentWeekStart, 6);
+        
+        // If week starts in next year, stop. But handle weeks spanning years carefully.
+        // We focus on weeks where the END date is in the current year.
+        if (weekEnd.getFullYear() > year) break;
+        if (weekEnd.getFullYear() < year) {
+             currentWeekStart = addDays(currentWeekStart, 7);
+             guard++;
+             continue;
+        }
+
+        const monthIndex = weekEnd.getMonth();
+        monthStats[monthIndex].totalWeeks++;
+
+        // Check if week is completed (100% of all goals)
+        const stats = calculateWeeklyGoalStats(currentWeekStart);
+        const goals = Object.values(stats.goalPercents || {});
+        // Consider week completed if at least one goal exists and ALL goals are >= 100%
+        if (goals.length > 0 && goals.every(goal => Number(goal.percent || 0) >= 100)) {
+            monthStats[monthIndex].completedWeeks++;
+        }
+
+        currentWeekStart = addDays(currentWeekStart, 7);
+        guard++;
+    }
+
+    const monthLabels = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
+    
+    if (analyticsCharts.monthly) analyticsCharts.monthly.destroy();
+    
+    analyticsCharts.monthly = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [
+                { 
+                    label: 'Ukończone', 
+                    data: monthStats.map(m => m.completedWeeks), 
+                    backgroundColor: colors.success, 
+                    borderRadius: 4,
+                    stack: 'Stack 0'
+                },
+                { 
+                    label: 'Pozostałe', 
+                    data: monthStats.map(m => m.totalWeeks - m.completedWeeks), 
+                    backgroundColor: colors.gray, 
+                    borderRadius: 4,
+                    stack: 'Stack 0'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                y: { stacked: true, display: false } // Hide Y axis for cleaner look
+            }
+        }
+    });
+}
+
+
+function showEditMetricsModal(entry) {
+  if (!entry) return;
+  showModal({
+    title: 'Edytuj log',
+    text: 'Zmień dane i zapisz ponownie.',
+    inputs: [
+      { label: 'Data', type: 'date', value: entry.date, key: 'date' },
+      { label: 'Cut / cykl', type: 'text', value: entry.cut, key: 'cut' },
+      { label: 'Waga (kg)', type: 'number', value: entry.weight ?? '', step: '0.1', key: 'weight' },
+      { label: 'BMI', type: 'number', value: entry.bmi ?? '', step: '0.1', key: 'bmi' },
+      { label: 'BF (%)', type: 'number', value: entry.bf ?? '', step: '0.1', key: 'bf' },
+      { label: 'Waga mięśni (kg)', type: 'number', value: entry.muscle ?? '', step: '0.1', key: 'muscle' }
+    ],
+    buttons: [
+      { text: 'Anuluj', class: 'btn soft', action: 'close' },
+      { text: 'Zapisz', class: 'btn', action: (value) => {
+          if (!value || !value.cut) return false;
+          entry.date = value.date || entry.date;
+          entry.cut = value.cut || entry.cut;
+          entry.weight = parseMetricValue(value.weight);
+          entry.bmi = parseMetricValue(value.bmi);
+          entry.bf = parseMetricValue(value.bf);
+          entry.muscle = parseMetricValue(value.muscle);
+          selectedCut = entry.cut;
+          saveBodyMetrics('Zaktualizowano log');
+          renderBodyMetrics();
+        } }
+    ]
+  });
+}
+
+function evaluateProgress(current, previous) {
+  if (!previous) {
+    return { tone: 'success', message: 'Super start! Pierwszy log zapisany — teraz budujemy trend.' };
+  }
+  const improvements = [];
+  const declines = [];
+  const checks = [
+    { key: 'weight', label: 'waga', direction: 'down' },
+    { key: 'bmi', label: 'BMI', direction: 'down' },
+    { key: 'bf', label: 'BF', direction: 'down' },
+    { key: 'muscle', label: 'mięśnie', direction: 'up' }
+  ];
+  checks.forEach(check => {
+    const currentValue = current[check.key];
+    const previousValue = previous[check.key];
+    if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return;
+    if (check.direction === 'down') {
+      if (currentValue < previousValue) improvements.push(check.label);
+      else if (currentValue > previousValue) declines.push(check.label);
+    } else {
+      if (currentValue > previousValue) improvements.push(check.label);
+      else if (currentValue < previousValue) declines.push(check.label);
+    }
+  });
+
+  if (improvements.length >= 2 && declines.length === 0) {
+    return { tone: 'success', message: `WoW! Widać progres (${improvements.join(', ')}).` };
+  }
+  if (declines.length >= 2) {
+    return { tone: 'danger', message: `Uwaga: brak progresu w (${declines.join(', ')}). Wróć do rutyny i pilnuj powtarzalności.` };
+  }
+  return { tone: 'warning', message: 'Stabilnie. Jest trend, ale warto dopiąć rutynę i konsekwencję.' };
+}
+
 
 function addTraining(dateString, type, plannedValue) {
   ensureDay(dateString);
@@ -2146,6 +3276,23 @@ function showModal(config) {
 }
 
 function setupEventListeners() {
+  const sectionButtons = document.querySelectorAll('.subnav [data-section-target]');
+  const sectionPanels = document.querySelectorAll('.section-panel');
+      sectionButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.sectionTarget;
+      sectionButtons.forEach(btn => btn.classList.toggle('is-active', btn === button));
+      sectionPanels.forEach(panel => panel.classList.toggle('is-active', panel.id === target));
+      const main = document.querySelector('.page-content');
+      if (main) main.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (target === 'analytics') {
+        // Wait for display:block to apply then render
+        requestAnimationFrame(() => renderNewAnalytics());
+      }
+    });
+  });
+
+
   document.getElementById('prev-month-btn').addEventListener('click', () => {
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     render();
@@ -2169,10 +3316,63 @@ function setupEventListeners() {
       render(); // Re-render in case a management modal was closed
     }
   });
+
+  const metricsForm = document.getElementById('metrics-form');
+  if (metricsForm) {
+    metricsForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const date = document.getElementById('metrics-date')?.value || toYYYYMMDD(new Date());
+      const cut = document.getElementById('metrics-cut')?.value?.trim();
+      if (!cut) {
+        updateMetricsFeedback('Uzupełnij nazwę cutu / cyklu.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `metric_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        date,
+        cut,
+        weight: parseMetricValue(document.getElementById('metrics-weight')?.value),
+        bmi: parseMetricValue(document.getElementById('metrics-bmi')?.value),
+        bf: parseMetricValue(document.getElementById('metrics-bf')?.value),
+        muscle: parseMetricValue(document.getElementById('metrics-muscle')?.value)
+      };
+
+      bodyMetrics.push(entry);
+      selectedCut = cut;
+      const sortedCut = getMetricsForCut(cut);
+      const currentIndex = sortedCut.findIndex(item => item.id === entry.id);
+      const previous = currentIndex > 0 ? sortedCut[currentIndex - 1] : null;
+      const progress = evaluateProgress(entry, previous);
+      updateMetricsFeedback(progress.message, progress.tone);
+      saveBodyMetrics('Zapisano log wagi');
+      renderBodyMetrics();
+
+      ['metrics-weight', 'metrics-bmi', 'metrics-bf', 'metrics-muscle'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+    });
+  }
+
+  document.getElementById('metrics-clear-btn')?.addEventListener('click', () => {
+    ['metrics-weight', 'metrics-bmi', 'metrics-bf', 'metrics-muscle'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = '';
+    });
+    updateMetricsFeedback('Pola wyczyszczone. Dodaj nowe wartości.', '');
+  });
+
+  document.getElementById('metrics-cut-filter')?.addEventListener('change', event => {
+    selectedCut = event.target.value;
+    renderBodyMetrics();
+  });
+
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  loadBodyMetrics();
   ensureDay(selectedDate);
   render();
   setupEventListeners();
@@ -2180,4 +3380,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
