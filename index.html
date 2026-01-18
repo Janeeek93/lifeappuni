@@ -423,27 +423,42 @@ function computeModernTrainingWeekStats(state, isoYear, isoWeek){ const weekStar
   const goalPercents = {};
   Object.entries(TRAINING_GOALS).forEach(([type, def])=>{
     const progress = Number(totals[type] || 0);
-    const percent = def.target > 0 ? Math.min(100, Math.round((progress / def.target) * 100)) : 0;
-    goalPercents[type] = { progress, percent, target: def.target };
+    const rawPercent = def.target > 0 ? Math.round((progress / def.target) * 100) : 0;
+    const percent = Math.min(100, rawPercent);
+    goalPercents[type] = { progress, percent, rawPercent, target: def.target };
   });
-  const average = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.percent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
-  return { goalPercents, average, range: { start: weekStart, end: weekEnd } };
+  const averageRaw = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.rawPercent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
+  const average = Math.min(100, averageRaw);
+  return { goalPercents, average, averageRaw, range: { start: weekStart, end: weekEnd } };
 }
 
-function computeModernCompletedWeeks(state, isoYear, isoWeek){ let completed = 0; for(let w = 1; w < isoWeek; w += 1){ const stats = computeModernTrainingWeekStats(state, isoYear, w); const allMet = Object.values(stats.goalPercents || {}).every(info => Number(info.percent || 0) >= 100); if(allMet) completed += 1; }
+function isTrainingWeekCompleted(stats){ const goals = Object.values(stats?.goalPercents || {}); if(!goals.length) return false; return Number(stats?.averageRaw ?? 0) >= 100; }
+
+function computeModernCompletedWeeks(state, isoYear, isoWeek){ let completed = 0; for(let w = 1; w < isoWeek; w += 1){ const stats = computeModernTrainingWeekStats(state, isoYear, w); if(isTrainingWeekCompleted(stats)) completed += 1; }
   return completed;
 }
 
-function computeLegacyTrainingWeekStats(data, isoYear, isoWeek){ const weekStart = getISOWeekStart(isoYear, isoWeek); const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); const weekData = data?.[isoYear]?.[isoWeek] || {}; const progress = weekData.progress || {}; const goalPercents = {};
+function computeLegacyWeekStatsBasic(data, isoYear, isoWeek){ const weekStart = getISOWeekStart(isoYear, isoWeek); const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6); const weekData = data?.[isoYear]?.[isoWeek] || {}; const progress = weekData.progress || {}; const goalPercents = {};
   Object.entries(TRAINING_GOALS).forEach(([type, def])=>{
     const value = Number(progress[type] || 0);
-    const percent = def.target > 0 ? Math.min(100, Math.round((value / def.target) * 100)) : 0;
-    goalPercents[type] = { progress: value, percent, target: def.target };
+    const rawPercent = def.target > 0 ? Math.round((value / def.target) * 100) : 0;
+    const percent = Math.min(100, rawPercent);
+    goalPercents[type] = { progress: value, percent, rawPercent, target: def.target };
   });
-  const average = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.percent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
-  const completedWeeks = Object.keys(data?.[isoYear] || {}).filter(wn => Number(wn) < isoWeek && data[isoYear][wn]?.isComplete).length;
+  const averageRaw = Math.round(Object.values(goalPercents).reduce((sum, info)=> sum + (info.rawPercent || 0), 0) / Object.keys(TRAINING_GOALS).length) || 0;
+  const average = Math.min(100, averageRaw);
+  return { goalPercents, average, averageRaw, range: { start: weekStart, end: weekEnd } };
+}
+
+function computeLegacyTrainingWeekStats(data, isoYear, isoWeek){ const stats = computeLegacyWeekStatsBasic(data, isoYear, isoWeek); let completedWeeks = 0;
+  Object.keys(data?.[isoYear] || {}).forEach((wn)=>{
+    const weekNumber = Number(wn);
+    if(!Number.isFinite(weekNumber) || weekNumber >= isoWeek) return;
+    const weekStats = computeLegacyWeekStatsBasic(data, isoYear, weekNumber);
+    if(isTrainingWeekCompleted(weekStats)) completedWeeks += 1;
+  });
   const totalWeeks = Math.max(0, isoWeek - 1);
-  return { goalPercents, average, range: { start: weekStart, end: weekEnd }, completedWeeks, totalWeeks };
+  return { ...stats, completedWeeks, totalWeeks };
 }
 
 function getTrainingSummary(){ const now = new Date(); const [isoYear, isoWeek] = getWeekNumber(now); const totalWeeks = Math.max(0, isoWeek - 1); const store = getTrainingStore(); if(store.type === 'modern'){ const stats = computeModernTrainingWeekStats(store.data, isoYear, isoWeek); return { ...stats, completedWeeks: computeModernCompletedWeeks(store.data, isoYear, isoWeek), totalWeeks: totalWeeks };
