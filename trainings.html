@@ -1790,16 +1790,18 @@ function calculateWeeklyGoalStats(referenceDate) {
   Object.keys(GOAL_DEFINITIONS).forEach(type => {
     const progress = totals[type] || 0;
     const target = GOAL_DEFINITIONS[type].target;
-    const percent = target > 0 ? Math.min(100, Math.round((progress / target) * 100)) : 0;
-    goalPercents[type] = { percent, progress, target };
+    const rawPercent = target > 0 ? Math.round((progress / target) * 100) : 0;
+    const percent = Math.min(100, rawPercent);
+    goalPercents[type] = { percent, rawPercent, progress, target };
   });
 
-  const averageGoalPercent = Math.round(
-    Object.values(goalPercents).reduce((acc, info) => acc + info.percent, 0) /
+  const averageGoalPercentRaw = Math.round(
+    Object.values(goalPercents).reduce((acc, info) => acc + info.rawPercent, 0) /
     Object.keys(GOAL_DEFINITIONS).length
   ) || 0;
+  const averageGoalPercent = Math.min(100, averageGoalPercentRaw);
 
-  return { goalPercents, averageGoalPercent, range: { start: weekStart, end: weekEnd } };
+  return { goalPercents, averageGoalPercent, averageGoalPercentRaw, range: { start: weekStart, end: weekEnd } };
 }
 
 function calculateWeekCompletionToDate() {
@@ -1811,14 +1813,19 @@ function calculateWeekCompletionToDate() {
   for (let week = 1; week < info.week; week++) {
     const weekStart = getISOWeekStart(info.year, week);
     const stats = calculateWeeklyGoalStats(weekStart);
-    const goals = Object.values(stats.goalPercents || {});
-    if (goals.length && goals.every(goal => Number(goal.percent || 0) >= 100)) {
+    if (isWeekCompleted(stats)) {
       completedWeeks += 1;
     }
   }
 
   const percent = totalWeeks > 0 ? Math.round((completedWeeks / totalWeeks) * 100) : 0;
   return { completedWeeks, totalWeeks, percent, currentWeek: info.week, isoYear: info.year };
+}
+
+function isWeekCompleted(stats) {
+  const goals = Object.values(stats?.goalPercents || {});
+  if (!goals.length) return false;
+  return Number(stats?.averageGoalPercentRaw ?? 0) >= 100;
 }
 
 function getRelativeLabel(targetDate, today) {
@@ -2770,11 +2777,10 @@ function renderAnalyticsMonthlyComparison(colors) {
         const monthIndex = weekEnd.getMonth();
         monthStats[monthIndex].totalWeeks++;
 
-        // Check if week is completed (100% of all goals)
+        // Check if week is completed based on average goal completion.
         const stats = calculateWeeklyGoalStats(currentWeekStart);
-        const goals = Object.values(stats.goalPercents || {});
-        // Consider week completed if at least one goal exists and ALL goals are >= 100%
-        if (goals.length > 0 && goals.every(goal => Number(goal.percent || 0) >= 100)) {
+        // Consider week completed if average raw percent across goals is >= 100%
+        if (isWeekCompleted(stats)) {
             monthStats[monthIndex].completedWeeks++;
         }
 
