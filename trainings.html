@@ -1044,7 +1044,7 @@
             <div class="card-header">
               <div>
                 <h3>Log wagi i składu ciała</h3>
-                <p class="muted tiny">Zapisuj każdy cut, buduj progres i śledź trendy.</p>
+                <p class="muted tiny">Zapisuj każdy cykl, buduj progres i śledź trendy.</p>
               </div>
               <span class="month-chip">2026+</span>
             </div>
@@ -1055,21 +1055,18 @@
                     <label>Data logu
                       <input type="date" id="metrics-date" required>
                     </label>
-                    <label>Cut / cykl
-                      <input type="text" id="metrics-cut" list="metrics-cut-list" placeholder="np. Cut 2026 Wiosna" required>
-                      <datalist id="metrics-cut-list"></datalist>
+                    <label>Cykl
+                      <input type="text" id="metrics-cycle" list="metrics-cycle-list" placeholder="np. Redukcja 2025" required>
+                      <datalist id="metrics-cycle-list"></datalist>
                     </label>
                     <label>Waga (kg)
                       <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="np. 84.2">
                     </label>
-                    <label>BMI
-                      <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="np. 24.8">
-                    </label>
                     <label>BF (%)
                       <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="np. 17.5">
                     </label>
-                    <label>Waga mięśni (kg)
-                      <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="np. 34.0">
+                    <label>Wzrost (cm)
+                      <input type="number" id="metrics-height" min="0" step="0.1" placeholder="np. 182">
                     </label>
                   </div>
                   <div class="metrics-actions">
@@ -1082,10 +1079,10 @@
               <div>
                 <div class="metrics-toolbar">
                   <div class="metrics-filter">
-                    <span class="tiny muted">Cut:</span>
-                    <select id="metrics-cut-filter"></select>
+                    <span class="tiny muted">Cykl:</span>
+                    <select id="metrics-cycle-filter"></select>
                   </div>
-                  <div id="metrics-cut-summary" class="metrics-summary"></div>
+                  <div id="metrics-cycle-summary" class="metrics-summary"></div>
                 </div>
                 <div class="metrics-kpi-grid">
                   <div class="metrics-kpi-card">
@@ -1111,10 +1108,10 @@
                   </div>
                   <div class="metrics-kpi-card">
                     <div class="metrics-kpi-header">
-                      <span>Waga mięśni</span>
-                      <span id="metrics-muscle-stat">--</span>
+                      <span>LBM</span>
+                      <span id="metrics-lbm-stat">--</span>
                     </div>
-                    <div class="metrics-chart" id="metrics-chart-muscle"></div>
+                    <div class="metrics-chart" id="metrics-chart-lbm"></div>
                   </div>
                 </div>
                 <div class="metrics-history">
@@ -1353,7 +1350,7 @@ let selectedDate = toYYYYMMDD(new Date());
 let planningMode = null;
 let saveTimeout;
 let bodyMetrics = [];
-let selectedCut = 'all';
+let selectedCycle = 'all';
 let analyticsCharts = {};
 
 function startOfMonth(date) {
@@ -2332,7 +2329,9 @@ function renderHeatmap() {
 
 function loadBodyMetrics() {
   const parsed = safeParse(localStorage.getItem(BODY_METRICS_KEY), () => []);
-  bodyMetrics = Array.isArray(parsed) ? parsed : [];
+  bodyMetrics = Array.isArray(parsed)
+    ? parsed.map(normalizeMetricEntry).filter(Boolean)
+    : [];
 }
 
 function saveBodyMetrics(message = 'Zapisano log wagi') {
@@ -2346,28 +2345,66 @@ function parseMetricValue(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function getUniqueCuts() {
-  const cuts = new Set();
+function calculateBMI(weight, heightCm) {
+  if (!Number.isFinite(weight) || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const heightM = heightCm / 100;
+  return weight / (heightM * heightM);
+}
+
+function calculateLBM(weight, bf) {
+  if (!Number.isFinite(weight) || !Number.isFinite(bf)) return null;
+  return weight * (1 - bf / 100);
+}
+
+function normalizeMetricEntry(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const weight = Number.isFinite(entry.weight) ? entry.weight : null;
+  const bf = Number.isFinite(entry.bf) ? entry.bf : null;
+  const height = Number.isFinite(entry.height) ? entry.height : null;
+  const cycle = entry.cycle || entry.cut || null;
+  const heightFromBmi = Number.isFinite(entry.bmi) && Number.isFinite(weight) && (!height || height <= 0)
+    ? Math.sqrt(weight / entry.bmi) * 100
+    : null;
+  const normalizedHeight = Number.isFinite(height) ? height : (Number.isFinite(heightFromBmi) ? heightFromBmi : null);
+  return {
+    id: entry.id || `metric_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    date: entry.date,
+    cycle,
+    weight,
+    bf,
+    height: normalizedHeight
+  };
+}
+
+function getUniqueCycles() {
+  const cycles = new Set();
   bodyMetrics.forEach(entry => {
-    if (entry && entry.cut) cuts.add(entry.cut);
+    if (entry && entry.cycle) cycles.add(entry.cycle);
   });
-  return Array.from(cuts);
+  return Array.from(cycles);
 }
 
 function sortMetricsByDate(list) {
   return list.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-function getMetricsForCut(cut) {
-  if (!cut || cut === 'all') return sortMetricsByDate(bodyMetrics);
-  return sortMetricsByDate(bodyMetrics.filter(entry => entry.cut === cut));
+function getMetricsForCycle(cycle) {
+  if (!cycle || cycle === 'all') return sortMetricsByDate(bodyMetrics);
+  return sortMetricsByDate(bodyMetrics.filter(entry => entry.cycle === cycle));
+}
+
+function getMetricValue(entry, metricKey) {
+  if (!entry) return null;
+  if (metricKey === 'bmi') return calculateBMI(entry.weight, entry.height);
+  if (metricKey === 'lbm') return calculateLBM(entry.weight, entry.bf);
+  return entry[metricKey];
 }
 
 function renderMetricChart(containerId, entries, metricKey, unit, trendDirection) {
   const container = document.getElementById(containerId);
   if (!container) return;
   const points = entries
-    .map(entry => ({ date: entry.date, value: entry[metricKey] }))
+    .map(entry => ({ date: entry.date, value: getMetricValue(entry, metricKey) }))
     .filter(point => Number.isFinite(point.value));
 
   if (points.length === 0) {
@@ -2409,7 +2446,7 @@ function renderMetricChart(containerId, entries, metricKey, unit, trendDirection
 }
 
 function getMetricSummary(entries, metricKey, unit, trendDirection) {
-  const values = entries.map(entry => entry[metricKey]).filter(value => Number.isFinite(value));
+  const values = entries.map(entry => getMetricValue(entry, metricKey)).filter(value => Number.isFinite(value));
   if (values.length === 0) return '--';
   const first = values[0];
   const last = values[values.length - 1];
@@ -2432,27 +2469,27 @@ function updateMetricsFeedback(message, tone = '') {
 
 function renderBodyMetrics() {
   const logList = document.getElementById('metrics-log-list');
-  const cutFilter = document.getElementById('metrics-cut-filter');
-  const cutList = document.getElementById('metrics-cut-list');
-  if (!logList || !cutFilter || !cutList) return;
+  const cycleFilter = document.getElementById('metrics-cycle-filter');
+  const cycleList = document.getElementById('metrics-cycle-list');
+  if (!logList || !cycleFilter || !cycleList) return;
 
-  const cuts = getUniqueCuts();
+  const cycles = getUniqueCycles();
   const formDate = document.getElementById('metrics-date');
   if (formDate && !formDate.value) formDate.value = toYYYYMMDD(new Date());
 
-  cutList.innerHTML = cuts.map(cut => `<option value="${cut}"></option>`).join('');
-  cutFilter.innerHTML = `
+  cycleList.innerHTML = cycles.map(cycle => `<option value="${cycle}"></option>`).join('');
+  cycleFilter.innerHTML = `
     <option value="all">Wszystkie</option>
-    ${cuts.map(cut => `<option value="${cut}">${cut}</option>`).join('')}
+    ${cycles.map(cycle => `<option value="${cycle}">${cycle}</option>`).join('')}
   `;
-  if (!cuts.includes(selectedCut) && selectedCut !== 'all') selectedCut = 'all';
-  cutFilter.value = selectedCut;
+  if (!cycles.includes(selectedCycle) && selectedCycle !== 'all') selectedCycle = 'all';
+  cycleFilter.value = selectedCycle;
 
-  const filtered = getMetricsForCut(selectedCut);
-  const summary = document.getElementById('metrics-cut-summary');
+  const filtered = getMetricsForCycle(selectedCycle);
+  const summary = document.getElementById('metrics-cycle-summary');
   if (summary) {
     if (!filtered.length) {
-      summary.textContent = 'Brak danych dla wybranego cutu.';
+      summary.textContent = 'Brak danych dla wybranego cyklu.';
     } else {
       const start = filtered[0].date;
       const end = filtered[filtered.length - 1].date;
@@ -2463,12 +2500,12 @@ function renderBodyMetrics() {
   renderMetricChart('metrics-chart-weight', filtered, 'weight', 'kg', 'down');
   renderMetricChart('metrics-chart-bmi', filtered, 'bmi', '', 'down');
   renderMetricChart('metrics-chart-bf', filtered, 'bf', '%', 'down');
-  renderMetricChart('metrics-chart-muscle', filtered, 'muscle', 'kg', 'up');
+  renderMetricChart('metrics-chart-lbm', filtered, 'lbm', 'kg', 'up');
 
   document.getElementById('metrics-weight-stat').textContent = getMetricSummary(filtered, 'weight', 'kg', 'down');
   document.getElementById('metrics-bmi-stat').textContent = getMetricSummary(filtered, 'bmi', '', 'down');
   document.getElementById('metrics-bf-stat').textContent = getMetricSummary(filtered, 'bf', '%', 'down');
-  document.getElementById('metrics-muscle-stat').textContent = getMetricSummary(filtered, 'muscle', 'kg', 'up');
+  document.getElementById('metrics-lbm-stat').textContent = getMetricSummary(filtered, 'lbm', 'kg', 'up');
 
   if (!filtered.length) {
     logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
@@ -2477,10 +2514,12 @@ function renderBodyMetrics() {
     filtered.slice().reverse().forEach(entry => {
       const item = document.createElement('div');
       item.className = 'metrics-log-item';
+      const bmiValue = getMetricValue(entry, 'bmi');
+      const lbmValue = getMetricValue(entry, 'lbm');
       item.innerHTML = `
         <div>
           <strong>${entry.date}</strong>
-          <div class="tiny muted">${entry.cut || 'Bez cutu'} · W: ${entry.weight ?? '--'} kg · BMI: ${entry.bmi ?? '--'} · BF: ${entry.bf ?? '--'}% · M: ${entry.muscle ?? '--'} kg</div>
+          <div class="tiny muted">${entry.cycle || 'Bez cyklu'} · W: ${entry.weight ?? '--'} kg · BF: ${entry.bf ?? '--'}% · BMI: ${Number.isFinite(bmiValue) ? bmiValue.toFixed(1) : '--'} · LBM: ${Number.isFinite(lbmValue) ? lbmValue.toFixed(1) : '--'} kg</div>
         </div>
         <div class="metrics-actions">
           <button class="btn ghost small" data-edit-id="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
@@ -2827,23 +2866,21 @@ function showEditMetricsModal(entry) {
     text: 'Zmień dane i zapisz ponownie.',
     inputs: [
       { label: 'Data', type: 'date', value: entry.date, key: 'date' },
-      { label: 'Cut / cykl', type: 'text', value: entry.cut, key: 'cut' },
+      { label: 'Cykl', type: 'text', value: entry.cycle, key: 'cycle' },
       { label: 'Waga (kg)', type: 'number', value: entry.weight ?? '', step: '0.1', key: 'weight' },
-      { label: 'BMI', type: 'number', value: entry.bmi ?? '', step: '0.1', key: 'bmi' },
       { label: 'BF (%)', type: 'number', value: entry.bf ?? '', step: '0.1', key: 'bf' },
-      { label: 'Waga mięśni (kg)', type: 'number', value: entry.muscle ?? '', step: '0.1', key: 'muscle' }
+      { label: 'Wzrost (cm)', type: 'number', value: entry.height ?? '', step: '0.1', key: 'height' }
     ],
     buttons: [
       { text: 'Anuluj', class: 'btn soft', action: 'close' },
       { text: 'Zapisz', class: 'btn', action: (value) => {
-          if (!value || !value.cut) return false;
+          if (!value || !value.cycle) return false;
           entry.date = value.date || entry.date;
-          entry.cut = value.cut || entry.cut;
+          entry.cycle = value.cycle || entry.cycle;
           entry.weight = parseMetricValue(value.weight);
-          entry.bmi = parseMetricValue(value.bmi);
           entry.bf = parseMetricValue(value.bf);
-          entry.muscle = parseMetricValue(value.muscle);
-          selectedCut = entry.cut;
+          entry.height = parseMetricValue(value.height);
+          selectedCycle = entry.cycle;
           saveBodyMetrics('Zaktualizowano log');
           renderBodyMetrics();
         } }
@@ -2855,34 +2892,42 @@ function evaluateProgress(current, previous) {
   if (!previous) {
     return { tone: 'success', message: 'Super start! Pierwszy log zapisany — teraz budujemy trend.' };
   }
-  const improvements = [];
-  const declines = [];
-  const checks = [
-    { key: 'weight', label: 'waga', direction: 'down' },
-    { key: 'bmi', label: 'BMI', direction: 'down' },
-    { key: 'bf', label: 'BF', direction: 'down' },
-    { key: 'muscle', label: 'mięśnie', direction: 'up' }
-  ];
-  checks.forEach(check => {
-    const currentValue = current[check.key];
-    const previousValue = previous[check.key];
-    if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return;
-    if (check.direction === 'down') {
-      if (currentValue < previousValue) improvements.push(check.label);
-      else if (currentValue > previousValue) declines.push(check.label);
-    } else {
-      if (currentValue > previousValue) improvements.push(check.label);
-      else if (currentValue < previousValue) declines.push(check.label);
-    }
-  });
+  const weightDelta = Number.isFinite(current.weight) && Number.isFinite(previous.weight)
+    ? current.weight - previous.weight
+    : null;
+  const bfDelta = Number.isFinite(current.bf) && Number.isFinite(previous.bf)
+    ? current.bf - previous.bf
+    : null;
+  const currentLbm = calculateLBM(current.weight, current.bf);
+  const previousLbm = calculateLBM(previous.weight, previous.bf);
+  const lbmDelta = Number.isFinite(currentLbm) && Number.isFinite(previousLbm)
+    ? currentLbm - previousLbm
+    : null;
 
-  if (improvements.length >= 2 && declines.length === 0) {
-    return { tone: 'success', message: `WoW! Widać progres (${improvements.join(', ')}).` };
+  if (!Number.isFinite(weightDelta) || !Number.isFinite(bfDelta)) {
+    return { tone: 'warning', message: 'Dodaj wagę i BF w obu logach, aby sklasyfikować zmianę sylwetki.' };
   }
-  if (declines.length >= 2) {
-    return { tone: 'danger', message: `Uwaga: brak progresu w (${declines.join(', ')}). Wróć do rutyny i pilnuj powtarzalności.` };
+
+  const weightDown = weightDelta < -0.2;
+  const weightUp = weightDelta > 0.2;
+  const weightStableOrSlightUp = weightDelta >= -0.2 && weightDelta <= 0.3;
+  const bfDown = bfDelta < -0.2;
+  const bfUp = bfDelta > 0.2;
+  const lbmUp = Number.isFinite(lbmDelta) && lbmDelta > 0.2;
+
+  if (weightDown && bfDown) {
+    return { tone: 'success', message: 'Czysta redukcja: waga w dół i BF w dół.' };
   }
-  return { tone: 'warning', message: 'Stabilnie. Jest trend, ale warto dopiąć rutynę i konsekwencję.' };
+  if (weightStableOrSlightUp && bfDown) {
+    return { tone: 'success', message: 'Rekompozycja: BF w dół, waga stoi lub lekko rośnie.' };
+  }
+  if (weightUp && lbmUp) {
+    return { tone: 'success', message: 'Czysta masa: waga w górę i LBM w górę.' };
+  }
+  if (weightUp && bfUp) {
+    return { tone: 'danger', message: 'Nadmiar kalorii (Dirty bulk): waga i BF rosną.' };
+  }
+  return { tone: 'warning', message: 'Zmiana niejednoznaczna. Sprawdź trend w kolejnych pomiarach.' };
 }
 
 
@@ -3322,33 +3367,32 @@ function setupEventListeners() {
     metricsForm.addEventListener('submit', event => {
       event.preventDefault();
       const date = document.getElementById('metrics-date')?.value || toYYYYMMDD(new Date());
-      const cut = document.getElementById('metrics-cut')?.value?.trim();
-      if (!cut) {
-        updateMetricsFeedback('Uzupełnij nazwę cutu / cyklu.', 'warning');
+      const cycle = document.getElementById('metrics-cycle')?.value?.trim();
+      if (!cycle) {
+        updateMetricsFeedback('Uzupełnij nazwę cyklu.', 'warning');
         return;
       }
 
       const entry = {
         id: `metric_${Date.now()}_${Math.random().toString(16).slice(2)}`,
         date,
-        cut,
+        cycle,
         weight: parseMetricValue(document.getElementById('metrics-weight')?.value),
-        bmi: parseMetricValue(document.getElementById('metrics-bmi')?.value),
         bf: parseMetricValue(document.getElementById('metrics-bf')?.value),
-        muscle: parseMetricValue(document.getElementById('metrics-muscle')?.value)
+        height: parseMetricValue(document.getElementById('metrics-height')?.value)
       };
 
       bodyMetrics.push(entry);
-      selectedCut = cut;
-      const sortedCut = getMetricsForCut(cut);
-      const currentIndex = sortedCut.findIndex(item => item.id === entry.id);
-      const previous = currentIndex > 0 ? sortedCut[currentIndex - 1] : null;
+      selectedCycle = cycle;
+      const sortedCycle = getMetricsForCycle(cycle);
+      const currentIndex = sortedCycle.findIndex(item => item.id === entry.id);
+      const previous = currentIndex > 0 ? sortedCycle[currentIndex - 1] : null;
       const progress = evaluateProgress(entry, previous);
       updateMetricsFeedback(progress.message, progress.tone);
       saveBodyMetrics('Zapisano log wagi');
       renderBodyMetrics();
 
-      ['metrics-weight', 'metrics-bmi', 'metrics-bf', 'metrics-muscle'].forEach(id => {
+      ['metrics-weight', 'metrics-bf', 'metrics-height'].forEach(id => {
         const input = document.getElementById(id);
         if (input) input.value = '';
       });
@@ -3356,15 +3400,15 @@ function setupEventListeners() {
   }
 
   document.getElementById('metrics-clear-btn')?.addEventListener('click', () => {
-    ['metrics-weight', 'metrics-bmi', 'metrics-bf', 'metrics-muscle'].forEach(id => {
+    ['metrics-weight', 'metrics-bf', 'metrics-height'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
     updateMetricsFeedback('Pola wyczyszczone. Dodaj nowe wartości.', '');
   });
 
-  document.getElementById('metrics-cut-filter')?.addEventListener('change', event => {
-    selectedCut = event.target.value;
+  document.getElementById('metrics-cycle-filter')?.addEventListener('change', event => {
+    selectedCycle = event.target.value;
     renderBodyMetrics();
   });
 
