@@ -534,6 +534,40 @@
   gap: 20px;
 }
 
+.metrics-sidebar {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 12px;
+}
+
+.metrics-preview {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--line);
+  background: var(--bg-alt);
+  display: grid;
+  gap: 8px;
+}
+
+.metrics-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.metrics-preview-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .metrics-form-grid {
   display: flex;
   flex-direction: column;
@@ -1135,13 +1169,13 @@
               <span class="month-chip">2026+</span>
             </div>
             <div class="metrics-layout">
-              <div class="metrics-form">
+              <div class="metrics-form metrics-sidebar">
                 <form id="metrics-form" class="metrics-form-grid">
                   <div class="metrics-form-row">
                     <label>Data logu
                       <input type="date" id="metrics-date" required>
                     </label>
-                    <label>Cykl
+                    <label>Cel / cykl
                       <input type="text" id="metrics-cycle" list="metrics-cycle-list" placeholder="np. Redukcja 2025" required>
                       <datalist id="metrics-cycle-list"></datalist>
                     </label>
@@ -1158,8 +1192,19 @@
                   <div class="metrics-actions">
                     <button class="btn" type="submit"><i data-lucide="save" class="icon"></i>Zapisz log</button>
                     <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczyść pola</button>
+                    <button class="btn ghost" type="button" id="metrics-delete-last-btn"><i data-lucide="trash-2" class="icon"></i>Usuń ostatni pomiar</button>
                   </div>
                 </form>
+                <div class="metrics-preview" aria-live="polite">
+                  <div class="metrics-preview-row">
+                    <span>BMI (podgląd)</span>
+                    <span class="metrics-preview-value" id="metrics-bmi-preview">--</span>
+                  </div>
+                  <div class="metrics-preview-row">
+                    <span>LBM (podgląd)</span>
+                    <span class="metrics-preview-value" id="metrics-lbm-preview">--</span>
+                  </div>
+                </div>
                 <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy log, a zobaczysz trendy i komunikaty o progresie.</div>
               </div>
               <div>
@@ -2496,6 +2541,16 @@ function formatMetric(value, unit = '') {
   return Number.isFinite(value) ? `${value.toFixed(1)}${unit}` : '--';
 }
 
+function updateMetricsPreview() {
+  const weight = parseMetricValue(document.getElementById('metrics-weight')?.value);
+  const bf = parseMetricValue(document.getElementById('metrics-bf')?.value);
+  const height = parseMetricValue(document.getElementById('metrics-height')?.value);
+  const bmiPreview = document.getElementById('metrics-bmi-preview');
+  const lbmPreview = document.getElementById('metrics-lbm-preview');
+  if (bmiPreview) bmiPreview.textContent = formatMetric(calculateBMI(weight, height));
+  if (lbmPreview) lbmPreview.textContent = formatMetric(calculateLBM(weight, bf), ' kg');
+}
+
 function getTrendData(metricKey, currentEntry, previousEntry) {
   if (!currentEntry || !previousEntry) {
     return { tone: 'neutral', icon: 'minus', text: 'Brak trendu' };
@@ -2808,6 +2863,7 @@ function renderBodyMetrics() {
   if (statusText) statusText.textContent = status.text;
 
   renderWeightBfChart(filtered);
+  updateMetricsPreview();
 
   if (!filtered.length) {
     logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
@@ -3675,6 +3731,7 @@ function setupEventListeners() {
         const input = document.getElementById(id);
         if (input) input.value = '';
       });
+      updateMetricsPreview();
     });
   }
 
@@ -3683,7 +3740,27 @@ function setupEventListeners() {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
+    updateMetricsPreview();
     updateMetricsFeedback('Pola wyczyszczone. Dodaj nowe wartości.', '');
+  });
+
+  document.getElementById('metrics-delete-last-btn')?.addEventListener('click', () => {
+    const filtered = getMetricsForCycle(selectedCycle);
+    const lastEntry = filtered[filtered.length - 1];
+    if (!lastEntry) {
+      updateMetricsFeedback('Brak pomiarów do usunięcia.', 'warning');
+      return;
+    }
+    const confirmText = `Usunąć ostatni pomiar (${lastEntry.date})?`;
+    if (!window.confirm(confirmText)) return;
+    bodyMetrics = bodyMetrics.filter(item => item.id !== lastEntry.id);
+    saveBodyMetrics('Usunięto ostatni pomiar');
+    renderBodyMetrics();
+  });
+
+  ['metrics-weight', 'metrics-bf', 'metrics-height'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.addEventListener('input', () => updateMetricsPreview());
   });
 
   document.getElementById('metrics-cycle-filter')?.addEventListener('change', event => {
