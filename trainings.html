@@ -812,6 +812,63 @@
   min-height: 220px;
 }
 
+.metrics-goal-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 12px;
+}
+
+.metrics-goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.metrics-goal-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.metrics-goal-input input {
+  width: 90px;
+}
+
+.metrics-goal-progress {
+  display: grid;
+  gap: 6px;
+}
+
+.metrics-goal-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.metrics-goal-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: inherit;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.metrics-goal-meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 @media (max-width: 980px) {
   .metrics-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -1249,6 +1306,25 @@
                       <canvas id="metrics-weight-bf-chart"></canvas>
                     </div>
                   </div>
+                  <div class="metrics-goal-card">
+                    <div class="metrics-chart-header">
+                      <span>Road to Summer</span>
+                      <span class="tiny muted">Tempo BF (4 tyg.)</span>
+                    </div>
+                    <div class="metrics-goal-row">
+                      <div class="metrics-goal-input">
+                        <label for="metrics-target-bf">Cel BF %</label>
+                        <input type="number" id="metrics-target-bf" min="0" step="0.1" placeholder="np. 12">
+                      </div>
+                      <div class="metrics-goal-meta" id="metrics-goal-date">Podaj cel BF, aby obliczyć datę.</div>
+                    </div>
+                    <div class="metrics-goal-progress">
+                      <div class="metrics-goal-bar">
+                        <div class="metrics-goal-bar-fill" id="metrics-goal-bar-fill"></div>
+                      </div>
+                      <div class="metrics-goal-meta" id="metrics-goal-progress">0% drogi do celu</div>
+                    </div>
+                  </div>
                 </div>
                 <div class="metrics-history">
                   <h4>Historia logów</h4>
@@ -1466,6 +1542,7 @@ const EXTRA_CATEGORY_LABELS = EXTRA_ACTIVITY_CATEGORIES.reduce((acc, item) => {
   return acc;
 }, {});
 const BODY_METRICS_KEY = 'lifeos_body_metrics_v1';
+const BODY_METRICS_GOAL_KEY = 'lifeos_body_metrics_goal_bf_v1';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -1489,6 +1566,7 @@ let bodyMetrics = [];
 let selectedCycle = 'all';
 let analyticsCharts = {};
 let bodyMetricsChart = null;
+let targetBfGoal = null;
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -2476,6 +2554,20 @@ function saveBodyMetrics(message = 'Zapisano log wagi') {
   showSaveStatus(message);
 }
 
+function loadBodyMetricsGoal() {
+  const parsed = safeParse(localStorage.getItem(BODY_METRICS_GOAL_KEY), () => null);
+  const numeric = Number(parsed);
+  targetBfGoal = Number.isFinite(numeric) ? numeric : null;
+}
+
+function saveBodyMetricsGoal() {
+  if (!Number.isFinite(targetBfGoal)) {
+    localStorage.removeItem(BODY_METRICS_GOAL_KEY);
+    return;
+  }
+  localStorage.setItem(BODY_METRICS_GOAL_KEY, JSON.stringify(targetBfGoal));
+}
+
 function parseMetricValue(value) {
   if (value === '' || value === null || value === undefined) return null;
   const numeric = Number(value);
@@ -2549,6 +2641,61 @@ function updateMetricsPreview() {
   const lbmPreview = document.getElementById('metrics-lbm-preview');
   if (bmiPreview) bmiPreview.textContent = formatMetric(calculateBMI(weight, height));
   if (lbmPreview) lbmPreview.textContent = formatMetric(calculateLBM(weight, bf), ' kg');
+}
+
+function calculateBfTrend(entries) {
+  if (!entries.length) return null;
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 28 * DAY_MS);
+  const recent = entries.filter(entry => {
+    const date = parseDate(entry.date);
+    return date >= windowStart && date <= now && Number.isFinite(entry.bf);
+  });
+  if (recent.length < 2) return null;
+  const sorted = sortMetricsByDate(recent);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const days = Math.max(1, (parseDate(last.date) - parseDate(first.date)) / DAY_MS);
+  const delta = last.bf - first.bf;
+  return { dailyRate: delta / days, startBf: first.bf, currentBf: last.bf, startDate: first.date };
+}
+
+function renderRoadToSummer(entries) {
+  const targetInput = document.getElementById('metrics-target-bf');
+  const goalDateEl = document.getElementById('metrics-goal-date');
+  const progressEl = document.getElementById('metrics-goal-progress');
+  const barFill = document.getElementById('metrics-goal-bar-fill');
+  if (!targetInput || !goalDateEl || !progressEl || !barFill) return;
+
+  if (!targetInput.value && Number.isFinite(targetBfGoal)) {
+    targetInput.value = targetBfGoal.toFixed(1);
+  }
+
+  const targetBf = parseMetricValue(targetInput.value);
+  const trend = calculateBfTrend(entries);
+  const currentBf = trend?.currentBf ?? (entries.length ? entries[entries.length - 1]?.bf : null);
+  if (!Number.isFinite(targetBf) || !Number.isFinite(currentBf)) {
+    goalDateEl.textContent = 'Podaj cel BF i aktualny pomiar.';
+    progressEl.textContent = '0% drogi do celu';
+    barFill.style.width = '0%';
+    return;
+  }
+
+  if (!trend || trend.dailyRate >= 0) {
+    goalDateEl.textContent = 'Brak spadku BF w ostatnich 4 tygodniach.';
+  } else {
+    const remaining = currentBf - targetBf;
+    const daysNeeded = remaining / Math.abs(trend.dailyRate);
+    const targetDate = new Date(Date.now() + daysNeeded * DAY_MS);
+    goalDateEl.textContent = `Szacowana data celu: ${targetDate.toLocaleDateString('pl-PL')}`;
+  }
+
+  const startBf = Number.isFinite(trend?.startBf) ? trend.startBf : currentBf;
+  const denominator = startBf - targetBf;
+  const progress = denominator > 0 ? (startBf - currentBf) / denominator : 0;
+  const clamped = Math.max(0, Math.min(1, progress));
+  barFill.style.width = `${(clamped * 100).toFixed(0)}%`;
+  progressEl.textContent = `${(clamped * 100).toFixed(0)}% drogi do celu`;
 }
 
 function getTrendData(metricKey, currentEntry, previousEntry) {
@@ -2864,6 +3011,7 @@ function renderBodyMetrics() {
 
   renderWeightBfChart(filtered);
   updateMetricsPreview();
+  renderRoadToSummer(filtered);
 
   if (!filtered.length) {
     logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
@@ -3768,11 +3916,21 @@ function setupEventListeners() {
     renderBodyMetrics();
   });
 
+  const targetBfInput = document.getElementById('metrics-target-bf');
+  if (targetBfInput) {
+    targetBfInput.addEventListener('input', () => {
+      targetBfGoal = parseMetricValue(targetBfInput.value);
+      saveBodyMetricsGoal();
+      renderRoadToSummer(getMetricsForCycle(selectedCycle));
+    });
+  }
+
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   loadBodyMetrics();
+  loadBodyMetricsGoal();
   ensureDay(selectedDate);
   render();
   setupEventListeners();
