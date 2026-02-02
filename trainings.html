@@ -755,6 +755,29 @@
   line-height: 1.4;
 }
 
+.metrics-chart-card {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 12px;
+}
+
+.metrics-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metrics-chart-wrapper {
+  position: relative;
+  min-height: 220px;
+}
+
 @media (max-width: 980px) {
   .metrics-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -1172,6 +1195,15 @@
                     </div>
                     <div class="metrics-status-text" id="metrics-status-text">Dodaj dwa logi, aby zobaczyć ocenę sylwetki.</div>
                   </div>
+                  <div class="metrics-chart-card">
+                    <div class="metrics-chart-header">
+                      <span>Waga vs Body Fat %</span>
+                      <span class="tiny muted">Dual Axis</span>
+                    </div>
+                    <div class="metrics-chart-wrapper">
+                      <canvas id="metrics-weight-bf-chart"></canvas>
+                    </div>
+                  </div>
                 </div>
                 <div class="metrics-history">
                   <h4>Historia logów</h4>
@@ -1411,6 +1443,7 @@ let saveTimeout;
 let bodyMetrics = [];
 let selectedCycle = 'all';
 let analyticsCharts = {};
+let bodyMetricsChart = null;
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -2540,6 +2573,110 @@ function getStatusMessage(current, previous) {
   return { tone: toneClass, text: messages[classification.status] || messages.mixed };
 }
 
+function renderWeightBfChart(entries) {
+  const canvas = document.getElementById('metrics-weight-bf-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const points = entries
+    .map(entry => ({
+      date: entry.date,
+      weight: getMetricValue(entry, 'weight'),
+      bf: getMetricValue(entry, 'bf'),
+      bmi: getMetricValue(entry, 'bmi'),
+      lbm: getMetricValue(entry, 'lbm')
+    }))
+    .filter(point => Number.isFinite(point.weight) || Number.isFinite(point.bf));
+
+  if (bodyMetricsChart) {
+    bodyMetricsChart.destroy();
+    bodyMetricsChart = null;
+  }
+
+  if (points.length === 0) return;
+
+  const primary = getCssVar('--primary', '#6366f1');
+  const accent = getCssVar('--warning', '#f59e0b');
+  const textColor = getCssVar('--muted', '#64748b');
+  const gridColor = '#e2e8f0';
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+  gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+  gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+  bodyMetricsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: points.map(point => point.date),
+      datasets: [
+        {
+          label: 'Waga (kg)',
+          data: points.map(point => point.weight),
+          borderColor: primary,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: primary,
+          yAxisID: 'yWeight'
+        },
+        {
+          label: 'Body Fat %',
+          data: points.map(point => point.bf),
+          borderColor: accent,
+          borderDash: [6, 4],
+          backgroundColor: 'transparent',
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: accent,
+          yAxisID: 'yBf'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: textColor, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterBody: context => {
+              if (!context.length) return '';
+              const index = context[0].dataIndex;
+              const point = points[index];
+              const bmi = Number.isFinite(point.bmi) ? point.bmi.toFixed(1) : '--';
+              const lbm = Number.isFinite(point.lbm) ? point.lbm.toFixed(1) : '--';
+              return [`BMI: ${bmi}`, `LBM: ${lbm} kg`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: textColor, font: { size: 10 } }
+        },
+        yWeight: {
+          position: 'left',
+          title: { display: true, text: 'Waga (kg)', color: textColor, font: { size: 11 } },
+          grid: { color: gridColor },
+          ticks: { color: textColor }
+        },
+        yBf: {
+          position: 'right',
+          title: { display: true, text: 'Body Fat %', color: textColor, font: { size: 11 } },
+          grid: { drawOnChartArea: false },
+          ticks: { color: textColor }
+        }
+      }
+    }
+  });
+}
+
 function renderMetricChart(containerId, entries, metricKey, unit, trendDirection) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -2669,6 +2806,8 @@ function renderBodyMetrics() {
     if (status.tone) statusCard.classList.add(status.tone);
   }
   if (statusText) statusText.textContent = status.text;
+
+  renderWeightBfChart(filtered);
 
   if (!filtered.length) {
     logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
