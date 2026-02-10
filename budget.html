@@ -162,7 +162,7 @@
     .inv-hub-calc-result { margin-top:14px; padding:14px; background:rgba(37,99,235,.06); border:1px solid rgba(37,99,235,.18); border-radius:12px; }
     .inv-hub-calc-result .big { font-size:22px; font-weight:800; color:#2563eb; }
     .inv-hub-calc-result .detail { font-size:12px; color:var(--muted); margin-top:4px; }
-    .inv-hub-calc-chart-box { height:200px; margin-top:12px; position:relative; }
+    .inv-hub-calc-chart-box { height:380px; margin-top:16px; position:relative; }
 
     .inv-hub-streak { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; background:rgba(37,99,235,.08); font-size:12px; font-weight:600; color:#2563eb; }
     .inv-hub-table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -8254,28 +8254,41 @@
     // Forecast Chart
     const canvas=el('inv-hub-calc-chart');
     if(canvas){
-      const datasets=scenarioResults.map(sc=>({
-        label:sc.label+` (${fmt(sc.monthly,cur)}/mies.)`,
+      const datasets=scenarioResults.map((sc,idx)=>({
+        label:sc.label,
         data:sc.data,
         borderColor:sc.color,
-        backgroundColor:colorWithAlpha(sc.color,.06),
-        fill:false,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:sc.color
+        backgroundColor:colorWithAlpha(sc.color,.12),
+        fill:idx===0?'origin':'-1',
+        tension:.35,borderWidth:3,pointRadius:5,pointHoverRadius:7,
+        pointBackgroundColor:sc.color,pointBorderColor:'#fff',pointBorderWidth:2
       }));
       // Add deposit baseline (no returns)
       let depBalance=currentVal;
       const depData=[Math.round(currentVal)];
       for(let y=1;y<=years;y++){depBalance+=avgMonthly*12;depData.push(Math.round(depBalance));}
-      datasets.push({label:'Tylko wpłaty (0% zwrotu)',data:depData,borderColor:'#94a3b8',backgroundColor:'transparent',borderDash:[6,3],borderWidth:2,pointRadius:0,tension:.3});
+      datasets.push({label:'Tylko wpłaty (0%)',data:depData,borderColor:'#94a3b8',backgroundColor:'transparent',borderDash:[8,4],borderWidth:2,pointRadius:0,tension:.3,fill:false});
 
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
         type:'line',
         data:{labels,datasets},
         options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
-            tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label.split(' (')[0]}: ${currencyTicks(ctx.parsed.y)}`}}
+          plugins:{
+            legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:20,usePointStyle:true,pointStyle:'circle'}},
+            tooltip:{mode:'index',intersect:false,
+              titleFont:{size:13,weight:'700'},bodyFont:{size:12},padding:12,
+              callbacks:{label:ctx=>{
+                const sc=scenarioResults[ctx.datasetIndex];
+                if(sc) return `${sc.label} (${fmt(sc.monthly,cur)}/mies.): ${currencyTicks(ctx.parsed.y)}`;
+                return `Tylko wpłaty: ${currencyTicks(ctx.parsed.y)}`;
+              }}
+            }
           },
           interaction:{mode:'index',intersect:false},
-          scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+          scales:{
+            x:{grid:{display:false},ticks:{font:{size:12,weight:'600'},padding:8}},
+            y:{ticks:{callback:v=>currencyTicks(v),font:{size:11},padding:8,maxTicksLimit:8},grid:{color:'rgba(148,163,184,.1)'}}
+          }
         }
       });
     }
