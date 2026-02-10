@@ -4652,52 +4652,11 @@
                 <strong>Nowa transakcja</strong>
                 <span class="badge ghost">Automatyczne księgowanie</span>
               </div>
-              <form id="inv-trade-form" class="inv-compact-form">
-                <label class="inv-compact-field">Typ
-                  <select name="side" required>
-                    <option value="BUY">Kupno</option>
-                    <option value="SELL">Sprzedaż</option>
-                  </select>
-                </label>
-                <label class="inv-compact-field grow">Aktywo
-                  <select name="assetId" required></select>
-                </label>
-                <label class="inv-compact-field">Data transakcji
-                  <input type="date" name="date" required />
-                </label>
-                <label class="inv-compact-field">Wartość brutto
-                  <input name="amount" inputmode="decimal" placeholder="0,00" required />
-                </label>
-                <label class="inv-compact-field">Ilość
-                  <input name="quantity" inputmode="decimal" placeholder="0" required />
-                </label>
-                <label class="inv-compact-field">Prowizje
-                  <input name="fees" inputmode="decimal" placeholder="0,00" />
-                </label>
-                <label class="inv-compact-field">Źródło BUY
-                  <select name="fundingSource">
-                    <option value="BUDGET">Własny budżet</option>
-                    <option value="REINVESTED_PROFIT">Zysk reinwestowany</option>
-                    <option value="MIXED">Mieszane</option>
-                  </select>
-                </label>
-                <label class="inv-compact-field">Sprzedaż: cel środków
-                  <select name="sellPayout">
-                    <option value="REINVEST_POOL">Zostaw w inwestycjach (reinwestycja)</option>
-                    <option value="HOME_BUDGET">Wypłać do budżetu domowego</option>
-                    <option value="CASH_POOL">Wyjście do gotówki (czekaj na okazję)</option>
-                  </select>
-                </label>
-                <label class="inv-compact-field">Kwota z budżetu
-                  <input name="budgetPortion" inputmode="decimal" placeholder="0,00" />
-                </label>
-                <label class="inv-compact-field grow">Notatka
-                  <input name="note" placeholder="np. DCA, rotacja, TP" />
-                </label>
-                <div class="inv-compact-footnote">BUY z budżetu trafia do „Wydatków zmiennych”. SELL księguje wpływ zwrotny.</div>
-                <div class="tiny muted" style="flex-basis:100%">Przykład rotacji: BUY InPost 200 (BUDGET) → SELL InPost 300 → BUY Amazon 300 (REINVESTED_PROFIT, budżet 0). Wkład własny zostaje 200, zrealizowany zysk 100.</div>
-                <button class="btn" type="submit">Zapisz transakcję</button>
-              </form>
+              <div class="stack" style="gap:10px;">
+                <p class="tiny muted" style="margin:0">Dodawanie transakcji prowadzone krok po kroku: najpierw wybór Kupno/Sprzedaż, potem odpowiednie pola zależne.</p>
+                <button class="btn" type="button" id="inv-trade-wizard-open">➕ Dodaj transakcję krok po kroku</button>
+                <div class="tiny muted">Przykład rotacji: BUY InPost 200 (BUDGET) → SELL InPost 300 → BUY Amazon 300 (REINVEST_POOL).</div>
+              </div>
             </div>
 
             <div class="card stack">
@@ -4889,6 +4848,63 @@
           </div>
           <div id="inv-asset-empty" class="tiny muted inv-asset-empty">Brak aktywów — dodaj pierwszy wiersz.</div>
         </div>
+      </aside>
+
+        <div id="inv-trade-backdrop" class="inv-modal-backdrop" hidden></div>
+      <aside id="inv-trade-modal" class="inv-modal" role="dialog" aria-modal="true" aria-hidden="true" hidden>
+        <header class="row" style="justify-content: space-between; align-items:center; gap:12px;">
+          <div>
+            <p class="eyebrow" style="margin:0">Nowa transakcja</p>
+            <h3 class="title" style="margin:0">Krok 1 → Krok 2</h3>
+            <p class="tiny muted" style="margin-top:4px">Wybierz typ operacji, a formularz pokaże kolejne pola zależnie od wyboru.</p>
+          </div>
+          <button class="btn ghost" type="button" id="inv-trade-modal-close">✕</button>
+        </header>
+        <form id="inv-trade-form" class="inv-compact-form" style="margin-top:12px">
+          <label class="inv-compact-field">Krok 1: Co chcesz zrobić?
+            <select name="side" required>
+              <option value="BUY">Kupno</option>
+              <option value="SELL">Sprzedaż</option>
+            </select>
+          </label>
+          <label class="inv-compact-field grow">Krok 2: Aktywo
+            <select name="assetId" required></select>
+          </label>
+          <label class="inv-compact-field">Data transakcji
+            <input type="date" name="date" required />
+          </label>
+          <label class="inv-compact-field">Wartość brutto
+            <input name="amount" inputmode="decimal" placeholder="0,00" required />
+          </label>
+          <label class="inv-compact-field">Ilość
+            <input name="quantity" inputmode="decimal" placeholder="0" required />
+          </label>
+          <label class="inv-compact-field">Prowizje
+            <input name="fees" inputmode="decimal" placeholder="0,00" />
+          </label>
+          <label class="inv-compact-field">Kupno: źródło środków
+            <select name="fundingSource">
+              <option value="BUDGET">Własny budżet</option>
+              <option value="REINVESTED_PROFIT">Reinwestycja</option>
+              <option value="MIXED">Reinwestycja + dopłata</option>
+            </select>
+          </label>
+          <label class="inv-compact-field">Sprzedaż: cel środków
+            <select name="sellPayout">
+              <option value="REINVEST_POOL">Zostaw w inwestycjach (reinwestycja)</option>
+              <option value="HOME_BUDGET">Wypłać do budżetu domowego</option>
+              <option value="CASH_POOL">Wyjście do gotówki (czekaj na okazję)</option>
+            </select>
+          </label>
+          <label class="inv-compact-field">Kupno: dopłata z budżetu
+            <input name="budgetPortion" inputmode="decimal" placeholder="0,00" />
+          </label>
+          <label class="inv-compact-field grow">Notatka
+            <input name="note" placeholder="np. DCA, rotacja, TP" />
+          </label>
+          <div class="inv-compact-footnote">Przy SELL do budżetu system zapisze 2 linie: wypłata kapitału i zrealizowany zysk.</div>
+          <button class="btn" type="submit">Zapisz transakcję</button>
+        </form>
       </aside>
     </section>
     <!-- Categories -->
@@ -6840,6 +6856,7 @@
   let invAllocationDetailChart=null;
   let invSelectedAllocationGroup=null;
   let invModalBound=false;
+  let invTradeModalBound=false;
   let invActivePanel='weekly';
 
   const investments=()=>{
@@ -7387,6 +7404,40 @@
     });
   }
 
+
+  function toggleInvestmentTradeWizard(open){
+    const backdrop=document.getElementById('inv-trade-backdrop');
+    const modal=document.getElementById('inv-trade-modal');
+    if(!backdrop || !modal) return;
+    if(open){
+      backdrop.hidden=false; modal.hidden=false;
+      backdrop.style.display='flex';
+      modal.setAttribute('aria-hidden','false');
+      const side=document.querySelector('#inv-trade-form select[name="side"]');
+      side?.focus();
+    } else {
+      backdrop.hidden=true; modal.hidden=true;
+      backdrop.style.display='none';
+      modal.setAttribute('aria-hidden','true');
+    }
+  }
+
+  function bindInvestmentTradeWizard(){
+    if(invTradeModalBound) return;
+    invTradeModalBound=true;
+    const openBtn=document.getElementById('inv-trade-wizard-open');
+    const closeBtn=document.getElementById('inv-trade-modal-close');
+    const backdrop=document.getElementById('inv-trade-backdrop');
+    [openBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentTradeWizard(true)));
+    [closeBtn].forEach(btn=>btn && (btn.onclick=()=>toggleInvestmentTradeWizard(false)));
+    if(backdrop){
+      backdrop.onclick=(e)=>{ if(e.target===backdrop) toggleInvestmentTradeWizard(false); };
+    }
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape') toggleInvestmentTradeWizard(false);
+    });
+  }
+
   function investmentHoldings(){
     return computeInvestmentBook().holdings;
   }
@@ -7742,6 +7793,7 @@
     migrateInvestmentTrades();
     const book=computeInvestmentBook();
     bindInvestmentModal();
+    bindInvestmentTradeWizard();
     bindInvestmentAnalyticsNav();
     renderAssetManagerList(data.assets,data.trades);
     const addRowBtn=document.getElementById('inv-asset-add-row');
@@ -7761,16 +7813,19 @@
     if(saveAllBtn && !saveAllBtn._bound){ saveAllBtn._bound=true; saveAllBtn.onclick=saveAllAssetRows; }
 
     const sideSelect=document.querySelector('#inv-trade-form select[name="side"]');
-    const fundingField=document.querySelector('#inv-trade-form select[name="fundingSource"]')?.closest('label');
+    const fundingSelect=document.querySelector('#inv-trade-form select[name="fundingSource"]');
+    const fundingField=fundingSelect?.closest('label');
     const budgetField=document.querySelector('#inv-trade-form input[name="budgetPortion"]')?.closest('label');
     const payoutField=document.querySelector('#inv-trade-form select[name="sellPayout"]')?.closest('label');
     const applyTradeMode=()=>{
       const side=sideSelect?.value||'BUY';
+      const fundingMode=fundingSelect?.value||'BUDGET';
       if(fundingField) fundingField.style.display=side==='BUY'?'':'none';
-      if(budgetField) budgetField.style.display=side==='BUY'?'':'none';
+      if(budgetField) budgetField.style.display=(side==='BUY' && fundingMode!=='REINVESTED_PROFIT')?'':'none';
       if(payoutField) payoutField.style.display=side==='SELL'?'':'none';
     };
     if(sideSelect && !sideSelect._bound){ sideSelect._bound=true; sideSelect.onchange=applyTradeMode; }
+    if(fundingSelect && !fundingSelect._bound){ fundingSelect._bound=true; fundingSelect.onchange=applyTradeMode; }
     applyTradeMode();
 
     const tradeForm=document.getElementById('inv-trade-form');
@@ -7816,6 +7871,7 @@
         tradeForm.reset();
         const dateInput=tradeForm.querySelector('input[name="date"]');
         if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
+        toggleInvestmentTradeWizard(false);
         renderAll();
       };
     }
