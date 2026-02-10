@@ -4681,6 +4681,13 @@
                     <option value="MIXED">Mieszane</option>
                   </select>
                 </label>
+                <label class="inv-compact-field">Sprzedaż: cel środków
+                  <select name="sellPayout">
+                    <option value="REINVEST_POOL">Zostaw w inwestycjach (reinwestycja)</option>
+                    <option value="HOME_BUDGET">Wypłać do budżetu domowego</option>
+                    <option value="CASH_POOL">Wyjście do gotówki (czekaj na okazję)</option>
+                  </select>
+                </label>
                 <label class="inv-compact-field">Kwota z budżetu
                   <input name="budgetPortion" inputmode="decimal" placeholder="0,00" />
                 </label>
@@ -6853,6 +6860,7 @@
     const fees=Math.abs(num(trade.fees));
     const unitPrice=quantity>0 ? (num(trade.unitPrice)||grossValue/quantity) : num(trade.unitPrice);
     const fundingSource=trade.fundingSource || 'BUDGET';
+    const sellPayout=trade.sellPayout || 'REINVEST_POOL';
     let budgetPortion=Math.abs(num(trade.budgetPortion));
     if(side==='BUY' && budgetPortion===0 && fundingSource!=='REINVESTED_PROFIT') budgetPortion=grossValue;
     if(side==='SELL') budgetPortion=0;
@@ -6866,6 +6874,7 @@
       fees,
       unitPrice,
       fundingSource,
+      sellPayout,
       budgetPortion,
       netCashflow,
       costBasisClosed:num(trade.costBasisClosed),
@@ -6893,6 +6902,7 @@
       .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     const byAsset={};
     let budgetContributed=0, realizedProfit=0, reinvestedCashUsed=0, cashFromSells=0;
+    let payoutToBudgetCapital=0, payoutToBudgetProfit=0, payoutToCashPool=0;
     for(const t of trades){
       const asset=byAsset[t.assetId] || {qty:0,cost:0};
       if(t.side==='BUY'){
@@ -6905,13 +6915,20 @@
       }else{
         const avg=asset.qty>0?asset.cost/asset.qty:0;
         const closedCost=Math.min(asset.cost,avg*t.quantity);
-        const pnl=(t.grossValue-t.fees)-closedCost;
+        const proceeds=Math.max(0,t.grossValue-t.fees);
+        const pnl=proceeds-closedCost;
         t.costBasisClosed=closedCost;
         t.realizedPnl=pnl;
         asset.qty=Math.max(0,asset.qty-t.quantity);
         asset.cost=Math.max(0,asset.cost-closedCost);
         realizedProfit+=pnl;
-        cashFromSells+=Math.max(0,t.grossValue-t.fees);
+        cashFromSells+=proceeds;
+        if(t.sellPayout==='HOME_BUDGET'){
+          payoutToBudgetCapital+=closedCost;
+          payoutToBudgetProfit+=Math.max(0,pnl);
+        }else if(t.sellPayout==='CASH_POOL'){
+          payoutToCashPool+=proceeds;
+        }
       }
       byAsset[t.assetId]=asset;
     }
@@ -6925,14 +6942,14 @@
       const unrealizedPnl=marketValue-pos.cost;
       return {...asset, qty:pos.qty, invested:pos.cost, avg, last, tradeCount:assetTrades.length, marketPrice, marketValue, unrealizedPnl};
     });
-    const reinvestableCash=Math.max(0,cashFromSells-reinvestedCashUsed);
-    const reinvestableProfit=Math.max(0,realizedProfit);
+    const reinvestableCash=Math.max(0,cashFromSells-reinvestedCashUsed-payoutToBudgetCapital-payoutToBudgetProfit-payoutToCashPool);
+    const reinvestableProfit=Math.max(0,realizedProfit-payoutToBudgetProfit);
     const openCostBasis=holdings.reduce((s,h)=>s+h.invested,0);
     const marketValue=holdings.reduce((s,h)=>s+h.marketValue,0);
     const unrealizedProfit=holdings.reduce((s,h)=>s+h.unrealizedPnl,0);
     const totalReturn=realizedProfit+unrealizedProfit;
     data.reinvestableProfit=reinvestableProfit;
-    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedCashUsed,reinvestableCash,reinvestableProfit,cashFromSells,openCostBasis,marketValue,unrealizedProfit,totalReturn}};
+    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedCashUsed,reinvestableCash,reinvestableProfit,cashFromSells,payoutToBudgetCapital,payoutToBudgetProfit,payoutToCashPool,openCostBasis,marketValue,unrealizedProfit,totalReturn}};
   };
 
   function deriveInvestmentFunding(side,fundingSource,grossValue,fees,budgetPortionInput){
@@ -6959,39 +6976,53 @@
   }
 
   function syncInvestmentBudgetTx(trade, assetName){
-    const catId=ensureInvestmentCategory();
-    const total=Math.max(0,num(trade.grossValue)+num(trade.fees));
-    const budgetPortion=Math.max(0,Math.min(total,num(trade.budgetPortion)));
-    const shouldHaveTx=(trade.side==='SELL') || (trade.side==='BUY' && budgetPortion>0);
-    if(!shouldHaveTx){
-      if(trade.txId){
-        b().transactions=b().transactions.filter(tx=>tx.id!==trade.txId);
-        trade.txId='';
+    const total=Math.max(0,num(trade.grossValue)-num(trade.fees));
+    const buyTotal=Math.max(0,num(trade.grossValue)+num(trade.fees));
+    const budgetPortion=Math.max(0,Math.min(buyTotal,num(trade.budgetPortion)));
+    removeInvestmentTxIds([trade.txId, trade.txIdCapital, trade.txIdProfit]);
+    trade.txId=''; trade.txIdCapital=''; trade.txIdProfit='';
+
+    if(trade.side==='BUY'){
+      if(budgetPortion<=0) return;
+      const catId=ensureInvestmentCategory();
+      trade.txId=upsertInvestmentTx('',{
+        date:trade.date,
+        amount:signFor(catId,budgetPortion),
+        categoryId:catId,
+        accountId:b().accounts[0]?.id||'a_main',
+        note:`Inwestycja BUY: ${assetName}${trade.note?` (${trade.note})`:''}`
+      });
+      return;
+    }
+
+    if(trade.sellPayout==='HOME_BUDGET'){
+      const capId=ensureInvestmentIncomeCategory('capital');
+      const profitId=ensureInvestmentIncomeCategory('profit');
+      const capital=Math.max(0,num(trade.costBasisClosed));
+      const profit=Math.max(0,num(trade.realizedPnl));
+      if(capital>0){
+        trade.txIdCapital=upsertInvestmentTx('',{
+          date:trade.date,
+          amount:Math.abs(capital),
+          categoryId:capId,
+          accountId:b().accounts[0]?.id||'a_main',
+          note:`Wypłata kapitału: ${assetName}${trade.note?` (${trade.note})`:''}`
+        });
+      }
+      if(profit>0){
+        trade.txIdProfit=upsertInvestmentTx('',{
+          date:trade.date,
+          amount:Math.abs(profit),
+          categoryId:profitId,
+          accountId:b().accounts[0]?.id||'a_main',
+          note:`Wypłata zysku: ${assetName}${trade.note?` (${trade.note})`:''}`
+        });
       }
       return;
     }
-    const txAmount=trade.side==='SELL' ? Math.abs(num(trade.grossValue)-num(trade.fees)) : signFor(catId,budgetPortion);
-    const note=`Inwestycja ${trade.side}: ${assetName}${trade.note?` (${trade.note})`:''}`;
-    if(trade.txId){
-      const tx=b().transactions.find(t=>t.id===trade.txId);
-      if(tx){
-        tx.date=trade.date;
-        tx.amount=txAmount;
-        tx.note=note;
-        tx.categoryId=catId;
-        return;
-      }
-    }
-    const txId=`tx_${Math.random().toString(36).slice(2)}`;
-    b().transactions.unshift({
-      id:txId,
-      date:trade.date,
-      amount:txAmount,
-      categoryId:catId,
-      accountId:b().accounts[0]?.id||'a_main',
-      note
-    });
-    trade.txId=txId;
+
+    // REINVEST_POOL oraz CASH_POOL: bez księgowania do budżetu domowego.
+    return;
   }
 
   const allInvestmentGroups=()=>{
@@ -7055,6 +7086,39 @@
     const id='c_invest';
     b().categories.push({id,name:'Inwestycje',type:'saving',emoji:'📈',budget:0});
     return id;
+  }
+
+
+  function ensureInvestmentIncomeCategory(kind='profit'){
+    const id=kind==='capital' ? 'c_invest_capital' : 'c_invest_profit';
+    const defaultName=kind==='capital' ? 'Wypłata kapitału (inwestycje)' : 'Zrealizowany zysk (inwestycje)';
+    const defaultEmoji=kind==='capital' ? '💼' : '💰';
+    const existing=b().categories.find(c=>c.id===id || c.name===defaultName);
+    if(existing){
+      existing.id=id;
+      existing.name=existing.name||defaultName;
+      existing.type='income';
+      existing.emoji=existing.emoji||defaultEmoji;
+      return id;
+    }
+    b().categories.push({id,name:defaultName,type:'income',emoji:defaultEmoji,budget:0});
+    return id;
+  }
+
+  function upsertInvestmentTx(txId, payload){
+    if(txId){
+      const tx=b().transactions.find(t=>t.id===txId);
+      if(tx){ Object.assign(tx,payload); return tx.id; }
+    }
+    const id=`tx_${Math.random().toString(36).slice(2)}`;
+    b().transactions.unshift({id,...payload});
+    return id;
+  }
+
+  function removeInvestmentTxIds(ids=[]){
+    const remove=new Set((ids||[]).filter(Boolean));
+    if(!remove.size) return;
+    b().transactions=b().transactions.filter(tx=>!remove.has(tx.id));
   }
 
   function fillInvestmentAssetSelects(){
@@ -7339,9 +7403,7 @@
     const data=investments();
     const trade=data.trades.find(t=>t.id===tradeId);
     if(!trade) return;
-    if(trade.txId){
-      b().transactions=b().transactions.filter(tx=>tx.id!==trade.txId);
-    }
+    removeInvestmentTxIds([trade.txId, trade.txIdCapital, trade.txIdProfit]);
     data.trades=data.trades.filter(t=>t.id!==tradeId);
     save(state); renderAll();
   }
@@ -7361,8 +7423,10 @@
       return;
     }
     const fundingSource=updates.fundingSource||'BUDGET';
+    const sellPayout=updates.sellPayout||trade.sellPayout||'REINVEST_POOL';
     const funding=deriveInvestmentFunding(side,fundingSource,grossValue,fees,Math.abs(num(updates.budgetPortion||0)));
-    if(!ensureReinvestmentCapacity(funding.reinvestedPortion, tradeId)) return;
+    const neededReinvest=side==='BUY' ? funding.reinvestedPortion : 0;
+    if(!ensureReinvestmentCapacity(neededReinvest, tradeId)) return;
 
     Object.assign(trade, normalizeInvestmentTrade({
       ...trade,
@@ -7375,6 +7439,7 @@
       note:updates.note||'',
       side,
       fundingSource,
+      sellPayout,
       budgetPortion:funding.budgetPortion
     }));
     syncInvestmentBudgetTx(trade, asset.name);
@@ -7418,7 +7483,7 @@
       const quantity=tr.querySelector('[name="quantity"]').value;
       const fees=tr.querySelector('[name="fees"]').value;
       const note=tr.querySelector('[name="note"]').value;
-      updateInvestmentTrade(trade.id,{date,side,assetId,amount,quantity,fees,note,fundingSource:trade.fundingSource,budgetPortion:trade.budgetPortion});
+      updateInvestmentTrade(trade.id,{date,side,assetId,amount,quantity,fees,note,fundingSource:trade.fundingSource,sellPayout:trade.sellPayout,budgetPortion:trade.budgetPortion});
     };
     tr.querySelector('[data-act="cancel"]').onclick=()=>renderInvestments();
     tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć tę transakcję i powiązaną transakcję budżetową?')) return; deleteInvestmentTrade(trade.id); };
@@ -7426,7 +7491,7 @@
 
   function deleteInvestmentAsset(assetId){
     const data=investments();
-    const relatedTxIds=new Set(data.trades.filter(t=>t.assetId===assetId).map(t=>t.txId).filter(Boolean));
+    const relatedTxIds=new Set(data.trades.filter(t=>t.assetId===assetId).flatMap(t=>[t.txId,t.txIdCapital,t.txIdProfit]).filter(Boolean));
     b().transactions=b().transactions.filter(tx=>!relatedTxIds.has(tx.id));
     data.trades=data.trades.filter(t=>t.assetId!==assetId);
     data.assets=data.assets.filter(a=>a.id!==assetId);
@@ -7695,6 +7760,19 @@
     }
     if(saveAllBtn && !saveAllBtn._bound){ saveAllBtn._bound=true; saveAllBtn.onclick=saveAllAssetRows; }
 
+    const sideSelect=document.querySelector('#inv-trade-form select[name="side"]');
+    const fundingField=document.querySelector('#inv-trade-form select[name="fundingSource"]')?.closest('label');
+    const budgetField=document.querySelector('#inv-trade-form input[name="budgetPortion"]')?.closest('label');
+    const payoutField=document.querySelector('#inv-trade-form select[name="sellPayout"]')?.closest('label');
+    const applyTradeMode=()=>{
+      const side=sideSelect?.value||'BUY';
+      if(fundingField) fundingField.style.display=side==='BUY'?'':'none';
+      if(budgetField) budgetField.style.display=side==='BUY'?'':'none';
+      if(payoutField) payoutField.style.display=side==='SELL'?'':'none';
+    };
+    if(sideSelect && !sideSelect._bound){ sideSelect._bound=true; sideSelect.onchange=applyTradeMode; }
+    applyTradeMode();
+
     const tradeForm=document.getElementById('inv-trade-form');
     if(tradeForm && !tradeForm._bound){
       tradeForm._bound=true;
@@ -7710,11 +7788,13 @@
         const quantity=Math.abs(num(f.get('quantity')));
         const fees=Math.abs(num(f.get('fees')));
         const fundingSource=String(f.get('fundingSource')||'BUDGET');
+        const sellPayout=String(f.get('sellPayout')||'REINVEST_POOL');
         const note=String(f.get('note')||'');
         const budgetPortionInput=Math.abs(num(f.get('budgetPortion')));
         if(grossValue<=0 || quantity<=0){alert('Wartość i ilość muszą być większe od zera.'); return;}
         const funding=deriveInvestmentFunding(side,fundingSource,grossValue,fees,budgetPortionInput);
-        if(!ensureReinvestmentCapacity(funding.reinvestedPortion)) return;
+        const neededReinvest=side==='BUY' ? funding.reinvestedPortion : 0;
+        if(!ensureReinvestmentCapacity(neededReinvest)) return;
         const trade=normalizeInvestmentTrade({
           id:'inv_trade_'+Math.random().toString(36).slice(2),
           assetId,
@@ -7726,6 +7806,7 @@
           fundingSource,
           budgetPortion:funding.budgetPortion,
           side,
+          sellPayout,
           note,
           txId:''
         });
