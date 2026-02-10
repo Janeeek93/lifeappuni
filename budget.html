@@ -126,6 +126,51 @@
     .inv-holding-kpis .pill { background:#fff; border:1px solid rgba(148,163,184,.35); }
     .inv-holding-details { padding:0 14px 12px; }
 
+    /* --- Investment Analytics Hub ------------------------------------------- */
+    .inv-hub-snapshot-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .inv-hub-snapshot-bar .btn { white-space:nowrap; }
+    .inv-hub-snapshot-bar .inv-hub-last-snap { font-size:12px; color:var(--muted); }
+
+    .inv-hub-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:10px; margin-bottom:14px; }
+    .inv-hub-kpi { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
+    .inv-hub-kpi .kpi-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .inv-hub-kpi .kpi-val { font-size:18px; font-weight:700; color:var(--ink); }
+    .inv-hub-kpi .kpi-sub { font-size:11px; color:var(--muted); }
+    .inv-hub-kpi.positive .kpi-val { color:#16a34a; }
+    .inv-hub-kpi.negative .kpi-val { color:#dc2626; }
+    .inv-hub-kpi.accent { background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); border-color:transparent; }
+    .inv-hub-kpi.accent .kpi-label { color:rgba(255,255,255,.7); }
+    .inv-hub-kpi.accent .kpi-val { color:#fff; }
+    .inv-hub-kpi.accent .kpi-sub { color:rgba(255,255,255,.6); }
+
+    .inv-hub-charts { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .inv-hub-chart-card { background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:14px; padding:14px 16px; }
+    .inv-hub-chart-card h4 { margin:0 0 8px; font-size:13px; font-weight:700; color:var(--ink); }
+    .inv-hub-chart-box { height:220px; position:relative; }
+    @media(max-width:920px){ .inv-hub-charts { grid-template-columns:1fr; } }
+
+    .inv-hub-structure { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px; }
+    .inv-hub-structure-card { background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:14px; padding:14px 16px; }
+    .inv-hub-structure-card h4 { margin:0 0 8px; font-size:13px; font-weight:700; }
+    @media(max-width:920px){ .inv-hub-structure { grid-template-columns:1fr; } }
+
+    .inv-hub-calc { background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:14px; padding:16px 18px; margin-top:14px; }
+    .inv-hub-calc h4 { margin:0 0 12px; font-size:14px; font-weight:700; }
+    .inv-hub-calc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; align-items:end; }
+    .inv-hub-calc-field { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:500; }
+    .inv-hub-calc-field input, .inv-hub-calc-field select { height:38px; }
+    .inv-hub-calc-result { margin-top:14px; padding:14px; background:rgba(37,99,235,.06); border:1px solid rgba(37,99,235,.18); border-radius:12px; }
+    .inv-hub-calc-result .big { font-size:22px; font-weight:800; color:#2563eb; }
+    .inv-hub-calc-result .detail { font-size:12px; color:var(--muted); margin-top:4px; }
+    .inv-hub-calc-chart-box { height:200px; margin-top:12px; position:relative; }
+
+    .inv-hub-streak { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px; background:rgba(37,99,235,.08); font-size:12px; font-weight:600; color:#2563eb; }
+    .inv-hub-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .inv-hub-table th { text-align:left; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.2); }
+    .inv-hub-table td { padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.1); }
+    .inv-hub-table tr:last-child td { border-bottom:none; }
+    .inv-hub-empty { text-align:center; padding:30px 0; color:var(--muted); font-size:13px; }
+
     .eom-hero {
       margin-top: 16px;
       display: flex;
@@ -4669,6 +4714,7 @@
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative">Skumulowany kapitał</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation">Alokacja</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="pnl">P&amp;L</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)">Hub analityczny</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
@@ -4696,6 +4742,123 @@
               <div class="inv-analytics-panel" data-panel="pnl">
                 <div class="chart-box"><canvas id="inv-pnl-chart"></canvas><div class="chart-empty" id="inv-pnl-empty" style="display:none">Brak zrealizowanych zysków</div></div>
               </div>
+
+              <!-- =============== HUB ANALITYCZNY =============== -->
+              <div class="inv-analytics-panel" data-panel="hub">
+
+                <!-- Snapshot bar -->
+                <div class="inv-hub-snapshot-bar">
+                  <button class="btn" type="button" id="inv-hub-snap-btn">Zapisz dzisiejszy snapshot</button>
+                  <span class="inv-hub-last-snap" id="inv-hub-last-snap"></span>
+                  <span class="inv-hub-streak" id="inv-hub-streak" style="display:none"></span>
+                </div>
+
+                <!-- Summary KPIs -->
+                <div class="inv-hub-kpis" id="inv-hub-kpis">
+                  <div class="inv-hub-kpi accent">
+                    <span class="kpi-label">Wartość portfela</span>
+                    <span class="kpi-val" id="inv-hub-kpi-value">—</span>
+                    <span class="kpi-sub" id="inv-hub-kpi-value-sub"></span>
+                  </div>
+                  <div class="inv-hub-kpi" id="inv-hub-kpi-roi-card">
+                    <span class="kpi-label">ROI</span>
+                    <span class="kpi-val" id="inv-hub-kpi-roi">—</span>
+                    <span class="kpi-sub">Zwrot na kapitale</span>
+                  </div>
+                  <div class="inv-hub-kpi" id="inv-hub-kpi-pnl-card">
+                    <span class="kpi-label">Łączny P&amp;L</span>
+                    <span class="kpi-val" id="inv-hub-kpi-pnl">—</span>
+                    <span class="kpi-sub" id="inv-hub-kpi-pnl-sub"></span>
+                  </div>
+                  <div class="inv-hub-kpi">
+                    <span class="kpi-label">Zainwestowano łącznie</span>
+                    <span class="kpi-val" id="inv-hub-kpi-invested">—</span>
+                    <span class="kpi-sub" id="inv-hub-kpi-invested-sub"></span>
+                  </div>
+                  <div class="inv-hub-kpi">
+                    <span class="kpi-label">Śr. tygodniowa wpłata</span>
+                    <span class="kpi-val" id="inv-hub-kpi-weekly">—</span>
+                    <span class="kpi-sub" id="inv-hub-kpi-weekly-sub"></span>
+                  </div>
+                  <div class="inv-hub-kpi">
+                    <span class="kpi-label">Liczba snapshotów</span>
+                    <span class="kpi-val" id="inv-hub-kpi-snaps">0</span>
+                    <span class="kpi-sub">Twój dziennik inwestora</span>
+                  </div>
+                </div>
+
+                <!-- Charts 2x2 -->
+                <div class="inv-hub-charts">
+                  <div class="inv-hub-chart-card">
+                    <h4>ROI w czasie</h4>
+                    <div class="inv-hub-chart-box"><canvas id="inv-hub-roi-chart"></canvas></div>
+                  </div>
+                  <div class="inv-hub-chart-card">
+                    <h4>P&amp;L w czasie</h4>
+                    <div class="inv-hub-chart-box"><canvas id="inv-hub-pnl-chart"></canvas></div>
+                  </div>
+                  <div class="inv-hub-chart-card">
+                    <h4>Wpłaty tygodniowe / miesięczne</h4>
+                    <div class="inv-hub-chart-box"><canvas id="inv-hub-deposits-chart"></canvas></div>
+                  </div>
+                  <div class="inv-hub-chart-card">
+                    <h4>Kapitał kumulatywny</h4>
+                    <div class="inv-hub-chart-box"><canvas id="inv-hub-cumulative-chart"></canvas></div>
+                  </div>
+                </div>
+
+                <!-- Portfolio structure -->
+                <div class="inv-hub-structure">
+                  <div class="inv-hub-structure-card">
+                    <h4>Struktura portfela wg grup</h4>
+                    <div style="height:220px;position:relative"><canvas id="inv-hub-structure-chart"></canvas></div>
+                  </div>
+                  <div class="inv-hub-structure-card">
+                    <h4>Top pozycje portfela</h4>
+                    <div class="table-wrapper">
+                      <table class="inv-hub-table" id="inv-hub-top-table">
+                        <thead><tr><th>#</th><th>Aktywo</th><th>Wartość</th><th>Udział</th><th>P&amp;L</th></tr></thead>
+                        <tbody></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Compound interest calculator -->
+                <div class="inv-hub-calc">
+                  <h4>Kalkulator procentu składanego</h4>
+                  <div class="inv-hub-calc-grid">
+                    <label class="inv-hub-calc-field">Kapitał początkowy<input type="text" id="inv-hub-calc-start" inputmode="decimal" placeholder="np. 10000" /></label>
+                    <label class="inv-hub-calc-field">Miesięczna wpłata<input type="text" id="inv-hub-calc-monthly" inputmode="decimal" placeholder="np. 500" /></label>
+                    <label class="inv-hub-calc-field">Roczna stopa (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" placeholder="np. 10" /></label>
+                    <label class="inv-hub-calc-field">Okres (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" placeholder="np. 20" /></label>
+                    <div><button class="btn" type="button" id="inv-hub-calc-btn">Oblicz</button></div>
+                  </div>
+                  <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none">
+                    <div class="big" id="inv-hub-calc-total"></div>
+                    <div class="detail" id="inv-hub-calc-detail"></div>
+                  </div>
+                  <div class="inv-hub-calc-chart-box"><canvas id="inv-hub-calc-chart"></canvas></div>
+                </div>
+
+                <!-- Snapshot history table -->
+                <div class="inv-hub-structure-card" style="margin-top:14px">
+                  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <h4 style="margin:0">Historia snapshotów</h4>
+                    <button class="btn ghost" type="button" id="inv-hub-snap-clear" style="font-size:11px">Wyczyść historię</button>
+                  </div>
+                  <div class="table-wrapper">
+                    <table class="inv-hub-table" id="inv-hub-snap-table">
+                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI</th><th></th></tr></thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <div class="inv-hub-empty" id="inv-hub-snap-empty" style="display:none">Kliknij „Zapisz dzisiejszy snapshot", aby rozpocząć śledzenie.</div>
+                </div>
+
+              </div>
+              <!-- =============== /HUB ANALITYCZNY =============== -->
+
             </div>
           </div>
 
@@ -6861,8 +7024,21 @@
       const isA=btn.dataset.invPanelBtn===panel;
       btn.classList.toggle('is-active',isA);
       btn.setAttribute('aria-selected',String(isA));
+      // Preserve hub button gradient when not active, white bg when active
+      if(btn.dataset.invPanelBtn==='hub'){
+        if(isA){
+          btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
+          btn.style.color='#fff';
+          btn.style.boxShadow='0 4px 16px rgba(37,99,235,.35)';
+        } else {
+          btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
+          btn.style.color='#fff';
+          btn.style.boxShadow='0 2px 8px rgba(37,99,235,.25)';
+        }
+      }
     });
     document.querySelectorAll('.inv-analytics-panel').forEach(p=>p.classList.toggle('is-active',p.dataset.panel===panel));
+    if(panel==='hub') renderInvHub();
   }
 
   function bindInvestmentAnalyticsNav(){
@@ -7651,6 +7827,400 @@
     });
   }
 
+  // --- Investment Analytics Hub -----------------------------------------------
+  const INV_HUB_SNAP_KEY='lifeos_inv_hub_snapshots';
+  let invHubRoiChart=null, invHubPnlChart=null, invHubDepositsChart=null, invHubCumulativeChart=null;
+  let invHubStructureChart=null, invHubCalcChart=null;
+  let invHubBound=false;
+
+  function invHubSnapshots(){
+    try{ return JSON.parse(localStorage.getItem(INV_HUB_SNAP_KEY))||[]; }catch{ return []; }
+  }
+  function invHubSaveSnapshots(snaps){
+    localStorage.setItem(INV_HUB_SNAP_KEY,JSON.stringify(snaps));
+  }
+
+  function invHubTakeSnapshot(){
+    const stats=computePortfolioStats();
+    const today=new Date().toISOString().slice(0,10);
+    const snaps=invHubSnapshots();
+    const existing=snaps.findIndex(s=>s.date===today);
+    const snap={
+      date:today,
+      portfolioValue:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis,
+      capitalFromBudget:stats.capitalFromBudget,
+      totalPnl:stats.totalPnl,
+      unrealizedPnl:stats.totalUnrealizedPnl||0,
+      realizedPnl:stats.totalRealizedPnl,
+      roi:stats.roi,
+      costBasis:stats.totalCostBasis
+    };
+    if(existing>=0) snaps[existing]=snap;
+    else snaps.push(snap);
+    snaps.sort((a,b)=>a.date.localeCompare(b.date));
+    invHubSaveSnapshots(snaps);
+    renderInvHub();
+  }
+
+  function invHubDeleteSnapshot(date){
+    const snaps=invHubSnapshots().filter(s=>s.date!==date);
+    invHubSaveSnapshots(snaps);
+    renderInvHub();
+  }
+
+  function invHubComputeStreak(){
+    const snaps=invHubSnapshots();
+    if(!snaps.length) return 0;
+    let streak=0;
+    const today=new Date();
+    for(let i=0;i<365;i++){
+      const d=new Date(today);
+      d.setDate(d.getDate()-i);
+      const ds=d.toISOString().slice(0,10);
+      if(snaps.some(s=>s.date===ds)) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function invHubWeekKey(dateStr){
+    const d=new Date(dateStr);
+    const jan1=new Date(d.getFullYear(),0,1);
+    const week=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+    return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+  }
+
+  function invHubMonthKey(dateStr){
+    return dateStr.slice(0,7);
+  }
+
+  function invHubComputeDeposits(){
+    const trades=investments().trades;
+    const buys=trades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
+    const weekly={}, monthly={};
+    for(const t of buys){
+      const wk=invHubWeekKey(t.date);
+      const mk=invHubMonthKey(t.date);
+      weekly[wk]=(weekly[wk]||0)+num(t.amount);
+      monthly[mk]=(monthly[mk]||0)+num(t.amount);
+    }
+    return {weekly,monthly};
+  }
+
+  function renderInvHub(){
+    const stats=computePortfolioStats();
+    const snaps=invHubSnapshots();
+    const cur=state.currency;
+    const data=investments();
+
+    // --- KPIs ---
+    const el=id=>document.getElementById(id);
+    const portfolioVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
+    el('inv-hub-kpi-value').textContent=fmt(portfolioVal,cur);
+    el('inv-hub-kpi-value-sub').textContent=stats.hasAnyPrice?`Baza: ${fmt(stats.totalCostBasis,cur)}`:'Brak wycen rynkowych';
+
+    el('inv-hub-kpi-roi').textContent=stats.capitalFromBudget>0?`${stats.roi.toFixed(2)}%`:'—';
+    const roiCard=el('inv-hub-kpi-roi-card');
+    if(roiCard) roiCard.className='inv-hub-kpi '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
+
+    el('inv-hub-kpi-pnl').textContent=fmt(stats.totalPnl,cur);
+    el('inv-hub-kpi-pnl-sub').textContent=`Niezreal.: ${fmt(stats.totalUnrealizedPnl||0,cur)} | Zreal.: ${fmt(stats.totalRealizedPnl,cur)}`;
+    const pnlCard=el('inv-hub-kpi-pnl-card');
+    if(pnlCard) pnlCard.className='inv-hub-kpi '+(stats.totalPnl>0?'positive':stats.totalPnl<0?'negative':'');
+
+    el('inv-hub-kpi-invested').textContent=fmt(stats.capitalFromBudget,cur);
+    const totalBuys=data.trades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
+    el('inv-hub-kpi-invested-sub').textContent=`${totalBuys.length} transakcji zakupu`;
+
+    // Average weekly deposit
+    const deposits=invHubComputeDeposits();
+    const weekKeys=Object.keys(deposits.weekly);
+    const avgWeekly=weekKeys.length>0?weekKeys.reduce((s,k)=>s+deposits.weekly[k],0)/weekKeys.length:0;
+    el('inv-hub-kpi-weekly').textContent=fmt(avgWeekly,cur);
+    el('inv-hub-kpi-weekly-sub').textContent=weekKeys.length?`Z ${weekKeys.length} tygodni`:'Brak danych';
+
+    el('inv-hub-kpi-snaps').textContent=String(snaps.length);
+
+    // --- Streak ---
+    const streak=invHubComputeStreak();
+    const streakEl=el('inv-hub-streak');
+    if(streakEl){
+      if(streak>0){
+        streakEl.style.display='inline-flex';
+        streakEl.textContent=`Seria: ${streak} ${streak===1?'dzień':streak<5?'dni':'dni'} z rzędu`;
+      } else {
+        streakEl.style.display='none';
+      }
+    }
+
+    // --- Last snapshot info ---
+    const lastSnapEl=el('inv-hub-last-snap');
+    if(lastSnapEl){
+      if(snaps.length){
+        const last=snaps[snaps.length-1];
+        const today=new Date().toISOString().slice(0,10);
+        lastSnapEl.textContent=last.date===today?`Dzisiejszy snapshot zapisany (${today})`:`Ostatni snapshot: ${last.date}`;
+      } else {
+        lastSnapEl.textContent='Brak snapshotów — zacznij śledzić swoje wyniki!';
+      }
+    }
+
+    // --- ROI Chart ---
+    if(invHubRoiChart){invHubRoiChart.destroy();invHubRoiChart=null;}
+    const roiCanvas=el('inv-hub-roi-chart');
+    if(roiCanvas&&snaps.length>0){
+      invHubRoiChart=new Chart(roiCanvas.getContext('2d'),{
+        type:'line',
+        data:{
+          labels:snaps.map(s=>s.date),
+          datasets:[{
+            label:'ROI %',data:snaps.map(s=>s.roi),
+            borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',.1),
+            fill:true,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:'#2563eb'
+          }]
+        },
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`ROI: ${ctx.parsed.y.toFixed(2)}%`}}},
+          scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},y:{ticks:{callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(148,163,184,.12)'}}}
+        }
+      });
+    }
+
+    // --- PNL Chart ---
+    if(invHubPnlChart){invHubPnlChart.destroy();invHubPnlChart=null;}
+    const pnlCanvas=el('inv-hub-pnl-chart');
+    if(pnlCanvas&&snaps.length>0){
+      const pnlColors=snaps.map(s=>s.totalPnl>=0?colorWithAlpha('#22c55e',.7):colorWithAlpha('#ef4444',.7));
+      invHubPnlChart=new Chart(pnlCanvas.getContext('2d'),{
+        type:'bar',
+        data:{
+          labels:snaps.map(s=>s.date),
+          datasets:[
+            {label:'P&L',data:snaps.map(s=>s.totalPnl),backgroundColor:pnlColors,borderRadius:4},
+            {label:'Wartość portfela',data:snaps.map(s=>s.portfolioValue),type:'line',borderColor:'#8b5cf6',backgroundColor:'transparent',borderWidth:2,pointRadius:2,yAxisID:'y2',tension:.3}
+          ]
+        },
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
+          scales:{
+            x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},
+            y:{position:'left',ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}},
+            y2:{position:'right',ticks:{callback:v=>currencyTicks(v)},grid:{display:false}}
+          }
+        }
+      });
+    }
+
+    // --- Deposits Chart (weekly/monthly) ---
+    if(invHubDepositsChart){invHubDepositsChart.destroy();invHubDepositsChart=null;}
+    const depCanvas=el('inv-hub-deposits-chart');
+    if(depCanvas){
+      const monthKeys=Object.keys(deposits.monthly).sort();
+      const wkSorted=Object.keys(deposits.weekly).sort();
+      if(monthKeys.length>0){
+        invHubDepositsChart=new Chart(depCanvas.getContext('2d'),{
+          type:'bar',
+          data:{
+            labels:monthKeys,
+            datasets:[
+              {label:'Wpłaty miesięczne',data:monthKeys.map(k=>deposits.monthly[k]||0),backgroundColor:colorWithAlpha('#2563eb',.6),borderRadius:4}
+            ]
+          },
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
+            scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+          }
+        });
+      }
+    }
+
+    // --- Cumulative Deposits Chart ---
+    if(invHubCumulativeChart){invHubCumulativeChart.destroy();invHubCumulativeChart=null;}
+    const cumCanvas=el('inv-hub-cumulative-chart');
+    if(cumCanvas){
+      const buyTrades=[...data.trades].filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest').sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      if(buyTrades.length>0){
+        const dates=[];let running=0;const cumData=[];
+        for(const t of buyTrades){
+          running+=num(t.amount);
+          dates.push(t.date);
+          cumData.push(running);
+        }
+        invHubCumulativeChart=new Chart(cumCanvas.getContext('2d'),{
+          type:'line',
+          data:{
+            labels:dates,
+            datasets:[{
+              label:'Kumulatywne wpłaty',data:cumData,
+              borderColor:'#059669',backgroundColor:colorWithAlpha('#059669',.1),
+              fill:true,tension:.3,borderWidth:2,pointRadius:1
+            }]
+          },
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Łącznie: ${currencyTicks(ctx.parsed.y)}`}}},
+            scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+          }
+        });
+      }
+    }
+
+    // --- Structure Chart (doughnut by group) ---
+    if(invHubStructureChart){invHubStructureChart.destroy();invHubStructureChart=null;}
+    const strCanvas=el('inv-hub-structure-chart');
+    if(strCanvas){
+      const active=stats.holdings.filter(h=>h.qty>0.000001);
+      if(active.length>0){
+        const groups=[...new Set(active.map(h=>h.group))];
+        const totals=groups.map(g=>active.filter(h=>h.group===g).reduce((s,h)=>s+(h.marketValue||h.costBasis),0));
+        const totalSum=totals.reduce((a,b)=>a+b,0);
+        invHubStructureChart=new Chart(strCanvas.getContext('2d'),{
+          type:'doughnut',
+          data:{labels:groups,datasets:[{data:totals,backgroundColor:groups.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],.8)),borderColor:'#fff',borderWidth:2}]},
+          options:{
+            responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
+              tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)} (${totalSum?((ctx.parsed/totalSum)*100).toFixed(1):'0'}%)`}}}
+          }
+        });
+      }
+    }
+
+    // --- Top Holdings Table ---
+    const topTbody=document.querySelector('#inv-hub-top-table tbody');
+    if(topTbody){
+      topTbody.innerHTML='';
+      const active=stats.holdings.filter(h=>h.qty>0.000001);
+      const totalVal=active.reduce((s,h)=>s+(h.marketValue||h.costBasis),0)||1;
+      const sorted=[...active].sort((a,b)=>(b.marketValue||b.costBasis)-(a.marketValue||a.costBasis));
+      const top10=sorted.slice(0,10);
+      if(!top10.length){
+        topTbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">Brak pozycji</td></tr>';
+      } else {
+        top10.forEach((h,i)=>{
+          const val=h.marketValue||h.costBasis;
+          const pnl=h.marketValue!==null?(h.marketValue-h.costBasis):0;
+          const pnlCls=pnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const weight=((val/totalVal)*100).toFixed(1);
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${i+1}</td><td><strong>${escapeHtml(h.name)}</strong><br><span class="muted" style="font-size:11px">${escapeHtml(h.group)}</span></td><td>${fmt(val,cur)}</td><td>${weight}%</td><td class="${pnlCls}">${pnl>=0?'+':''}${fmt(pnl,cur)}</td>`;
+          topTbody.appendChild(tr);
+        });
+      }
+    }
+
+    // --- Snapshot History Table ---
+    const snapTbody=document.querySelector('#inv-hub-snap-table tbody');
+    const snapEmpty=el('inv-hub-snap-empty');
+    if(snapTbody){
+      snapTbody.innerHTML='';
+      if(!snaps.length){
+        if(snapEmpty) snapEmpty.style.display='block';
+        document.getElementById('inv-hub-snap-table').style.display='none';
+      } else {
+        if(snapEmpty) snapEmpty.style.display='none';
+        document.getElementById('inv-hub-snap-table').style.display='';
+        const reversed=[...snaps].reverse();
+        for(const s of reversed){
+          const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
+          tr.querySelector('[data-snap-del]').onclick=()=>invHubDeleteSnapshot(s.date);
+          snapTbody.appendChild(tr);
+        }
+      }
+    }
+  }
+
+  function invHubCompoundCalc(){
+    const startVal=num(document.getElementById('inv-hub-calc-start')?.value)||0;
+    const monthly=num(document.getElementById('inv-hub-calc-monthly')?.value)||0;
+    const rate=num(document.getElementById('inv-hub-calc-rate')?.value)||0;
+    const years=parseInt(document.getElementById('inv-hub-calc-years')?.value)||0;
+    if(years<=0) return;
+
+    const monthlyRate=rate/100/12;
+    const months=years*12;
+    let balance=startVal;
+    let totalDeposits=startVal;
+    const labels=[];
+    const balanceData=[];
+    const depositData=[];
+
+    for(let m=0;m<=months;m++){
+      if(m>0){
+        balance=balance*(1+monthlyRate)+monthly;
+        totalDeposits+=monthly;
+      }
+      if(m%12===0||m===months){
+        const yr=m/12;
+        labels.push(m===months?`${(m/12).toFixed(1)} lat`:`Rok ${Math.floor(yr)}`);
+        balanceData.push(Math.round(balance));
+        depositData.push(Math.round(totalDeposits));
+      }
+    }
+
+    const cur=state.currency;
+    const totalEl=document.getElementById('inv-hub-calc-total');
+    const detailEl=document.getElementById('inv-hub-calc-detail');
+    const resultEl=document.getElementById('inv-hub-calc-result');
+    if(totalEl) totalEl.textContent=fmt(balance,cur);
+    if(detailEl){
+      const interest=balance-totalDeposits;
+      detailEl.innerHTML=`Wpłacono: ${fmt(totalDeposits,cur)} | Odsetki: ${fmt(interest,cur)} | Mnożnik: ${totalDeposits>0?(balance/totalDeposits).toFixed(2):'—'}x`;
+    }
+    if(resultEl) resultEl.style.display='block';
+
+    // Chart
+    if(invHubCalcChart){invHubCalcChart.destroy();invHubCalcChart=null;}
+    const canvas=document.getElementById('inv-hub-calc-chart');
+    if(canvas){
+      invHubCalcChart=new Chart(canvas.getContext('2d'),{
+        type:'bar',
+        data:{
+          labels,
+          datasets:[
+            {label:'Wpłaty',data:depositData,backgroundColor:colorWithAlpha('#94a3b8',.5),borderRadius:4,stack:'s'},
+            {label:'Odsetki',data:balanceData.map((v,i)=>v-depositData[i]),backgroundColor:colorWithAlpha('#2563eb',.6),borderRadius:4,stack:'s'}
+          ]
+        },
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
+            tooltip:{callbacks:{
+              label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`,
+              afterBody:(items)=>{
+                const idx=items[0]?.dataIndex;
+                if(idx!==undefined) return [`Łącznie: ${currencyTicks(balanceData[idx])}`];
+              }
+            }}
+          },
+          scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+        }
+      });
+    }
+  }
+
+  function bindInvHub(){
+    if(invHubBound) return;
+    invHubBound=true;
+    const snapBtn=document.getElementById('inv-hub-snap-btn');
+    if(snapBtn) snapBtn.onclick=invHubTakeSnapshot;
+    const clearBtn=document.getElementById('inv-hub-snap-clear');
+    if(clearBtn) clearBtn.onclick=()=>{
+      if(confirm('Usunąć całą historię snapshotów?')){
+        invHubSaveSnapshots([]);
+        renderInvHub();
+      }
+    };
+    const calcBtn=document.getElementById('inv-hub-calc-btn');
+    if(calcBtn) calcBtn.onclick=invHubCompoundCalc;
+    // Enter key triggers calc
+    ['inv-hub-calc-start','inv-hub-calc-monthly','inv-hub-calc-rate','inv-hub-calc-years'].forEach(id=>{
+      const inp=document.getElementById(id);
+      if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();invHubCompoundCalc();}});
+    });
+  }
+
   // --- Main Render -----------------------------------------------------------
   function renderInvestments(){
     ensureInvestmentCategory();
@@ -7821,6 +8391,8 @@
     renderInvCumulativeChart(data.trades,data.assets);
     renderInvAllocations(stats.holdings);
     renderInvPnlChart(data.trades,data.assets);
+    bindInvHub();
+    renderInvHub();
     bindMoneyInputs(document.getElementById('tab-investments'));
   }
 
