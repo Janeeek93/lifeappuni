@@ -4302,6 +4302,31 @@
       font-size: 13px;
       color: var(--muted);
     }
+
+
+    .inv2-hero {
+      background: linear-gradient(135deg, #5b7cfa 0%, #7d57c2 100%);
+      color: #fff;
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(79,70,229,0.25);
+    }
+    .inv2-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px;}
+    .inv2-kpi{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:14px;padding:12px;}
+    .inv2-kpi .label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;opacity:.8}
+    .inv2-kpi .val{font-size:28px;font-weight:800;line-height:1.1;margin-top:6px}
+    .inv2-panel-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-top:14px}
+    .inv2-step-box{background:#fff;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;}
+    .inv2-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+    .inv2-form-grid label{display:flex;flex-direction:column;gap:4px}
+    .inv2-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px}
+    .inv2-mini{background:#fff;border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:12px}
+    #inv-trade-wizard-open,#inv-trade-backdrop,#inv-trade-modal{display:none !important}
+    #tab-investments .inv-shell > .inv-top-grid,
+    #tab-investments .inv-shell > .card { display:none; }
+
+    @media (max-width: 980px){.inv2-panel-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 <body data-page="budget">
@@ -4644,6 +4669,67 @@
           <div class="row" style="justify-content: flex-end; align-items:center; gap:8px;">
             <div class="badge">📈 Tracker inwestycyjny</div>
             <button class="btn ghost" type="button" id="inv-asset-modal-open">📑 Zarządzaj aktywami</button>
+          </div>
+          <div class="inv2-panel-grid" id="inv2-root">
+            <section class="inv2-hero">
+              <div class="row" style="justify-content:space-between;align-items:flex-start;color:#fff">
+                <div>
+                  <h3 style="margin:0">📈 Inwestycje v2</h3>
+                  <p class="tiny" style="opacity:.85;margin-top:6px">Nowy moduł od podstaw: prosty BUY/SELL i pełna analityka kapitału.</p>
+                </div>
+                <div class="tiny" style="text-align:right;opacity:.85">AKTYWA <b id="inv2-assets">0</b><br>TRANSAKCJE <b id="inv2-trades">0</b></div>
+              </div>
+              <div class="inv2-kpi-grid">
+                <article class="inv2-kpi"><div class="label">Wartość portfela</div><div class="val" id="inv2-portfolio">—</div></article>
+                <article class="inv2-kpi"><div class="label">Wkład z budżetu</div><div class="val" id="inv2-budget">—</div></article>
+                <article class="inv2-kpi"><div class="label">Zysk lifetime</div><div class="val" id="inv2-lifetime">—</div></article>
+                <article class="inv2-kpi"><div class="label">ROI</div><div class="val" id="inv2-roi">—</div></article>
+              </div>
+            </section>
+            <section class="inv2-step-box stack">
+              <h4 style="margin:0">Księgowanie krok po kroku</h4>
+              <form id="inv2-trade-form" class="inv2-form-grid">
+                <label>Krok 1: Operacja
+                  <select name="side" required>
+                    <option value="BUY">Kupno</option>
+                    <option value="SELL">Sprzedaż</option>
+                  </select>
+                </label>
+                <label>Krok 2: Aktywo
+                  <select name="assetId" required></select>
+                </label>
+                <label>Data
+                  <input type="date" name="date" required>
+                </label>
+                <label>Wartość brutto
+                  <input name="amount" inputmode="decimal" required placeholder="0,00">
+                </label>
+                <label>Ilość
+                  <input name="quantity" inputmode="decimal" required placeholder="0">
+                </label>
+                <label>Prowizje
+                  <input name="fees" inputmode="decimal" placeholder="0,00">
+                </label>
+                <label data-inv2="sell-only">Krok 3 (SELL): gdzie trafia sprzedaż?
+                  <select name="sellPayout">
+                    <option value="REINVEST_POOL">Zostaje w puli inwestycyjnej</option>
+                    <option value="HOME_BUDGET">Wraca do budżetu domowego</option>
+                    <option value="CASH_POOL">Gotówka inwestycyjna (czeka)</option>
+                  </select>
+                </label>
+                <label style="grid-column:1/-1">Notatka
+                  <input name="note" placeholder="np. DCA / realizacja zysku / rotacja">
+                </label>
+                <button class="btn" type="submit">Zaksięguj transakcję</button>
+              </form>
+              <div class="tiny muted">BUY księguje się do wydatków zmiennych. SELL do budżetu (jeśli wybrano) tworzy 2 linie: kapitał + zysk.</div>
+            </section>
+          </div>
+          <div class="inv2-cards">
+            <article class="inv2-mini"><div class="tiny muted">Wolna gotówka inwestycyjna</div><div class="title" id="inv2-free-cash">—</div></article>
+            <article class="inv2-mini"><div class="tiny muted">Wypłacony kapitał do budżetu</div><div class="title" id="inv2-out-capital">—</div></article>
+            <article class="inv2-mini"><div class="tiny muted">Wypłacony zysk do budżetu</div><div class="title" id="inv2-out-profit">—</div></article>
+            <article class="inv2-mini"><div class="tiny muted">Śr. transakcja</div><div class="title" id="inv2-avg-ticket">—</div></article>
           </div>
 
           <div class="inv-top-grid">
@@ -7787,6 +7873,88 @@
   }
 
 
+
+  function renderInvestmentsV2(book,data){
+    const m=book.metrics||{};
+    const portfolio=(m.marketValue||0)+(m.reinvestableCash||0)+(m.payoutToCashPool||0);
+    const roi=(m.budgetContributed>0)?((m.totalReturn||0)/m.budgetContributed*100):0;
+    const avgTicket=(book.trades||[]).length ? (book.trades.reduce((s,t)=>s+Math.abs(num(t.grossValue)),0)/book.trades.length) : 0;
+    const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+    set('inv2-assets', String((data.assets||[]).length));
+    set('inv2-trades', String((book.trades||[]).length));
+    set('inv2-portfolio', fmt(portfolio,state.currency));
+    set('inv2-budget', fmt(m.budgetContributed||0,state.currency));
+    set('inv2-lifetime', fmt(m.totalReturn||0,state.currency));
+    set('inv2-roi', `${roi.toFixed(2)}%`);
+    set('inv2-free-cash', fmt((m.reinvestableCash||0)+(m.payoutToCashPool||0),state.currency));
+    set('inv2-out-capital', fmt(m.payoutToBudgetCapital||0,state.currency));
+    set('inv2-out-profit', fmt(m.payoutToBudgetProfit||0,state.currency));
+    set('inv2-avg-ticket', avgTicket?fmt(avgTicket,state.currency):'—');
+
+    const form=document.getElementById('inv2-trade-form');
+    if(!form) return;
+    const sideSel=form.querySelector('[name="side"]');
+    const sellOnly=form.querySelector('[data-inv2="sell-only"]');
+    const mode=()=>{ if(sellOnly) sellOnly.style.display=(sideSel?.value==='SELL')?'':'none'; };
+    if(sideSel && !sideSel._inv2Bound){ sideSel._inv2Bound=true; sideSel.onchange=mode; }
+    mode();
+
+    const assetSel=form.querySelector('[name="assetId"]');
+    if(assetSel){
+      const prev=assetSel.value;
+      assetSel.innerHTML='';
+      const sorted=sortAssetsByGroupThenName(data.assets||[]);
+      if(!sorted.length) assetSel.add(new Option('Dodaj aktywo w menedżerze', '', true, true));
+      for(const a of sorted) assetSel.add(new Option(`${a.name} (${a.group||'Inne'})`,a.id,false,a.id===prev));
+      assetSel.value=prev || assetSel.value;
+    }
+    const dateInput=form.querySelector('[name="date"]');
+    if(dateInput && !dateInput.value) dateInput.value=new Date().toISOString().slice(0,10);
+
+    if(!form._bound){
+      form._bound=true;
+      form.onsubmit=e=>{
+        e.preventDefault();
+        const f=new FormData(form);
+        const side=String(f.get('side')||'BUY');
+        const assetId=String(f.get('assetId')||'');
+        const asset=(data.assets||[]).find(a=>a.id===assetId);
+        if(!asset){ alert('Wybierz aktywo.'); return; }
+        const date=String(f.get('date')||new Date().toISOString().slice(0,10));
+        const grossValue=Math.abs(num(f.get('amount')));
+        const quantity=Math.abs(num(f.get('quantity')));
+        const fees=Math.abs(num(f.get('fees')));
+        const note=String(f.get('note')||'');
+        const sellPayout=String(f.get('sellPayout')||'REINVEST_POOL');
+        if(grossValue<=0 || quantity<=0){ alert('Wartość i ilość muszą być > 0.'); return; }
+
+        if(side==='SELL'){
+          const hold=book.holdings.find(h=>h.id===assetId);
+          if(!hold || hold.qty < quantity){
+            alert(`Nie możesz sprzedać więcej niż posiadasz. Dostępne: ${(hold?.qty||0).toFixed(4)}`);
+            return;
+          }
+        }
+
+        const funding=deriveInvestmentFunding(side,'BUDGET',grossValue,fees,grossValue+fees);
+        const trade=normalizeInvestmentTrade({
+          id:'inv_trade_'+Math.random().toString(36).slice(2),
+          assetId,date,grossValue,amount:grossValue,quantity,fees,note,
+          side,
+          fundingSource:'BUDGET',
+          budgetPortion: side==='BUY' ? funding.total : 0,
+          sellPayout,
+          txId:''
+        });
+        syncInvestmentBudgetTx(trade, asset.name);
+        data.trades.unshift(trade);
+        save(state);
+        form.reset();
+        renderAll();
+      };
+    }
+  }
+
   function renderInvestments(){
     ensureInvestmentCategory();
     const data=investments();
@@ -7882,6 +8050,7 @@
 
     const holdings=book.holdings;
     const normalizedTrades=book.trades;
+    renderInvestmentsV2(book,data);
     updateInvestmentSnapshot(holdings, normalizedTrades, data.assets);
     updateInvestmentKpis(holdings, normalizedTrades, book.metrics);
     renderInvestmentGroupTable(holdings,normalizedTrades);
