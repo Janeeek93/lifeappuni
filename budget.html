@@ -4601,7 +4601,7 @@
             <form id="inv-sell-form" class="inv-trade-grid" style="display:none">
               <label class="inv-trade-field grow">Aktywo<select name="assetId" required></select></label>
               <label class="inv-trade-field">Data<input type="date" name="date" required /></label>
-              <label class="inv-trade-field">Ilość<input name="quantity" inputmode="decimal" placeholder="0" required /></label>
+              <label class="inv-trade-field">Ilość<div class="row" style="gap:4px;align-items:center"><input name="quantity" inputmode="decimal" placeholder="0" required style="flex:1" /><button type="button" id="inv-sell-all-btn" class="btn soft" style="height:38px;padding:0 10px;font-size:11px;white-space:nowrap">Wszystko</button></div></label>
               <label class="inv-trade-field">Cena za szt.<input name="pricePerUnit" inputmode="decimal" placeholder="0,00" required /></label>
               <label class="inv-trade-field">Przeznaczenie<select name="sellDestination"><option value="reinvest">Pula reinwestycyjna</option><option value="budget">Wypłata do budżetu</option></select></label>
               <label class="inv-trade-field grow">Notatka<input name="note" placeholder="np. Take profit, rebalancing" /></label>
@@ -4618,7 +4618,7 @@
             </div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-holdings-table">
-                <thead><tr><th>Aktywo</th><th>Grupa</th><th>Ilość</th><th>Śr. koszt</th><th>Akt. cena</th><th>Wartość</th><th>P&amp;L</th><th>Waga</th></tr></thead>
+                <thead><tr><th>Aktywo</th><th>Grupa</th><th>Ilość</th><th>Śr. koszt</th><th>Akt. cena</th><th>Wartość</th><th>P&amp;L</th><th>Waga</th><th></th></tr></thead>
                 <tbody></tbody>
                 <tfoot id="inv-holdings-foot"></tfoot>
               </table>
@@ -6782,12 +6782,12 @@
     const holdings=computeHoldingsFIFO();
     let capitalFromBudget=0, capitalReturned=0, reinvestPool=0;
     for(const t of data.trades){
-      if(t.side==='buy'){
-        if(t.fundSource==='reinvest') reinvestPool-=num(t.amount);
-        else capitalFromBudget+=num(t.amount);
-      } else if(t.side==='sell'){
+      if(t.side==='sell'){
         if(t.sellDestination==='budget') capitalReturned+=num(t.amount);
         else reinvestPool+=num(t.amount);
+      } else {
+        if(t.fundSource==='reinvest') reinvestPool-=num(t.amount);
+        else capitalFromBudget+=num(t.amount);
       }
     }
     const totalCostBasis=holdings.reduce((s,h)=>s+h.costBasis,0);
@@ -6808,14 +6808,14 @@
       .sort((a,bb)=>String(a.date||'').localeCompare(String(bb.date||'')));
     const lots=[];
     for(const t of trades){
-      if(t.side==='buy'){
-        const q=num(t.quantity); if(q>0) lots.push({qty:q,costPerUnit:num(t.amount)/q});
-      } else if(t.side==='sell'){
+      if(t.side==='sell'){
         let rem=num(t.quantity);
         while(rem>0.000001&&lots.length>0){
           const take=Math.min(rem,lots[0].qty); lots[0].qty-=take; rem-=take;
           if(lots[0].qty<0.000001) lots.shift();
         }
+      } else {
+        const q=num(t.quantity); if(q>0) lots.push({qty:q,costPerUnit:num(t.amount)/q});
       }
     }
     let remaining=sellQty, costBasis=0;
@@ -7064,7 +7064,7 @@
     tbody.innerHTML='';
     const active=holdings.filter(h=>h.qty>0.000001);
     if(!active.length){
-      tbody.innerHTML='<tr><td colspan="8" class="muted" style="text-align:center">Brak otwartych pozycji</td></tr>';
+      tbody.innerHTML='<tr><td colspan="9" class="muted" style="text-align:center">Brak otwartych pozycji</td></tr>';
       if(tfoot) tfoot.innerHTML='';
       return;
     }
@@ -7081,7 +7081,7 @@
         pnlHtml=`<span class="${cls}">${sign}${fmt(h.unrealizedPnl,state.currency)}<br><small>${sign}${pct}%</small></span>`;
       }
       const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
-      tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${escapeHtml(h.group)}</td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${weight}%</td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${escapeHtml(h.group)}</td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
       tr.querySelector('.inv-price-cell').onclick=function(){
         const cell=this;
         const aid=cell.dataset.assetId;
@@ -7102,6 +7102,20 @@
         input.onblur=finish;
         input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();finish();}if(e.key==='Escape'){renderInvestments();}};
       };
+      tr.querySelector('.inv-sell-quick').onclick=function(){
+        const aid=this.dataset.sellAsset;
+        const qty=this.dataset.sellQty;
+        setInvTradeMode('sell');
+        const sellForm=document.getElementById('inv-sell-form');
+        if(sellForm){
+          const sel=sellForm.querySelector('select[name="assetId"]');
+          if(sel) sel.value=aid;
+          const qtyInput=sellForm.querySelector('input[name="quantity"]');
+          if(qtyInput) qtyInput.value=qty;
+          updateSellPreview();
+          sellForm.scrollIntoView({behavior:'smooth',block:'center'});
+        }
+      };
       tbody.appendChild(tr);
     }
     if(tfoot){
@@ -7114,7 +7128,7 @@
         const sign=totalUPnl>=0?'+':'';
         pnlFoot=`<span class="${cls}">${sign}${fmt(totalUPnl,state.currency)}</span>`;
       }
-      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="3">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>100%</td></tr>`;
+      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="3">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>100%</td><td></td></tr>`;
     }
   }
 
@@ -7456,6 +7470,16 @@
       const assetSel=sellForm.querySelector('select[name="assetId"]');
       [qtyInput,ppuInput,assetSel].forEach(el=>{if(el) el.addEventListener('input',updateSellPreview);});
       if(assetSel) assetSel.addEventListener('change',updateSellPreview);
+      const sellAllBtn=document.getElementById('inv-sell-all-btn');
+      if(sellAllBtn){
+        sellAllBtn.onclick=()=>{
+          const aid=assetSel?.value;
+          if(!aid) return;
+          const {availableQty}=computeSellCostBasis(aid,0);
+          if(qtyInput&&availableQty>0) qtyInput.value=availableQty;
+          updateSellPreview();
+        };
+      }
       sellForm.onsubmit=e=>{
         e.preventDefault();
         const f=new FormData(sellForm);
