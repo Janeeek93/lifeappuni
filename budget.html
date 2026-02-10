@@ -7028,6 +7028,32 @@
     status.style.color=isError?'#dc2626':'var(--muted)';
   }
 
+  function invCorsCandidates(url){
+    const customTpl=(localStorage.getItem('invCorsProxyTemplate')||'').trim();
+    const out=[url];
+    if(customTpl){
+      if(customTpl.includes('{url}')) out.push(customTpl.replace('{url}',encodeURIComponent(url)));
+      else out.push(`${customTpl}${encodeURIComponent(url)}`);
+    }
+    out.push(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+    out.push(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+    return [...new Set(out)];
+  }
+
+  async function fetchWithCorsFallback(url,options){
+    let lastErr=null;
+    for(const candidate of invCorsCandidates(url)){
+      try{
+        const res=await fetch(candidate,options);
+        if(res.ok) return res;
+        lastErr=new Error(`HTTP ${res.status}`);
+      }catch(err){
+        lastErr=err;
+      }
+    }
+    throw lastErr||new Error('Błąd połączenia');
+  }
+
   async function fetchStooqPrice(symbol){
     const raw=String(symbol||'').trim().toLowerCase();
     if(!raw) return null;
@@ -7038,7 +7064,7 @@
     }
     const unique=[...new Set(candidates)];
     for(const sym of unique){
-      const res=await fetch(`https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcvn&e=csv`);
+      const res=await fetchWithCorsFallback(`https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcvn&e=csv`);
       if(!res.ok) continue;
       const txt=await res.text();
       const lines=txt.trim().split(/\r?\n/);
@@ -7061,7 +7087,7 @@
       candidates.push(`${raw}.US`,`${raw}.AS`,`${raw}.DE`,`${raw}.WA`,`${raw}.L`);
     }
     const symbols=[...new Set(candidates)].join(',');
-    const res=await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`);
+    const res=await fetchWithCorsFallback(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`);
     if(!res.ok) throw new Error('Błąd pobierania z Yahoo');
     const json=await res.json();
     const rows=json?.quoteResponse?.result||[];
@@ -7106,7 +7132,7 @@
         if(yahoo&&yahoo>0) return {price:yahoo};
         const stooq=await fetchStooqPrice(symbol);
         if(stooq&&stooq>0) return {price:stooq};
-        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq).'};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq, możliwy CORS).'};
       }
       if(provider==='yahoo'){
         try{
@@ -7115,7 +7141,7 @@
         }catch(_err){/* fallback below */}
         const stooq=await fetchStooqPrice(symbol);
         if(stooq&&stooq>0) return {price:stooq};
-        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq).'};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq, możliwy CORS).'};
       }
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
