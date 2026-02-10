@@ -4614,7 +4614,10 @@
           <div class="card stack">
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Portfel — stan posiadania</strong>
-              <span class="tiny muted">Kliknij cenę, aby zaktualizować wycenę</span>
+              <div class="row" style="gap:8px">
+                <button class="btn soft" type="button" id="inv-refresh-prices-btn">Odśwież aktualne ceny</button>
+                <span class="tiny muted" id="inv-refresh-status">Kliknij cenę, aby zaktualizować wycenę</span>
+              </div>
             </div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-holdings-table">
@@ -4712,6 +4715,7 @@
             <div class="inv-asset-toolbar">
               <strong>Lista aktywów</strong>
               <div class="actions">
+                <button class="btn soft" type="button" id="inv-asset-refresh-prices">Odśwież ceny</button>
                 <button class="btn soft" type="button" id="inv-asset-add-group">Nowa grupa</button>
                 <button class="btn soft" type="button" id="inv-asset-add-row">+ Dodaj</button>
                 <button class="btn" type="button" id="inv-asset-save-all">Zapisz wszystkie</button>
@@ -4720,7 +4724,7 @@
             </div>
             <div class="table-wrapper" style="margin-top:6px">
               <table class="modern-table inv-asset-table">
-                <thead><tr><th>Aktywo</th><th>Grupa</th><th>Akt. cena</th><th>Transakcje</th><th></th></tr></thead>
+                <thead><tr><th>Aktywo</th><th>Grupa</th><th>Akt. cena</th><th>Źródło ceny</th><th>Symbol/ID API</th><th>Waluta</th><th>Transakcje</th><th></th></tr></thead>
                 <tbody id="inv-asset-table-body"></tbody>
               </table>
             </div>
@@ -5456,6 +5460,9 @@
     for(const a of bud.investments.assets){
       if(a.currentPrice===undefined) a.currentPrice=null;
       if(a.priceDate===undefined) a.priceDate=null;
+      if(typeof a.priceProvider!=='string') a.priceProvider='manual';
+      if(typeof a.priceSymbol!=='string') a.priceSymbol='';
+      if(typeof a.priceCurrency!=='string') a.priceCurrency='PLN';
     }
 
     return st;
@@ -6890,20 +6897,45 @@
   }
 
   // --- Asset Manager ---------------------------------------------------------
+  const invPriceProviders=[
+    {value:'manual',label:'Ręcznie'},
+    {value:'stooq',label:'Stooq (akcje/ETF)'},
+    {value:'coingecko',label:'CoinGecko (krypto)'},
+    {value:'nbp',label:'NBP (waluty)'}
+  ];
+
+  function invProviderHelp(provider){
+    if(provider==='stooq') return 'np. aapl.us, nvda.us, msft.us, amzn.us, inpst, sxr8.de';
+    if(provider==='coingecko') return 'np. bitcoin, ethereum';
+    if(provider==='nbp') return 'np. USD, EUR';
+    return 'Automatyczne odświeżanie wyłączone';
+  }
+
   function createAssetRow(asset={},trades=[]){
     const tr=document.createElement('tr');
     tr.dataset.assetId=asset.id||'';
     const usage=trades.filter(t=>t.assetId===asset.id);
+    const provider=String(asset.priceProvider||'manual');
     tr.innerHTML=`
       <td><input class="inv-asset-name" value="${escapeHtml(asset.name||'')}" placeholder="np. VOO, BTC, złoto" /></td>
       <td><select class="inv-asset-group"></select></td>
       <td><input class="inv-asset-price" type="text" inputmode="decimal" value="${asset.currentPrice||''}" placeholder="—" style="width:90px;height:34px;text-align:right" /></td>
+      <td><select class="inv-asset-provider">${invPriceProviders.map(opt=>`<option value="${opt.value}" ${opt.value===provider?'selected':''}>${opt.label}</option>`).join('')}</select></td>
+      <td><input class="inv-asset-symbol" value="${escapeHtml(asset.priceSymbol||'')}" placeholder="${escapeHtml(invProviderHelp(provider))}" /></td>
+      <td><input class="inv-asset-currency" value="${escapeHtml(asset.priceCurrency||'PLN')}" placeholder="PLN" maxlength="8" style="text-transform:uppercase" /></td>
       <td><span class="muted">${usage.length||0}</span></td>
       <td class="row" style="gap:6px;justify-content:flex-end">
         <button class="btn soft" data-act="save">Zapisz</button>
         <button class="btn ghost" data-act="delete">Usuń</button>
       </td>`;
     populateAssetGroupSelect(tr.querySelector('.inv-asset-group'),asset.group||'Inne');
+    const providerSel=tr.querySelector('.inv-asset-provider');
+    const symbolInput=tr.querySelector('.inv-asset-symbol');
+    const syncSymbolPlaceholder=()=>{
+      if(!providerSel||!symbolInput) return;
+      symbolInput.placeholder=invProviderHelp(providerSel.value);
+    };
+    if(providerSel){providerSel.addEventListener('change',syncSymbolPlaceholder);syncSymbolPlaceholder();}
     tr.querySelector('[data-act="save"]').onclick=()=>saveAssetRow(tr);
     tr.querySelector('[data-act="delete"]').onclick=()=>{
       const id=tr.dataset.assetId;
@@ -6928,15 +6960,21 @@
     const group=row.querySelector('.inv-asset-group')?.value||'Inne';
     const priceRaw=row.querySelector('.inv-asset-price')?.value;
     const price=priceRaw?num(priceRaw):null;
+    const priceProvider=row.querySelector('.inv-asset-provider')?.value||'manual';
+    const priceSymbol=(row.querySelector('.inv-asset-symbol')?.value||'').trim();
+    const priceCurrency=(row.querySelector('.inv-asset-currency')?.value||'PLN').trim().toUpperCase()||'PLN';
     if(!name){alert('Podaj nazwę aktywa.');return;}
     const data=investments();
     const id=row.dataset.assetId;
     if(id){
       const ex=data.assets.find(a=>a.id===id);
-      if(ex){ex.name=name;ex.group=group;ex.currentPrice=price;ex.priceDate=price?new Date().toISOString().slice(0,10):ex.priceDate;}
+      if(ex){
+        ex.name=name;ex.group=group;ex.currentPrice=price;ex.priceDate=price?new Date().toISOString().slice(0,10):ex.priceDate;
+        ex.priceProvider=priceProvider;ex.priceSymbol=priceSymbol;ex.priceCurrency=priceCurrency;
+      }
     } else {
       const newId='inv_asset_'+Math.random().toString(36).slice(2);
-      data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null});
+      data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency});
       row.dataset.assetId=newId;
     }
     save(state);renderInvestments();
@@ -6961,18 +6999,107 @@
       const group=row.querySelector('.inv-asset-group')?.value||'Inne';
       const priceRaw=row.querySelector('.inv-asset-price')?.value;
       const price=priceRaw?num(priceRaw):null;
+      const priceProvider=row.querySelector('.inv-asset-provider')?.value||'manual';
+      const priceSymbol=(row.querySelector('.inv-asset-symbol')?.value||'').trim();
+      const priceCurrency=(row.querySelector('.inv-asset-currency')?.value||'PLN').trim().toUpperCase()||'PLN';
       if(!name) continue;
       const id=row.dataset.assetId;
       if(id){
         const ex=data.assets.find(a=>a.id===id);
-        if(ex){ex.name=name;ex.group=group;ex.currentPrice=price;ex.priceDate=price?new Date().toISOString().slice(0,10):ex.priceDate;changed=true;}
+        if(ex){
+          ex.name=name;ex.group=group;ex.currentPrice=price;ex.priceDate=price?new Date().toISOString().slice(0,10):ex.priceDate;
+          ex.priceProvider=priceProvider;ex.priceSymbol=priceSymbol;ex.priceCurrency=priceCurrency;changed=true;
+        }
       } else {
         const newId='inv_asset_'+Math.random().toString(36).slice(2);
-        data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null});
+        data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency});
         row.dataset.assetId=newId;changed=true;
       }
     }
     if(changed){save(state);renderInvestments();}
+  }
+
+
+  function setInvPriceStatus(msg,isError=false){
+    const status=document.getElementById('inv-refresh-status');
+    if(!status) return;
+    status.textContent=msg;
+    status.style.color=isError?'#dc2626':'var(--muted)';
+  }
+
+  async function fetchStooqPrice(symbol){
+    const sym=String(symbol||'').trim().toLowerCase();
+    if(!sym) return null;
+    const res=await fetch(`https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcvn&e=csv`);
+    if(!res.ok) throw new Error('Błąd pobierania ze Stooq');
+    const txt=await res.text();
+    const lines=txt.trim().split(/\r?\n/);
+    if(lines.length<2) return null;
+    const cols=lines[1].split(',');
+    const close=Number(cols[6]);
+    return Number.isFinite(close)&&close>0?close:null;
+  }
+
+  async function fetchCoinGeckoPrice(id,currency){
+    const coinId=String(id||'').trim().toLowerCase();
+    const vs=String(currency||'usd').trim().toLowerCase();
+    if(!coinId) return null;
+    const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=${encodeURIComponent(vs)}`);
+    if(!res.ok) throw new Error('Błąd pobierania z CoinGecko');
+    const json=await res.json();
+    const val=Number(json?.[coinId]?.[vs]);
+    return Number.isFinite(val)&&val>0?val:null;
+  }
+
+  async function fetchNbpFxPrice(code){
+    const cc=String(code||'').trim().toUpperCase();
+    if(!cc||cc==='PLN') return 1;
+    const res=await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/${encodeURIComponent(cc)}/?format=json`);
+    if(!res.ok) throw new Error('Błąd pobierania z NBP');
+    const json=await res.json();
+    const mid=Number(json?.rates?.[0]?.mid);
+    return Number.isFinite(mid)&&mid>0?mid:null;
+  }
+
+  async function fetchAssetPrice(asset){
+    const provider=String(asset.priceProvider||'manual');
+    const symbol=String(asset.priceSymbol||'').trim();
+    const currency=String(asset.priceCurrency||state.currency||'PLN').trim().toLowerCase();
+    if(provider==='manual') return {price:null,skipped:true};
+    if(!symbol) return {price:null,error:'Brak symbolu API'};
+    try{
+      if(provider==='stooq') return {price:await fetchStooqPrice(symbol)};
+      if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
+      if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
+      return {price:null,error:'Nieznany provider'};
+    }catch(err){
+      return {price:null,error:err?.message||'Błąd pobierania'};
+    }
+  }
+
+  async function refreshInvestmentPrices(){
+    const data=investments();
+    const assets=data.assets||[];
+    const refreshBtn=document.getElementById('inv-refresh-prices-btn');
+    const modalRefreshBtn=document.getElementById('inv-asset-refresh-prices');
+    if(!assets.length){setInvPriceStatus('Brak aktywów do odświeżenia.');return;}
+    if(refreshBtn) refreshBtn.disabled=true;
+    if(modalRefreshBtn) modalRefreshBtn.disabled=true;
+    setInvPriceStatus('Odświeżanie cen...');
+    let updated=0,skipped=0,failed=0;
+    const today=new Date().toISOString().slice(0,10);
+    for(const asset of assets){
+      const out=await fetchAssetPrice(asset);
+      if(out.skipped){skipped++;continue;}
+      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;updated++;}
+      else failed++;
+    }
+    save(state);
+    renderInvestments();
+    if(refreshBtn) refreshBtn.disabled=false;
+    if(modalRefreshBtn) modalRefreshBtn.disabled=false;
+    const msg=`Odświeżono: ${updated}, pominięto: ${skipped}, błędy: ${failed}.`;
+    setInvPriceStatus(msg,failed>0&&updated===0);
   }
 
   function toggleInvestmentModal(open){
@@ -7407,6 +7534,8 @@
     const addRowBtn=document.getElementById('inv-asset-add-row');
     const addGroupBtn=document.getElementById('inv-asset-add-group');
     const saveAllBtn=document.getElementById('inv-asset-save-all');
+    const refreshBtn=document.getElementById('inv-refresh-prices-btn');
+    const modalRefreshBtn=document.getElementById('inv-asset-refresh-prices');
     if(addRowBtn&&!addRowBtn._bound){addRowBtn._bound=true;addRowBtn.onclick=addBlankAssetRow;}
     if(addGroupBtn&&!addGroupBtn._bound){
       addGroupBtn._bound=true;
@@ -7419,6 +7548,8 @@
       };
     }
     if(saveAllBtn&&!saveAllBtn._bound){saveAllBtn._bound=true;saveAllBtn.onclick=saveAllAssetRows;}
+    if(refreshBtn&&!refreshBtn._bound){refreshBtn._bound=true;refreshBtn.onclick=refreshInvestmentPrices;}
+    if(modalRefreshBtn&&!modalRefreshBtn._bound){modalRefreshBtn._bound=true;modalRefreshBtn.onclick=refreshInvestmentPrices;}
     renderAssetManagerList(data.assets,data.trades);
 
     // Buy form
