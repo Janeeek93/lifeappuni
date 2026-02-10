@@ -6899,13 +6899,14 @@
   // --- Asset Manager ---------------------------------------------------------
   const invPriceProviders=[
     {value:'manual',label:'Ręcznie'},
-    {value:'stooq',label:'Stooq (akcje/ETF)'},
+    {value:'stooq',label:'Akcje/ETF (auto: Yahoo/Stooq)'},
+    {value:'yahoo',label:'Yahoo (akcje/ETF)'},
     {value:'coingecko',label:'CoinGecko (krypto)'},
     {value:'nbp',label:'NBP (waluty)'}
   ];
 
   function invProviderHelp(provider){
-    if(provider==='stooq') return 'np. mu (auto->mu.us), nvda, msft.us, amzn.us, inpst, sxr8.de';
+    if(provider==='stooq'||provider==='yahoo') return 'np. MU, NVDA, MSFT, AMZN, INPST.AS, CSPX.AS';
     if(provider==='coingecko') return 'np. bitcoin, ethereum';
     if(provider==='nbp') return 'np. USD, EUR';
     return 'Automatyczne odświeżanie wyłączone';
@@ -7051,6 +7052,26 @@
     return null;
   }
 
+  async function fetchYahooPrice(symbol){
+    const raw=String(symbol||'').trim().toUpperCase();
+    if(!raw) return null;
+    const hasMarketSuffix=/\.[A-Z]{2,4}$/.test(raw);
+    const candidates=[raw];
+    if(!hasMarketSuffix){
+      candidates.push(`${raw}.US`,`${raw}.AS`,`${raw}.DE`,`${raw}.WA`,`${raw}.L`);
+    }
+    const symbols=[...new Set(candidates)].join(',');
+    const res=await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`);
+    if(!res.ok) throw new Error('Błąd pobierania z Yahoo');
+    const json=await res.json();
+    const rows=json?.quoteResponse?.result||[];
+    for(const row of rows){
+      const val=Number(row?.regularMarketPrice);
+      if(Number.isFinite(val)&&val>0) return val;
+    }
+    return null;
+  }
+
   async function fetchCoinGeckoPrice(id,currency){
     const coinId=String(id||'').trim().toLowerCase();
     const vs=String(currency||'usd').trim().toLowerCase();
@@ -7079,7 +7100,12 @@
     if(provider==='manual') return {price:null,skipped:true};
     if(!symbol) return {price:null,error:'Brak symbolu API'};
     try{
-      if(provider==='stooq') return {price:await fetchStooqPrice(symbol)};
+      if(provider==='stooq'){
+        const yahoo=await fetchYahooPrice(symbol);
+        if(yahoo&&yahoo>0) return {price:yahoo};
+        return {price:await fetchStooqPrice(symbol)};
+      }
+      if(provider==='yahoo') return {price:await fetchYahooPrice(symbol)};
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
       return {price:null,error:'Nieznany provider'};
