@@ -7429,7 +7429,7 @@
       const footnote=document.getElementById('inv-buy-footnote');
       if(srcSel){
         srcSel.onchange=()=>{
-          if(footnote) footnote.textContent=srcSel.value==='reinvest'?'Źródło: pula reinwestycyjna — brak wpływu na budżet domowy.':'Źródło: budżet — kwota zostanie zaksięgowana jako inwestycja.';
+          if(footnote) footnote.textContent=srcSel.value==='reinvest'?'Źródło: pula reinwestycyjna — jeśli kwota przekroczy pulę, reszta zostanie pobrana z budżetu.':'Źródło: budżet — kwota zostanie zaksięgowana jako inwestycja.';
         };
       }
       buyForm.onsubmit=e=>{
@@ -7444,17 +7444,38 @@
         const note=String(f.get('note')||'');
         const fundSource=f.get('fundSource')||'budget';
         if(amount<=0||quantity<=0){alert('Kwota i ilość muszą być > 0.');return;}
+        const pricePerUnit=amount/quantity;
         if(fundSource==='reinvest'){
           const pool=computePortfolioStats().reinvestPool;
-          if(amount>pool+0.01){alert(`Niewystarczające środki w puli reinwestycyjnej. Dostępne: ${fmt(pool,state.currency)}`);return;}
-        }
-        let txId=null;
-        if(fundSource==='budget'){
+          if(pool<0.01){alert('Pula reinwestycyjna jest pusta — zakup zostanie zaksięgowany z budżetu.');
+            // fallthrough to full budget buy below
+            const catId=ensureInvestmentCategory();
+            const txId=`tx_${Math.random().toString(36).slice(2)}`;
+            b().transactions.unshift({id:txId,date,amount:signFor(catId,amount),categoryId:catId,accountId:b().accounts[0]?.id||'a_main',note:`Inwestycja: ${asset.name}${note?` (${note})`:''}`});
+            data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount,quantity,note,txId,fundSource:'budget'});
+          } else if(amount<=pool+0.01){
+            // full reinvest buy
+            data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount,quantity,note,txId:null,fundSource:'reinvest'});
+          } else {
+            // split: part from pool, rest from budget
+            const fromPool=Math.min(pool,amount);
+            const fromBudget=amount-fromPool;
+            const qtyPool=fromPool/pricePerUnit;
+            const qtyBudget=quantity-qtyPool;
+            // reinvest portion (no budget tx)
+            data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount:fromPool,quantity:qtyPool,note:note?note+' [reinwest.]':'[reinwest.]',txId:null,fundSource:'reinvest'});
+            // budget portion (with budget tx)
+            const catId=ensureInvestmentCategory();
+            const txId=`tx_${Math.random().toString(36).slice(2)}`;
+            b().transactions.unshift({id:txId,date,amount:signFor(catId,fromBudget),categoryId:catId,accountId:b().accounts[0]?.id||'a_main',note:`Inwestycja: ${asset.name}${note?` (${note})`:''} [dopłata z budżetu]`});
+            data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount:fromBudget,quantity:qtyBudget,note:note?note+' [z budżetu]':'[z budżetu]',txId,fundSource:'budget'});
+          }
+        } else {
           const catId=ensureInvestmentCategory();
-          txId=`tx_${Math.random().toString(36).slice(2)}`;
+          const txId=`tx_${Math.random().toString(36).slice(2)}`;
           b().transactions.unshift({id:txId,date,amount:signFor(catId,amount),categoryId:catId,accountId:b().accounts[0]?.id||'a_main',note:`Inwestycja: ${asset.name}${note?` (${note})`:''}`});
+          data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount,quantity,note,txId,fundSource:'budget'});
         }
-        data.trades.unshift({id:'inv_trade_'+Math.random().toString(36).slice(2),assetId,date,side:'buy',amount,quantity,note,txId,fundSource});
         save(state);buyForm.reset();
         const di=buyForm.querySelector('input[name="date"]');if(di) di.value=new Date().toISOString().slice(0,10);
         renderAll();
