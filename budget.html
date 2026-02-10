@@ -7101,11 +7101,22 @@
     if(!symbol) return {price:null,error:'Brak symbolu API'};
     try{
       if(provider==='stooq'){
-        const yahoo=await fetchYahooPrice(symbol);
+        let yahoo=null;
+        try{yahoo=await fetchYahooPrice(symbol);}catch(_err){yahoo=null;}
         if(yahoo&&yahoo>0) return {price:yahoo};
-        return {price:await fetchStooqPrice(symbol)};
+        const stooq=await fetchStooqPrice(symbol);
+        if(stooq&&stooq>0) return {price:stooq};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq).'};
       }
-      if(provider==='yahoo') return {price:await fetchYahooPrice(symbol)};
+      if(provider==='yahoo'){
+        try{
+          const yahoo=await fetchYahooPrice(symbol);
+          if(yahoo&&yahoo>0) return {price:yahoo};
+        }catch(_err){/* fallback below */}
+        const stooq=await fetchStooqPrice(symbol);
+        if(stooq&&stooq>0) return {price:stooq};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq).'};
+      }
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
       return {price:null,error:'Nieznany provider'};
