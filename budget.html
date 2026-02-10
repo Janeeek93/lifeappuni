@@ -4688,6 +4688,7 @@
                   <input name="note" placeholder="np. DCA, rotacja, TP" />
                 </label>
                 <div class="inv-compact-footnote">BUY z budżetu trafia do „Wydatków zmiennych”. SELL księguje wpływ zwrotny.</div>
+                <div class="tiny muted" style="flex-basis:100%">Przykład rotacji: BUY InPost 200 (BUDGET) → SELL InPost 300 → BUY Amazon 300 (REINVESTED_PROFIT, budżet 0). Wkład własny zostaje 200, zrealizowany zysk 100.</div>
                 <button class="btn" type="submit">Zapisz transakcję</button>
               </form>
             </div>
@@ -4718,6 +4719,13 @@
                     <span id="inv-kpi-pace" class="inv-kpi-value">—</span>
                   </div>
                   <div class="inv-kpi-meta">Ile zysku już wróciło do kolejnych zakupów.</div>
+                </li>
+                <li class="inv-kpi-row">
+                  <div class="inv-kpi-head">
+                    <span class="inv-kpi-label">Łączny wynik (real.+niezreal.)</span>
+                    <span id="inv-kpi-total-return" class="inv-kpi-value">—</span>
+                  </div>
+                  <div class="inv-kpi-meta">Pozwala odróżnić wynik łączny od samej zmiany bieżącej wyceny.</div>
                 </li>
               </ul>
             </div>
@@ -4863,6 +4871,7 @@
                 <tr>
                   <th>Aktywo</th>
                   <th>Grupa</th>
+                  <th>Cena rynkowa</th>
                   <th>Zakupy</th>
                   <th>Ostatni zakup</th>
                   <th></th>
@@ -6906,11 +6915,18 @@
       const avg=pos.qty>0?pos.cost/pos.qty:0;
       const assetTrades=trades.filter(t=>t.assetId===asset.id);
       const last=assetTrades[assetTrades.length-1]?.date||'';
-      return {...asset, qty:pos.qty, invested:pos.cost, avg, last, tradeCount:assetTrades.length};
+      const marketPrice=Math.abs(num(asset.marketPrice));
+      const marketValue=pos.qty*marketPrice;
+      const unrealizedPnl=marketValue-pos.cost;
+      return {...asset, qty:pos.qty, invested:pos.cost, avg, last, tradeCount:assetTrades.length, marketPrice, marketValue, unrealizedPnl};
     });
     const reinvestableProfit=Math.max(0,realizedProfit-reinvestedProfitUsed);
+    const openCostBasis=holdings.reduce((s,h)=>s+h.invested,0);
+    const marketValue=holdings.reduce((s,h)=>s+h.marketValue,0);
+    const unrealizedProfit=holdings.reduce((s,h)=>s+h.unrealizedPnl,0);
+    const totalReturn=realizedProfit+unrealizedProfit;
     data.reinvestableProfit=reinvestableProfit;
-    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedProfitUsed,reinvestableProfit,cashFromSells}};
+    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedProfitUsed,reinvestableProfit,cashFromSells,openCostBasis,marketValue,unrealizedProfit,totalReturn}};
   };
 
   const allInvestmentGroups=()=>{
@@ -7025,6 +7041,7 @@
     tr.innerHTML=`
       <td><input class="inv-asset-name" value="${asset.name||''}" placeholder="np. VOO, BTC, złoto" /></td>
       <td><select class="inv-asset-group"></select></td>
+      <td><input class="inv-asset-market" inputmode="decimal" value="${num(asset.marketPrice)||''}" placeholder="0,00" /></td>
       <td><span class="muted">${usage.length || 0}</span></td>
       <td><span class="muted">${asset.id ? last : '—'}</span></td>
       <td class="row" style="gap:6px; justify-content:flex-end;">
@@ -7057,15 +7074,16 @@
   function saveAssetRow(row){
     const name=row.querySelector('.inv-asset-name')?.value.trim();
     const group=row.querySelector('.inv-asset-group')?.value || 'Inne';
+    const marketPrice=Math.abs(num(row.querySelector('.inv-asset-market')?.value));
     if(!name){alert('Podaj nazwę aktywa.'); return;}
     const data=investments();
     const id=row.dataset.assetId;
     if(id){
       const existing=data.assets.find(a=>a.id===id);
-      if(existing){ existing.name=name; existing.group=group; }
+      if(existing){ existing.name=name; existing.group=group; existing.marketPrice=marketPrice||0; }
     } else {
       const newId='inv_asset_'+Math.random().toString(36).slice(2);
-      data.assets.push({id:newId,name,group});
+      data.assets.push({id:newId,name,group,marketPrice:marketPrice||0});
       row.dataset.assetId=newId;
     }
     save(state);
@@ -7091,14 +7109,15 @@
     for(const row of rows){
       const name=row.querySelector('.inv-asset-name')?.value.trim();
       const group=row.querySelector('.inv-asset-group')?.value || 'Inne';
+      const marketPrice=Math.abs(num(row.querySelector('.inv-asset-market')?.value));
       if(!name) continue;
       const id=row.dataset.assetId;
       if(id){
         const existing=data.assets.find(a=>a.id===id);
-        if(existing){ existing.name=name; existing.group=group; changed=true; }
+        if(existing){ existing.name=name; existing.group=group; existing.marketPrice=marketPrice||0; changed=true; }
       } else {
         const newId='inv_asset_'+Math.random().toString(36).slice(2);
-        data.assets.push({id:newId,name,group});
+        data.assets.push({id:newId,name,group,marketPrice:marketPrice||0});
         row.dataset.assetId=newId;
         changed=true;
       }
@@ -7178,18 +7197,18 @@
       body.className='inv-holding-details';
       const table=document.createElement('table');
       table.className='modern-table';
-      table.innerHTML=`<thead><tr><th>Aktywo</th><th>Ilość</th><th>Śr. cena</th><th>Zainwestowano</th><th>Zakupy</th><th>Ostatni zakup</th><th></th></tr></thead>`;
+      table.innerHTML=`<thead><tr><th>Aktywo</th><th>Ilość</th><th>Śr. koszt</th><th>Koszt pozycji</th><th>Wartość rynkowa</th><th>Niezreal. P/L</th><th>Zakupy</th><th>Ostatni zakup</th><th></th></tr></thead>`;
       const tbody=document.createElement('tbody');
       if(!groupHoldings.length){
         const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak aktywów w tej grupie.</td>';
+        tr.innerHTML='<td colspan="9" class="muted" style="text-align:center">Brak aktywów w tej grupie.</td>';
         tbody.appendChild(tr);
       } else {
         for(const h of groupHoldings){
           const assetTrades=groupTrades.filter(t=>t.assetId===h.id);
           const lastTrade=assetTrades.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]?.date || '—';
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td><strong>${h.name}</strong></td><td>${h.qty.toFixed(4)}</td><td>${h.qty?fmt(h.avg,state.currency):'—'}</td><td>${fmt(h.invested,state.currency)}</td><td>${assetTrades.length}</td><td>${lastTrade}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
+          tr.innerHTML=`<td><strong>${h.name}</strong></td><td>${h.qty.toFixed(4)}</td><td>${h.qty?fmt(h.avg,state.currency):'—'}</td><td>${fmt(h.invested,state.currency)}</td><td>${h.marketPrice?fmt(h.marketValue,state.currency):'—'}</td><td>${h.marketPrice?fmt(h.unrealizedPnl,state.currency):'—'}</td><td>${assetTrades.length}</td><td>${lastTrade}</td><td><button class="btn ghost" data-act="del">Usuń</button></td>`;
           tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć aktywo i powiązane zakupy?')) return; deleteInvestmentAsset(h.id); };
           tbody.appendChild(tr);
         }
@@ -7570,6 +7589,7 @@
     const lastEl=document.getElementById('inv-kpi-last');
     const nextEl=document.getElementById('inv-kpi-next');
     const paceEl=document.getElementById('inv-kpi-pace');
+    const totalReturnEl=document.getElementById('inv-kpi-total-return');
     if(totalEl) totalEl.textContent=fmt(metrics?.budgetContributed||0,state.currency);
 
     const last=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
@@ -7585,6 +7605,10 @@
       const reinvestable=metrics?.reinvestableProfit||0;
       const used=metrics?.reinvestedProfitUsed||0;
       paceEl.textContent=`${fmt(used,state.currency)} • dostępne ${fmt(reinvestable,state.currency)}`;
+    }
+    if(totalReturnEl){
+      const totalReturn=metrics?.totalReturn||0;
+      totalReturnEl.textContent=`${fmt(totalReturn,state.currency)} (real. ${fmt(metrics?.realizedProfit||0,state.currency)} + niezreal. ${fmt(metrics?.unrealizedProfit||0,state.currency)})`;
     }
   }
 
