@@ -6909,8 +6909,8 @@
   const INV_FMP_API_KEY='fu3KeB4obDGLv096Vp0hTiMxNnnhkv34';
 
   function invProviderHelp(provider){
-    if(provider==='stooq'||provider==='yahoo') return 'np. MU, NVDA, MSFT, AMZN, INPST.AS, CSPX.AS';
-    if(provider==='fmp') return 'np. MU, TSLA, AAPL (ustaw walutę np. USD/EUR → przeliczy do PLN)';
+    if(provider==='stooq'||provider==='yahoo') return 'np. MU, NVDA, MSFT, AMZN, INPST.AS, CSPX.AS | waluta: USD/EUR (nie PLN)';
+    if(provider==='fmp') return 'np. MU, TSLA, AAPL (waluta kwotowania: USD/EUR, wynik zawsze w PLN)';
     if(provider==='coingecko') return 'np. bitcoin, ethereum';
     if(provider==='nbp') return 'np. USD, EUR';
     return 'Automatyczne odświeżanie wyłączone';
@@ -7159,6 +7159,22 @@
     return {price, quoteCurrency, companyName:String(data[0]?.companyName||sym)};
   }
 
+  function guessQuoteCurrencyFromSymbol(symbol){
+    const sym=String(symbol||'').trim().toUpperCase();
+    if(/\.(AS|DE|PA|MI|MC|BR|HE|VI|LS|IR)$/.test(sym)) return 'EUR';
+    if(/\.(L)$/.test(sym)) return 'GBP';
+    if(/\.(WA)$/.test(sym)) return 'PLN';
+    return 'USD';
+  }
+
+  function resolveQuoteCurrency(asset, apiCurrency){
+    const configured=String(asset?.priceCurrency||'').trim().toUpperCase();
+    if(configured && configured!=='PLN') return configured;
+    const fromApi=String(apiCurrency||'').trim().toUpperCase();
+    if(fromApi && fromApi!=='PLN') return fromApi;
+    return guessQuoteCurrencyFromSymbol(asset?.priceSymbol||'');
+  }
+
   async function fetchAssetPrice(asset){
     const provider=String(asset.priceProvider||'manual');
     const symbol=String(asset.priceSymbol||'').trim();
@@ -7167,7 +7183,7 @@
     if(!symbol) return {price:null,error:'Brak symbolu API'};
     try{
       if(provider==='stooq'){
-        const quoteCurrency=String(asset.priceCurrency||'USD').trim().toUpperCase()||'USD';
+        const quoteCurrency=resolveQuoteCurrency(asset);
         let rawPrice=null;
         try{rawPrice=await fetchYahooPrice(symbol);}catch(_err){rawPrice=null;}
         if(!(rawPrice&&rawPrice>0)) rawPrice=await fetchStooqPrice(symbol);
@@ -7175,10 +7191,10 @@
           const pricePln=await convertQuoteToPln(rawPrice,quoteCurrency);
           return {price:pricePln,currency:'PLN'};
         }
-        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq, możliwy CORS).'};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq) lub brak poprawnej waluty kwotowania.'};
       }
       if(provider==='yahoo'){
-        const quoteCurrency=String(asset.priceCurrency||'USD').trim().toUpperCase()||'USD';
+        const quoteCurrency=resolveQuoteCurrency(asset);
         let rawPrice=null;
         try{rawPrice=await fetchYahooPrice(symbol);}catch(_err){rawPrice=null;}
         if(!(rawPrice&&rawPrice>0)) rawPrice=await fetchStooqPrice(symbol);
@@ -7186,14 +7202,13 @@
           const pricePln=await convertQuoteToPln(rawPrice,quoteCurrency);
           return {price:pricePln,currency:'PLN'};
         }
-        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq, możliwy CORS).'};
+        return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq) lub brak poprawnej waluty kwotowania.'};
       }
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
       if(provider==='fmp'){
-        const configured=String(asset.priceCurrency||'').trim().toUpperCase();
         const out=await fetchFmpStablePrice(symbol);
-        const quoteCurrency=configured||out.quoteCurrency||'USD';
+        const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
         const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
         return {price:pricePln,currency:'PLN'};
       }
