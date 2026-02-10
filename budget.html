@@ -6884,19 +6884,24 @@
     if(changed) save(state);
   }
 
-  function computeInvestmentBook(){
+  function computeInvestmentBook(opts={}){
     const data=investments();
-    const trades=[...data.trades].map(normalizeInvestmentTrade).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const excludeTradeId=opts.excludeTradeId||null;
+    const trades=[...data.trades]
+      .map(normalizeInvestmentTrade)
+      .filter(t=>!excludeTradeId || t.id!==excludeTradeId)
+      .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     const byAsset={};
-    let budgetContributed=0, realizedProfit=0, reinvestedProfitUsed=0, cashFromSells=0;
+    let budgetContributed=0, realizedProfit=0, reinvestedCashUsed=0, cashFromSells=0;
     for(const t of trades){
       const asset=byAsset[t.assetId] || {qty:0,cost:0};
       if(t.side==='BUY'){
         asset.qty+=t.quantity;
         asset.cost+=t.grossValue+t.fees;
-        budgetContributed+=Math.min(t.budgetPortion,t.grossValue+t.fees);
-        if(t.fundingSource==='REINVESTED_PROFIT') reinvestedProfitUsed+=t.grossValue+t.fees;
-        if(t.fundingSource==='MIXED') reinvestedProfitUsed+=Math.max(0,(t.grossValue+t.fees)-t.budgetPortion);
+        const tradeTotal=t.grossValue+t.fees;
+        budgetContributed+=Math.min(t.budgetPortion,tradeTotal);
+        const reinvestPart=Math.max(0,tradeTotal-Math.min(t.budgetPortion,tradeTotal));
+        reinvestedCashUsed+=reinvestPart;
       }else{
         const avg=asset.qty>0?asset.cost/asset.qty:0;
         const closedCost=Math.min(asset.cost,avg*t.quantity);
@@ -6920,14 +6925,74 @@
       const unrealizedPnl=marketValue-pos.cost;
       return {...asset, qty:pos.qty, invested:pos.cost, avg, last, tradeCount:assetTrades.length, marketPrice, marketValue, unrealizedPnl};
     });
-    const reinvestableProfit=Math.max(0,realizedProfit-reinvestedProfitUsed);
+    const reinvestableCash=Math.max(0,cashFromSells-reinvestedCashUsed);
+    const reinvestableProfit=Math.max(0,realizedProfit);
     const openCostBasis=holdings.reduce((s,h)=>s+h.invested,0);
     const marketValue=holdings.reduce((s,h)=>s+h.marketValue,0);
     const unrealizedProfit=holdings.reduce((s,h)=>s+h.unrealizedPnl,0);
     const totalReturn=realizedProfit+unrealizedProfit;
     data.reinvestableProfit=reinvestableProfit;
-    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedProfitUsed,reinvestableProfit,cashFromSells,openCostBasis,marketValue,unrealizedProfit,totalReturn}};
+    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedCashUsed,reinvestableCash,reinvestableProfit,cashFromSells,openCostBasis,marketValue,unrealizedProfit,totalReturn}};
   };
+
+  function deriveInvestmentFunding(side,fundingSource,grossValue,fees,budgetPortionInput){
+    const total=Math.max(0,grossValue+fees);
+    if(side!=='BUY') return {budgetPortion:0,reinvestedPortion:0,total};
+    const src=(fundingSource||'BUDGET');
+    let budgetPortion=0;
+    if(src==='REINVESTED_PROFIT') budgetPortion=0;
+    else if(src==='MIXED') budgetPortion=Math.max(0,Math.min(total,budgetPortionInput||0));
+    else budgetPortion=Math.max(0,Math.min(total,budgetPortionInput||total));
+    const reinvestedPortion=Math.max(0,total-budgetPortion);
+    return {budgetPortion,reinvestedPortion,total};
+  }
+
+  function ensureReinvestmentCapacity(required, excludeTradeId=null){
+    const needed=Math.max(0,num(required));
+    if(needed<=0) return true;
+    const available=computeInvestmentBook({excludeTradeId}).metrics.reinvestableCash||0;
+    if(needed>available){
+      alert(`Brak środków z wcześniejszych sprzedaży na reinwestycję. Potrzeba ${fmt(needed,state.currency)}, dostępne ${fmt(available,state.currency)}.`);
+      return false;
+    }
+    return true;
+  }
+
+  function syncInvestmentBudgetTx(trade, assetName){
+    const catId=ensureInvestmentCategory();
+    const total=Math.max(0,num(trade.grossValue)+num(trade.fees));
+    const budgetPortion=Math.max(0,Math.min(total,num(trade.budgetPortion)));
+    const shouldHaveTx=(trade.side==='SELL') || (trade.side==='BUY' && budgetPortion>0);
+    if(!shouldHaveTx){
+      if(trade.txId){
+        b().transactions=b().transactions.filter(tx=>tx.id!==trade.txId);
+        trade.txId='';
+      }
+      return;
+    }
+    const txAmount=trade.side==='SELL' ? Math.abs(num(trade.grossValue)-num(trade.fees)) : signFor(catId,budgetPortion);
+    const note=`Inwestycja ${trade.side}: ${assetName}${trade.note?` (${trade.note})`:''}`;
+    if(trade.txId){
+      const tx=b().transactions.find(t=>t.id===trade.txId);
+      if(tx){
+        tx.date=trade.date;
+        tx.amount=txAmount;
+        tx.note=note;
+        tx.categoryId=catId;
+        return;
+      }
+    }
+    const txId=`tx_${Math.random().toString(36).slice(2)}`;
+    b().transactions.unshift({
+      id:txId,
+      date:trade.date,
+      amount:txAmount,
+      categoryId:catId,
+      accountId:b().accounts[0]?.id||'a_main',
+      note
+    });
+    trade.txId=txId;
+  }
 
   const allInvestmentGroups=()=>{
     const data=investments();
@@ -7296,7 +7361,9 @@
       return;
     }
     const fundingSource=updates.fundingSource||'BUDGET';
-    const budgetPortion=Math.max(0,Math.min(grossValue+fees,Math.abs(num(updates.budgetPortion||0)) || (side==='BUY' && fundingSource!=='REINVESTED_PROFIT'?grossValue+fees:0)));
+    const funding=deriveInvestmentFunding(side,fundingSource,grossValue,fees,Math.abs(num(updates.budgetPortion||0)));
+    if(!ensureReinvestmentCapacity(funding.reinvestedPortion, tradeId)) return;
+
     Object.assign(trade, normalizeInvestmentTrade({
       ...trade,
       assetId:asset.id,
@@ -7308,18 +7375,9 @@
       note:updates.note||'',
       side,
       fundingSource,
-      budgetPortion
+      budgetPortion:funding.budgetPortion
     }));
-    if(trade.txId){
-      const tx=b().transactions.find(tx=>tx.id===trade.txId);
-      const catId=ensureInvestmentCategory();
-      if(tx){
-        tx.date=updates.date;
-        tx.amount=side==='BUY' ? signFor(catId, budgetPortion) : Math.abs(grossValue-fees);
-        tx.note=`Inwestycja ${side==='BUY'?'BUY':'SELL'}: ${asset.name}${trade.note?` (${trade.note})`:''}`;
-        tx.categoryId=catId;
-      }
-    }
+    syncInvestmentBudgetTx(trade, asset.name);
     save(state); renderAll();
   }
 
@@ -7602,9 +7660,9 @@
     }
 
     if(paceEl){
-      const reinvestable=metrics?.reinvestableProfit||0;
-      const used=metrics?.reinvestedProfitUsed||0;
-      paceEl.textContent=`${fmt(used,state.currency)} • dostępne ${fmt(reinvestable,state.currency)}`;
+      const reinvestable=metrics?.reinvestableCash||0;
+      const used=metrics?.reinvestedCashUsed||0;
+      paceEl.textContent=`użyte ${fmt(used,state.currency)} • dostępne ${fmt(reinvestable,state.currency)}`;
     }
     if(totalReturnEl){
       const totalReturn=metrics?.totalReturn||0;
@@ -7655,20 +7713,9 @@
         const note=String(f.get('note')||'');
         const budgetPortionInput=Math.abs(num(f.get('budgetPortion')));
         if(grossValue<=0 || quantity<=0){alert('Wartość i ilość muszą być większe od zera.'); return;}
-        const catId=ensureInvestmentCategory();
-        const txId=`tx_${Math.random().toString(36).slice(2)}`;
-        const defaultBudget=side==='BUY' ? (fundingSource==='REINVESTED_PROFIT'?0:(grossValue+fees)) : 0;
-        const budgetPortion=Math.max(0,Math.min(grossValue+fees,budgetPortionInput||defaultBudget));
-        const txAmount=side==='BUY' ? signFor(catId, budgetPortion) : Math.abs(grossValue-fees);
-        b().transactions.unshift({
-          id:txId,
-          date,
-          amount:txAmount,
-          categoryId:catId,
-          accountId:b().accounts[0]?.id||'a_main',
-          note:`Inwestycja ${side}: ${asset.name}${note?` (${note})`:''}`
-        });
-        data.trades.unshift(normalizeInvestmentTrade({
+        const funding=deriveInvestmentFunding(side,fundingSource,grossValue,fees,budgetPortionInput);
+        if(!ensureReinvestmentCapacity(funding.reinvestedPortion)) return;
+        const trade=normalizeInvestmentTrade({
           id:'inv_trade_'+Math.random().toString(36).slice(2),
           assetId,
           date,
@@ -7677,11 +7724,13 @@
           quantity,
           fees,
           fundingSource,
-          budgetPortion,
+          budgetPortion:funding.budgetPortion,
           side,
           note,
-          txId
-        }));
+          txId:''
+        });
+        syncInvestmentBudgetTx(trade, asset.name);
+        data.trades.unshift(trade);
         save(state);
         tradeForm.reset();
         const dateInput=tradeForm.querySelector('input[name="date"]');
