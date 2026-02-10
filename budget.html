@@ -6905,7 +6905,7 @@
   ];
 
   function invProviderHelp(provider){
-    if(provider==='stooq') return 'np. aapl.us, nvda.us, msft.us, amzn.us, inpst, sxr8.de';
+    if(provider==='stooq') return 'np. mu (auto->mu.us), nvda, msft.us, amzn.us, inpst, sxr8.de';
     if(provider==='coingecko') return 'np. bitcoin, ethereum';
     if(provider==='nbp') return 'np. USD, EUR';
     return 'Automatyczne odświeżanie wyłączone';
@@ -7028,16 +7028,27 @@
   }
 
   async function fetchStooqPrice(symbol){
-    const sym=String(symbol||'').trim().toLowerCase();
-    if(!sym) return null;
-    const res=await fetch(`https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcvn&e=csv`);
-    if(!res.ok) throw new Error('Błąd pobierania ze Stooq');
-    const txt=await res.text();
-    const lines=txt.trim().split(/\r?\n/);
-    if(lines.length<2) return null;
-    const cols=lines[1].split(',');
-    const close=Number(cols[6]);
-    return Number.isFinite(close)&&close>0?close:null;
+    const raw=String(symbol||'').trim().toLowerCase();
+    if(!raw) return null;
+    const hasMarketSuffix=/\.[a-z]{2,4}$/.test(raw);
+    const candidates=[raw];
+    if(!hasMarketSuffix){
+      candidates.push(`${raw}.us`,`${raw}.pl`,`${raw}.de`,`${raw}.as`);
+    }
+    const unique=[...new Set(candidates)];
+    for(const sym of unique){
+      const res=await fetch(`https://stooq.com/q/l/?s=${encodeURIComponent(sym)}&f=sd2t2ohlcvn&e=csv`);
+      if(!res.ok) continue;
+      const txt=await res.text();
+      const lines=txt.trim().split(/\r?\n/);
+      if(lines.length<2) continue;
+      const cols=lines[1].split(',');
+      const closeRaw=(cols[6]||'').trim();
+      if(!closeRaw||closeRaw==='N/D'||closeRaw==='0') continue;
+      const close=Number(closeRaw);
+      if(Number.isFinite(close)&&close>0) return close;
+    }
+    return null;
   }
 
   async function fetchCoinGeckoPrice(id,currency){
