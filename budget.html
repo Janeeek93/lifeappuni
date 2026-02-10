@@ -171,6 +171,11 @@
     .inv-hub-table tr:last-child td { border-bottom:none; }
     .inv-hub-empty { text-align:center; padding:30px 0; color:var(--muted); font-size:13px; }
 
+    details.card > summary { list-style:none; }
+    details.card > summary::-webkit-details-marker { display:none; }
+    details.card > summary::after { content:''; display:inline-block; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--muted); margin-left:8px; transition:transform .2s; }
+    details.card[open] > summary::after { transform:rotate(180deg); }
+
     .eom-hero {
       margin-top: 16px;
       display: flex;
@@ -4687,38 +4692,38 @@
             </div>
           </div>
 
-          <!-- Trade History -->
-          <div class="card stack">
-            <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <strong>Historia transakcji</strong>
+          <!-- Trade History (collapsible) -->
+          <details class="card stack" id="inv-trade-history-details">
+            <summary class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;cursor:pointer;user-select:none">
+              <strong>Historia transakcji <span class="muted" style="font-weight:400;font-size:12px" id="inv-trade-count-badge"></span></strong>
               <div class="inv-trade-filters">
                 <button type="button" class="inv-trade-filter is-active" data-filter="all">Wszystkie</button>
                 <button type="button" class="inv-trade-filter" data-filter="buy">Kupno</button>
                 <button type="button" class="inv-trade-filter" data-filter="sell">Sprzedaż</button>
               </div>
-            </div>
+            </summary>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-trades-table">
                 <thead><tr><th>Data</th><th>Typ</th><th>Aktywo</th><th>Ilość</th><th>Cena/szt.</th><th>Wartość</th><th>Źródło/Cel</th><th>P&amp;L</th><th>Notatka</th><th></th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
-          </div>
+          </details>
 
           <!-- Analytics -->
           <div class="card stack">
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Analityka</strong>
               <div class="inv-analytics-nav" role="tablist">
-                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="capital">Przepływy kapitału</button>
+                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)">Hub analityczny</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="capital">Przepływy kapitału</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative">Skumulowany kapitał</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation">Alokacja</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="pnl">P&amp;L</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)">Hub analityczny</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
-              <div class="inv-analytics-panel is-active" data-panel="capital">
+              <div class="inv-analytics-panel" data-panel="capital">
                 <div class="chart-box"><canvas id="inv-capital-chart"></canvas><div class="chart-empty" id="inv-capital-empty" style="display:none">Brak danych</div></div>
               </div>
               <div class="inv-analytics-panel" data-panel="cumulative">
@@ -4744,7 +4749,7 @@
               </div>
 
               <!-- =============== HUB ANALITYCZNY =============== -->
-              <div class="inv-analytics-panel" data-panel="hub">
+              <div class="inv-analytics-panel is-active" data-panel="hub">
 
                 <!-- Snapshot bar -->
                 <div class="inv-hub-snapshot-bar">
@@ -4798,7 +4803,18 @@
                     <div class="inv-hub-chart-box"><canvas id="inv-hub-pnl-chart"></canvas></div>
                   </div>
                   <div class="inv-hub-chart-card">
-                    <h4>Wpłaty tygodniowe / miesięczne</h4>
+                    <div class="row" style="justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                      <h4 style="margin:0">Wpłaty</h4>
+                      <div class="inv-trade-filters" style="margin:0">
+                        <button type="button" class="inv-hub-dep-mode is-active" data-dep-mode="monthly">Miesięczne</button>
+                        <button type="button" class="inv-hub-dep-mode" data-dep-mode="weekly">Tygodniowe</button>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                      <span class="muted" style="font-size:11px;white-space:nowrap">Ostatnie:</span>
+                      <input type="range" id="inv-hub-dep-range" min="1" max="52" value="12" style="flex:1;accent-color:#2563eb" />
+                      <span class="muted" style="font-size:11px;min-width:48px;text-align:right" id="inv-hub-dep-range-label">12</span>
+                    </div>
                     <div class="inv-hub-chart-box"><canvas id="inv-hub-deposits-chart"></canvas></div>
                   </div>
                   <div class="inv-hub-chart-card">
@@ -4807,37 +4823,22 @@
                   </div>
                 </div>
 
-                <!-- Portfolio structure -->
-                <div class="inv-hub-structure">
-                  <div class="inv-hub-structure-card">
-                    <h4>Struktura portfela wg grup</h4>
-                    <div style="height:220px;position:relative"><canvas id="inv-hub-structure-chart"></canvas></div>
-                  </div>
-                  <div class="inv-hub-structure-card">
-                    <h4>Top pozycje portfela</h4>
-                    <div class="table-wrapper">
-                      <table class="inv-hub-table" id="inv-hub-top-table">
-                        <thead><tr><th>#</th><th>Aktywo</th><th>Wartość</th><th>Udział</th><th>P&amp;L</th></tr></thead>
-                        <tbody></tbody>
-                      </table>
-                    </div>
-                  </div>
+                <!-- Top Holdings Chart (full width, bar sorted by PNL + ROI line) -->
+                <div class="inv-hub-chart-card" style="margin-top:14px">
+                  <h4>Ranking pozycji — P&amp;L + ROI</h4>
+                  <div style="height:280px;position:relative"><canvas id="inv-hub-top-chart"></canvas></div>
                 </div>
 
-                <!-- Compound interest calculator -->
-                <div class="inv-hub-calc">
-                  <h4>Kalkulator procentu składanego</h4>
+                <!-- Forecast Simulator (data-driven) -->
+                <div class="inv-hub-calc" style="margin-top:14px">
+                  <h4>Symulacja portfela — prognoza na bazie Twoich danych</h4>
+                  <p class="muted" style="font-size:12px;margin:-6px 0 10px">Bazuje na aktualnej wartości portfela i Twojej średniej miesięcznej wpłacie (ostatnie 3 miesiące). Scenariusze: obecna, 1.5x, 2x, 3x wpłata.</p>
                   <div class="inv-hub-calc-grid">
-                    <label class="inv-hub-calc-field">Kapitał początkowy<input type="text" id="inv-hub-calc-start" inputmode="decimal" placeholder="np. 10000" /></label>
-                    <label class="inv-hub-calc-field">Miesięczna wpłata<input type="text" id="inv-hub-calc-monthly" inputmode="decimal" placeholder="np. 500" /></label>
-                    <label class="inv-hub-calc-field">Roczna stopa (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" placeholder="np. 10" /></label>
-                    <label class="inv-hub-calc-field">Okres (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" placeholder="np. 20" /></label>
-                    <div><button class="btn" type="button" id="inv-hub-calc-btn">Oblicz</button></div>
+                    <label class="inv-hub-calc-field">Roczna stopa zwrotu (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" value="8" /></label>
+                    <label class="inv-hub-calc-field">Horyzont (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" value="5" /></label>
+                    <div><button class="btn" type="button" id="inv-hub-calc-btn">Przelicz scenariusze</button></div>
                   </div>
-                  <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none">
-                    <div class="big" id="inv-hub-calc-total"></div>
-                    <div class="detail" id="inv-hub-calc-detail"></div>
-                  </div>
+                  <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none"></div>
                   <div class="inv-hub-calc-chart-box"><canvas id="inv-hub-calc-chart"></canvas></div>
                 </div>
 
@@ -6852,7 +6853,7 @@
   let invCapitalChart=null, invCumulativeChart=null, invAllocationChart=null, invAllocationDetailChart=null, invPnlChart=null;
   let invSelectedAllocationGroup=null;
   let invModalBound=false;
-  let invActivePanel='capital';
+  let invActivePanel='hub';
   let invTradeMode='buy';
   let invTradeFilter='all';
 
@@ -7614,6 +7615,8 @@
     const tbody=document.querySelector('#inv-trades-table tbody');
     if(!tbody) return;
     tbody.innerHTML='';
+    const countBadge=document.getElementById('inv-trade-count-badge');
+    if(countBadge) countBadge.textContent=`(${data.trades.length})`;
     let trades=[...data.trades].sort((a,bb)=>String(bb.date||'').localeCompare(String(a.date||'')));
     if(invTradeFilter==='buy') trades=trades.filter(t=>t.side!=='sell');
     if(invTradeFilter==='sell') trades=trades.filter(t=>t.side==='sell');
@@ -7829,8 +7832,7 @@
 
   // --- Investment Analytics Hub -----------------------------------------------
   const INV_HUB_SNAP_KEY='lifeos_inv_hub_snapshots';
-  let invHubRoiChart=null, invHubPnlChart=null, invHubDepositsChart=null, invHubCumulativeChart=null;
-  let invHubStructureChart=null, invHubCalcChart=null;
+  let invHubRoiChart=null, invHubPnlChart=null, invHubDepositsChart=null, invHubCumulativeChart=null, invHubCalcChart=null;
   let invHubBound=false;
 
   function invHubSnapshots(){
@@ -7906,6 +7908,9 @@
     }
     return {weekly,monthly};
   }
+
+  let invHubDepMode='monthly';
+  let invHubTopChart=null;
 
   function renderInvHub(){
     const stats=computePortfolioStats();
@@ -8011,102 +8016,103 @@
       });
     }
 
-    // --- Deposits Chart (weekly/monthly) ---
-    if(invHubDepositsChart){invHubDepositsChart.destroy();invHubDepositsChart=null;}
-    const depCanvas=el('inv-hub-deposits-chart');
-    if(depCanvas){
-      const monthKeys=Object.keys(deposits.monthly).sort();
-      const wkSorted=Object.keys(deposits.weekly).sort();
-      if(monthKeys.length>0){
-        invHubDepositsChart=new Chart(depCanvas.getContext('2d'),{
-          type:'bar',
-          data:{
-            labels:monthKeys,
-            datasets:[
-              {label:'Wpłaty miesięczne',data:monthKeys.map(k=>deposits.monthly[k]||0),backgroundColor:colorWithAlpha('#2563eb',.6),borderRadius:4}
-            ]
-          },
-          options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
-            scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
-          }
-        });
-      }
-    }
+    // --- Deposits Chart (weekly/monthly with slider) ---
+    renderInvHubDeposits(deposits);
 
-    // --- Cumulative Deposits Chart ---
+    // --- Cumulative Capital + PNL overlay ---
     if(invHubCumulativeChart){invHubCumulativeChart.destroy();invHubCumulativeChart=null;}
     const cumCanvas=el('inv-hub-cumulative-chart');
     if(cumCanvas){
-      const buyTrades=[...data.trades].filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest').sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      // Build date-keyed cumulative capital from buy trades
+      const allTrades=[...data.trades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      const buyTrades=allTrades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
       if(buyTrades.length>0){
-        const dates=[];let running=0;const cumData=[];
+        // Collect all unique dates across buys and snapshots
+        const dateSet=new Set(buyTrades.map(t=>t.date));
+        snaps.forEach(s=>dateSet.add(s.date));
+        const allDates=[...dateSet].sort();
+
+        // Cumulative capital at each date
+        let running=0;
+        const cumByDate={};
         for(const t of buyTrades){
           running+=num(t.amount);
-          dates.push(t.date);
-          cumData.push(running);
+          cumByDate[t.date]=running;
         }
+        // Fill forward
+        let lastCum=0;
+        const cumData=allDates.map(d=>{
+          if(cumByDate[d]!==undefined) lastCum=cumByDate[d];
+          return lastCum;
+        });
+
+        // PNL from snapshots keyed by date
+        const pnlByDate={};
+        snaps.forEach(s=>{pnlByDate[s.date]=s.portfolioValue;});
+        // Portfolio value line - only show points where we have snapshot data
+        const portfolioData=allDates.map(d=>pnlByDate[d]!==undefined?pnlByDate[d]:null);
+
+        const datasets=[
+          {label:'Zainwestowany kapitał',data:cumData,borderColor:'#059669',backgroundColor:colorWithAlpha('#059669',.1),fill:true,tension:.3,borderWidth:2,pointRadius:1},
+          {label:'Wartość portfela (snapshoty)',data:portfolioData,borderColor:'#8b5cf6',backgroundColor:colorWithAlpha('#8b5cf6',.08),fill:true,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:'#8b5cf6',spanGaps:true}
+        ];
+
         invHubCumulativeChart=new Chart(cumCanvas.getContext('2d'),{
           type:'line',
-          data:{
-            labels:dates,
-            datasets:[{
-              label:'Kumulatywne wpłaty',data:cumData,
-              borderColor:'#059669',backgroundColor:colorWithAlpha('#059669',.1),
-              fill:true,tension:.3,borderWidth:2,pointRadius:1
-            }]
-          },
+          data:{labels:allDates,datasets},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Łącznie: ${currencyTicks(ctx.parsed.y)}`}}},
-            scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>ctx.parsed.y!==null?`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`:null}}},
+            interaction:{mode:'index',intersect:false},
+            scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
           }
         });
       }
     }
 
-    // --- Structure Chart (doughnut by group) ---
-    if(invHubStructureChart){invHubStructureChart.destroy();invHubStructureChart=null;}
-    const strCanvas=el('inv-hub-structure-chart');
-    if(strCanvas){
+    // --- Top Holdings Bar Chart (sorted by PNL, full width) ---
+    if(invHubTopChart){invHubTopChart.destroy();invHubTopChart=null;}
+    const topCanvas=el('inv-hub-top-chart');
+    if(topCanvas){
       const active=stats.holdings.filter(h=>h.qty>0.000001);
       if(active.length>0){
-        const groups=[...new Set(active.map(h=>h.group))];
-        const totals=groups.map(g=>active.filter(h=>h.group===g).reduce((s,h)=>s+(h.marketValue||h.costBasis),0));
-        const totalSum=totals.reduce((a,b)=>a+b,0);
-        invHubStructureChart=new Chart(strCanvas.getContext('2d'),{
-          type:'doughnut',
-          data:{labels:groups,datasets:[{data:totals,backgroundColor:groups.map((_,i)=>colorWithAlpha(invPalette[i%invPalette.length],.8)),borderColor:'#fff',borderWidth:2}]},
-          options:{
-            responsive:true,maintainAspectRatio:false,
+        const sorted=[...active].sort((a,b)=>{
+          const pnlA=a.marketValue!==null?(a.marketValue-a.costBasis):0;
+          const pnlB=b.marketValue!==null?(b.marketValue-b.costBasis):0;
+          return pnlB-pnlA;
+        });
+        const labels=sorted.map(h=>h.name);
+        const pnlData=sorted.map(h=>h.marketValue!==null?(h.marketValue-h.costBasis):0);
+        const roiData=sorted.map(h=>h.costBasis>0&&h.marketValue!==null?((h.marketValue-h.costBasis)/h.costBasis*100):0);
+        const barColors=pnlData.map(v=>v>=0?colorWithAlpha('#22c55e',.7):colorWithAlpha('#ef4444',.7));
+
+        invHubTopChart=new Chart(topCanvas.getContext('2d'),{
+          type:'bar',
+          data:{
+            labels,
+            datasets:[
+              {label:'P&L',data:pnlData,backgroundColor:barColors,borderRadius:4,yAxisID:'y',order:2},
+              {label:'ROI %',data:roiData,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#2563eb',tension:.3,yAxisID:'y2',order:1}
+            ]
+          },
+          options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
-              tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${currencyTicks(ctx.parsed)} (${totalSum?((ctx.parsed/totalSum)*100).toFixed(1):'0'}%)`}}}
+              tooltip:{callbacks:{label:ctx=>{
+                if(ctx.dataset.label==='ROI %') return `ROI: ${ctx.parsed.y.toFixed(1)}%`;
+                return `P&L: ${currencyTicks(ctx.parsed.y)}`;
+              }}}
+            },
+            scales:{
+              x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},
+              y:{position:'left',ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}},
+              y2:{position:'right',ticks:{callback:v=>v.toFixed(0)+'%'},grid:{display:false}}
+            }
           }
         });
       }
     }
 
-    // --- Top Holdings Table ---
-    const topTbody=document.querySelector('#inv-hub-top-table tbody');
-    if(topTbody){
-      topTbody.innerHTML='';
-      const active=stats.holdings.filter(h=>h.qty>0.000001);
-      const totalVal=active.reduce((s,h)=>s+(h.marketValue||h.costBasis),0)||1;
-      const sorted=[...active].sort((a,b)=>(b.marketValue||b.costBasis)-(a.marketValue||a.costBasis));
-      const top10=sorted.slice(0,10);
-      if(!top10.length){
-        topTbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted)">Brak pozycji</td></tr>';
-      } else {
-        top10.forEach((h,i)=>{
-          const val=h.marketValue||h.costBasis;
-          const pnl=h.marketValue!==null?(h.marketValue-h.costBasis):0;
-          const pnlCls=pnl>=0?'inv-pnl-pos':'inv-pnl-neg';
-          const weight=((val/totalVal)*100).toFixed(1);
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${i+1}</td><td><strong>${escapeHtml(h.name)}</strong><br><span class="muted" style="font-size:11px">${escapeHtml(h.group)}</span></td><td>${fmt(val,cur)}</td><td>${weight}%</td><td class="${pnlCls}">${pnl>=0?'+':''}${fmt(pnl,cur)}</td>`;
-          topTbody.appendChild(tr);
-        });
-      }
-    }
+    // --- Forecast Simulator (data-driven) ---
+    renderInvHubForecast(stats,deposits);
 
     // --- Snapshot History Table ---
     const snapTbody=document.querySelector('#inv-hub-snap-table tbody');
@@ -8132,69 +8138,144 @@
     }
   }
 
-  function invHubCompoundCalc(){
-    const startVal=num(document.getElementById('inv-hub-calc-start')?.value)||0;
-    const monthly=num(document.getElementById('inv-hub-calc-monthly')?.value)||0;
-    const rate=num(document.getElementById('inv-hub-calc-rate')?.value)||0;
-    const years=parseInt(document.getElementById('inv-hub-calc-years')?.value)||0;
-    if(years<=0) return;
+  // --- Deposits sub-chart with mode + range ---
+  function renderInvHubDeposits(deposits){
+    if(invHubDepositsChart){invHubDepositsChart.destroy();invHubDepositsChart=null;}
+    const canvas=document.getElementById('inv-hub-deposits-chart');
+    if(!canvas) return;
+    const rangeInput=document.getElementById('inv-hub-dep-range');
+    const rangeLabel=document.getElementById('inv-hub-dep-range-label');
+    const limit=rangeInput?parseInt(rangeInput.value):12;
+    const isWeekly=invHubDepMode==='weekly';
+    const src=isWeekly?deposits.weekly:deposits.monthly;
+    const allKeys=Object.keys(src).sort();
+    const keys=allKeys.slice(-limit);
+    const unit=isWeekly?'tyg.':'mies.';
+
+    // Update range max and label
+    if(rangeInput) rangeInput.max=String(Math.max(allKeys.length,1));
+    if(rangeLabel) rangeLabel.textContent=`${limit} ${unit}`;
+
+    if(!keys.length) return;
+    const vals=keys.map(k=>src[k]||0);
+    const avg=vals.reduce((s,v)=>s+v,0)/vals.length;
+
+    invHubDepositsChart=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:keys,
+        datasets:[
+          {label:isWeekly?'Wpłaty tygodniowe':'Wpłaty miesięczne',data:vals,backgroundColor:colorWithAlpha('#2563eb',.6),borderRadius:4},
+          {label:'Średnia',data:keys.map(()=>avg),type:'line',borderColor:colorWithAlpha('#f59e0b',.8),backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:0,tension:0}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>{
+          if(ctx.dataset.label==='Średnia') return `Średnia: ${currencyTicks(ctx.parsed.y)}`;
+          return `${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`;
+        }}}},
+        scales:{x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+      }
+    });
+  }
+
+  // --- Forecast Simulator ---
+  function renderInvHubForecast(stats,deposits){
+    if(invHubCalcChart){invHubCalcChart.destroy();invHubCalcChart=null;}
+    const el=id=>document.getElementById(id);
+    const cur=state.currency;
+
+    // Compute current avg monthly deposit from last 3 months
+    const monthKeys=Object.keys(deposits.monthly).sort();
+    const recentMonths=monthKeys.slice(-3);
+    const avgMonthly=recentMonths.length>0?recentMonths.reduce((s,k)=>s+deposits.monthly[k],0)/recentMonths.length:0;
+
+    // Current portfolio value as starting capital
+    const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
+
+    // Read user-controlled rate and horizon
+    const rateInput=el('inv-hub-calc-rate');
+    const yearsInput=el('inv-hub-calc-years');
+    const rate=rateInput&&rateInput.value?num(rateInput.value):8;
+    const years=yearsInput&&yearsInput.value?parseInt(yearsInput.value):5;
+
+    if(!rateInput?.value) rateInput.value='8';
+    if(!yearsInput?.value) yearsInput.value='5';
+
+    if(years<=0||years>60) return;
+
+    // Scenarios: current, 1.5x, 2x, 3x monthly deposit
+    const scenarios=[
+      {label:'Obecna wpłata',monthly:avgMonthly,color:'#2563eb'},
+      {label:'1.5x wpłata',monthly:avgMonthly*1.5,color:'#8b5cf6'},
+      {label:'2x wpłata',monthly:avgMonthly*2,color:'#059669'},
+      {label:'3x wpłata',monthly:avgMonthly*3,color:'#f59e0b'}
+    ];
 
     const monthlyRate=rate/100/12;
-    const months=years*12;
-    let balance=startVal;
-    let totalDeposits=startVal;
+    const totalMonths=years*12;
     const labels=[];
-    const balanceData=[];
-    const depositData=[];
+    for(let y=0;y<=years;y++) labels.push(`Rok ${y}`);
 
-    for(let m=0;m<=months;m++){
-      if(m>0){
-        balance=balance*(1+monthlyRate)+monthly;
-        totalDeposits+=monthly;
+    const scenarioResults=scenarios.map(sc=>{
+      const dataPoints=[];
+      let balance=currentVal;
+      let deposited=currentVal;
+      for(let m=0;m<=totalMonths;m++){
+        if(m>0){
+          balance=balance*(1+monthlyRate)+sc.monthly;
+          deposited+=sc.monthly;
+        }
+        if(m%12===0) dataPoints.push(Math.round(balance));
       }
-      if(m%12===0||m===months){
-        const yr=m/12;
-        labels.push(m===months?`${(m/12).toFixed(1)} lat`:`Rok ${Math.floor(yr)}`);
-        balanceData.push(Math.round(balance));
-        depositData.push(Math.round(totalDeposits));
+      return {...sc,data:dataPoints,finalBalance:balance,totalDeposited:deposited};
+    });
+
+    // Display result cards
+    const resultEl=el('inv-hub-calc-result');
+    if(resultEl){
+      resultEl.style.display='block';
+      let html=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">`;
+      for(const sc of scenarioResults){
+        const interest=sc.finalBalance-sc.totalDeposited;
+        const mult=sc.totalDeposited>0?(sc.finalBalance/sc.totalDeposited).toFixed(2):'—';
+        html+=`<div style="padding:10px;border-radius:10px;background:${colorWithAlpha(sc.color,.08)};border:1px solid ${colorWithAlpha(sc.color,.2)}">
+          <div style="font-size:11px;font-weight:700;color:${sc.color};text-transform:uppercase;margin-bottom:4px">${escapeHtml(sc.label)}</div>
+          <div style="font-size:11px;color:var(--muted)">Wpłata: ${fmt(sc.monthly,cur)}/mies.</div>
+          <div style="font-size:18px;font-weight:800;color:${sc.color};margin:4px 0">${fmt(sc.finalBalance,cur)}</div>
+          <div style="font-size:11px;color:var(--muted)">Wpłacono: ${fmt(sc.totalDeposited,cur)}</div>
+          <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(interest,cur)} (${mult}x)</div>
+        </div>`;
       }
+      html+=`</div>`;
+      resultEl.innerHTML=html;
     }
 
-    const cur=state.currency;
-    const totalEl=document.getElementById('inv-hub-calc-total');
-    const detailEl=document.getElementById('inv-hub-calc-detail');
-    const resultEl=document.getElementById('inv-hub-calc-result');
-    if(totalEl) totalEl.textContent=fmt(balance,cur);
-    if(detailEl){
-      const interest=balance-totalDeposits;
-      detailEl.innerHTML=`Wpłacono: ${fmt(totalDeposits,cur)} | Odsetki: ${fmt(interest,cur)} | Mnożnik: ${totalDeposits>0?(balance/totalDeposits).toFixed(2):'—'}x`;
-    }
-    if(resultEl) resultEl.style.display='block';
-
-    // Chart
-    if(invHubCalcChart){invHubCalcChart.destroy();invHubCalcChart=null;}
-    const canvas=document.getElementById('inv-hub-calc-chart');
+    // Forecast Chart
+    const canvas=el('inv-hub-calc-chart');
     if(canvas){
+      const datasets=scenarioResults.map(sc=>({
+        label:sc.label+` (${fmt(sc.monthly,cur)}/mies.)`,
+        data:sc.data,
+        borderColor:sc.color,
+        backgroundColor:colorWithAlpha(sc.color,.06),
+        fill:false,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:sc.color
+      }));
+      // Add deposit baseline (no returns)
+      let depBalance=currentVal;
+      const depData=[Math.round(currentVal)];
+      for(let y=1;y<=years;y++){depBalance+=avgMonthly*12;depData.push(Math.round(depBalance));}
+      datasets.push({label:'Tylko wpłaty (0% zwrotu)',data:depData,borderColor:'#94a3b8',backgroundColor:'transparent',borderDash:[6,3],borderWidth:2,pointRadius:0,tension:.3});
+
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
-        type:'bar',
-        data:{
-          labels,
-          datasets:[
-            {label:'Wpłaty',data:depositData,backgroundColor:colorWithAlpha('#94a3b8',.5),borderRadius:4,stack:'s'},
-            {label:'Odsetki',data:balanceData.map((v,i)=>v-depositData[i]),backgroundColor:colorWithAlpha('#2563eb',.6),borderRadius:4,stack:'s'}
-          ]
-        },
+        type:'line',
+        data:{labels,datasets},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
-            tooltip:{callbacks:{
-              label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`,
-              afterBody:(items)=>{
-                const idx=items[0]?.dataIndex;
-                if(idx!==undefined) return [`Łącznie: ${currencyTicks(balanceData[idx])}`];
-              }
-            }}
+            tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label.split(' (')[0]}: ${currencyTicks(ctx.parsed.y)}`}}
           },
-          scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
+          interaction:{mode:'index',intersect:false},
+          scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
         }
       });
     }
@@ -8212,12 +8293,30 @@
         renderInvHub();
       }
     };
+
+    // Deposits toggle
+    document.querySelectorAll('.inv-hub-dep-mode').forEach(btn=>{
+      btn.onclick=()=>{
+        invHubDepMode=btn.dataset.depMode||'monthly';
+        document.querySelectorAll('.inv-hub-dep-mode').forEach(b=>b.classList.toggle('is-active',b===btn));
+        renderInvHubDeposits(invHubComputeDeposits());
+      };
+    });
+    // Deposits range slider
+    const depRange=document.getElementById('inv-hub-dep-range');
+    if(depRange) depRange.oninput=()=>renderInvHubDeposits(invHubComputeDeposits());
+
+    // Forecast controls
+    const recalcForecast=()=>{
+      const stats=computePortfolioStats();
+      const deposits=invHubComputeDeposits();
+      renderInvHubForecast(stats,deposits);
+    };
     const calcBtn=document.getElementById('inv-hub-calc-btn');
-    if(calcBtn) calcBtn.onclick=invHubCompoundCalc;
-    // Enter key triggers calc
-    ['inv-hub-calc-start','inv-hub-calc-monthly','inv-hub-calc-rate','inv-hub-calc-years'].forEach(id=>{
+    if(calcBtn) calcBtn.onclick=recalcForecast;
+    ['inv-hub-calc-rate','inv-hub-calc-years'].forEach(id=>{
       const inp=document.getElementById(id);
-      if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();invHubCompoundCalc();}});
+      if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();recalcForecast();}});
     });
   }
 
