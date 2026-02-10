@@ -4649,27 +4649,46 @@
           <div class="inv-top-grid">
             <div class="card stack">
               <div class="row" style="justify-content: space-between; align-items: center;">
-                <strong>Nowy zakup</strong>
+                <strong>Nowa transakcja</strong>
                 <span class="badge ghost">Automatyczne księgowanie</span>
               </div>
               <form id="inv-trade-form" class="inv-compact-form">
+                <label class="inv-compact-field">Typ
+                  <select name="side" required>
+                    <option value="BUY">Kupno</option>
+                    <option value="SELL">Sprzedaż</option>
+                  </select>
+                </label>
                 <label class="inv-compact-field grow">Aktywo
                   <select name="assetId" required></select>
                 </label>
-                <label class="inv-compact-field">Data zakupu
+                <label class="inv-compact-field">Data transakcji
                   <input type="date" name="date" required />
                 </label>
-                <label class="inv-compact-field">Kwota wydana
+                <label class="inv-compact-field">Wartość brutto
                   <input name="amount" inputmode="decimal" placeholder="0,00" required />
                 </label>
                 <label class="inv-compact-field">Ilość
                   <input name="quantity" inputmode="decimal" placeholder="0" required />
                 </label>
-                <label class="inv-compact-field grow">Notatka
-                  <input name="note" placeholder="np. DCA, promo, HODL" />
+                <label class="inv-compact-field">Prowizje
+                  <input name="fees" inputmode="decimal" placeholder="0,00" />
                 </label>
-                <div class="inv-compact-footnote">Kwota trafia do „Wydatków zmiennych” &rarr; Inwestycje.</div>
-                <button class="btn" type="submit">Zapisz zakup</button>
+                <label class="inv-compact-field">Źródło BUY
+                  <select name="fundingSource">
+                    <option value="BUDGET">Własny budżet</option>
+                    <option value="REINVESTED_PROFIT">Zysk reinwestowany</option>
+                    <option value="MIXED">Mieszane</option>
+                  </select>
+                </label>
+                <label class="inv-compact-field">Kwota z budżetu
+                  <input name="budgetPortion" inputmode="decimal" placeholder="0,00" />
+                </label>
+                <label class="inv-compact-field grow">Notatka
+                  <input name="note" placeholder="np. DCA, rotacja, TP" />
+                </label>
+                <div class="inv-compact-footnote">BUY z budżetu trafia do „Wydatków zmiennych”. SELL księguje wpływ zwrotny.</div>
+                <button class="btn" type="submit">Zapisz transakcję</button>
               </form>
             </div>
 
@@ -4681,24 +4700,24 @@
               <ul class="inv-kpi-list">
                 <li class="inv-kpi-row">
                   <div class="inv-kpi-head">
-                    <span class="inv-kpi-label">Wszystkie inwestycje</span>
+                    <span class="inv-kpi-label">Wkład własny</span>
                     <span id="inv-kpi-total" class="inv-kpi-value">—</span>
                   </div>
-                  <div class="inv-kpi-meta">Suma zapisanych zakupów (bez wyceny rynkowej).</div>
+                  <div class="inv-kpi-meta">Środki realnie dołożone z budżetu.</div>
                 </li>
                 <li class="inv-kpi-row">
                   <div class="inv-kpi-head">
-                    <span class="inv-kpi-label">Ostatni zakup</span>
+                    <span class="inv-kpi-label">Ostatnia transakcja</span>
                     <span id="inv-kpi-last" class="inv-kpi-value">—</span>
                   </div>
                   <div class="inv-kpi-meta">Następny poniedziałek: <span id="inv-kpi-next">—</span></div>
                 </li>
                 <li class="inv-kpi-row">
                   <div class="inv-kpi-head">
-                    <span class="inv-kpi-label">Aktywność 30 dni</span>
+                    <span class="inv-kpi-label">Reinwestowany zysk</span>
                     <span id="inv-kpi-pace" class="inv-kpi-value">—</span>
                   </div>
-                  <div class="inv-kpi-meta">Liczba zakupów i wkład za ostatnie 30 dni.</div>
+                  <div class="inv-kpi-meta">Ile zysku już wróciło do kolejnych zakupów.</div>
                 </li>
               </ul>
             </div>
@@ -4747,10 +4766,12 @@
                 <thead>
                   <tr>
                     <th>Data</th>
+                    <th>Typ</th>
                     <th>Aktywo</th>
-                    <th>Kwota</th>
+                    <th>Wartość</th>
                     <th>Ilość</th>
-                    <th>Śr. cena</th>
+                    <th>Cena j.</th>
+                    <th>Zreal. P/L</th>
                     <th>Notatka</th>
                     <th>Akcje</th>
                   </tr>
@@ -4764,8 +4785,8 @@
             <div class="row" style="justify-content: space-between; align-items: center;">
               <strong>Analityka inwestycji</strong>
               <div class="inv-analytics-nav" role="tablist" aria-label="Widoki inwestycyjne">
-                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Wydatki tygodniowe</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Skumulowany kapitał</button>
+                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="weekly" aria-selected="true">Przepływy BUY/SELL</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative" aria-selected="false">Kapitał źródłowy</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation" aria-selected="false">Struktura portfela</button>
               </div>
             </div>
@@ -4774,14 +4795,14 @@
               <div class="inv-analytics-panel is-active" data-panel="weekly">
                 <div class="chart-box">
                   <canvas id="inv-weekly-chart"></canvas>
-                  <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak danych inwestycyjnych</div>
+                  <div class="chart-empty" id="inv-weekly-empty" style="display:none">Brak transakcji inwestycyjnych</div>
                 </div>
               </div>
 
               <div class="inv-analytics-panel" data-panel="cumulative">
                 <div class="chart-box">
                   <canvas id="inv-cumulative-chart"></canvas>
-                  <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj zakupy, aby zobaczyć kumulację.</div>
+                  <div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj transakcje, aby zobaczyć przebieg kapitału.</div>
                 </div>
               </div>
 
@@ -4790,7 +4811,7 @@
                   <div class="card stack" style="box-shadow:none; border:1px solid rgba(148,163,184,0.25);">
                     <div class="row" style="justify-content: space-between; align-items: center;">
                       <strong>Struktura główna</strong>
-                      <span class="tiny muted">Udział % wg grup</span>
+                      <span class="tiny muted">Udział kosztu otwartych pozycji wg grup</span>
                     </div>
                     <div class="chart-box" style="height:220px">
                       <canvas id="inv-allocation-chart"></canvas>
@@ -6807,12 +6828,89 @@
 
   const investments=()=>{
     if(!b().investments){
-      b().investments={assets:[], trades:[], groups:[]};
+      b().investments={assets:[], trades:[], groups:[], reinvestableProfit:0};
     }
     if(!Array.isArray(b().investments.assets)) b().investments.assets=[];
     if(!Array.isArray(b().investments.trades)) b().investments.trades=[];
     if(!Array.isArray(b().investments.groups)) b().investments.groups=[];
+    if(typeof b().investments.reinvestableProfit!=='number') b().investments.reinvestableProfit=0;
     return b().investments;
+  };
+
+  function normalizeInvestmentTrade(trade){
+    const side=(trade.side==='SELL'?'SELL':'BUY');
+    const grossValue=Math.abs(num(trade.grossValue ?? trade.amount));
+    const quantity=Math.abs(num(trade.quantity));
+    const fees=Math.abs(num(trade.fees));
+    const unitPrice=quantity>0 ? (num(trade.unitPrice)||grossValue/quantity) : num(trade.unitPrice);
+    const fundingSource=trade.fundingSource || 'BUDGET';
+    let budgetPortion=Math.abs(num(trade.budgetPortion));
+    if(side==='BUY' && budgetPortion===0 && fundingSource!=='REINVESTED_PROFIT') budgetPortion=grossValue;
+    if(side==='SELL') budgetPortion=0;
+    const netCashflow=side==='BUY' ? -(grossValue+fees) : (grossValue-fees);
+    return {
+      ...trade,
+      side,
+      grossValue,
+      amount:grossValue,
+      quantity,
+      fees,
+      unitPrice,
+      fundingSource,
+      budgetPortion,
+      netCashflow,
+      costBasisClosed:num(trade.costBasisClosed),
+      realizedPnl:num(trade.realizedPnl)
+    };
+  }
+
+  function migrateInvestmentTrades(){
+    const data=investments();
+    let changed=false;
+    data.trades=(data.trades||[]).map(t=>{
+      const n=normalizeInvestmentTrade(t);
+      if(JSON.stringify(n)!==JSON.stringify(t)) changed=true;
+      return n;
+    });
+    if(changed) save(state);
+  }
+
+  function computeInvestmentBook(){
+    const data=investments();
+    const trades=[...data.trades].map(normalizeInvestmentTrade).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const byAsset={};
+    let budgetContributed=0, realizedProfit=0, reinvestedProfitUsed=0, cashFromSells=0;
+    for(const t of trades){
+      const asset=byAsset[t.assetId] || {qty:0,cost:0};
+      if(t.side==='BUY'){
+        asset.qty+=t.quantity;
+        asset.cost+=t.grossValue+t.fees;
+        budgetContributed+=Math.min(t.budgetPortion,t.grossValue+t.fees);
+        if(t.fundingSource==='REINVESTED_PROFIT') reinvestedProfitUsed+=t.grossValue+t.fees;
+        if(t.fundingSource==='MIXED') reinvestedProfitUsed+=Math.max(0,(t.grossValue+t.fees)-t.budgetPortion);
+      }else{
+        const avg=asset.qty>0?asset.cost/asset.qty:0;
+        const closedCost=Math.min(asset.cost,avg*t.quantity);
+        const pnl=(t.grossValue-t.fees)-closedCost;
+        t.costBasisClosed=closedCost;
+        t.realizedPnl=pnl;
+        asset.qty=Math.max(0,asset.qty-t.quantity);
+        asset.cost=Math.max(0,asset.cost-closedCost);
+        realizedProfit+=pnl;
+        cashFromSells+=Math.max(0,t.grossValue-t.fees);
+      }
+      byAsset[t.assetId]=asset;
+    }
+    const holdings=investments().assets.map(asset=>{
+      const pos=byAsset[asset.id]||{qty:0,cost:0};
+      const avg=pos.qty>0?pos.cost/pos.qty:0;
+      const assetTrades=trades.filter(t=>t.assetId===asset.id);
+      const last=assetTrades[assetTrades.length-1]?.date||'';
+      return {...asset, qty:pos.qty, invested:pos.cost, avg, last, tradeCount:assetTrades.length};
+    });
+    const reinvestableProfit=Math.max(0,realizedProfit-reinvestedProfitUsed);
+    data.reinvestableProfit=reinvestableProfit;
+    return {trades,holdings,metrics:{budgetContributed,realizedProfit,reinvestedProfitUsed,reinvestableProfit,cashFromSells}};
   };
 
   const allInvestmentGroups=()=>{
@@ -7142,15 +7240,7 @@
   }
 
   function investmentHoldings(){
-    const data=investments();
-    return data.assets.map(asset=>{
-      const trades=data.trades.filter(t=>t.assetId===asset.id);
-      const qty=trades.reduce((s,t)=>s+num(t.quantity),0);
-      const invested=trades.reduce((s,t)=>s+num(t.amount),0);
-      const avg=qty>0 ? invested/qty : 0;
-      const last=trades.reduce((max,t)=>!max||t.date>max?t.date:max,'');
-      return {...asset, qty, invested, avg, last};
-    });
+    return computeInvestmentBook().holdings;
   }
 
   function investmentWeekKey(dateStr){
@@ -7178,24 +7268,36 @@
     if(!trade) return;
     const asset=data.assets.find(a=>a.id===updates.assetId);
     if(!asset) {alert('Wybierz aktywo z listy.'); return;}
-    const amount=Math.abs(num(updates.amount));
-    const quantity=num(updates.quantity);
-    if(!amount || amount<=0 || !quantity || quantity<=0){
-      alert('Kwota i ilość muszą być większe od zera.');
+    const grossValue=Math.abs(num(updates.amount));
+    const quantity=Math.abs(num(updates.quantity));
+    const fees=Math.abs(num(updates.fees));
+    const side=(updates.side==='SELL'?'SELL':'BUY');
+    if(!grossValue || grossValue<=0 || !quantity || quantity<=0){
+      alert('Wartość i ilość muszą być większe od zera.');
       return;
     }
-    trade.assetId=asset.id;
-    trade.date=updates.date;
-    trade.amount=amount;
-    trade.quantity=quantity;
-    trade.note=updates.note||'';
+    const fundingSource=updates.fundingSource||'BUDGET';
+    const budgetPortion=Math.max(0,Math.min(grossValue+fees,Math.abs(num(updates.budgetPortion||0)) || (side==='BUY' && fundingSource!=='REINVESTED_PROFIT'?grossValue+fees:0)));
+    Object.assign(trade, normalizeInvestmentTrade({
+      ...trade,
+      assetId:asset.id,
+      date:updates.date,
+      grossValue,
+      amount:grossValue,
+      quantity,
+      fees,
+      note:updates.note||'',
+      side,
+      fundingSource,
+      budgetPortion
+    }));
     if(trade.txId){
       const tx=b().transactions.find(tx=>tx.id===trade.txId);
       const catId=ensureInvestmentCategory();
       if(tx){
         tx.date=updates.date;
-        tx.amount=signFor(catId, amount);
-        tx.note=`Inwestycja: ${asset.name}${trade.note?` (${trade.note})`:''}`;
+        tx.amount=side==='BUY' ? signFor(catId, budgetPortion) : Math.abs(grossValue-fees);
+        tx.note=`Inwestycja ${side==='BUY'?'BUY':'SELL'}: ${asset.name}${trade.note?` (${trade.note})`:''}`;
         tx.categoryId=catId;
       }
     }
@@ -7203,23 +7305,28 @@
   }
 
   function renderInvestmentTradeRow(tr, trade, data){
-    const asset=data.assets.find(a=>a.id===trade.assetId);
-    const avg=trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—';
-    tr.innerHTML=`<td>${trade.date}</td><td>${asset?.name||'—'}</td><td>${fmt(trade.amount,state.currency)}</td><td>${trade.quantity}</td><td>${avg}</td><td>${trade.note||''}</td><td class="row" style="justify-content:flex-end;gap:6px"><button class="btn ghost" data-act="edit">Edytuj</button><button class="btn ghost" data-act="del">Usuń</button></td>`;
+    const nTrade=normalizeInvestmentTrade(trade);
+    const asset=data.assets.find(a=>a.id===nTrade.assetId);
+    const unit=nTrade.quantity?fmt(nTrade.grossValue/nTrade.quantity,state.currency):'—';
+    const sideBadge=nTrade.side==='SELL'?'<span class="pill bad">SELL</span>':'<span class="pill ok">BUY</span>';
+    const pl=nTrade.side==='SELL' ? fmt(nTrade.realizedPnl||0,state.currency) : '—';
+    tr.innerHTML=`<td>${nTrade.date}</td><td>${sideBadge}</td><td>${asset?.name||'—'}</td><td>${fmt(nTrade.grossValue,state.currency)}</td><td>${nTrade.quantity}</td><td>${unit}</td><td>${pl}</td><td>${nTrade.note||''}</td><td class="row" style="justify-content:flex-end;gap:6px"><button class="btn ghost" data-act="edit">Edytuj</button><button class="btn ghost" data-act="del">Usuń</button></td>`;
     const del=tr.querySelector('[data-act="del"]');
-    del.onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+    del.onclick=()=>{ if(!confirm('Usunąć tę transakcję i powiązaną transakcję budżetową?')) return; deleteInvestmentTrade(nTrade.id); };
     const edit=tr.querySelector('[data-act="edit"]');
-    edit.onclick=()=>enterInvestmentTradeEdit(tr, trade, data);
+    edit.onclick=()=>enterInvestmentTradeEdit(tr, nTrade, data);
   }
 
   function enterInvestmentTradeEdit(tr, trade, data){
     const assetOptions=sortAssetsByGroupThenName(data.assets).map(a=>`<option value="${a.id}" ${a.id===trade.assetId?'selected':''}>${a.name} (${a.group||'Inne'})</option>`).join('');
     tr.innerHTML=`
       <td><input type="date" name="date" value="${trade.date||''}" /></td>
+      <td><select name="side"><option value="BUY" ${trade.side==='BUY'?'selected':''}>BUY</option><option value="SELL" ${trade.side==='SELL'?'selected':''}>SELL</option></select></td>
       <td><select name="assetId">${assetOptions}</select></td>
-      <td><input name="amount" inputmode="decimal" value="${trade.amount}" /></td>
+      <td><input name="amount" inputmode="decimal" value="${trade.grossValue||trade.amount}" /></td>
       <td><input name="quantity" inputmode="decimal" value="${trade.quantity}" /></td>
-      <td class="muted">${trade.quantity?fmt(trade.amount/trade.quantity,state.currency):'—'}</td>
+      <td><input name="fees" inputmode="decimal" value="${trade.fees||0}" /></td>
+      <td class="muted">${trade.side==='SELL'?fmt(trade.realizedPnl||0,state.currency):'—'}</td>
       <td><input name="note" value="${trade.note||''}" placeholder="Notatka" /></td>
       <td class="row" style="justify-content:flex-end;gap:6px">
         <button class="btn" data-act="save">Zapisz</button>
@@ -7228,14 +7335,16 @@
       </td>`;
     tr.querySelector('[data-act="save"]').onclick=()=>{
       const date=String(tr.querySelector('[name="date"]').value||trade.date||'');
+      const side=String(tr.querySelector('[name="side"]').value||'BUY');
       const assetId=String(tr.querySelector('[name="assetId"]').value||'');
       const amount=tr.querySelector('[name="amount"]').value;
       const quantity=tr.querySelector('[name="quantity"]').value;
+      const fees=tr.querySelector('[name="fees"]').value;
       const note=tr.querySelector('[name="note"]').value;
-      updateInvestmentTrade(trade.id,{date,assetId,amount,quantity,note});
+      updateInvestmentTrade(trade.id,{date,side,assetId,amount,quantity,fees,note,fundingSource:trade.fundingSource,budgetPortion:trade.budgetPortion});
     };
     tr.querySelector('[data-act="cancel"]').onclick=()=>renderInvestments();
-    tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć ten zakup i powiązaną transakcję?')) return; deleteInvestmentTrade(trade.id); };
+    tr.querySelector('[data-act="del"]').onclick=()=>{ if(!confirm('Usunąć tę transakcję i powiązaną transakcję budżetową?')) return; deleteInvestmentTrade(trade.id); };
   }
 
   function deleteInvestmentAsset(assetId){
@@ -7266,7 +7375,7 @@
       data:weeks.map(week=>trades.filter(t=>{
         const asset=assets.find(a=>a.id===t.assetId);
         return investmentWeekKey(t.date)===week && (asset?.group||'Inne')===group;
-      }).reduce((s,t)=>s+num(t.amount),0)),
+      }).reduce((s,t)=>s+(t.side==='SELL'?-num(t.grossValue):num(t.grossValue)),0)),
       backgroundColor:colorWithAlpha(invPalette[idx%invPalette.length],0.35),
       borderColor:invPalette[idx%invPalette.length],
       borderWidth:1.5,
@@ -7310,7 +7419,7 @@
         const daySum=sorted.filter(t=>t.date===date).filter(t=>{
           const asset=assets.find(a=>a.id===t.assetId);
           return (asset?.group||'Inne')===group;
-        }).reduce((s,t)=>s+num(t.amount),0);
+        }).reduce((s,t)=>s+(t.side==='SELL'?-num(t.grossValue):num(t.grossValue)),0);
         running+=daySum;
         return running;
       });
@@ -7424,8 +7533,8 @@
     if(countEl) countEl.textContent=`Aktywa: ${holdings.length}`;
     if(groupEl) groupEl.textContent=`Grupy: ${new Set(holdings.map(h=>h.group||'Inne')).size || '—'}`;
     const lastTrade=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
-    if(lastEl) lastEl.textContent=lastTrade ? `Ostatni zakup: ${lastTrade.date}` : 'Ostatni zakup: —';
-    if(tradesEl) tradesEl.textContent=trades.length ? `${trades.length} zak.` : '—';
+    if(lastEl) lastEl.textContent=lastTrade ? `Ostatnia transakcja: ${lastTrade.date}` : 'Ostatnia transakcja: —';
+    if(tradesEl) tradesEl.textContent=trades.length ? `${trades.length} trans.` : '—';
     if(tradesMonthEl){
       const now=new Date();
       const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -7436,8 +7545,8 @@
       const now=new Date();
       const year=now.getFullYear();
       const month=String(now.getMonth()+1).padStart(2,'0');
-      const ytd=trades.filter(t=>String(t.date||'').startsWith(String(year))).reduce((s,t)=>s+num(t.amount),0);
-      const mtd=trades.filter(t=>String(t.date||'').startsWith(`${year}-${month}`)).reduce((s,t)=>s+num(t.amount),0);
+      const ytd=trades.filter(t=>String(t.date||'').startsWith(String(year))).reduce((s,t)=>s+(t.side==='SELL'?-num(t.grossValue):num(t.grossValue)),0);
+      const mtd=trades.filter(t=>String(t.date||'').startsWith(`${year}-${month}`)).reduce((s,t)=>s+(t.side==='SELL'?-num(t.grossValue):num(t.grossValue)),0);
       if(ytdEl) ytdEl.textContent=ytd ? fmt(ytd,state.currency) : '—';
       if(monthEl) monthEl.textContent=mtd ? `Bieżący miesiąc: ${fmt(mtd,state.currency)}` : 'Bieżący miesiąc: —';
     }
@@ -7456,13 +7565,12 @@
     return {days:delta, date:`${y}-${m}-${d}`};
   }
 
-  function updateInvestmentKpis(holdings,trades){
+  function updateInvestmentKpis(holdings,trades,metrics){
     const totalEl=document.getElementById('inv-kpi-total');
     const lastEl=document.getElementById('inv-kpi-last');
     const nextEl=document.getElementById('inv-kpi-next');
     const paceEl=document.getElementById('inv-kpi-pace');
-    const total=holdings.reduce((s,h)=>s+h.invested,0);
-    if(totalEl) totalEl.textContent=fmt(total,state.currency);
+    if(totalEl) totalEl.textContent=fmt(metrics?.budgetContributed||0,state.currency);
 
     const last=[...trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
     if(lastEl) lastEl.textContent=last?.date || 'Brak danych';
@@ -7470,18 +7578,13 @@
     if(nextEl){
       const {days,date}=nextInvestmentMondayCountdown();
       const dayLabel=days===0?'dzisiaj':`za ${days} dni`;
-      const gap=last?.date ? Math.max(0, Math.floor((new Date()-new Date(last.date))/86400000)) : null;
-      const gapLabel=gap!==null?` • od ostatniego zakupu ${gap} dni`:' • brak historii zakupów';
-      nextEl.textContent=`${dayLabel} (${date})${gapLabel}`;
+      nextEl.textContent=`${dayLabel} (${date})`;
     }
 
     if(paceEl){
-      const now=new Date();
-      const cutoff=new Date(now);
-      cutoff.setDate(now.getDate()-30);
-      const recent=trades.filter(t=>t.date && new Date(t.date)>=cutoff);
-      const sum=recent.reduce((s,t)=>s+num(t.amount),0);
-      paceEl.textContent=recent.length ? `${recent.length} zak. / ${fmt(sum,state.currency)}` : 'Brak zakupów';
+      const reinvestable=metrics?.reinvestableProfit||0;
+      const used=metrics?.reinvestedProfitUsed||0;
+      paceEl.textContent=`${fmt(used,state.currency)} • dostępne ${fmt(reinvestable,state.currency)}`;
     }
   }
 
@@ -7489,6 +7592,8 @@
   function renderInvestments(){
     ensureInvestmentCategory();
     const data=investments();
+    migrateInvestmentTrades();
+    const book=computeInvestmentBook();
     bindInvestmentModal();
     bindInvestmentAnalyticsNav();
     renderAssetManagerList(data.assets,data.trades);
@@ -7518,30 +7623,41 @@
         const asset=data.assets.find(a=>a.id===assetId);
         if(!asset){alert('Dodaj najpierw aktywo (przycisk „Zarządzaj aktywami”).'); return;}
         const date=f.get('date')||new Date().toISOString().slice(0,10);
-        const amount=Math.abs(num(f.get('amount')));
-        const quantity=num(f.get('quantity'));
+        const side=String(f.get('side')||'BUY');
+        const grossValue=Math.abs(num(f.get('amount')));
+        const quantity=Math.abs(num(f.get('quantity')));
+        const fees=Math.abs(num(f.get('fees')));
+        const fundingSource=String(f.get('fundingSource')||'BUDGET');
         const note=String(f.get('note')||'');
-        if(amount<=0 || quantity<=0){alert('Kwota i ilość muszą być większe od zera.'); return;}
+        const budgetPortionInput=Math.abs(num(f.get('budgetPortion')));
+        if(grossValue<=0 || quantity<=0){alert('Wartość i ilość muszą być większe od zera.'); return;}
         const catId=ensureInvestmentCategory();
         const txId=`tx_${Math.random().toString(36).slice(2)}`;
-        const signed=signFor(catId, amount);
+        const defaultBudget=side==='BUY' ? (fundingSource==='REINVESTED_PROFIT'?0:(grossValue+fees)) : 0;
+        const budgetPortion=Math.max(0,Math.min(grossValue+fees,budgetPortionInput||defaultBudget));
+        const txAmount=side==='BUY' ? signFor(catId, budgetPortion) : Math.abs(grossValue-fees);
         b().transactions.unshift({
           id:txId,
           date,
-          amount:signed,
+          amount:txAmount,
           categoryId:catId,
           accountId:b().accounts[0]?.id||'a_main',
-          note:`Inwestycja: ${asset.name}${note?` (${note})`:''}`
+          note:`Inwestycja ${side}: ${asset.name}${note?` (${note})`:''}`
         });
-        data.trades.unshift({
+        data.trades.unshift(normalizeInvestmentTrade({
           id:'inv_trade_'+Math.random().toString(36).slice(2),
           assetId,
           date,
-          amount,
+          amount:grossValue,
+          grossValue,
           quantity,
+          fees,
+          fundingSource,
+          budgetPortion,
+          side,
           note,
           txId
-        });
+        }));
         save(state);
         tradeForm.reset();
         const dateInput=tradeForm.querySelector('input[name="date"]');
@@ -7554,19 +7670,20 @@
     const tradeDate=document.querySelector('#inv-trade-form input[name="date"]');
     if(tradeDate && !tradeDate.value) tradeDate.value=new Date().toISOString().slice(0,10);
 
-    const holdings=investmentHoldings();
-    updateInvestmentSnapshot(holdings, data.trades, data.assets);
-    updateInvestmentKpis(holdings, data.trades);
-    renderInvestmentGroupTable(holdings,data.trades);
-    renderInvestmentHoldingsAccordion(holdings,data.trades);
+    const holdings=book.holdings;
+    const normalizedTrades=book.trades;
+    updateInvestmentSnapshot(holdings, normalizedTrades, data.assets);
+    updateInvestmentKpis(holdings, normalizedTrades, book.metrics);
+    renderInvestmentGroupTable(holdings,normalizedTrades);
+    renderInvestmentHoldingsAccordion(holdings,normalizedTrades);
 
     const tradesBody=document.querySelector('#inv-trades-table tbody');
     if(tradesBody){
       tradesBody.innerHTML='';
-      const trades=[...data.trades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+      const trades=[...normalizedTrades].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
       if(trades.length===0){
         const tr=document.createElement('tr');
-        tr.innerHTML='<td colspan="7" class="muted" style="text-align:center">Brak zapisanych zakupów.</td>';
+        tr.innerHTML='<td colspan="9" class="muted" style="text-align:center">Brak zapisanych transakcji.</td>';
         tradesBody.appendChild(tr);
       } else {
         for(const t of trades){
@@ -7577,8 +7694,8 @@
       }
     }
 
-    renderInvestmentWeeklyChart(data.trades, data.assets);
-    renderInvestmentCumulativeChart(data.trades, data.assets);
+    renderInvestmentWeeklyChart(normalizedTrades, data.assets);
+    renderInvestmentCumulativeChart(normalizedTrades, data.assets);
     renderInvestmentAllocations(holdings);
     bindMoneyInputs(document.getElementById('tab-investments'));
   }
