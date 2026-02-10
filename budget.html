@@ -6901,12 +6901,16 @@
     {value:'manual',label:'Ręcznie'},
     {value:'stooq',label:'Akcje/ETF (auto: Yahoo/Stooq)'},
     {value:'yahoo',label:'Yahoo (akcje/ETF)'},
+    {value:'fmp',label:'FMP Stable (akcje USD→PLN)'},
     {value:'coingecko',label:'CoinGecko (krypto)'},
     {value:'nbp',label:'NBP (waluty)'}
   ];
 
+  const INV_FMP_API_KEY='fu3KeB4obDGLv096Vp0hTiMxNnnhkv34';
+
   function invProviderHelp(provider){
     if(provider==='stooq'||provider==='yahoo') return 'np. MU, NVDA, MSFT, AMZN, INPST.AS, CSPX.AS';
+    if(provider==='fmp') return 'np. MU, TSLA, AAPL (automatycznie przeliczane USD→PLN)';
     if(provider==='coingecko') return 'np. bitcoin, ethereum';
     if(provider==='nbp') return 'np. USD, EUR';
     return 'Automatyczne odświeżanie wyłączone';
@@ -7119,6 +7123,28 @@
     return Number.isFinite(mid)&&mid>0?mid:null;
   }
 
+  async function fetchUsdPlnRate(){
+    const rate=await fetchNbpFxPrice('USD');
+    if(!rate||rate<=0) throw new Error('Brak kursu USD/PLN z NBP');
+    return rate;
+  }
+
+  async function fetchFmpStablePricePln(symbol){
+    const sym=String(symbol||'').trim().toUpperCase();
+    if(!sym) return null;
+    const apiKey=(localStorage.getItem('invFmpApiKey')||INV_FMP_API_KEY||'').trim();
+    if(!apiKey) throw new Error('Brak klucza FMP API');
+    const usdPln=await fetchUsdPlnRate();
+    const url=`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(sym)}&apikey=${encodeURIComponent(apiKey)}`;
+    const res=await fetchWithCorsFallback(url);
+    if(!res.ok) throw new Error('Błąd pobierania z FMP Stable');
+    const data=await res.json();
+    if(!Array.isArray(data)||!data.length) throw new Error('Nie znaleziono symbolu w FMP');
+    const priceUsd=Number(data[0]?.price);
+    if(!Number.isFinite(priceUsd)||priceUsd<=0) throw new Error('FMP nie zwróciło ceny');
+    return {pricePln:priceUsd*usdPln, priceUsd, usdPln, companyName:String(data[0]?.companyName||sym)};
+  }
+
   async function fetchAssetPrice(asset){
     const provider=String(asset.priceProvider||'manual');
     const symbol=String(asset.priceSymbol||'').trim();
@@ -7145,6 +7171,10 @@
       }
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
+      if(provider==='fmp'){
+        const out=await fetchFmpStablePricePln(symbol);
+        return {price:out?.pricePln||null,currency:'PLN'};
+      }
       return {price:null,error:'Nieznany provider'};
     }catch(err){
       return {price:null,error:err?.message||'Błąd pobierania'};
@@ -7165,7 +7195,7 @@
     for(const asset of assets){
       const out=await fetchAssetPrice(asset);
       if(out.skipped){skipped++;continue;}
-      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;updated++;}
+      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;if(out.currency) asset.priceCurrency=String(out.currency).toUpperCase();updated++;}
       else failed++;
     }
     save(state);
