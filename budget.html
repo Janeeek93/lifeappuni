@@ -176,6 +176,48 @@
     details.card > summary::after { content:''; display:inline-block; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--muted); margin-left:8px; transition:transform .2s; }
     details.card[open] > summary::after { transform:rotate(180deg); }
 
+    /* --- EOM v2 Redesign ----------------------------------------------- */
+    .eom2-shell { max-width:1320px; margin:0 auto; padding:8px 0 24px; display:flex; flex-direction:column; gap:16px; }
+    .eom2-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+    .eom2-kpi { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:3px; }
+    .eom2-kpi .kpi-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+    .eom2-kpi .kpi-val { font-size:22px; font-weight:700; color:var(--ink); line-height:1.2; }
+    .eom2-kpi .kpi-sub { font-size:11px; color:var(--muted); }
+    .eom2-kpi.positive .kpi-val { color:#16a34a; }
+    .eom2-kpi.negative .kpi-val { color:#dc2626; }
+    .eom2-kpi.accent { background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); border-color:transparent; }
+    .eom2-kpi.accent .kpi-label { color:rgba(255,255,255,.7); }
+    .eom2-kpi.accent .kpi-val { color:#fff; }
+    .eom2-kpi.accent .kpi-sub { color:rgba(255,255,255,.6); }
+
+    .eom2-charts-row { display:flex; gap:16px; flex-wrap:wrap; }
+    .eom2-bottleneck-row { display:flex; gap:16px; flex-wrap:wrap; }
+    .eom2-bottleneck-row > * { flex:1; min-width:260px; }
+    @media(max-width:768px){ .eom2-charts-row, .eom2-bottleneck-row { flex-direction:column; } }
+
+    .eom2-booking-group { margin-bottom:12px; }
+    .eom2-booking-group-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 0 4px; border-bottom:1px solid rgba(148,163,184,.15); margin-bottom:6px; }
+    .eom2-booking-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid rgba(148,163,184,.08); }
+    .eom2-booking-row:last-child { border-bottom:none; }
+    .eom2-booking-name { flex:1; min-width:120px; font-size:13px; font-weight:500; }
+    .eom2-booking-name .type-badge { font-size:10px; font-weight:600; padding:1px 6px; border-radius:4px; margin-left:6px; }
+    .eom2-booking-prev { min-width:100px; text-align:right; font-size:12px; color:var(--muted); }
+    .eom2-booking-input { width:130px; }
+    .eom2-booking-input input { width:100%; height:34px; text-align:right; font-weight:600; }
+    .eom2-booking-delta { min-width:90px; text-align:right; font-size:12px; font-weight:600; }
+    .eom2-booking-delta.pos { color:#16a34a; }
+    .eom2-booking-delta.neg { color:#dc2626; }
+    .eom2-booking-actions { min-width:30px; text-align:center; }
+    .eom2-booking-actions button { background:none; border:none; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 4px; }
+    .eom2-booking-actions button:hover { color:#dc2626; }
+
+    .eom2-gainer-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(148,163,184,.08); font-size:13px; }
+    .eom2-gainer-item:last-child { border-bottom:none; }
+    .eom2-gainer-name { font-weight:500; }
+    .eom2-gainer-delta { font-weight:700; }
+    .eom2-gainer-delta.pos { color:#16a34a; }
+    .eom2-gainer-delta.neg { color:#dc2626; }
+
     .eom-hero {
       margin-top: 16px;
       display: flex;
@@ -4918,243 +4960,113 @@
     </section>
 
     <!-- EOM -->
-    <section id="tab-eom" class="card" style="margin-top:12px;display:none">
-      <div class="row" style="align-items:flex-start;gap:12px">
-        <div>
-          <h3 class="title" style="margin-bottom:4px">Salda i majątek netto</h3>
-          <p id="eom-prompt" class="tiny"></p>
+    <section id="tab-eom" style="margin-top:12px;display:none">
+      <div class="eom2-shell">
+
+        <!-- Header -->
+        <div class="row" style="justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div>
+            <div class="badge">Majątek netto</div>
+            <p class="tiny muted" style="margin-top:4px">Zamknięcie miesiąca — zaksięguj stan posiadania i śledź swój majątek.</p>
+          </div>
+          <div class="row" style="gap:8px;align-items:center">
+            <select id="eom2-month-select" style="height:38px;min-width:150px;font-weight:600"></select>
+            <button class="btn soft" type="button" id="eom2-copy-prev">Skopiuj poprzedni</button>
+          </div>
         </div>
-        <div class="row" style="gap:8px;align-items:center">
-          <div class="tiny muted" style="display:flex;align-items:center;gap:6px">Aktywny miesiąc <span class="pill" id="eom-active-month"></span></div>
-          <button class="btn soft" type="button" id="eom-copy-last">Skopiuj poprzedni zapis</button>
+
+        <!-- KPIs -->
+        <div class="eom2-kpis" id="eom2-kpis">
+          <div class="eom2-kpi accent" id="eom2-kpi-nw-card">
+            <span class="kpi-label">Majątek netto</span>
+            <span class="kpi-val" id="eom2-kpi-nw">—</span>
+            <span class="kpi-sub" id="eom2-kpi-nw-sub"></span>
+          </div>
+          <div class="eom2-kpi" id="eom2-kpi-change-card">
+            <span class="kpi-label">Zmiana m/m</span>
+            <span class="kpi-val" id="eom2-kpi-change">—</span>
+            <span class="kpi-sub" id="eom2-kpi-change-sub"></span>
+          </div>
+          <div class="eom2-kpi">
+            <span class="kpi-label">Aktywa</span>
+            <span class="kpi-val" id="eom2-kpi-assets" style="color:#16a34a">—</span>
+            <span class="kpi-sub" id="eom2-kpi-assets-sub"></span>
+          </div>
+          <div class="eom2-kpi">
+            <span class="kpi-label">Zobowiązania</span>
+            <span class="kpi-val" id="eom2-kpi-debt" style="color:#dc2626">—</span>
+            <span class="kpi-sub" id="eom2-kpi-debt-sub"></span>
+          </div>
         </div>
-      </div>
 
-      <div class="eom-hero">
-        <div id="eom-kpis" class="eom-hero-grid"></div>
-        <div id="eom-insights" class="eom-hero-insights"></div>
-      </div>
-
-      <div class="eom-dashboard-nav" id="eom-dashboard-nav" role="tablist" aria-label="Widoki Salda EoM">
-        <button type="button" class="eom-dashboard-tab is-active" id="eom-dashboard-tab-overview" data-panel="overview" role="tab" aria-selected="true" aria-controls="eom-dashboard-overview" tabindex="0">Trend majątku</button>
-        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-performance" data-panel="performance" role="tab" aria-selected="false" aria-controls="eom-dashboard-performance" tabindex="-1">Wydajność kont</button>
-        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-accounts" data-panel="accounts" role="tab" aria-selected="false" aria-controls="eom-dashboard-accounts" tabindex="-1">Rejestr sald</button>
-        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-history" data-panel="history" role="tab" aria-selected="false" aria-controls="eom-dashboard-history" tabindex="-1">Historia</button>
-        <button type="button" class="eom-dashboard-tab" id="eom-dashboard-tab-comparison" data-panel="comparison" role="tab" aria-selected="false" aria-controls="eom-dashboard-comparison" tabindex="-1">Porównanie m/m</button>
-      </div>
-
-      <div class="eom-dashboard-panels" id="eom-dashboard-panels">
-        <section class="eom-dashboard-panel is-active" data-panel="overview" id="eom-dashboard-overview" role="tabpanel" aria-labelledby="eom-dashboard-tab-overview">
-          <section class="eom-networth-section" id="eom-networth">
-            <div class="eom-networth-header">
-              <div class="eom-networth-title">
-                <div class="title">Trend majątku netto</div>
-                <p class="tiny">Historia wartości portfela z podziałem na główne składniki. Kliknij punkt, aby zobaczyć szczegóły miesiąca.</p>
-              </div>
-              <div class="eom-networth-tabs" id="eom-networth-tabs">
-                <button class="eom-networth-tab" type="button" data-range-tab="3m">3m</button>
-                <button class="eom-networth-tab" type="button" data-range-tab="6m">6m</button>
-                <button class="eom-networth-tab" type="button" data-range-tab="12m">12m</button>
-                <button class="eom-networth-tab" type="button" data-range-tab="all">Wszystkie</button>
-              </div>
-            </div>
-            <div class="eom-networth-chart-shell">
-              <canvas id="eom-networth-chart"></canvas>
-              <div id="eom-networth-empty" class="eom-networth-empty">Brak danych w tym zakresie — dodaj zapisy lub zmień filtry, aby zobaczyć trend majątku netto.</div>
-            </div>
-            <div id="eom-networth-month-card" class="eom-networth-month-card is-empty">Wybierz punkt na wykresie, aby podejrzeć szczegóły miesiąca.</div>
-          </section>
-        </section>
-
-        <section class="eom-dashboard-panel" data-panel="performance" id="eom-dashboard-performance" role="tabpanel" aria-labelledby="eom-dashboard-tab-performance" hidden>
-          <section class="eom-performance-matrix" id="eom-performance-matrix">
-            <div class="eom-performance-column">
-              <div class="eom-performance-head">
-                <h4 class="title">🔥 Top Performers</h4>
-                <p class="tiny muted">Największe wzrosty miesiąc do miesiąca. Kliknij kartę, aby przejść do szczegółów.</p>
-              </div>
-              <div class="eom-performance-list" data-zone="top"></div>
-            </div>
-            <div class="eom-performance-column">
-              <div class="eom-performance-head">
-                <h4 class="title">⚠️ Wymagają uwagi</h4>
-                <p class="tiny muted">Największe spadki miesiąc do miesiąca — sprawdź, co ciągnie wynik w dół.</p>
-              </div>
-              <div class="eom-performance-list" data-zone="watch"></div>
-            </div>
-          </section>
-        </section>
-
-        <section class="eom-dashboard-panel" data-panel="accounts" id="eom-dashboard-accounts" role="tabpanel" aria-labelledby="eom-dashboard-tab-accounts" hidden>
-          <div class="eom-panel" style="margin-top:0">
-            <div class="row" style="align-items:flex-end;gap:12px">
-              <div>
-                <div class="title" style="margin-bottom:4px">Rejestr sald</div>
-                <p class="tiny">Dodaj konta i uzupełnij ich stany na koniec miesiąca. Dane są przechowywane lokalnie w przeglądarce.</p>
-              </div>
-            </div>
-              <form id="acct-form" class="grid g-3" style="gap:8px;margin:12px 0">
-                <input name="name" placeholder="Dodaj konto (np. Oszczędności, Dług na karcie)" style="grid-column: span 2;"/>
-                <button class="btn soft" type="submit">Dodaj konto</button>
-              </form>
-              <div class="eom-account-config" id="eom-account-config"></div>
-            <div class="eom-control-bar" id="eom-control-bar">
-              <label class="filter-group">
-                <span class="tiny">Typy kont</span>
-                <select id="eom-account-type-filter" multiple size="4" style="min-width:200px"></select>
-                <span class="tiny muted">Wybierz typy kont, które mają pozostać w widoku.</span>
-              </label>
-              <div class="filter-group">
-                <label class="tiny" for="eom-date-from">Zakres miesięcy</label>
-                <div class="row" style="gap:6px;align-items:center">
-                  <input type="month" id="eom-date-from" />
-                  <span class="tiny muted">→</span>
-                  <input type="month" id="eom-date-to" />
-                </div>
-                <span class="tiny muted">Określ zakres do analizy trendów.</span>
-              </div>
-              <div class="filter-group">
-                <span class="tiny">Widok danych</span>
-                <div class="row" style="gap:6px;align-items:center">
-                  <button class="btn soft" type="button" id="eom-pivot-toggle" data-active="0">Widok pivot</button>
-                  <select id="eom-group-by" style="min-width:160px">
-                    <option value="type">Grupuj wg typu</option>
-                    <option value="status">Grupuj wg statusu</option>
-                    <option value="none">Bez grupowania</option>
-                  </select>
-                </div>
-                <span class="tiny muted">Przełącz się między tabelą edycyjną a widokiem analitycznym.</span>
-              </div>
-            </div>
-            <div class="eom-account-toolbar" id="eom-account-toolbar">
-              <div class="controls">
-                <label class="tiny" for="eom-account-sort">Sortowanie
-                  <select id="eom-account-sort">
-                    <option value="name">Po nazwie A-Z</option>
-                    <option value="balance">Po saldzie (najwyższe)</option>
-                    <option value="change-up">Zmiana % (wzrost)</option>
-                    <option value="change-down">Zmiana % (spadek)</option>
-                  </select>
-                </label>
-                <div class="checkboxes" aria-label="Filtry kont">
-                  <label><input type="checkbox" id="eom-filter-positive"> Pokaż tylko dodatnie</label>
-                  <label><input type="checkbox" id="eom-filter-negative"> Pokaż tylko ujemne</label>
-                  <label><input type="checkbox" id="eom-filter-hide-zero"> Ukryj zerowe</label>
-                </div>
-              </div>
-              <div class="bulk-actions">
-                <button class="btn soft" type="button" id="eom-expand-all">Rozwiń wszystkie</button>
-                <button class="btn ghost" type="button" id="eom-collapse-all">Zwiń wszystkie</button>
-              </div>
-              <div class="count" id="eom-account-count">—</div>
-            </div>
-            <div id="eom-grid" class="eom-grid-shell"></div>
-            <div id="eom-heatmap" class="eom-heatmap-shell"></div>
-            <div class="row" style="margin-top:12px">
-              <div class="muted">Suma sald (Majątek Netto): <b id="eom-total">0</b></div>
-              <div class="row" style="gap:8px">
-                <button class="btn ghost" type="button" id="eom-reset-inputs">Wyczyść pola</button>
-                <button id="eom-save" class="btn" type="button">Zapisz salda</button>
-              </div>
+        <!-- Booking Grid -->
+        <div class="card stack">
+          <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <strong>Księgowanie sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-month-label"></span></strong>
+            <div class="row" style="gap:8px">
+              <span class="tiny muted" id="eom2-live-total"></span>
+              <button class="btn" type="button" id="eom2-save">Zapisz salda</button>
             </div>
           </div>
-        </section>
+          <div id="eom2-booking-grid"></div>
+          <form id="eom2-add-account" class="row" style="gap:8px;margin-top:8px">
+            <input name="name" placeholder="Nowe konto (np. Revolut, Karta kredytowa)" style="flex:1;height:38px" required />
+            <select name="type" style="height:38px;min-width:140px">
+              <option value="oszczędności">Oszczędności</option>
+              <option value="inwestycje">Inwestycje</option>
+              <option value="zadłużenie">Zadłużenie</option>
+              <option value="gotówka">Gotówka</option>
+              <option value="emerytura">Emerytura</option>
+              <option value="inne">Inne</option>
+            </select>
+            <button class="btn soft" type="submit">Dodaj konto</button>
+          </form>
+        </div>
 
-        <section class="eom-dashboard-panel" data-panel="history" id="eom-dashboard-history" role="tabpanel" aria-labelledby="eom-dashboard-tab-history" hidden>
-          <div class="eom-panel" style="margin-top:0">
-            <div class="row" style="align-items:flex-start;gap:12px">
-              <div>
-                <div class="title" style="margin-bottom:4px">Historia sald i majątku netto</div>
-                <p class="tiny">Analizuj zmiany w czasie, aby wychwycić trendy, rekordy i anomalie.</p>
+        <!-- Charts Row -->
+        <div class="eom2-charts-row">
+          <div class="card stack" style="flex:2;min-width:300px">
+            <div class="row" style="justify-content:space-between;align-items:center">
+              <strong>Trend majątku netto</strong>
+              <div class="inv-trade-filters" style="margin:0">
+                <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
+                <button type="button" class="eom2-range-btn" data-range="12">12m</button>
+                <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
               </div>
             </div>
-            <div class="eom-history-controls">
-              <label class="tiny">
-                Pokaż zakres
-                <select id="eom-history-range">
-                  <option value="3">3 miesiące</option>
-                  <option value="6">6 miesięcy</option>
-                  <option value="12">12 miesięcy</option>
-                  <option value="all">Wszystkie</option>
-                </select>
-              </label>
-              <label class="tiny">
-                Szukaj konta
-                <input id="eom-history-search" type="search" placeholder="np. Oszczędności" />
-              </label>
-              <label class="tiny eom-history-checkbox">
-                <input type="checkbox" id="eom-history-only-changes" /> Tylko ze zmianami
-              </label>
-              <button class="btn soft" type="button" id="eom-history-transpose" data-active="0">Transponuj widok</button>
-              <button class="btn ghost" type="button" id="eom-history-export">Eksportuj do CSV</button>
-            </div>
-            <div class="eom-history-table-shell">
-              <div class="eom-history-table-scroll">
-                <table id="eom-accounts-history" class="table-modern eom-history-table">
-                  <thead></thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-            <div id="eom-history-footer" class="eom-history-footer"></div>
-            <div style="overflow-x:auto;margin-top:16px">
-              <table id="eom-monthly-summary" class="table-modern table-sortable">
-                <thead></thead>
-                <tbody></tbody>
-              </table>
-            </div>
+            <div style="height:300px;position:relative"><canvas id="eom2-nw-chart"></canvas></div>
           </div>
-        </section>
+          <div class="card stack" style="flex:1;min-width:260px">
+            <strong>Struktura majątku</strong>
+            <div style="height:300px;position:relative"><canvas id="eom2-breakdown-chart"></canvas></div>
+          </div>
+        </div>
 
-        <section class="eom-dashboard-panel" data-panel="comparison" id="eom-dashboard-comparison" role="tabpanel" aria-labelledby="eom-dashboard-tab-comparison" hidden>
-          <section class="eom-mom-section" id="eom-mom" style="margin-top:0">
-            <div class="row" style="align-items:flex-end;gap:12px">
-              <div>
-                <div class="title" style="margin:0">Porównanie miesiąc do miesiąca</div>
-                <p class="tiny muted" style="margin:4px 0 0">Zobacz jak zmieniły się salda wszystkich kont między dwoma wybranymi miesiącami.</p>
-              </div>
-            </div>
-            <div class="eom-mom-controls">
-              <div class="control-group">
-                <label for="eom-mom-month-a">Miesiąc A</label>
-                <select id="eom-mom-month-a"></select>
-              </div>
-              <div class="control-group">
-                <label for="eom-mom-month-b">Miesiąc B</label>
-                <select id="eom-mom-month-b"></select>
-              </div>
-              <div class="eom-mom-actions">
-                <button class="btn soft" type="button" id="eom-mom-swap">Zamień miejscami</button>
-                <button class="btn" type="button" id="eom-mom-run">Porównaj</button>
-              </div>
-            </div>
-            <div id="eom-mom-empty" class="eom-mom-empty" style="display:none"></div>
-            <div id="eom-mom-content" class="eom-mom-content" style="display:none">
-              <div class="eom-mom-summary" id="eom-mom-summary">
-                <div class="eom-mom-summary-main">
-                  <span class="label">Δ suma</span>
-                  <span class="value neutral" id="eom-mom-summary-value">—</span>
-                </div>
-                <div class="eom-mom-summary-text" id="eom-mom-summary-text"></div>
-                <div class="eom-mom-pills" id="eom-mom-pills"></div>
-              </div>
+        <!-- Bottleneck Analysis -->
+        <div class="eom2-bottleneck-row">
+          <div class="card stack" style="flex:1">
+            <strong style="color:#16a34a">Największe wzrosty</strong>
+            <div id="eom2-top-gainers"></div>
+          </div>
+          <div class="card stack" style="flex:1">
+            <strong style="color:#dc2626">Wymagają uwagi</strong>
+            <div id="eom2-top-losers"></div>
+          </div>
+        </div>
 
-              <section class="eom-mom-ranking">
-                <div class="eom-mom-ranking-header">
-                  <h4>Ranking zmian per konto</h4>
-                  <div class="tiny muted" id="eom-mom-ranking-note"></div>
-                </div>
-                <div class="table-wrapper">
-                  <table id="eom-mom-ranking-table" class="table-modern"></table>
-                </div>
-              </section>
-              <section class="eom-mom-auto">
-                <h4>Wnioski automatyczne</h4>
-                <div id="eom-mom-auto-insights" class="eom-mom-auto-list"></div>
-              </section>
-            </div>
-          </section>
-        </section>
+        <!-- History (collapsible) -->
+        <details class="card stack">
+          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
+            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
+          </summary>
+          <div class="table-wrapper" style="margin-top:12px">
+            <table class="modern-table" id="eom2-history-table">
+              <thead id="eom2-history-thead"></thead>
+              <tbody id="eom2-history-tbody"></tbody>
+            </table>
+          </div>
+        </details>
+
       </div>
     </section>
 
@@ -5713,7 +5625,7 @@
       if(t.dataset.tab==='variable'){placeVarCard('variable'); setDefaultDate()}
       else if(t.dataset.tab==='dashboard'){placeVarCard('dashboard')}
       if(t.dataset.tab==='analytics') renderAnalytics(); // Render analytics when tab is clicked
-      if(t.dataset.tab==='eom') renderEOMHistory(); // Render history when tab is clicked
+      if(t.dataset.tab==='eom'){ bindEomV2(); renderEomV2(); }
       if(t.dataset.tab==='mom') renderMomComparison();
       if(t.dataset.tab==='investments') renderInvestments();
       bindMoneyInputs();
@@ -11232,6 +11144,352 @@
     }
   }
 
+  // ===== EOM V2 — Redesigned Wealth Tracker =================================
+  let eom2NwChart=null, eom2BreakdownChart=null;
+  let eom2SelectedRange=6;
+  let eom2Bound=false;
+
+  function renderEomV2(){
+    const ctx=buildEomContext();
+    const cur=state.currency;
+    const accounts=ctx.accounts;
+    const el=id=>document.getElementById(id);
+
+    // --- Month selector ---
+    const monthSel=el('eom2-month-select');
+    if(monthSel){
+      const allMonths=[...new Set([...ctx.months,ctx.workingYm])].sort();
+      const prev=monthSel.value;
+      monthSel.innerHTML='';
+      for(const m of allMonths.reverse()) monthSel.add(new Option(formatMonthLabel(m),m,false,m===ctx.workingYm));
+      if(prev&&allMonths.includes(prev)) monthSel.value=prev;
+      else monthSel.value=ctx.workingYm;
+    }
+
+    const activeYm=monthSel?.value||ctx.workingYm;
+    const prevYm=ctx.months.filter(m=>m<activeYm).pop()||null;
+    const activeBalances=ctx.monthBalances[activeYm]||{};
+    const prevBalances=prevYm?(ctx.monthBalances[prevYm]||{}):{};
+
+    el('eom2-month-label').textContent=formatMonthLabel(activeYm);
+
+    // --- KPIs ---
+    const netWorth=sumBalances(activeBalances);
+    const prevNetWorth=prevYm?sumBalances(prevBalances):null;
+    const change=prevNetWorth!==null?(netWorth-prevNetWorth):null;
+    const changePct=prevNetWorth&&prevNetWorth!==0?((change/Math.abs(prevNetWorth))*100):null;
+
+    el('eom2-kpi-nw').textContent=Object.keys(activeBalances).length?fmt(netWorth,cur):'—';
+    el('eom2-kpi-nw-sub').textContent=Object.keys(activeBalances).length?`${Object.keys(activeBalances).length} kont zaksięgowanych`:'Uzupełnij salda poniżej';
+
+    if(change!==null){
+      el('eom2-kpi-change').textContent=`${change>=0?'+':''}${fmt(change,cur)}`;
+      el('eom2-kpi-change-sub').textContent=changePct!==null?`${changePct>=0?'+':''}${changePct.toFixed(1)}% vs ${formatMonthLabel(prevYm)}`:'';
+      const chCard=el('eom2-kpi-change-card');
+      if(chCard) chCard.className='eom2-kpi '+(change>0?'positive':change<0?'negative':'');
+    } else {
+      el('eom2-kpi-change').textContent='—';
+      el('eom2-kpi-change-sub').textContent='Brak poprzedniego miesiąca';
+    }
+
+    let totalAssets=0, totalDebt=0, assetCount=0, debtCount=0;
+    for(const acc of accounts){
+      const bal=activeBalances[acc.id];
+      if(bal===undefined) continue;
+      if(bal>=0){totalAssets+=bal;assetCount++;}
+      else{totalDebt+=bal;debtCount++;}
+    }
+    el('eom2-kpi-assets').textContent=totalAssets>0?fmt(totalAssets,cur):'—';
+    el('eom2-kpi-assets-sub').textContent=assetCount?`${assetCount} kont`:'';
+    el('eom2-kpi-debt').textContent=totalDebt<0?fmt(totalDebt,cur):'—';
+    el('eom2-kpi-debt-sub').textContent=debtCount?`${debtCount} kont`:'Brak zobowiązań';
+
+    // --- Booking Grid ---
+    const grid=el('eom2-booking-grid');
+    if(grid){
+      grid.innerHTML='';
+      // Group accounts by type
+      const grouped={};
+      for(const acc of accounts){
+        const type=inferAccountType(acc);
+        if(!grouped[type]) grouped[type]=[];
+        grouped[type].push(acc);
+      }
+      const typeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
+      const typeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+      const typeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+
+      for(const type of typeOrder){
+        const accs=grouped[type];
+        if(!accs||!accs.length) continue;
+        const groupDiv=document.createElement('div');
+        groupDiv.className='eom2-booking-group';
+        groupDiv.innerHTML=`<div class="eom2-booking-group-title">${escapeHtml(typeLabelMap[type]||type)}</div>`;
+
+        for(const acc of accs){
+          const prevBal=prevBalances[acc.id];
+          const curBal=activeBalances[acc.id];
+          const row=document.createElement('div');
+          row.className='eom2-booking-row';
+          const color=typeColorMap[type]||'#94a3b8';
+          row.innerHTML=`
+            <div class="eom2-booking-name">${escapeHtml(acc.name)}<span class="type-badge" style="background:${colorWithAlpha(color,.12)};color:${color}">${escapeHtml(typeLabelMap[type]||type)}</span></div>
+            <div class="eom2-booking-prev">${prevBal!==undefined?fmt(prevBal,cur):'—'}</div>
+            <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
+            <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
+            <div class="eom2-booking-actions"><button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button></div>`;
+          groupDiv.appendChild(row);
+        }
+        grid.appendChild(groupDiv);
+      }
+
+      // Live delta updates
+      grid.querySelectorAll('input[data-acc-id]').forEach(inp=>{
+        const updateDelta=()=>{
+          const accId=inp.dataset.accId;
+          const val=num(inp.value);
+          const prev=prevBalances[accId];
+          const deltaEl=grid.querySelector(`[data-delta-for="${accId}"]`);
+          if(!deltaEl) return;
+          if(prev!==undefined&&inp.value.trim()){
+            const d=val-prev;
+            deltaEl.textContent=`${d>=0?'+':''}${fmt(d,cur)}`;
+            deltaEl.className='eom2-booking-delta '+(d>0?'pos':d<0?'neg':'');
+          } else {
+            deltaEl.textContent='';
+          }
+          // Update live total
+          let total=0;
+          grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
+            if(i.value.trim()) total+=num(i.value);
+          });
+          const liveTotal=el('eom2-live-total');
+          if(liveTotal) liveTotal.textContent=`Netto: ${fmt(total,cur)}`;
+        };
+        inp.addEventListener('input',updateDelta);
+        updateDelta(); // init
+      });
+
+      // Delete account buttons
+      grid.querySelectorAll('[data-del-acc]').forEach(btn=>{
+        btn.onclick=()=>{
+          const accId=btn.dataset.delAcc;
+          const acc=accounts.find(a=>a.id===accId);
+          if(!confirm(`Usunąć konto "${acc?.name||accId}"? Dane historyczne zostaną zachowane.`)) return;
+          b().accounts=b().accounts.filter(a=>a.id!==accId);
+          save(state);renderEomV2();
+        };
+      });
+    }
+
+    // --- Net Worth Trend Chart ---
+    if(eom2NwChart){eom2NwChart.destroy();eom2NwChart=null;}
+    const nwCanvas=el('eom2-nw-chart');
+    if(nwCanvas){
+      let months=ctx.months;
+      if(eom2SelectedRange!=='all'){
+        const n=parseInt(eom2SelectedRange)||6;
+        months=months.slice(-n);
+      }
+      if(months.length>0){
+        const nwData=months.map(ym=>sumBalances(ctx.monthBalances[ym]||{}));
+        // Stacked by type
+        const assetData=months.map(ym=>{let s=0;for(const a of accounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v>0)s+=v;}return s;});
+        const debtData=months.map(ym=>{let s=0;for(const a of accounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v<0)s+=v;}return s;});
+
+        eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
+          type:'bar',
+          data:{
+            labels:months.map(m=>formatMonthLabel(m)),
+            datasets:[
+              {label:'Aktywa',data:assetData,backgroundColor:colorWithAlpha('#22c55e',.6),borderRadius:4,stack:'s'},
+              {label:'Zobowiązania',data:debtData,backgroundColor:colorWithAlpha('#ef4444',.5),borderRadius:4,stack:'s'},
+              {label:'Majątek netto',data:nwData,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',borderWidth:3,pointRadius:4,pointBackgroundColor:'#2563eb',pointBorderColor:'#fff',pointBorderWidth:2,tension:.3}
+            ]
+          },
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
+            interaction:{mode:'index',intersect:false},
+            scales:{x:{stacked:true,grid:{display:false}},y:{stacked:false,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.1)'}}}
+          }
+        });
+      }
+    }
+
+    // --- Breakdown Doughnut ---
+    if(eom2BreakdownChart){eom2BreakdownChart.destroy();eom2BreakdownChart=null;}
+    const bdCanvas=el('eom2-breakdown-chart');
+    if(bdCanvas&&Object.keys(activeBalances).length>0){
+      const byType={};
+      for(const acc of accounts){
+        const bal=activeBalances[acc.id];
+        if(bal===undefined) continue;
+        const type=inferAccountType(acc);
+        byType[type]=(byType[type]||0)+Math.abs(bal);
+      }
+      const types=Object.keys(byType).filter(t=>byType[t]>0);
+      const typeColorMap2={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#ef4444','inne':'#94a3b8'};
+      const typeLabelMap2={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+      const totalAbs=types.reduce((s,t)=>s+byType[t],0);
+
+      eom2BreakdownChart=new Chart(bdCanvas.getContext('2d'),{
+        type:'doughnut',
+        data:{
+          labels:types.map(t=>typeLabelMap2[t]||t),
+          datasets:[{
+            data:types.map(t=>byType[t]),
+            backgroundColor:types.map(t=>colorWithAlpha(typeColorMap2[t]||'#94a3b8',.8)),
+            borderColor:'#fff',borderWidth:2
+          }]
+        },
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
+            tooltip:{callbacks:{label:ctx2=>`${ctx2.label}: ${currencyTicks(ctx2.parsed)} (${totalAbs?((ctx2.parsed/totalAbs)*100).toFixed(1):'0'}%)`}}}
+        }
+      });
+    }
+
+    // --- Bottleneck: Gainers & Losers ---
+    const gainersEl=el('eom2-top-gainers');
+    const losersEl=el('eom2-top-losers');
+    if(gainersEl&&losersEl){
+      gainersEl.innerHTML='';losersEl.innerHTML='';
+      if(prevYm){
+        const deltas=accounts.map(acc=>{
+          const cur2=activeBalances[acc.id];
+          const prev2=prevBalances[acc.id];
+          if(cur2===undefined&&prev2===undefined) return null;
+          return {name:acc.name,delta:(cur2||0)-(prev2||0)};
+        }).filter(Boolean).filter(d=>d.delta!==0).sort((a,b2)=>b2.delta-a.delta);
+
+        const gainers=deltas.filter(d=>d.delta>0).slice(0,5);
+        const losers=deltas.filter(d=>d.delta<0).slice(-5).reverse();
+
+        if(!gainers.length) gainersEl.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Brak wzrostów w tym miesiącu</div>';
+        for(const g of gainers){
+          const div=document.createElement('div');
+          div.className='eom2-gainer-item';
+          div.innerHTML=`<span class="eom2-gainer-name">${escapeHtml(g.name)}</span><span class="eom2-gainer-delta pos">+${fmt(g.delta,cur)}</span>`;
+          gainersEl.appendChild(div);
+        }
+
+        if(!losers.length) losersEl.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Brak spadków — dobrze!</div>';
+        for(const l of losers){
+          const div=document.createElement('div');
+          div.className='eom2-gainer-item';
+          div.innerHTML=`<span class="eom2-gainer-name">${escapeHtml(l.name)}</span><span class="eom2-gainer-delta neg">${fmt(l.delta,cur)}</span>`;
+          losersEl.appendChild(div);
+        }
+      } else {
+        gainersEl.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Potrzeba min. 2 miesięcy danych</div>';
+        losersEl.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Potrzeba min. 2 miesięcy danych</div>';
+      }
+    }
+
+    // --- History Table ---
+    const hThead=el('eom2-history-thead');
+    const hTbody=el('eom2-history-tbody');
+    const hCount=el('eom2-history-count');
+    if(hThead&&hTbody){
+      hThead.innerHTML='';hTbody.innerHTML='';
+      const months=ctx.months.slice(-12);
+      if(hCount) hCount.textContent=`(${months.length} mies.)`;
+      if(months.length>0){
+        // Header: Month | Account1 | Account2 | ... | Net Worth
+        const usedAccounts=accounts.filter(a=>months.some(m=>(ctx.monthBalances[m]||{})[a.id]!==undefined));
+        let hdr='<tr><th>Miesiąc</th>';
+        for(const a of usedAccounts) hdr+=`<th style="text-align:right">${escapeHtml(a.name)}</th>`;
+        hdr+='<th style="text-align:right;font-weight:800">Netto</th></tr>';
+        hThead.innerHTML=hdr;
+
+        for(const m of [...months].reverse()){
+          const bals=ctx.monthBalances[m]||{};
+          let row=`<tr><td><strong>${formatMonthLabel(m)}</strong></td>`;
+          for(const a of usedAccounts){
+            const v=bals[a.id];
+            const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
+            row+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
+          }
+          const nw=sumBalances(bals);
+          row+=`<td style="text-align:right;font-weight:800">${fmt(nw,cur)}</td></tr>`;
+          hTbody.innerHTML+=row;
+        }
+      } else {
+        hTbody.innerHTML='<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">Brak danych historycznych</td></tr>';
+      }
+    }
+  }
+
+  function bindEomV2(){
+    if(eom2Bound) return;
+    eom2Bound=true;
+
+    // Save button
+    const saveBtn=document.getElementById('eom2-save');
+    if(saveBtn) saveBtn.onclick=()=>{
+      const monthSel=document.getElementById('eom2-month-select');
+      const ym=monthSel?.value||b().workingMonth;
+      const grid=document.getElementById('eom2-booking-grid');
+      if(!grid) return;
+      // Remove old entries for this month
+      b().eom=b().eom.filter(e=>e.ym!==ym);
+      // Add new entries
+      grid.querySelectorAll('input[data-acc-id]').forEach(inp=>{
+        const accId=inp.dataset.accId;
+        const val=inp.value.trim();
+        if(val) b().eom.push({ym,accountId:accId,balance:num(val)});
+      });
+      save(state);
+      renderEomV2();
+    };
+
+    // Copy previous month
+    const copyBtn=document.getElementById('eom2-copy-prev');
+    if(copyBtn) copyBtn.onclick=()=>{
+      const ctx=buildEomContext();
+      const monthSel=document.getElementById('eom2-month-select');
+      const ym=monthSel?.value||ctx.workingYm;
+      const prevYm=ctx.months.filter(m=>m<ym).pop();
+      if(!prevYm){alert('Brak poprzedniego miesiąca do skopiowania.');return;}
+      const prevBals=ctx.monthBalances[prevYm]||{};
+      const grid=document.getElementById('eom2-booking-grid');
+      if(!grid) return;
+      grid.querySelectorAll('input[data-acc-id]').forEach(inp=>{
+        const accId=inp.dataset.accId;
+        if(prevBals[accId]!==undefined) inp.value=String(prevBals[accId]).replace('.',',');
+        inp.dispatchEvent(new Event('input'));
+      });
+    };
+
+    // Month selector change
+    const monthSel=document.getElementById('eom2-month-select');
+    if(monthSel) monthSel.onchange=()=>renderEomV2();
+
+    // Range buttons
+    document.querySelectorAll('.eom2-range-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        eom2SelectedRange=btn.dataset.range==='all'?'all':parseInt(btn.dataset.range);
+        document.querySelectorAll('.eom2-range-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
+        renderEomV2();
+      };
+    });
+
+    // Add account form
+    const addForm=document.getElementById('eom2-add-account');
+    if(addForm) addForm.onsubmit=e=>{
+      e.preventDefault();
+      const f=new FormData(addForm);
+      const name=String(f.get('name')||'').trim();
+      const type=String(f.get('type')||'inne');
+      if(!name) return;
+      const id='a_'+Math.random().toString(36).slice(2);
+      b().accounts.push({id,name,kind:type});
+      save(state);addForm.reset();renderEomV2();
+    };
+  }
+
+  // ===== /EOM V2 ===============================================================
+
   function renderEOM(){
     const ctx = buildEomContext();
     const ym = ctx.workingYm;
@@ -15674,7 +15932,7 @@
     };
   }
 
-  function renderGoalsAndEOM(){ safeRender(renderEOM,'EOM'); safeRender(renderGoals,'Goals'); }
+  function renderGoalsAndEOM(){ safeRender(()=>{bindEomV2();renderEomV2();},'EOM'); safeRender(renderGoals,'Goals'); }
 
   function renderAll(){
     const ym=b().workingMonth;
