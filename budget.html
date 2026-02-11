@@ -8283,20 +8283,21 @@
 
     const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
     const currentInvested=stats.capitalFromBudget;
-    const currentInterest=currentVal-currentInvested;
 
     const monthsForward=years*12;
     const monthlyRate=rate/100/12;
 
     const startDate=new Date(now.getFullYear(),now.getMonth(),1);
-    const labels=['Dziś'];
-    const forecastRows=[{monthLabel:'Dziś',value:currentVal,capital:currentInvested,interest:currentInterest}];
+    const labels=[];
+    const forecastRows=[];
 
     let balance=currentVal;
     let totalCapital=currentInvested;
-    for(let i=1;i<=monthsForward;i++){
-      balance=balance*(1+monthlyRate)+(avgTrendMonthly*multiplier);
-      totalCapital+=(avgTrendMonthly*multiplier);
+    for(let i=0;i<=monthsForward;i++){
+      if(i>0){
+        balance=balance*(1+monthlyRate)+(avgTrendMonthly*multiplier);
+        totalCapital+=(avgTrendMonthly*multiplier);
+      }
       const d=new Date(startDate.getFullYear(),startDate.getMonth()+i,1);
       const monthLabel=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
       labels.push(monthLabel);
@@ -8311,11 +8312,11 @@
     const final=forecastRows[forecastRows.length-1];
 
     if(targetMonthInput){
-      if(!targetMonthInput.value){
+      if(!targetMonthInput.value||targetMonthInput.value<labels[0]||targetMonthInput.value>labels[labels.length-1]){
         const def=new Date(startDate.getFullYear(),startDate.getMonth()+Math.min(12,monthsForward),1);
         targetMonthInput.value=`${def.getFullYear()}-${String(def.getMonth()+1).padStart(2,'0')}`;
       }
-      targetMonthInput.min=labels[1]||labels[0];
+      targetMonthInput.min=labels[0];
       targetMonthInput.max=labels[labels.length-1];
     }
 
@@ -8348,22 +8349,44 @@
             <div style="font-size:11px;color:var(--muted)">Kapitał: ${fmt(targetRow.capital,cur)}</div>
             <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(targetRow.interest,cur)}</div>
           </div>
-        </div>`;
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Kliknij słupek miesiąca na wykresie, aby zaktualizować kafelek „Podgląd miesiąca”.</div>`;
     }
 
     const canvas=el('inv-hub-calc-chart');
     if(canvas){
+      const capitalData=forecastRows.map(r=>Math.round(r.capital));
+      const interestData=forecastRows.map(r=>Math.round(r.interest));
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
-        type:'line',
+        type:'bar',
         data:{
           labels,
           datasets:[
-            {label:'Wartość portfela',data:forecastRows.map(r=>Math.round(r.value)),borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',.12),fill:true,tension:.3,borderWidth:3,pointRadius:0},
-            {label:'Kapitał (wpłaty)',data:forecastRows.map(r=>Math.round(r.capital)),borderColor:'#059669',backgroundColor:'transparent',fill:false,tension:.2,borderWidth:2,pointRadius:0,borderDash:[6,4]},
-            {label:'Odsetki',data:forecastRows.map(r=>Math.round(r.interest)),borderColor:'#8b5cf6',backgroundColor:'transparent',fill:false,tension:.25,borderWidth:2,pointRadius:0}
+            {
+              label:'Kapitał (wpłaty)',
+              data:capitalData,
+              stack:'portfolio',
+              borderColor:'#059669',
+              backgroundColor:colorWithAlpha('#059669',.75),
+              borderWidth:1,
+              borderRadius:4,
+              borderSkipped:false
+            },
+            {
+              label:'Odsetki',
+              data:interestData,
+              stack:'portfolio',
+              borderColor:'#8b5cf6',
+              backgroundColor:colorWithAlpha('#8b5cf6',.78),
+              borderWidth:1,
+              borderRadius:4,
+              borderSkipped:false
+            }
           ]
         },
-        options:{responsive:true,maintainAspectRatio:false,
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
           plugins:{
             legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:18,usePointStyle:true}},
             tooltip:{mode:'index',intersect:false,callbacks:{
@@ -8372,14 +8395,21 @@
                 const idx=items?.[0]?.dataIndex||0;
                 const row=forecastRows[idx];
                 if(!row) return '';
-                return `Miesiąc ${row.monthLabel} | Kapitał ${fmt(row.capital,cur)} | Odsetki ${fmt(row.interest,cur)}`;
+                return `Razem: ${fmt(row.value,cur)} | Kapitał: ${fmt(row.capital,cur)} | Odsetki: ${fmt(row.interest,cur)}`;
               }
             }}
           },
-          interaction:{mode:'index',intersect:false},
+          onClick:(evt,elements)=>{
+            if(!elements?.length||!targetMonthInput) return;
+            const idx=elements[0].index;
+            const row=forecastRows[idx];
+            if(!row) return;
+            targetMonthInput.value=row.monthLabel;
+            renderInvHubForecast(stats,deposits);
+          },
           scales:{
-            x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10,font:{size:11}}},
-            y:{ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'}}
+            x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10,font:{size:11}}},
+            y:{stacked:true,ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'}}
           }
         }
       });
