@@ -5026,19 +5026,43 @@
         <!-- Charts Row -->
         <div class="eom2-charts-row">
           <div class="card stack" style="flex:2;min-width:300px">
-            <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Trend majątku netto</strong>
-              <div class="inv-trade-filters" style="margin:0">
-                <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
-                <button type="button" class="eom2-range-btn" data-range="12">12m</button>
-                <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <select id="eom2-cat-filter" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)">
+                  <option value="all">Wszystkie kategorie</option>
+                </select>
+                <div class="inv-trade-filters" style="margin:0">
+                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
+                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
+                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
+                </div>
               </div>
             </div>
-            <div style="height:300px;position:relative"><canvas id="eom2-nw-chart"></canvas></div>
+            <div style="height:340px;position:relative"><canvas id="eom2-nw-chart"></canvas></div>
           </div>
           <div class="card stack" style="flex:1;min-width:260px">
             <strong>Struktura majątku</strong>
-            <div style="height:300px;position:relative"><canvas id="eom2-breakdown-chart"></canvas></div>
+            <div style="height:340px;position:relative"><canvas id="eom2-breakdown-chart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Category Deep-Dive -->
+        <div id="eom2-deepdive" class="card stack" style="display:none">
+          <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <strong id="eom2-dd-title">Deep-dive: Kategoria</strong>
+            <button type="button" class="btn soft" id="eom2-dd-close" style="font-size:12px;padding:4px 10px">Zamknij</button>
+          </div>
+          <!-- KPI row -->
+          <div class="eom2-kpis" id="eom2-dd-kpis"></div>
+          <!-- Chart -->
+          <div style="height:360px;position:relative"><canvas id="eom2-dd-chart"></canvas></div>
+          <!-- Account table -->
+          <div class="table-wrapper">
+            <table class="modern-table" id="eom2-dd-table">
+              <thead id="eom2-dd-thead"></thead>
+              <tbody id="eom2-dd-tbody"></tbody>
+            </table>
           </div>
         </div>
 
@@ -11146,8 +11170,9 @@
   }
 
   // ===== EOM V2 — Redesigned Wealth Tracker =================================
-  let eom2NwChart=null, eom2BreakdownChart=null;
+  let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null;
   let eom2SelectedRange=6;
+  let eom2SelectedCat='all';
   let eom2Bound=false;
 
   function renderEomV2(){
@@ -11283,9 +11308,22 @@
       });
     }
 
-    // --- Net Worth Trend Chart ---
+    // --- Net Worth Trend Chart (LINE with category filter) ---
     if(eom2NwChart){eom2NwChart.destroy();eom2NwChart=null;}
     const nwCanvas=el('eom2-nw-chart');
+    // populate category filter dropdown
+    const catFilter=el('eom2-cat-filter');
+    if(catFilter){
+      const curVal=eom2SelectedCat;
+      const usedTypes=new Set();
+      for(const acc of accounts) usedTypes.add(inferAccountType(acc));
+      let opts='<option value="all">Wszystkie kategorie</option>';
+      for(const t of typeOrder){
+        if(usedTypes.has(t)) opts+=`<option value="${t}">${typeLabelMap[t]||t}</option>`;
+      }
+      catFilter.innerHTML=opts;
+      catFilter.value=curVal;
+    }
     if(nwCanvas){
       let months=ctx.months;
       if(eom2SelectedRange!=='all'){
@@ -11293,25 +11331,51 @@
         months=months.slice(-n);
       }
       if(months.length>0){
-        const nwData=months.map(ym=>sumBalances(ctx.monthBalances[ym]||{}));
-        // Stacked by type
-        const assetData=months.map(ym=>{let s=0;for(const a of accounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v>0)s+=v;}return s;});
-        const debtData=months.map(ym=>{let s=0;for(const a of accounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v<0)s+=v;}return s;});
-
+        const subAccColors=['#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#e11d48','#84cc16'];
+        const datasets=[];
+        if(eom2SelectedCat==='all'){
+          // "All" mode: show net worth total + one line per category total
+          const nwData=months.map(ym=>sumBalances(ctx.monthBalances[ym]||{}));
+          datasets.push({label:'Majątek netto',data:nwData,borderColor:'#1e293b',backgroundColor:colorWithAlpha('#1e293b',.06),borderWidth:3,pointRadius:4,pointBackgroundColor:'#1e293b',pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true});
+          const usedTypes=new Set();
+          for(const acc of accounts) usedTypes.add(inferAccountType(acc));
+          for(const t of typeOrder){
+            if(!usedTypes.has(t)) continue;
+            const col=typeColorMap[t]||'#94a3b8';
+            const catData=months.map(ym=>{
+              let s=0;
+              for(const a of accounts){
+                if(inferAccountType(a)!==t) continue;
+                const v=(ctx.monthBalances[ym]||{})[a.id];
+                if(v!==undefined) s+=v;
+              }
+              return s;
+            });
+            datasets.push({label:typeLabelMap[t]||t,data:catData,borderColor:col,backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false});
+          }
+        } else {
+          // Single-category mode: solid total + dashed sub-accounts
+          const catAccounts=accounts.filter(a=>inferAccountType(a)===eom2SelectedCat);
+          const catColor=typeColorMap[eom2SelectedCat]||'#94a3b8';
+          const totalData=months.map(ym=>{
+            let s=0;
+            for(const a of catAccounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v!==undefined)s+=v;}
+            return s;
+          });
+          datasets.push({label:(typeLabelMap[eom2SelectedCat]||eom2SelectedCat)+' — Suma',data:totalData,borderColor:catColor,backgroundColor:colorWithAlpha(catColor,.08),borderWidth:3,pointRadius:4,pointBackgroundColor:catColor,pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true});
+          catAccounts.forEach((acc,i)=>{
+            const col=subAccColors[i%subAccColors.length];
+            const accData=months.map(ym=>(ctx.monthBalances[ym]||{})[acc.id]??null);
+            datasets.push({label:acc.name,data:accData,borderColor:col,backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false,spanGaps:true});
+          });
+        }
         eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
-          type:'bar',
-          data:{
-            labels:months.map(m=>formatMonthLabel(m)),
-            datasets:[
-              {label:'Aktywa',data:assetData,backgroundColor:colorWithAlpha('#22c55e',.6),borderRadius:4,stack:'s'},
-              {label:'Zobowiązania',data:debtData,backgroundColor:colorWithAlpha('#ef4444',.5),borderRadius:4,stack:'s'},
-              {label:'Majątek netto',data:nwData,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',borderWidth:3,pointRadius:4,pointBackgroundColor:'#2563eb',pointBorderColor:'#fff',pointBorderWidth:2,tension:.3}
-            ]
-          },
+          type:'line',
+          data:{labels:months.map(m=>formatMonthLabel(m)),datasets},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
+            plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'circle'}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
             interaction:{mode:'index',intersect:false},
-            scales:{x:{stacked:true,grid:{display:false}},y:{stacked:false,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.1)'}}}
+            scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
           }
         });
       }
@@ -11421,6 +11485,133 @@
     }
   }
 
+  // ---- Deep-Dive Category One-Pager ----
+  function renderEomDeepDive(catKey){
+    const wrap=el('eom2-deepdive');
+    if(!wrap) return;
+    if(!catKey||catKey==='all'){wrap.style.display='none';return;}
+    wrap.style.display='';
+    const ctx=buildEomContext();
+    const accounts=(b().accounts||[]);
+    const catAccounts=accounts.filter(a=>inferAccountType(a)===catKey);
+    const catLabel=typeLabelMap[catKey]||catKey;
+    const catColor=typeColorMap[catKey]||'#94a3b8';
+    const cur=state.modules.budget.currency||'PLN';
+
+    // Title
+    const titleEl=el('eom2-dd-title');
+    if(titleEl) titleEl.textContent='Deep-dive: '+catLabel;
+
+    // Time range: use all months
+    const months=ctx.months;
+
+    // Compute totals per month
+    const monthTotals=months.map(ym=>{
+      let s=0;
+      for(const a of catAccounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v!==undefined)s+=v;}
+      return s;
+    });
+
+    // Latest & previous values
+    const latest=monthTotals.length?monthTotals[monthTotals.length-1]:0;
+    const prev=monthTotals.length>=2?monthTotals[monthTotals.length-2]:0;
+    const delta=latest-prev;
+    const deltaP=prev?((delta/Math.abs(prev))*100):0;
+
+    // Max & min
+    const maxVal=Math.max(...monthTotals,0);
+    const minVal=Math.min(...monthTotals,0);
+
+    // Average monthly change
+    let avgChange=0;
+    if(monthTotals.length>=2){
+      const changes=[];
+      for(let i=1;i<monthTotals.length;i++) changes.push(monthTotals[i]-monthTotals[i-1]);
+      avgChange=changes.reduce((s,v)=>s+v,0)/changes.length;
+    }
+
+    // KPIs
+    const kpiEl=el('eom2-dd-kpis');
+    if(kpiEl){
+      const ddChgCls=delta>0?'positive':delta<0?'negative':'';
+      kpiEl.innerHTML=`
+        <div class="eom2-kpi accent"><span class="kpi-label">Aktualna wartość</span><span class="kpi-val">${fmt(latest,cur)}</span><span class="kpi-sub">${catAccounts.length} kont</span></div>
+        <div class="eom2-kpi ${ddChgCls}"><span class="kpi-label">Zmiana m/m</span><span class="kpi-val">${delta>=0?'+':''}${fmt(delta,cur)}</span><span class="kpi-sub">${deltaP>=0?'+':''}${deltaP.toFixed(1)}%</span></div>
+        <div class="eom2-kpi"><span class="kpi-label">Śr. zmiana mies.</span><span class="kpi-val">${fmt(avgChange,cur)}</span><span class="kpi-sub">na podstawie ${monthTotals.length} mies.</span></div>
+        <div class="eom2-kpi"><span class="kpi-label">Rozpiętość</span><span class="kpi-val">${fmt(maxVal,cur)}</span><span class="kpi-sub">min: ${fmt(minVal,cur)}</span></div>
+      `;
+    }
+
+    // Chart: total line + dashed per account
+    if(eom2DdChart){eom2DdChart.destroy();eom2DdChart=null;}
+    const ddCanvas=el('eom2-dd-chart');
+    if(ddCanvas&&months.length>0){
+      const subAccColors=['#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#e11d48','#84cc16'];
+      const datasets=[{
+        label:catLabel+' — Suma',data:monthTotals,borderColor:catColor,backgroundColor:colorWithAlpha(catColor,.08),
+        borderWidth:3,pointRadius:4,pointBackgroundColor:catColor,pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true
+      }];
+      catAccounts.forEach((acc,i)=>{
+        const col=subAccColors[i%subAccColors.length];
+        const accData=months.map(ym=>(ctx.monthBalances[ym]||{})[acc.id]??null);
+        datasets.push({label:acc.name,data:accData,borderColor:col,backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false,spanGaps:true});
+      });
+      eom2DdChart=new Chart(ddCanvas.getContext('2d'),{
+        type:'line',
+        data:{labels:months.map(m=>formatMonthLabel(m)),datasets},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'circle'}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
+          interaction:{mode:'index',intersect:false},
+          scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
+        }
+      });
+    }
+
+    // Table: month-by-month per account + totals + deltas
+    const thead=el('eom2-dd-thead');
+    const tbody=el('eom2-dd-tbody');
+    if(thead&&tbody){
+      thead.innerHTML='';tbody.innerHTML='';
+      const dispMonths=months.slice(-12);
+      let hdr='<tr><th>Miesiąc</th>';
+      for(const a of catAccounts) hdr+=`<th style="text-align:right">${escapeHtml(a.name)}</th>`;
+      hdr+='<th style="text-align:right;font-weight:800">Suma</th><th style="text-align:right">Zmiana</th></tr>';
+      thead.innerHTML=hdr;
+
+      let prevTotal=null;
+      const rows=[...dispMonths].reverse();
+      for(const m of rows){
+        const bals=ctx.monthBalances[m]||{};
+        let row=`<tr><td><strong>${formatMonthLabel(m)}</strong></td>`;
+        let total=0;
+        for(const a of catAccounts){
+          const v=bals[a.id];
+          if(v!==undefined) total+=v;
+          const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
+          row+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
+        }
+        // Find next month's total (since rows are reversed) for delta
+        const mIdx=months.indexOf(m);
+        const nextTotal=mIdx<months.length-1?(()=>{let s=0;for(const a of catAccounts){const v=(ctx.monthBalances[months[mIdx+1]]||{})[a.id];if(v!==undefined)s+=v;}return s;})():null;
+        const mDelta=mIdx<months.length-1?total-(()=>{let s=0;for(const a of catAccounts){const v=(ctx.monthBalances[months[mIdx-1]]||{})[a.id];if(v!==undefined)s+=v;}return s;})():null;
+        // Simpler: compute delta from previous month in chronological order
+        const prevMonthIdx=months.indexOf(m)-1;
+        let chg=null;
+        if(prevMonthIdx>=0){
+          let pt=0;for(const a of catAccounts){const v=(ctx.monthBalances[months[prevMonthIdx]]||{})[a.id];if(v!==undefined)pt+=v;}
+          chg=total-pt;
+        }
+        row+=`<td style="text-align:right;font-weight:800">${fmt(total,cur)}</td>`;
+        row+=`<td style="text-align:right" class="${chg!==null?(chg>=0?'pos':'inv-pnl-neg'):'muted'}">${chg!==null?((chg>=0?'+':'')+fmt(chg,cur)):'—'}</td>`;
+        row+='</tr>';
+        tbody.innerHTML+=row;
+      }
+    }
+
+    // Scroll to deep-dive
+    wrap.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
   function bindEomV2(){
     if(eom2Bound) return;
     eom2Bound=true;
@@ -11486,6 +11677,23 @@
       const id='a_'+Math.random().toString(36).slice(2);
       b().accounts.push({id,name,kind:type});
       save(state);addForm.reset();renderEomV2();
+    };
+
+    // Category filter for net worth chart
+    const catFilter=document.getElementById('eom2-cat-filter');
+    if(catFilter) catFilter.onchange=()=>{
+      eom2SelectedCat=catFilter.value;
+      renderEomV2();
+      // Also trigger deep-dive if a specific category is selected
+      if(eom2SelectedCat!=='all') renderEomDeepDive(eom2SelectedCat);
+      else{ const dd=document.getElementById('eom2-deepdive'); if(dd) dd.style.display='none'; }
+    };
+
+    // Deep-dive close
+    const ddClose=document.getElementById('eom2-dd-close');
+    if(ddClose) ddClose.onclick=()=>{
+      const dd=document.getElementById('eom2-deepdive');
+      if(dd) dd.style.display='none';
     };
   }
 
