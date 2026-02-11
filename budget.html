@@ -6659,7 +6659,8 @@
   }
 
 
-  document.getElementById('acct-form').onsubmit=(e)=>{
+  const _oldAcctForm=document.getElementById('acct-form');
+  if(_oldAcctForm) _oldAcctForm.onsubmit=(e)=>{
     e.preventDefault();
     const f=new FormData(e.target); const name=String(f.get('name')||'').trim(); if(!name) return;
     const id='a_'+Math.random().toString(36).slice(2);
@@ -11491,6 +11492,7 @@
   // ===== /EOM V2 ===============================================================
 
   function renderEOM(){
+    return; // replaced by renderEomV2
     const ctx = buildEomContext();
     const ym = ctx.workingYm;
     const prompt = document.getElementById('eom-prompt');
@@ -12001,6 +12003,7 @@
   }
 
   function renderEOMHistory(){
+    return; // replaced by renderEomV2
     const ctx = buildEomContext();
     const rangeSelect = document.getElementById('eom-history-range');
     const transposeBtn = document.getElementById('eom-history-transpose');
