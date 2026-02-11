@@ -11174,6 +11174,9 @@
   let eom2SelectedRange=6;
   let eom2SelectedCat='all';
   let eom2Bound=false;
+  const eom2TypeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
+  const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+  const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
 
   function renderEomV2(){
     const ctx=buildEomContext();
@@ -11241,25 +11244,21 @@
         if(!grouped[type]) grouped[type]=[];
         grouped[type].push(acc);
       }
-      const typeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
-      const typeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
-      const typeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
-
-      for(const type of typeOrder){
+      for(const type of eom2TypeOrder){
         const accs=grouped[type];
         if(!accs||!accs.length) continue;
         const groupDiv=document.createElement('div');
         groupDiv.className='eom2-booking-group';
-        groupDiv.innerHTML=`<div class="eom2-booking-group-title">${escapeHtml(typeLabelMap[type]||type)}</div>`;
+        groupDiv.innerHTML=`<div class="eom2-booking-group-title">${escapeHtml(eom2TypeLabelMap[type]||type)}</div>`;
 
         for(const acc of accs){
           const prevBal=prevBalances[acc.id];
           const curBal=activeBalances[acc.id];
           const row=document.createElement('div');
           row.className='eom2-booking-row';
-          const color=typeColorMap[type]||'#94a3b8';
+          const color=eom2TypeColorMap[type]||'#94a3b8';
           row.innerHTML=`
-            <div class="eom2-booking-name">${escapeHtml(acc.name)}<span class="type-badge" style="background:${colorWithAlpha(color,.12)};color:${color}">${escapeHtml(typeLabelMap[type]||type)}</span></div>
+            <div class="eom2-booking-name">${escapeHtml(acc.name)}<span class="type-badge" style="background:${colorWithAlpha(color,.12)};color:${color}">${escapeHtml(eom2TypeLabelMap[type]||type)}</span></div>
             <div class="eom2-booking-prev">${prevBal!==undefined?fmt(prevBal,cur):'—'}</div>
             <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
             <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
@@ -11318,8 +11317,8 @@
       const usedTypes=new Set();
       for(const acc of accounts) usedTypes.add(inferAccountType(acc));
       let opts='<option value="all">Wszystkie kategorie</option>';
-      for(const t of typeOrder){
-        if(usedTypes.has(t)) opts+=`<option value="${t}">${typeLabelMap[t]||t}</option>`;
+      for(const t of eom2TypeOrder){
+        if(usedTypes.has(t)) opts+=`<option value="${t}">${eom2TypeLabelMap[t]||t}</option>`;
       }
       catFilter.innerHTML=opts;
       catFilter.value=curVal;
@@ -11339,9 +11338,9 @@
           datasets.push({label:'Majątek netto',data:nwData,borderColor:'#1e293b',backgroundColor:colorWithAlpha('#1e293b',.06),borderWidth:3,pointRadius:4,pointBackgroundColor:'#1e293b',pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true});
           const usedTypes=new Set();
           for(const acc of accounts) usedTypes.add(inferAccountType(acc));
-          for(const t of typeOrder){
+          for(const t of eom2TypeOrder){
             if(!usedTypes.has(t)) continue;
-            const col=typeColorMap[t]||'#94a3b8';
+            const col=eom2TypeColorMap[t]||'#94a3b8';
             const catData=months.map(ym=>{
               let s=0;
               for(const a of accounts){
@@ -11351,18 +11350,18 @@
               }
               return s;
             });
-            datasets.push({label:typeLabelMap[t]||t,data:catData,borderColor:col,backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false});
+            datasets.push({label:eom2TypeLabelMap[t]||t,data:catData,borderColor:col,backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false});
           }
         } else {
           // Single-category mode: solid total + dashed sub-accounts
           const catAccounts=accounts.filter(a=>inferAccountType(a)===eom2SelectedCat);
-          const catColor=typeColorMap[eom2SelectedCat]||'#94a3b8';
+          const catColor=eom2TypeColorMap[eom2SelectedCat]||'#94a3b8';
           const totalData=months.map(ym=>{
             let s=0;
             for(const a of catAccounts){const v=(ctx.monthBalances[ym]||{})[a.id];if(v!==undefined)s+=v;}
             return s;
           });
-          datasets.push({label:(typeLabelMap[eom2SelectedCat]||eom2SelectedCat)+' — Suma',data:totalData,borderColor:catColor,backgroundColor:colorWithAlpha(catColor,.08),borderWidth:3,pointRadius:4,pointBackgroundColor:catColor,pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true});
+          datasets.push({label:(eom2TypeLabelMap[eom2SelectedCat]||eom2SelectedCat)+' — Suma',data:totalData,borderColor:catColor,backgroundColor:colorWithAlpha(catColor,.08),borderWidth:3,pointRadius:4,pointBackgroundColor:catColor,pointBorderColor:'#fff',pointBorderWidth:2,tension:.3,fill:true});
           catAccounts.forEach((acc,i)=>{
             const col=subAccColors[i%subAccColors.length];
             const accData=months.map(ym=>(ctx.monthBalances[ym]||{})[acc.id]??null);
@@ -11494,8 +11493,8 @@
     const ctx=buildEomContext();
     const accounts=(b().accounts||[]);
     const catAccounts=accounts.filter(a=>inferAccountType(a)===catKey);
-    const catLabel=typeLabelMap[catKey]||catKey;
-    const catColor=typeColorMap[catKey]||'#94a3b8';
+    const catLabel=eom2TypeLabelMap[catKey]||catKey;
+    const catColor=eom2TypeColorMap[catKey]||'#94a3b8';
     const cur=state.modules.budget.currency||'PLN';
 
     // Title
