@@ -122,58 +122,19 @@
       font-weight: 600;
     }
 
-    .loan-insights-panel {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      padding: 14px;
-      border-radius: 14px;
+    /* Projected badge for chart legend */
+    .projected-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
       background: var(--surface);
       border: 1px dashed var(--line);
-    }
-
-    .loan-insights-panel .panel-title {
-      margin: 0;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .insights-grid {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    }
-
-    .insight-card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .insight-card .label {
       font-size: 11px;
       color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
       font-weight: 600;
-    }
-
-    .insight-card .value {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    .insight-card .note {
-      font-size: 12px;
-      color: var(--muted);
+      margin-left: auto;
     }
 
     .loan-charts-card {
@@ -842,10 +803,6 @@
                     <span id="time-saved" class="value"></span>
                   </div>
                 </div>
-                <div id="loan-insights-card" class="loan-insights-panel" style="display: none;">
-                  <p class="panel-title">Najbliższe kroki</p>
-                  <div id="loan-insights-grid" class="insights-grid"></div>
-                </div>
               </section>
 
               <section class="card loan-charts-card" id="loan-analytics-card">
@@ -868,6 +825,9 @@
                   </div>
                   <div class="loan-tab-panels" id="loan-tab-panels">
                     <div class="loan-tab-panel active" data-chart="mix">
+                      <div style="display:flex; justify-content:flex-end; margin-bottom: 6px;">
+                        <span class="projected-legend" id="projected-legend" style="display:none;">Bladsze słupki = 3 prognozowane raty</span>
+                      </div>
                       <div class="loan-chart-grid">
                         <div class="loan-chart-area">
                           <canvas id="capital-chart"></canvas>
@@ -1055,6 +1015,7 @@ const STORAGE_KEY = 'lifeos_loan_v1';
 const defaultState = {
   loanDetails: null, // contains totalCapital, startDate, loanTerm, interestRateHistory
   payments: [], // contains id, date, capital, interest, overpayment
+  projectedPayments: [], // { monthKey, interest } - user overrides for projected interest
 };
 
 let state = {};
@@ -1076,6 +1037,7 @@ function $$(selector) { return document.querySelectorAll(selector); }
 function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   state = saved ? JSON.parse(saved) : { ...defaultState };
+  if (!state.projectedPayments) state.projectedPayments = [];
 }
 
 function saveState() {
@@ -1428,17 +1390,15 @@ function renderDashboard() {
     $('#progress-text').textContent = `${fmt(totalCapitalPaid)} / ${fmt(loanDetails.totalCapital)}`;
 
     const nextPaymentMonth = getNextPaymentMonth(payments, loanDetails);
-    updateLoanInsights({
-        loanDetails,
-        payments,
-        capitalRemaining,
-        totalCapitalPaid,
-        totalOverpayments,
-        avgMonthlyPrincipal,
-        avgInstallment,
-        projectedMonthsRemaining,
-        nextPaymentMonth
-    });
+
+    // Update right rail KPI notes
+    const nextLabel = new Date(`${nextPaymentMonth}-01`).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+    const nextRate = getRateForDate(nextPaymentMonth, loanDetails.interestRateHistory || []);
+    const nextPaymentEl = $('#next-payment');
+    const nextNoteEl = $('#next-payment-note');
+    if (nextPaymentEl) nextPaymentEl.textContent = nextLabel || '—';
+    if (nextNoteEl) nextNoteEl.textContent = nextRate ? `Oprocentowanie ${Number(nextRate).toFixed(2)}%` : '';
+
     renderRateHistory(loanDetails, nextPaymentMonth);
 }
 
@@ -1516,79 +1476,6 @@ function getNextPaymentMonth(payments, loanDetails) {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function updateLoanInsights(metrics) {
-    const card = $('#loan-insights-card');
-    const grid = $('#loan-insights-grid');
-    const nextPaymentEl = $('#next-payment');
-    const nextNoteEl = $('#next-payment-note');
-    if (!card || !grid) return;
-
-    if (!metrics || !metrics.loanDetails) {
-        card.style.display = 'none';
-        if (nextPaymentEl) nextPaymentEl.textContent = '—';
-        if (nextNoteEl) nextNoteEl.textContent = '';
-        return;
-    }
-
-    card.style.display = 'flex';
-    const { loanDetails, payments, capitalRemaining, totalCapitalPaid, totalOverpayments, avgMonthlyPrincipal, avgInstallment, projectedMonthsRemaining, nextPaymentMonth } = metrics;
-    const paymentsList = payments || [];
-    const avgInterestPortion = paymentsList.length ? paymentsList.reduce((sum, p) => sum + p.interest, 0) / paymentsList.length : 0;
-    const nextRate = getRateForDate(nextPaymentMonth, loanDetails.interestRateHistory || []);
-    const nextLabel = new Date(`${nextPaymentMonth}-01`).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
-
-    if (nextPaymentEl) nextPaymentEl.textContent = nextLabel || '—';
-    if (nextNoteEl) {
-        const hasRateHistory = (loanDetails.interestRateHistory || []).length > 0;
-        nextNoteEl.textContent = hasRateHistory ? `Oprocentowanie ${Number(nextRate || 0).toFixed(2)}%` : '';
-    }
-
-    const recommendedOverpayment = (avgMonthlyPrincipal > 0 && projectedMonthsRemaining && isFinite(projectedMonthsRemaining) && projectedMonthsRemaining > 6)
-        ? Math.max(0, (capitalRemaining / Math.max(projectedMonthsRemaining - 6, 1)) - avgMonthlyPrincipal)
-        : 0;
-
-    const finishDate = new Date();
-    if (projectedMonthsRemaining && isFinite(projectedMonthsRemaining)) {
-        finishDate.setMonth(finishDate.getMonth() + Math.max(0, Math.round(projectedMonthsRemaining)));
-    }
-    const finishLabel = projectedMonthsRemaining && isFinite(projectedMonthsRemaining)
-        ? finishDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' })
-        : '—';
-
-    const cards = [
-        {
-            label: 'Następna rata',
-            value: nextLabel,
-            note: `Oprocentowanie ${nextRate ? Number(nextRate).toFixed(2) : '0.00'}%`
-        },
-        {
-            label: 'Prognozowany koniec',
-            value: finishLabel,
-            note: projectedMonthsRemaining && isFinite(projectedMonthsRemaining)
-                ? `${Math.round(projectedMonthsRemaining)} mies. do spłaty`
-                : 'Dodaj więcej rat, aby obliczyć prognozę'
-        },
-        {
-            label: 'Średnia rata',
-            value: paymentsList.length ? fmt(avgInstallment) : '—',
-            note: paymentsList.length ? `Kapitał ${fmt(avgMonthlyPrincipal)} • Odsetki ${fmt(avgInterestPortion)}` : 'Brak danych o ratach'
-        },
-        {
-            label: 'Nadpłaty',
-            value: fmt(totalOverpayments),
-            note: recommendedOverpayment > 0 ? `Dodatkowe ${fmt(recommendedOverpayment)} skróci spłatę o ~6 mies.` : 'Nadpłaty przyspieszą zakończenie kredytu'
-        }
-    ];
-
-    grid.innerHTML = cards.map(card => `
-        <div class="insight-card">
-            <div class="label">${card.label}</div>
-            <div class="value">${card.value}</div>
-            <div class="note">${card.note}</div>
-        </div>
-    `).join('');
-}
-
 function renderRateHistory(loanDetails, nextPaymentMonth) {
     const list = $('#rate-history-list');
     if (!list) return;
@@ -1642,12 +1529,34 @@ function renderCharts() {
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted').trim();
 
+  // === Paid data ===
+  const paidCount = payments.length;
   const paymentLabels = payments.map(p => new Date(p.date + '-02').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }));
   const basePrincipalSeries = payments.map(p => p.capital);
   const overpaymentSeries = payments.map(p => p.overpayment || 0);
   const principalSeries = payments.map((p, index) => basePrincipalSeries[index] + overpaymentSeries[index]);
   const interestSeries = payments.map(p => p.interest);
   const totalSeries = principalSeries.map((value, index) => value + interestSeries[index]);
+
+  // === Projected data (3 future payments) ===
+  const projections = generateProjections(3);
+  const projLabels = projections.map(p => new Date(p.monthKey + '-02').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }));
+  const projPrincipal = projections.map(p => p.capital);
+  const projInterest = projections.map(p => p.interest);
+  const projTotal = projections.map(p => p.capital + p.interest);
+  const projRates = projections.map(p => formatRateValue(p.rate));
+
+  // === Combined data (paid + projected) for overview chart ===
+  const allLabels = [...paymentLabels, ...projLabels];
+  const allPrincipal = [...principalSeries, ...projPrincipal];
+  const allInterest = [...interestSeries, ...projInterest];
+  const allTotal = [...totalSeries, ...projTotal];
+
+  const rateHistory = loanDetails.interestRateHistory || [];
+  const paidRates = payments.map(p => formatRateValue(getRateForDate(p.date, rateHistory)));
+  const allRates = [...paidRates, ...projRates];
+
+  // === Cumulative (paid only) ===
   const cumulativePrincipal = [];
   const cumulativeInterest = [];
   let principalRunning = 0;
@@ -1659,6 +1568,7 @@ function renderCharts() {
     cumulativeInterest.push(interestRunning);
   });
 
+  // === Share % (paid only) ===
   const sharePrincipal = [];
   const shareInterest = [];
   totalSeries.forEach((total, index) => {
@@ -1673,23 +1583,32 @@ function renderCharts() {
     }
   });
 
-  const rateHistory = loanDetails.interestRateHistory || [];
-  const interestRateData = payments.map(p => formatRateValue(getRateForDate(p.date, rateHistory)));
+  // === Balance (paid + projected) ===
   const totalCapitalAmount = Number(loanDetails.totalCapital || 0);
   let runningBalance = totalCapitalAmount;
-  const remainingBalances = payments.map((p, index) => {
+  const paidBalances = payments.map((p, index) => {
     runningBalance -= principalSeries[index];
     return Math.max(runningBalance, 0);
   });
+  const projBalances = projections.map(p => {
+    runningBalance -= p.capital;
+    return Math.max(runningBalance, 0);
+  });
+  const remainingBalances = paidBalances;
+  const allBalances = [...paidBalances, ...projBalances];
+  const allBalanceLabels = [...paymentLabels, ...projLabels];
 
+  // === Rate history ===
   const rateHistoryLabels = paymentLabels;
-  const rateHistoryValues = interestRateData;
+  const rateHistoryValues = paidRates;
   const rateHistoryDiffs = rateHistoryValues.map((value, index) => {
     if (index === 0) return 0;
     const previous = rateHistoryValues[index - 1];
     const diff = value - previous;
     return formatRateValue(diff);
   });
+
+  // === Aggregates ===
   const totalCapitalPaid = principalSeries.reduce((sum, value) => sum + value, 0);
   const totalInterestPaid = interestSeries.reduce((sum, value) => sum + value, 0);
   const averageInstallment = totalSeries.length
@@ -1710,6 +1629,7 @@ function renderCharts() {
 
   chartDataCache = {
     labels: paymentLabels,
+    paidCount,
     principalSeries,
     basePrincipalSeries,
     overpaymentSeries,
@@ -1719,7 +1639,7 @@ function renderCharts() {
     cumulativeInterest,
     sharePrincipal,
     shareInterest,
-    interestRateData,
+    interestRateData: paidRates,
     remainingBalances,
     rateHistoryLabels,
     rateHistoryValues,
@@ -1727,8 +1647,27 @@ function renderCharts() {
     paymentChangeValues,
     paymentChangePercentages,
     averageInstallment,
-    totals: { principal: totalCapitalPaid, interest: totalInterestPaid }
+    totals: { principal: totalCapitalPaid, interest: totalInterestPaid },
+    // Projection data
+    projections,
+    allLabels,
+    allPrincipal,
+    allInterest,
+    allTotal,
+    allRates,
+    allBalances,
+    allBalanceLabels,
+    projLabels,
+    projPrincipal,
+    projInterest,
+    projTotal,
+    projRates,
+    projBalances
   };
+
+  // Show/hide projected legend
+  const projLegend = $('#projected-legend');
+  if (projLegend) projLegend.style.display = projections.length > 0 ? 'inline-flex' : 'none';
 
   const activePanel = document.querySelector('.loan-tab-panel.active');
   const activeChart = activePanel ? activePanel.dataset.chart : 'mix';
@@ -1764,6 +1703,7 @@ function renderChartForPanel(panelType) {
   const palette = getLoanPalette();
   const {
     labels,
+    paidCount,
     principalSeries,
     basePrincipalSeries,
     overpaymentSeries,
@@ -1781,30 +1721,59 @@ function renderChartForPanel(panelType) {
     rateHistoryDiffs,
     paymentChangeValues,
     paymentChangePercentages,
-    averageInstallment
+    averageInstallment,
+    // Projections
+    allLabels,
+    allPrincipal,
+    allInterest,
+    allTotal,
+    allRates,
+    allBalances,
+    allBalanceLabels,
+    projections
   } = chartDataCache;
 
   if (panelType === 'mix') {
     const capitalCanvas = $('#capital-chart');
     if (capitalCanvas) {
       const capitalCtx = capitalCanvas.getContext('2d');
-      const minRateValue = interestRateData.length ? Math.min(...interestRateData) : 0;
-      const maxRateValue = interestRateData.length ? Math.max(...interestRateData) : 0;
+      const pc = paidCount || 0;
+      // Build per-bar color arrays: solid for paid, soft for projected
+      const capitalBg = allPrincipal.map((_, i) => i < pc ? palette.green : palette.greenSoft);
+      const capitalBorder = allPrincipal.map((_, i) => i < pc ? 'transparent' : palette.green);
+      const capitalBorderW = allPrincipal.map((_, i) => i < pc ? 0 : 2);
+      const interestBg = allInterest.map((_, i) => i < pc ? palette.orange : palette.orangeSoft);
+      const interestBorder = allInterest.map((_, i) => i < pc ? 'transparent' : palette.orange);
+      const interestBorderW = allInterest.map((_, i) => i < pc ? 0 : 2);
+
+      const minRateValue = allRates.length ? Math.min(...allRates) : 0;
+      const maxRateValue = allRates.length ? Math.max(...allRates) : 0;
       const ratePadding = 0.4;
       const suggestedRateMin = Number.isFinite(minRateValue) ? Math.min(minRateValue - ratePadding, 4) : 0;
       const yRateMin = Math.max(0, Number.isFinite(suggestedRateMin) ? suggestedRateMin : 0);
       const yRateMax = Number.isFinite(maxRateValue) ? maxRateValue + ratePadding : undefined;
+
       if (charts.capital) {
-        charts.capital.data.labels = labels;
+        charts.capital.data.labels = allLabels;
         const rateDataset = charts.capital.data.datasets.find(ds => ds.label === 'Oprocentowanie');
         const principalDataset = charts.capital.data.datasets.find(ds => ds.label === 'Kapitał');
         const interestDataset = charts.capital.data.datasets.find(ds => ds.label === 'Odsetki');
         const averageDataset = charts.capital.data.datasets.find(ds => ds.label === 'Średnia rata');
-        if (rateDataset) rateDataset.data = interestRateData;
-        if (principalDataset) principalDataset.data = principalSeries;
-        if (interestDataset) interestDataset.data = interestSeries;
+        if (rateDataset) rateDataset.data = allRates;
+        if (principalDataset) {
+          principalDataset.data = allPrincipal;
+          principalDataset.backgroundColor = capitalBg;
+          principalDataset.borderColor = capitalBorder;
+          principalDataset.borderWidth = capitalBorderW;
+        }
+        if (interestDataset) {
+          interestDataset.data = allInterest;
+          interestDataset.backgroundColor = interestBg;
+          interestDataset.borderColor = interestBorder;
+          interestDataset.borderWidth = interestBorderW;
+        }
         if (averageDataset) {
-          averageDataset.data = labels.map(() => averageInstallment);
+          averageDataset.data = allLabels.map(() => averageInstallment);
           averageDataset.hidden = !averageInstallment;
         }
         if (charts.capital.options?.scales?.yRate) {
@@ -1816,21 +1785,23 @@ function renderChartForPanel(panelType) {
         charts.capital = new Chart(capitalCtx, {
           type: 'bar',
           data: {
-            labels,
+            labels: allLabels,
             datasets: [
-              { type: 'line', label: 'Oprocentowanie', data: interestRateData, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2, datalabels: { display: false } },
-              { label: 'Kapitał', data: principalSeries, backgroundColor: palette.green, borderRadius: 4, order: 2, datalabels: { display: false } },
+              { type: 'line', label: 'Oprocentowanie', data: allRates, borderColor: palette.blue, yAxisID: 'yRate', tension: 0.2, pointRadius: 3, pointBackgroundColor: palette.blue, borderWidth: 2, datalabels: { display: false } },
+              { label: 'Kapitał', data: allPrincipal, backgroundColor: capitalBg, borderColor: capitalBorder, borderWidth: capitalBorderW, borderRadius: 4, order: 2, datalabels: { display: false } },
               {
                 label: 'Odsetki',
-                data: interestSeries,
-                backgroundColor: palette.orange,
+                data: allInterest,
+                backgroundColor: interestBg,
+                borderColor: interestBorder,
+                borderWidth: interestBorderW,
                 borderRadius: 4,
                 order: 3,
                 datalabels: {
                   anchor: 'end',
                   align: 'top',
-                  color: palette.ink,
-                  font: { weight: 700, size: 11 },
+                  color: (ctx) => ctx.dataIndex < pc ? palette.ink : palette.muted || '#999',
+                  font: (ctx) => ({ weight: ctx.dataIndex < pc ? 700 : 500, size: 11, style: ctx.dataIndex < pc ? 'normal' : 'italic' }),
                   formatter: (value, context) => {
                     const index = context.dataIndex;
                     const principalValue = context.chart.data.datasets[1].data[index] || 0;
@@ -1839,7 +1810,7 @@ function renderChartForPanel(panelType) {
                   }
                 }
               },
-              { type: 'line', label: 'Średnia rata', data: labels.map(() => averageInstallment), borderColor: palette.ink, borderDash: [6, 4], borderWidth: 1.5, yAxisID: 'y', pointRadius: 0, tension: 0, datalabels: { display: false }, hidden: !averageInstallment }
+              { type: 'line', label: 'Średnia rata', data: allLabels.map(() => averageInstallment), borderColor: palette.ink, borderDash: [6, 4], borderWidth: 1.5, yAxisID: 'y', pointRadius: 0, tension: 0, datalabels: { display: false }, hidden: !averageInstallment }
             ]
           },
           plugins: [ChartDataLabels],
@@ -2153,25 +2124,40 @@ function renderChartForPanel(panelType) {
     const balanceCanvas = $('#balance-chart');
     if (balanceCanvas) {
       const balanceCtx = balanceCanvas.getContext('2d');
+      const pc = paidCount || 0;
+      const balPointBg = allBalances.map((_, i) => i < pc ? palette.blue : palette.blueSoft);
+      const balPointBorder = allBalances.map((_, i) => i < pc ? palette.blue : palette.blue);
+      const balPointRadius = allBalances.map((_, i) => i < pc ? 4 : 5);
+      const balSegment = {
+        borderDash: (ctx) => ctx.p0DataIndex >= pc - 1 ? [6, 4] : undefined,
+        borderColor: (ctx) => ctx.p0DataIndex >= pc - 1 ? palette.line : palette.blue,
+      };
       if (charts.balance) {
-        charts.balance.data.labels = labels;
-        charts.balance.data.datasets[0].data = remainingBalances;
+        charts.balance.data.labels = allBalanceLabels;
+        charts.balance.data.datasets[0].data = allBalances;
+        charts.balance.data.datasets[0].pointBackgroundColor = balPointBg;
+        charts.balance.data.datasets[0].pointBorderColor = balPointBorder;
+        charts.balance.data.datasets[0].pointRadius = balPointRadius;
+        charts.balance.data.datasets[0].segment = balSegment;
         charts.balance.update();
       } else {
         charts.balance = new Chart(balanceCtx, {
           type: 'line',
           data: {
-            labels,
+            labels: allBalanceLabels,
             datasets: [
               {
                 label: 'Saldo po spłacie',
-                data: remainingBalances,
+                data: allBalances,
                 borderColor: palette.blue,
                 backgroundColor: palette.blueSoft,
                 fill: 'start',
                 tension: 0.25,
-                pointRadius: 4,
-                pointHoverRadius: 6
+                pointRadius: balPointRadius,
+                pointHoverRadius: 6,
+                pointBackgroundColor: balPointBg,
+                pointBorderColor: balPointBorder,
+                segment: balSegment
               }
             ]
           },
@@ -2184,17 +2170,23 @@ function renderChartForPanel(panelType) {
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  label: (context) => `Saldo: ${fmtChartValue(context.raw)}`
+                  label: (context) => {
+                    const isProjIdx = context.dataIndex >= pc;
+                    const prefix = isProjIdx ? 'Prognoza: ' : 'Saldo: ';
+                    return `${prefix}${fmtChartValue(context.raw)}`;
+                  }
                 }
               },
               datalabels: {
                 align: 'top',
                 anchor: 'end',
-                color: palette.ink,
-                font: { weight: 700, size: 11 },
+                color: (ctx) => ctx.dataIndex >= pc ? palette.muted || '#999' : palette.ink,
+                font: (ctx) => ({ weight: ctx.dataIndex >= pc ? 500 : 700, size: 11, style: ctx.dataIndex >= pc ? 'italic' : 'normal' }),
                 formatter: (value, context) => {
                   const dataset = context.dataset.data || [];
-                  return context.dataIndex === dataset.length - 1 ? fmtChartValue(value) : '';
+                  if (context.dataIndex === dataset.length - 1) return fmtChartValue(value);
+                  if (context.dataIndex === pc - 1 && projections.length > 0) return fmtChartValue(value);
+                  return '';
                 }
               }
             },
@@ -2543,6 +2535,87 @@ function setupLoanChartTabs() {
   });
 }
 
+/* === Projections === */
+function generateProjections(count = 3) {
+  const { loanDetails, payments } = state;
+  if (!loanDetails || !payments.length) return [];
+
+  const sorted = [...payments].sort((a, b) => a.date.localeCompare(b.date));
+  const totalOverpayments = sorted.reduce((s, p) => s + (p.overpayment || 0), 0);
+  const totalCapitalPaid = sorted.reduce((s, p) => s + p.capital, 0) + totalOverpayments;
+  let remainingCapital = loanDetails.totalCapital - totalCapitalPaid;
+
+  const avgCapital = sorted.reduce((s, p) => s + p.capital, 0) / sorted.length;
+  const history = loanDetails.interestRateHistory || [];
+  const overrides = state.projectedPayments || [];
+
+  const lastDate = sorted[sorted.length - 1].date;
+  const [y, m] = lastDate.split('-').map(Number);
+  const cursor = new Date(Date.UTC(y, m - 1, 1));
+
+  const projections = [];
+  for (let i = 0; i < count && remainingCapital > 0.01; i++) {
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    const monthKey = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    const capital = Math.min(avgCapital, Math.max(remainingCapital, 0));
+    const rate = getRateForDate(monthKey, history);
+    const defaultInterest = Math.max(remainingCapital, 0) * ((rate || 0) / 100 / 12);
+
+    const override = overrides.find(o => o.monthKey === monthKey);
+    const interest = override ? override.interest : defaultInterest;
+
+    projections.push({ monthKey, capital, interest, rate, isEdited: !!override });
+    remainingCapital -= capital;
+  }
+  return projections;
+}
+
+function openProjectedEditModal(monthKey) {
+  const projections = generateProjections(6);
+  const proj = projections.find(p => p.monthKey === monthKey);
+  if (!proj) return;
+
+  const dateLabel = new Date(`${monthKey}-01`).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+  const body = `
+    <div class="form-group">
+      <label class="form-label">Miesiąc</label>
+      <input type="text" class="form-input" value="${dateLabel}" disabled>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Prognozowany kapitał (obliczony ze średniej)</label>
+      <input type="text" class="form-input" value="${proj.capital.toFixed(2)} zł" disabled>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Odsetki</label>
+      <input type="number" id="projected-interest" class="form-input" step="0.01" value="${proj.interest.toFixed(2)}">
+      <span class="tiny muted" style="margin-top:4px;display:block;">Domyślnie z oprocentowania ${Number(proj.rate || 0).toFixed(2)}%. Zmień kwotę jeśli np. inna liczba dni w miesiącu.</span>
+    </div>
+  `;
+  const footer = `
+    <button class="btn" onclick="closeModal()">Anuluj</button>
+    ${proj.isEdited ? '<button class="btn" onclick="resetProjectedPayment(\'' + monthKey + '\')">Resetuj</button>' : ''}
+    <button class="btn primary" onclick="saveProjectedPayment('${monthKey}')">Zapisz</button>
+  `;
+  openModal('Edytuj prognozę — ' + dateLabel, body, footer);
+}
+
+function saveProjectedPayment(monthKey) {
+  const interest = parseFloat($('#projected-interest').value);
+  if (isNaN(interest) || interest < 0) { alert('Podaj prawidłową kwotę odsetek.'); return; }
+  if (!state.projectedPayments) state.projectedPayments = [];
+  const idx = state.projectedPayments.findIndex(p => p.monthKey === monthKey);
+  if (idx > -1) { state.projectedPayments[idx].interest = interest; }
+  else { state.projectedPayments.push({ monthKey, interest }); }
+  saveState(); closeModal(); render();
+}
+
+function resetProjectedPayment(monthKey) {
+  if (!state.projectedPayments) return;
+  state.projectedPayments = state.projectedPayments.filter(p => p.monthKey !== monthKey);
+  saveState(); closeModal(); render();
+}
+
 /* === Schedule Timeline === */
 let scheduleFilter = 'all';
 let scheduleVisibleCount = 12;
@@ -2735,11 +2808,14 @@ function renderSchedule() {
     if (item.interest > 0) breakdownParts.push(`<span><span class="dot-orange">&#9679;</span> Odsetki ${fmtPlain(item.interest)} zł</span>`);
     if (item.overpayment > 0) breakdownParts.push(`<span><span class="dot-blue">&#9679;</span> Nadpłata ${fmtPlain(item.overpayment)} zł</span>`);
 
-    const actions = item.paymentId
-      ? `<div class="schedule-actions"><button class="btn tiny" onclick="openPaymentModal('${item.paymentId}')">Edytuj</button></div>`
-      : (item.status === 'current' || item.status === 'overdue')
-        ? `<div class="schedule-actions"><button class="btn tiny primary" onclick="openPaymentModal(null)">Zarejestruj</button></div>`
-        : '';
+    let actions = '';
+    if (item.paymentId) {
+      actions = `<div class="schedule-actions"><button class="btn tiny" onclick="openPaymentModal('${item.paymentId}')">Edytuj</button></div>`;
+    } else if (item.status === 'current' || item.status === 'overdue') {
+      actions = `<div class="schedule-actions"><button class="btn tiny primary" onclick="openPaymentModal(null)">Zarejestruj</button></div>`;
+    } else if (item.status === 'planned') {
+      actions = `<div class="schedule-actions"><button class="btn tiny" onclick="openProjectedEditModal('${item.monthKey}')">Edytuj prognozę</button></div>`;
+    }
 
     return `
       <div class="schedule-item" data-status="${item.status}">
