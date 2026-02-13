@@ -131,6 +131,21 @@
     .inv-holdings-group-toggle { border:none; background:transparent; cursor:pointer; font:inherit; color:inherit; display:flex; align-items:center; gap:8px; padding:0; }
     .inv-holdings-group-chevron { color:var(--muted); width:12px; display:inline-block; }
     .inv-holdings-group-metrics { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; font-size:12px; font-weight:600; color:var(--muted); }
+    .inv-tag-chip { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.02em; background:rgba(37,99,235,.12); color:#1d4ed8; margin-left:6px; }
+    .inv-meta { margin-top:2px; font-size:11px; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px; }
+    .inv-meta b { color:var(--ink); font-weight:600; }
+    .inv-sector-wrap { margin-top:14px; border-top:1px dashed rgba(148,163,184,.35); padding-top:12px; }
+    .inv-sector-title { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+    .inv-sector-title strong { font-size:13px; }
+    .inv-sector-list { display:grid; gap:8px; }
+    .inv-sector-item { background:rgba(248,250,252,.9); border:1px solid rgba(148,163,184,.28); border-radius:10px; padding:8px 10px; display:grid; gap:5px; }
+    .inv-sector-head { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; }
+    .inv-sector-stats { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--muted); }
+    .inv-sector-bar { height:8px; border-radius:999px; background:rgba(148,163,184,.2); overflow:hidden; }
+    .inv-sector-bar > i { display:block; height:100%; background:linear-gradient(90deg,#2563eb,#8b5cf6); }
+    .inv-alert-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; background:rgba(148,163,184,.16); color:#475569; }
+    .inv-alert-chip.warn { background:rgba(245,158,11,.16); color:#92400e; }
+    .inv-alert-chip.danger { background:rgba(239,68,68,.14); color:#991b1b; }
 
     /* --- Investment Analytics Hub ------------------------------------------- */
     .inv-hub-snapshot-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
@@ -4780,7 +4795,7 @@
             </div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-holdings-table">
-                <thead><tr><th class="inv-holdings-sortable" data-sort-key="name">Aktywo<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="qty">Ilość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="avgCost">Śr. koszt<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="currentPrice">Akt. cena<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="value">Wartość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="pnl">P&amp;L<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="roi">ROI<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="weight">Waga<span class="sort-ind"></span></th><th></th></tr></thead>
+                <thead><tr><th class="inv-holdings-sortable" data-sort-key="name">Aktywo / meta<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="qty">Ilość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="avgCost">Śr. koszt<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="currentPrice">Akt. cena<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="value">Wartość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="pnl">P&amp;L<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="roi">ROI<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="weight">Waga<span class="sort-ind"></span></th><th>Sygnał</th><th></th></tr></thead>
                 <tbody></tbody>
                 <tfoot id="inv-holdings-foot"></tfoot>
               </table>
@@ -4795,7 +4810,7 @@
             </div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-group-table">
-                <thead><tr><th>Grupa</th><th>Baza kosztowa</th><th>Wartość</th><th>P&amp;L</th><th>Udział</th><th>Transakcje</th></tr></thead>
+                <thead><tr><th>Grupa / przekrój</th><th>Baza kosztowa</th><th>Wartość</th><th>P&amp;L</th><th>Udział</th><th>Transakcje</th><th>Ryzyko koncentracji</th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
@@ -5709,6 +5724,9 @@
       if(typeof a.priceProvider!=='string') a.priceProvider='manual';
       if(typeof a.priceSymbol!=='string') a.priceSymbol='';
       if(typeof a.priceCurrency!=='string') a.priceCurrency='PLN';
+      if(typeof a.sector!=='string') a.sector='';
+      if(typeof a.industry!=='string') a.industry='';
+      if(a.metaDate===undefined) a.metaDate=null;
     }
 
     return st;
@@ -6999,6 +7017,7 @@
     const map={};
     for(const a of data.assets){
       map[a.id]={id:a.id,name:a.name,group:a.group||'Inne',currentPrice:a.currentPrice||null,priceDate:a.priceDate||null,
+        sector:String(a.sector||''),industry:String(a.industry||''),
         lots:[],qty:0,costBasis:0,avgCost:0,realizedPnl:0,invested:0,sellProceeds:0,tradeCount:0,lastDate:'',marketValue:null,unrealizedPnl:null};
     }
     const sorted=[...data.trades].sort((a,bb)=>String(a.date||'').localeCompare(String(bb.date||''))||(a.side==='buy'?-1:1));
@@ -7364,6 +7383,28 @@
     return null;
   }
 
+  async function fetchYahooAssetProfile(symbol){
+    const raw=String(symbol||'').trim().toUpperCase();
+    if(!raw) return {sector:'',industry:''};
+    const hasMarketSuffix=/\.[A-Z]{2,4}$/.test(raw);
+    const candidates=[raw];
+    if(!hasMarketSuffix) candidates.push(`${raw}.US`,`${raw}.AS`,`${raw}.DE`,`${raw}.WA`,`${raw}.L`);
+    const unique=[...new Set(candidates)];
+
+    for(const sym of unique){
+      try{
+        const res=await fetchWithCorsFallback(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(sym)}?modules=assetProfile`);
+        if(!res.ok) continue;
+        const json=await res.json();
+        const profile=json?.quoteSummary?.result?.[0]?.assetProfile||{};
+        const sector=String(profile?.sector||'').trim();
+        const industry=String(profile?.industry||'').trim();
+        if(sector||industry) return {sector,industry};
+      }catch(_err){ /* ignore profile fetch and fallback */ }
+    }
+    return {sector:'',industry:''};
+  }
+
   async function fetchCoinGeckoPrice(id,currency){
     const coinId=String(id||'').trim().toLowerCase();
     const vs=String(currency||'usd').trim().toLowerCase();
@@ -7446,33 +7487,35 @@
     try{
       if(provider==='stooq'){
         const quoteCurrency=resolveQuoteCurrency(asset);
+        const meta=(asset.group==='Akcje')?await fetchYahooAssetProfile(symbol):{sector:'',industry:''};
         let rawPrice=null;
         try{rawPrice=await fetchYahooPrice(symbol);}catch(_err){rawPrice=null;}
         if(!(rawPrice&&rawPrice>0)) rawPrice=await fetchStooqPrice(symbol);
         if(rawPrice&&rawPrice>0){
           const pricePln=await convertQuoteToPln(rawPrice,quoteCurrency);
-          return {price:pricePln,currency:'PLN'};
+          return {price:pricePln,currency:'PLN',sector:meta.sector||'',industry:meta.industry||''};
         }
         return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq) lub brak poprawnej waluty kwotowania.'};
       }
       if(provider==='yahoo'){
         const quoteCurrency=resolveQuoteCurrency(asset);
+        const meta=(asset.group==='Akcje')?await fetchYahooAssetProfile(symbol):{sector:'',industry:''};
         let rawPrice=null;
         try{rawPrice=await fetchYahooPrice(symbol);}catch(_err){rawPrice=null;}
         if(!(rawPrice&&rawPrice>0)) rawPrice=await fetchStooqPrice(symbol);
         if(rawPrice&&rawPrice>0){
           const pricePln=await convertQuoteToPln(rawPrice,quoteCurrency);
-          return {price:pricePln,currency:'PLN'};
+          return {price:pricePln,currency:'PLN',sector:meta.sector||'',industry:meta.industry||''};
         }
         return {price:null,error:'Brak ceny dla symbolu (Yahoo/Stooq) lub brak poprawnej waluty kwotowania.'};
       }
-      if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
-      if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
+      if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency),sector:'',industry:''};
+      if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol),sector:'',industry:''};
       if(provider==='fmp'){
         const out=await fetchFmpStablePrice(symbol);
         const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
         const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
-        return {price:pricePln,currency:'PLN'};
+        return {price:pricePln,currency:'PLN',sector:'',industry:''};
       }
       return {price:null,error:'Nieznany provider'};
     }catch(err){
@@ -7494,7 +7537,7 @@
     for(const asset of assets){
       const out=await fetchAssetPrice(asset);
       if(out.skipped){skipped++;continue;}
-      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;updated++;}
+      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today; if(asset.group==='Akcje'){asset.sector=String(out.sector||asset.sector||'').trim(); asset.industry=String(out.industry||asset.industry||'').trim(); asset.metaDate=today;} updated++;}
       else failed++;
     }
     save(state);
@@ -7587,6 +7630,23 @@
   }
 
   // --- Holdings Table --------------------------------------------------------
+  function invSectorLabel(h){
+    return h.group==='Akcje'?(h.sector||'Brak branży'):'—';
+  }
+
+  function invSectorBreakdown(holdings){
+    const stocks=holdings.filter(h=>(h.group||'')==='Akcje'&&h.qty>0.000001);
+    const totalStocksValue=stocks.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+    const bySector={};
+    for(const h of stocks){
+      const key=(h.sector||'Brak branży').trim()||'Brak branży';
+      if(!bySector[key]) bySector[key]={name:key,value:0,cost:0,items:0,pnl:0};
+      const v=h.marketValue!==null?h.marketValue:h.costBasis;
+      bySector[key].value+=v; bySector[key].cost+=h.costBasis; bySector[key].items++; bySector[key].pnl+=v-h.costBasis;
+    }
+    return Object.values(bySector).map(x=>({...x,share:totalStocksValue>0?(x.value/totalStocksValue)*100:0,roi:x.cost>0?(x.pnl/x.cost)*100:null})).sort((a,b)=>b.value-a.value);
+  }
+
   function renderInvHoldingsTable(holdings,stats){
     const table=document.getElementById('inv-holdings-table');
     const tbody=document.querySelector('#inv-holdings-table tbody');
@@ -7613,7 +7673,7 @@
     tbody.innerHTML='';
     const active=holdings.filter(h=>h.qty>0.000001);
     if(!active.length){
-      tbody.innerHTML='<tr><td colspan="9" class="muted" style="text-align:center">Brak otwartych pozycji</td></tr>';
+      tbody.innerHTML='<tr><td colspan="10" class="muted" style="text-align:center">Brak otwartych pozycji</td></tr>';
       if(tfoot) tfoot.innerHTML='';
       return;
     }
@@ -7709,7 +7769,7 @@
       groupTr.className='inv-holdings-group-row';
       const groupPnlHtml=g.pnl===null?'<span class="muted">P&L: —</span>':`<span class="${g.pnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">P&L: ${g.pnl>=0?'+':''}${fmt(g.pnl,state.currency)}</span>`;
       const groupRoiHtml=g.roi===null?'<span class="muted">ROI: —</span>':`<span class="${g.roi>=0?'inv-pnl-pos':'inv-pnl-neg'}">ROI: ${g.roi>=0?'+':''}${g.roi.toFixed(1)}%</span>`;
-      groupTr.innerHTML=`<td colspan="9"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><button type="button" class="inv-holdings-group-toggle" data-toggle-group="${escapeHtml(g.name)}"><span class="inv-holdings-group-chevron">${isCollapsed?'▸':'▾'}</span><span>${escapeHtml(g.name)} <span class="muted">(${g.items.length})</span></span></button><div class="inv-holdings-group-metrics"><span>Baza: ${fmt(g.cost,state.currency)}</span><span>Wartość: ${fmt(g.value,state.currency)}</span>${groupPnlHtml}${groupRoiHtml}<span>Waga: ${((g.value/totalValue)*100).toFixed(1)}%</span></div></div></td>`;
+      groupTr.innerHTML=`<td colspan="10"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><button type="button" class="inv-holdings-group-toggle" data-toggle-group="${escapeHtml(g.name)}"><span class="inv-holdings-group-chevron">${isCollapsed?'▸':'▾'}</span><span>${escapeHtml(g.name)} <span class="muted">(${g.items.length})</span></span></button><div class="inv-holdings-group-metrics"><span>Baza: ${fmt(g.cost,state.currency)}</span><span>Wartość: ${fmt(g.value,state.currency)}</span>${groupPnlHtml}${groupRoiHtml}<span>Waga: ${((g.value/totalValue)*100).toFixed(1)}%</span></div></div></td>`;
       tbody.appendChild(groupTr);
 
       if(isCollapsed) continue;
@@ -7728,11 +7788,32 @@
           roiHtml=`<span class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
         }
         const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
-        tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
+        const sectorLabel=invSectorLabel(h);
+        const sectorChip=(h.group==='Akcje')?`<span class="inv-tag-chip">${escapeHtml(sectorLabel)}</span>`:'';
+        const industryMeta=(h.group==='Akcje'&&h.industry)?`<span>Branża: <b>${escapeHtml(h.industry)}</b></span>`:'';
+        let signal='<span class="muted">—</span>';
+        const weightNum=Number(weight);
+        if(weightNum>=35) signal='<span class="inv-alert-chip danger">Przeinwestowane</span>';
+        else if(weightNum>=20) signal='<span class="inv-alert-chip warn">Wysoka ekspozycja</span>';
+        tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong>${sectorChip}<div class="inv-meta"><span>Grupa: <b>${escapeHtml(h.group||'Inne')}</b></span>${industryMeta}</div></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td>${signal}</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
         bindPriceEditor(tr);
         bindQuickSell(tr);
         tbody.appendChild(tr);
       }
+    }
+
+    const sectors=invSectorBreakdown(active);
+    if(sectors.length){
+      const sectorRow=document.createElement('tr');
+      const maxShare=sectors.reduce((m,s)=>Math.max(m,s.share),0);
+      const sectorItems=sectors.slice(0,6).map(sec=>{
+        const roiTxt=sec.roi===null?'—':`${sec.roi>=0?'+':''}${sec.roi.toFixed(1)}%`;
+        const roiCls=sec.roi===null?'':(sec.roi>=0?'inv-pnl-pos':'inv-pnl-neg');
+        const exposure=sec.share>=45?'<span class="inv-alert-chip danger">Za duża koncentracja</span>':(sec.share>=30?'<span class="inv-alert-chip warn">Pilnuj limitu</span>':'');
+        return `<div class="inv-sector-item"><div class="inv-sector-head"><span>${escapeHtml(sec.name)}</span><span>${sec.share.toFixed(1)}%</span></div><div class="inv-sector-bar"><i style="width:${Math.max(4,Math.min(sec.share,100)).toFixed(1)}%"></i></div><div class="inv-sector-stats"><span>Wartość: ${fmt(sec.value,state.currency)}</span><span>P&L: <b class="${roiCls}">${sec.pnl>=0?'+':''}${fmt(sec.pnl,state.currency)}</b></span><span>ROI: <b class="${roiCls}">${roiTxt}</b></span>${exposure}</div></div>`;
+      }).join('');
+      sectorRow.innerHTML=`<td colspan="10"><div class="inv-sector-wrap"><div class="inv-sector-title"><strong>Akcje — rozkład po branży</strong><span class="tiny muted">Największa branża: ${maxShare.toFixed(1)}% ekspozycji akcyjnej</span></div><div class="inv-sector-list">${sectorItems}</div></div></td>`;
+      tbody.appendChild(sectorRow);
     }
 
     tbody.querySelectorAll('[data-toggle-group]').forEach(btn=>{
@@ -7755,7 +7836,7 @@
         pnlFoot=`<span class="${cls}">${sign}${fmt(totalUPnl,state.currency)}</span>`;
         roiFoot=`<span class="${cls}">${sign}${(totalCost>0?(totalUPnl/totalCost)*100:0).toFixed(1)}%</span>`;
       }
-      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="2">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>${roiFoot}</td><td>100%</td><td></td></tr>`;
+      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="2">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>${roiFoot}</td><td>100%</td><td>—</td><td></td></tr>`;
     }
   }
 
@@ -7766,7 +7847,7 @@
     if(!tbody) return;
     const active=holdings.filter(h=>h.qty>0.000001||h.costBasis>0);
     if(!active.length){
-      tbody.innerHTML='<tr><td colspan="6" class="muted" style="text-align:center">Brak danych</td></tr>';
+      tbody.innerHTML='<tr><td colspan="7" class="muted" style="text-align:center">Brak danych</td></tr>';
       return;
     }
     tbody.innerHTML='';
@@ -7787,7 +7868,9 @@
       const tCount=trades.filter(t=>grp.some(h=>h.id===t.assetId)).length;
       let pnlHtml=hasPrice?`<span class="${pnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${pnl>=0?'+':''}${fmt(pnl,state.currency)}</span>`:'<span class="muted">—</span>';
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><strong>${escapeHtml(g)}</strong></td><td>${fmt(cost,state.currency)}</td><td>${fmt(mv,state.currency)}</td><td>${pnlHtml}</td><td>${pct}%</td><td>${tCount}</td>`;
+      const concentration=Number(pct);
+      const riskBadge=concentration>=45?'<span class="inv-alert-chip danger">Wysokie</span>':(concentration>=30?'<span class="inv-alert-chip warn">Średnie</span>':'<span class="inv-alert-chip">Niskie</span>');
+      tr.innerHTML=`<td><strong>${escapeHtml(g)}</strong></td><td>${fmt(cost,state.currency)}</td><td>${fmt(mv,state.currency)}</td><td>${pnlHtml}</td><td>${pct}%</td><td>${tCount}</td><td>${riskBadge}</td>`;
       tbody.appendChild(tr);
     }
   }
