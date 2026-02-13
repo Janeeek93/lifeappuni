@@ -196,7 +196,10 @@
     @media(max-width:768px){ .eom2-charts-row, .eom2-bottleneck-row { flex-direction:column; } }
 
     .eom2-booking-group { margin-bottom:12px; }
-    .eom2-booking-group-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 0 4px; border-bottom:1px solid rgba(148,163,184,.15); margin-bottom:6px; }
+    .eom2-booking-group-title { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 0 4px; border-bottom:1px solid rgba(148,163,184,.15); margin-bottom:6px; }
+    .eom2-booking-group-summary { font-size:11px; font-weight:600; text-transform:none; letter-spacing:0; }
+    .eom2-booking-group-summary.pos { color:#16a34a; }
+    .eom2-booking-group-summary.neg { color:#dc2626; }
     .eom2-booking-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid rgba(148,163,184,.08); }
     .eom2-booking-row:last-child { border-bottom:none; }
     .eom2-booking-name { flex:1; min-width:120px; font-size:13px; font-weight:500; }
@@ -11436,7 +11439,7 @@
         if(!accs||!accs.length) continue;
         const groupDiv=document.createElement('div');
         groupDiv.className='eom2-booking-group';
-        groupDiv.innerHTML=`<div class="eom2-booking-group-title">${escapeHtml(eom2TypeLabelMap[type]||type)}</div>`;
+        groupDiv.innerHTML=`<div class="eom2-booking-group-title"><span>${escapeHtml(eom2TypeLabelMap[type]||type)}</span><span class="eom2-booking-group-summary" data-group-delta="${type}">—</span></div>`;
 
         for(const acc of accs){
           const prevBal=prevBalances[acc.id];
@@ -11456,6 +11459,39 @@
       }
 
       // Live delta updates
+      const updateBookingTotals=()=>{
+        let total=0;
+        const byType={};
+        const byTypeHasPrev={};
+        grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
+          const accId=i.dataset.accId;
+          const acc=accounts.find(a=>a.id===accId);
+          if(!acc) return;
+          const type=inferAccountType(acc);
+          if(i.value.trim()){
+            const currentVal=num(i.value);
+            total+=currentVal;
+            const prev=prevBalances[accId];
+            if(prev!==undefined){
+              byType[type]=(byType[type]||0)+(currentVal-prev);
+              byTypeHasPrev[type]=true;
+            }
+          }
+        });
+        const liveTotal=el('eom2-live-total');
+        if(liveTotal) liveTotal.textContent=`Netto: ${fmt(total,cur)}`;
+        grid.querySelectorAll('[data-group-delta]').forEach(summary=>{
+          const type=summary.dataset.groupDelta;
+          const delta=byType[type]||0;
+          if(byTypeHasPrev[type]){
+            summary.textContent=`${delta>=0?'+':''}${fmt(delta,cur)}`;
+            summary.className='eom2-booking-group-summary '+(delta>0?'pos':delta<0?'neg':'');
+          } else {
+            summary.textContent='—';
+            summary.className='eom2-booking-group-summary';
+          }
+        });
+      };
       grid.querySelectorAll('input[data-acc-id]').forEach(inp=>{
         const updateDelta=()=>{
           const accId=inp.dataset.accId;
@@ -11469,14 +11505,9 @@
             deltaEl.className='eom2-booking-delta '+(d>0?'pos':d<0?'neg':'');
           } else {
             deltaEl.textContent='';
+            deltaEl.className='eom2-booking-delta';
           }
-          // Update live total
-          let total=0;
-          grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
-            if(i.value.trim()) total+=num(i.value);
-          });
-          const liveTotal=el('eom2-live-total');
-          if(liveTotal) liveTotal.textContent=`Netto: ${fmt(total,cur)}`;
+          updateBookingTotals();
         };
         inp.addEventListener('input',updateDelta);
         updateDelta(); // init
