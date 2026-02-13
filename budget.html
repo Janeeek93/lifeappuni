@@ -132,6 +132,26 @@
     .inv-holdings-group-chevron { color:var(--muted); width:12px; display:inline-block; }
     .inv-holdings-group-metrics { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; font-size:12px; font-weight:600; color:var(--muted); }
 
+    /* --- Sector view styles ------------------------------------------------ */
+    .inv-view-toggle { display:inline-flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid rgba(148,163,184,.3); background:rgba(148,163,184,.06); }
+    .inv-view-btn { border:none; background:transparent; padding:6px 14px; font-weight:600; font-size:12px; cursor:pointer; color:var(--muted); transition:all .15s; white-space:nowrap; }
+    .inv-view-btn.is-active { background:#2563eb; color:#fff; }
+    .inv-sector-row td { background:rgba(37,99,235,.06); font-weight:700; }
+    .inv-sector-badge { display:inline-block; padding:2px 8px; border-radius:5px; font-size:10px; font-weight:600; background:rgba(37,99,235,.10); color:#2563eb; margin-left:6px; vertical-align:middle; }
+    .inv-industry-tag { font-size:11px; color:var(--muted); font-weight:400; margin-left:4px; }
+    .inv-concentration-warn { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:5px; font-size:10px; font-weight:700; background:rgba(245,158,11,.12); color:#d97706; }
+    .inv-concentration-danger { background:rgba(239,68,68,.12); color:#dc2626; }
+    .inv-sector-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
+    .inv-sector-card { background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+    .inv-sector-card-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .inv-sector-card-name { font-size:13px; font-weight:700; color:var(--ink); }
+    .inv-sector-card-weight { font-size:12px; font-weight:700; color:var(--muted); }
+    .inv-sector-bar { height:6px; border-radius:3px; background:rgba(148,163,184,.15); overflow:hidden; }
+    .inv-sector-bar-fill { height:100%; border-radius:3px; transition:width .3s; }
+    .inv-sector-card-stats { display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:var(--muted); }
+    .inv-sector-card-stats .inv-pnl-pos, .inv-sector-card-stats .inv-pnl-neg { font-size:11px; }
+    .inv-holdings-asset-sector { font-size:10px; color:var(--muted); font-weight:400; display:block; margin-top:1px; }
+
     /* --- Investment Analytics Hub ------------------------------------------- */
     .inv-hub-snapshot-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
     .inv-hub-snapshot-bar .btn { white-space:nowrap; }
@@ -4773,11 +4793,17 @@
           <div class="card stack">
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Portfel — stan posiadania</strong>
-              <div class="row" style="gap:8px">
-                <button class="btn soft" type="button" id="inv-refresh-prices-btn">Odśwież aktualne ceny</button>
+              <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                <div class="inv-view-toggle" id="inv-holdings-view-toggle">
+                  <button class="inv-view-btn is-active" data-view="group" type="button">Grupy</button>
+                  <button class="inv-view-btn" data-view="sector" type="button">Sektory</button>
+                </div>
+                <button class="btn soft" type="button" id="inv-refresh-prices-btn">Odśwież ceny</button>
                 <span class="tiny muted" id="inv-refresh-status">Kliknij cenę, aby zaktualizować wycenę</span>
               </div>
             </div>
+            <!-- Sector summary cards -->
+            <div id="inv-sector-summary" class="inv-sector-summary" style="display:none"></div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-holdings-table">
                 <thead><tr><th class="inv-holdings-sortable" data-sort-key="name">Aktywo<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="qty">Ilość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="avgCost">Śr. koszt<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="currentPrice">Akt. cena<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="value">Wartość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="pnl">P&amp;L<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="roi">ROI<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="weight">Waga<span class="sort-ind"></span></th><th></th></tr></thead>
@@ -6999,6 +7025,7 @@
     const map={};
     for(const a of data.assets){
       map[a.id]={id:a.id,name:a.name,group:a.group||'Inne',currentPrice:a.currentPrice||null,priceDate:a.priceDate||null,
+        sector:a.sector||null,industry:a.industry||null,
         lots:[],qty:0,costBasis:0,avgCost:0,realizedPnl:0,invested:0,sellProceeds:0,tradeCount:0,lastDate:'',marketValue:null,unrealizedPnl:null};
     }
     const sorted=[...data.trades].sort((a,bb)=>String(a.date||'').localeCompare(String(bb.date||''))||(a.side==='buy'?-1:1));
@@ -7418,7 +7445,26 @@
     const price=Number(data[0]?.price);
     if(!Number.isFinite(price)||price<=0) throw new Error('FMP nie zwróciło ceny');
     const quoteCurrency=String(data[0]?.currency||'USD').trim().toUpperCase()||'USD';
-    return {price, quoteCurrency, companyName:String(data[0]?.companyName||sym)};
+    const sector=String(data[0]?.sector||'').trim()||null;
+    const industry=String(data[0]?.industry||'').trim()||null;
+    return {price, quoteCurrency, companyName:String(data[0]?.companyName||sym), sector, industry};
+  }
+
+  async function fetchStockSectorInfo(symbol){
+    const sym=String(symbol||'').trim().toUpperCase();
+    if(!sym) return null;
+    const apiKey=(localStorage.getItem('invFmpApiKey')||INV_FMP_API_KEY||'').trim();
+    if(!apiKey) return null;
+    try{
+      const url=`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(sym)}&apikey=${encodeURIComponent(apiKey)}`;
+      const res=await fetchWithCorsFallback(url);
+      if(!res.ok) return null;
+      const data=await res.json();
+      if(!Array.isArray(data)||!data.length) return null;
+      const sector=String(data[0]?.sector||'').trim()||null;
+      const industry=String(data[0]?.industry||'').trim()||null;
+      return {sector, industry};
+    }catch(_){return null;}
   }
 
   function guessQuoteCurrencyFromSymbol(symbol){
@@ -7472,7 +7518,7 @@
         const out=await fetchFmpStablePrice(symbol);
         const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
         const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
-        return {price:pricePln,currency:'PLN'};
+        return {price:pricePln,currency:'PLN',sector:out.sector,industry:out.industry};
       }
       return {price:null,error:'Nieznany provider'};
     }catch(err){
@@ -7488,20 +7534,35 @@
     if(!assets.length){setInvPriceStatus('Brak aktywów do odświeżenia.');return;}
     if(refreshBtn) refreshBtn.disabled=true;
     if(modalRefreshBtn) modalRefreshBtn.disabled=true;
-    setInvPriceStatus('Odświeżanie cen...');
-    let updated=0,skipped=0,failed=0;
+    setInvPriceStatus('Odświeżanie cen i danych sektorowych...');
+    let updated=0,skipped=0,failed=0,sectorsUpdated=0;
     const today=new Date().toISOString().slice(0,10);
     for(const asset of assets){
       const out=await fetchAssetPrice(asset);
       if(out.skipped){skipped++;continue;}
       if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;updated++;}
       else failed++;
+      // Store sector/industry if returned by FMP
+      if(out.sector){asset.sector=out.sector;sectorsUpdated++;}
+      if(out.industry) asset.industry=out.industry;
+    }
+    // Fetch sector info for "Akcje" group assets that don't have sector yet
+    const stockAssets=assets.filter(a=>(a.group||'').toLowerCase()==='akcje' && !a.sector && a.priceSymbol);
+    if(stockAssets.length>0){
+      setInvPriceStatus(`Pobieranie danych sektorowych (${stockAssets.length})...`);
+      for(const asset of stockAssets){
+        const info=await fetchStockSectorInfo(asset.priceSymbol);
+        if(info){
+          if(info.sector){asset.sector=info.sector;sectorsUpdated++;}
+          if(info.industry) asset.industry=info.industry;
+        }
+      }
     }
     save(state);
     renderInvestments();
     if(refreshBtn) refreshBtn.disabled=false;
     if(modalRefreshBtn) modalRefreshBtn.disabled=false;
-    const msg=`Odświeżono: ${updated}, pominięto: ${skipped}, błędy: ${failed}.`;
+    const msg=`Odświeżono: ${updated}, pominięto: ${skipped}, błędy: ${failed}.`+(sectorsUpdated>0?` Sektory: ${sectorsUpdated}.`:'');
     setInvPriceStatus(msg,failed>0&&updated===0);
   }
 
@@ -7587,11 +7648,27 @@
   }
 
   // --- Holdings Table --------------------------------------------------------
+  let invHoldingsView='group'; // 'group' or 'sector'
+  const invCollapsedSectors=new Set();
+
   function renderInvHoldingsTable(holdings,stats){
     const table=document.getElementById('inv-holdings-table');
     const tbody=document.querySelector('#inv-holdings-table tbody');
     const tfoot=document.getElementById('inv-holdings-foot');
+    const sectorSummaryEl=document.getElementById('inv-sector-summary');
     if(!tbody||!table) return;
+
+    // View toggle binding
+    const toggleWrap=document.getElementById('inv-holdings-view-toggle');
+    if(toggleWrap){
+      toggleWrap.querySelectorAll('.inv-view-btn').forEach(btn=>{
+        btn.classList.toggle('is-active',btn.dataset.view===invHoldingsView);
+        btn.onclick=()=>{
+          invHoldingsView=btn.dataset.view;
+          renderInvestments();
+        };
+      });
+    }
 
     const sortDir=invHoldingsSort.dir==='asc'?1:-1;
     const sortKey=invHoldingsSort.key||'value';
@@ -7615,6 +7692,7 @@
     if(!active.length){
       tbody.innerHTML='<tr><td colspan="9" class="muted" style="text-align:center">Brak otwartych pozycji</td></tr>';
       if(tfoot) tfoot.innerHTML='';
+      if(sectorSummaryEl) sectorSummaryEl.style.display='none';
       return;
     }
 
@@ -7635,38 +7713,13 @@
       return value;
     };
 
-    const grouped={};
-    for(const h of active){
-      const g=h.group||'Inne';
-      if(!grouped[g]) grouped[g]=[];
-      grouped[g].push(h);
-    }
-
-    const groups=Object.keys(grouped).map(name=>{
-      const items=grouped[name].slice().sort((a,b)=>{
-        const av=getVal(a,sortKey), bv=getVal(b,sortKey);
-        if(typeof av==='string' || typeof bv==='string') return sortDir*String(av).localeCompare(String(bv),'pl');
-        return sortDir*((av||0)-(bv||0));
-      });
-      const cost=items.reduce((s,h)=>s+h.costBasis,0);
-      const value=items.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
-      const hasPrice=items.some(h=>h.marketValue!==null);
-      const pnl=hasPrice?(value-cost):null;
-      const roi=(pnl!==null&&cost>0)?(pnl/cost)*100:null;
-      return {name,items,cost,value,pnl,roi,hasPrice};
-    });
-
-    groups.sort((a,b)=>{
-      if(sortKey==='name') return sortDir*a.name.localeCompare(b.name,'pl');
-      return sortDir*((a.value||0)-(b.value||0));
-    });
-
     const totalValue=active.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0)||1;
 
     const bindPriceEditor=tr=>{
-      tr.querySelector('.inv-price-cell').onclick=function(){
-        const cell=this;
-        const aid=cell.dataset.assetId;
+      const cell=tr.querySelector('.inv-price-cell');
+      if(!cell) return;
+      cell.onclick=function(){
+        const aid=this.dataset.assetId;
         const asset=investments().assets.find(a=>a.id===aid);
         if(!asset) return;
         const input=document.createElement('input');
@@ -7674,7 +7727,7 @@
         input.value=asset.currentPrice||'';
         input.placeholder='0,00';
         input.inputMode='decimal';
-        cell.innerHTML='';cell.appendChild(input);input.focus();
+        this.innerHTML='';this.appendChild(input);input.focus();
         const finish=()=>{
           const v=num(input.value);
           asset.currentPrice=v>0?v:null;
@@ -7687,7 +7740,9 @@
     };
 
     const bindQuickSell=tr=>{
-      tr.querySelector('.inv-sell-quick').onclick=function(){
+      const btn=tr.querySelector('.inv-sell-quick');
+      if(!btn) return;
+      btn.onclick=function(){
         const aid=this.dataset.sellAsset;
         const qty=this.dataset.sellQty;
         setInvTradeMode('sell');
@@ -7703,46 +7758,187 @@
       };
     };
 
-    for(const g of groups){
-      const isCollapsed=invCollapsedGroups.has(g.name);
-      const groupTr=document.createElement('tr');
-      groupTr.className='inv-holdings-group-row';
-      const groupPnlHtml=g.pnl===null?'<span class="muted">P&L: —</span>':`<span class="${g.pnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">P&L: ${g.pnl>=0?'+':''}${fmt(g.pnl,state.currency)}</span>`;
-      const groupRoiHtml=g.roi===null?'<span class="muted">ROI: —</span>':`<span class="${g.roi>=0?'inv-pnl-pos':'inv-pnl-neg'}">ROI: ${g.roi>=0?'+':''}${g.roi.toFixed(1)}%</span>`;
-      groupTr.innerHTML=`<td colspan="9"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><button type="button" class="inv-holdings-group-toggle" data-toggle-group="${escapeHtml(g.name)}"><span class="inv-holdings-group-chevron">${isCollapsed?'▸':'▾'}</span><span>${escapeHtml(g.name)} <span class="muted">(${g.items.length})</span></span></button><div class="inv-holdings-group-metrics"><span>Baza: ${fmt(g.cost,state.currency)}</span><span>Wartość: ${fmt(g.value,state.currency)}</span>${groupPnlHtml}${groupRoiHtml}<span>Waga: ${((g.value/totalValue)*100).toFixed(1)}%</span></div></div></td>`;
-      tbody.appendChild(groupTr);
-
-      if(isCollapsed) continue;
-
-      for(const h of g.items){
-        const tr=document.createElement('tr');
-        const val=h.marketValue!==null?h.marketValue:h.costBasis;
-        const weight=((val/totalValue)*100).toFixed(1);
-        let pnlHtml='<span class="inv-pnl-na">—</span>';
-        let roiHtml='<span class="inv-pnl-na">—</span>';
-        if(h.unrealizedPnl!==null){
-          const pct=h.costBasis>0?((h.unrealizedPnl/h.costBasis)*100):0;
-          const cls=h.unrealizedPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
-          const sign=h.unrealizedPnl>=0?'+':'';
-          pnlHtml=`<span class="${cls}">${sign}${fmt(h.unrealizedPnl,state.currency)}</span>`;
-          roiHtml=`<span class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
-        }
-        const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
-        tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
-        bindPriceEditor(tr);
-        bindQuickSell(tr);
-        tbody.appendChild(tr);
+    const makeAssetRow=(h,showSector)=>{
+      const tr=document.createElement('tr');
+      const val=h.marketValue!==null?h.marketValue:h.costBasis;
+      const weight=((val/totalValue)*100).toFixed(1);
+      let pnlHtml='<span class="inv-pnl-na">—</span>';
+      let roiHtml='<span class="inv-pnl-na">—</span>';
+      if(h.unrealizedPnl!==null){
+        const pct=h.costBasis>0?((h.unrealizedPnl/h.costBasis)*100):0;
+        const cls=h.unrealizedPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+        const sign=h.unrealizedPnl>=0?'+':'';
+        pnlHtml=`<span class="${cls}">${sign}${fmt(h.unrealizedPnl,state.currency)}</span>`;
+        roiHtml=`<span class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
       }
-    }
+      const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
+      const sectorLine=(showSector&&h.sector)?`<span class="inv-holdings-asset-sector">${escapeHtml(h.sector)}${h.industry?' · '+escapeHtml(h.industry):''}</span>`:'';
+      tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong>${sectorLine}</td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
+      bindPriceEditor(tr);
+      bindQuickSell(tr);
+      return tr;
+    };
 
-    tbody.querySelectorAll('[data-toggle-group]').forEach(btn=>{
-      btn.onclick=()=>{
-        const g=btn.dataset.toggleGroup;
-        if(invCollapsedGroups.has(g)) invCollapsedGroups.delete(g); else invCollapsedGroups.add(g);
-        renderInvestments();
-      };
+    const makeGroupHeaderRow=(label,itemCount,cost,value,pnl,roi,weight,toggleKey,isCollapsed,cssClass)=>{
+      const tr=document.createElement('tr');
+      tr.className=cssClass||'inv-holdings-group-row';
+      const pnlH=pnl===null?'<span class="muted">P&L: —</span>':`<span class="${pnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">P&L: ${pnl>=0?'+':''}${fmt(pnl,state.currency)}</span>`;
+      const roiH=roi===null?'<span class="muted">ROI: —</span>':`<span class="${roi>=0?'inv-pnl-pos':'inv-pnl-neg'}">ROI: ${roi>=0?'+':''}${roi.toFixed(1)}%</span>`;
+      const warnHtml=weight>40?`<span class="inv-concentration-warn${weight>60?' inv-concentration-danger':''}">Koncentracja: ${weight.toFixed(1)}%</span>`:'';
+      tr.innerHTML=`<td colspan="9"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><button type="button" class="inv-holdings-group-toggle" data-toggle-group="${escapeHtml(toggleKey)}"><span class="inv-holdings-group-chevron">${isCollapsed?'▸':'▾'}</span><span>${label} <span class="muted">(${itemCount})</span></span></button><div class="inv-holdings-group-metrics"><span>Baza: ${fmt(cost,state.currency)}</span><span>Wartość: ${fmt(value,state.currency)}</span>${pnlH}${roiH}<span>Waga: ${weight.toFixed(1)}%</span>${warnHtml}</div></div></td>`;
+      return tr;
+    };
+
+    const sortItems=(items)=>items.slice().sort((a,b)=>{
+      const av=getVal(a,sortKey), bv=getVal(b,sortKey);
+      if(typeof av==='string'||typeof bv==='string') return sortDir*String(av).localeCompare(String(bv),'pl');
+      return sortDir*((av||0)-(bv||0));
     });
 
+    const buildGroupData=(items)=>{
+      const cost=items.reduce((s,h)=>s+h.costBasis,0);
+      const value=items.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+      const hasPrice=items.some(h=>h.marketValue!==null);
+      const pnl=hasPrice?(value-cost):null;
+      const roi=(pnl!==null&&cost>0)?(pnl/cost)*100:null;
+      return {cost,value,pnl,roi,hasPrice};
+    };
+
+    // ---- GROUP VIEW ----
+    if(invHoldingsView==='group'){
+      if(sectorSummaryEl) sectorSummaryEl.style.display='none';
+
+      const grouped={};
+      for(const h of active){const g=h.group||'Inne';if(!grouped[g]) grouped[g]=[];grouped[g].push(h);}
+
+      const groups=Object.keys(grouped).map(name=>{
+        const items=sortItems(grouped[name]);
+        const d=buildGroupData(items);
+        return {name,items,...d};
+      });
+      groups.sort((a,b)=>{
+        if(sortKey==='name') return sortDir*a.name.localeCompare(b.name,'pl');
+        return sortDir*((a.value||0)-(b.value||0));
+      });
+
+      for(const g of groups){
+        const isCollapsed=invCollapsedGroups.has(g.name);
+        const weight=(g.value/totalValue)*100;
+        tbody.appendChild(makeGroupHeaderRow(escapeHtml(g.name),g.items.length,g.cost,g.value,g.pnl,g.roi,weight,g.name,isCollapsed,'inv-holdings-group-row'));
+        if(!isCollapsed){
+          const showSector=(g.name||'').toLowerCase()==='akcje';
+          for(const h of g.items) tbody.appendChild(makeAssetRow(h,showSector));
+        }
+      }
+
+      tbody.querySelectorAll('[data-toggle-group]').forEach(btn=>{
+        btn.onclick=()=>{
+          const g=btn.dataset.toggleGroup;
+          if(invCollapsedGroups.has(g)) invCollapsedGroups.delete(g); else invCollapsedGroups.add(g);
+          renderInvestments();
+        };
+      });
+
+    // ---- SECTOR VIEW ----
+    } else {
+      const stockHoldings=active.filter(h=>(h.group||'').toLowerCase()==='akcje');
+      const nonStockHoldings=active.filter(h=>(h.group||'').toLowerCase()!=='akcje');
+
+      // Build sector groups
+      const sectorMap={};
+      for(const h of stockHoldings){
+        const s=h.sector||'Nieprzypisany sektor';
+        if(!sectorMap[s]) sectorMap[s]=[];
+        sectorMap[s].push(h);
+      }
+      const sectors=Object.keys(sectorMap).map(name=>{
+        const items=sortItems(sectorMap[name]);
+        const d=buildGroupData(items);
+        return {name,items,...d};
+      });
+      sectors.sort((a,b)=>{
+        if(sortKey==='name') return sortDir*a.name.localeCompare(b.name,'pl');
+        return sortDir*((a.value||0)-(b.value||0));
+      });
+
+      // Build non-stock groups
+      const nsGrouped={};
+      for(const h of nonStockHoldings){const g=h.group||'Inne';if(!nsGrouped[g]) nsGrouped[g]=[];nsGrouped[g].push(h);}
+      const nsGroups=Object.keys(nsGrouped).map(name=>{
+        const items=sortItems(nsGrouped[name]);
+        const d=buildGroupData(items);
+        return {name,items,...d};
+      });
+
+      // Render sector summary cards
+      if(sectorSummaryEl && sectors.length>0){
+        sectorSummaryEl.style.display='';
+        const stockTotal=stockHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0)||1;
+        const sectorColors=['#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#4f46e5','#be185d','#65a30d','#0d9488','#ea580c','#6366f1'];
+        sectorSummaryEl.innerHTML=sectors.map((sec,i)=>{
+          const w=((sec.value/stockTotal)*100);
+          const barColor=sectorColors[i%sectorColors.length];
+          let pnlCard='<span class="muted">P&L: —</span>';
+          if(sec.pnl!==null){
+            const cls=sec.pnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+            pnlCard=`<span class="${cls}">P&L: ${sec.pnl>=0?'+':''}${fmt(sec.pnl,state.currency)}</span>`;
+          }
+          let roiCard='';
+          if(sec.roi!==null){
+            const cls=sec.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
+            roiCard=`<span class="${cls}">ROI: ${sec.roi>=0?'+':''}${sec.roi.toFixed(1)}%</span>`;
+          }
+          const warnCard=w>35?`<span class="inv-concentration-warn${w>50?' inv-concentration-danger':''}">Koncentracja!</span>`:'';
+          return `<div class="inv-sector-card"><div class="inv-sector-card-header"><span class="inv-sector-card-name">${escapeHtml(sec.name)}</span><span class="inv-sector-card-weight">${w.toFixed(1)}% akcji ${warnCard}</span></div><div class="inv-sector-bar"><div class="inv-sector-bar-fill" style="width:${w.toFixed(1)}%;background:${barColor}"></div></div><div class="inv-sector-card-stats"><span>${sec.items.length} ${sec.items.length===1?'spółka':sec.items.length<5?'spółki':'spółek'}</span><span>Wartość: ${fmt(sec.value,state.currency)}</span>${pnlCard}${roiCard}</div></div>`;
+        }).join('');
+      } else if(sectorSummaryEl){
+        sectorSummaryEl.style.display='none';
+      }
+
+      // Render sector rows in table
+      for(const sec of sectors){
+        const toggleKey='sector:'+sec.name;
+        const isCollapsed=invCollapsedSectors.has(sec.name);
+        const weight=(sec.value/totalValue)*100;
+        tbody.appendChild(makeGroupHeaderRow(`<span class="inv-sector-badge">Sektor</span> ${escapeHtml(sec.name)}`,sec.items.length,sec.cost,sec.value,sec.pnl,sec.roi,weight,toggleKey,isCollapsed,'inv-sector-row'));
+        if(!isCollapsed){
+          for(const h of sec.items){
+            const tr=makeAssetRow(h,false);
+            if(h.industry){
+              const td=tr.querySelector('td:first-child');
+              if(td){const tag=document.createElement('span');tag.className='inv-industry-tag';tag.textContent=h.industry;td.appendChild(tag);}
+            }
+            tbody.appendChild(tr);
+          }
+        }
+      }
+
+      // Render non-stock groups
+      for(const g of nsGroups){
+        const isCollapsed=invCollapsedGroups.has(g.name);
+        const weight=(g.value/totalValue)*100;
+        tbody.appendChild(makeGroupHeaderRow(escapeHtml(g.name),g.items.length,g.cost,g.value,g.pnl,g.roi,weight,g.name,isCollapsed,'inv-holdings-group-row'));
+        if(!isCollapsed){
+          for(const h of g.items) tbody.appendChild(makeAssetRow(h,false));
+        }
+      }
+
+      // Bind toggles
+      tbody.querySelectorAll('[data-toggle-group]').forEach(btn=>{
+        btn.onclick=()=>{
+          const key=btn.dataset.toggleGroup;
+          if(key.startsWith('sector:')){
+            const sName=key.slice(7);
+            if(invCollapsedSectors.has(sName)) invCollapsedSectors.delete(sName); else invCollapsedSectors.add(sName);
+          } else {
+            if(invCollapsedGroups.has(key)) invCollapsedGroups.delete(key); else invCollapsedGroups.add(key);
+          }
+          renderInvestments();
+        };
+      });
+    }
+
+    // Footer
     if(tfoot){
       const totalCost=active.reduce((s,h)=>s+h.costBasis,0);
       const totalMV=active.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
