@@ -125,6 +125,12 @@
     .inv-holding-kpis { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
     .inv-holding-kpis .pill { background:#fff; border:1px solid rgba(148,163,184,.35); }
     .inv-holding-details { padding:0 14px 12px; }
+    .inv-holdings-sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+    .inv-holdings-sortable .sort-ind { margin-left:4px; font-size:10px; color:var(--muted); }
+    .inv-holdings-group-row td { background:rgba(148,163,184,.08); font-weight:700; }
+    .inv-holdings-group-toggle { border:none; background:transparent; cursor:pointer; font:inherit; color:inherit; display:flex; align-items:center; gap:8px; padding:0; }
+    .inv-holdings-group-chevron { color:var(--muted); width:12px; display:inline-block; }
+    .inv-holdings-group-metrics { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; font-size:12px; font-weight:600; color:var(--muted); }
 
     /* --- Investment Analytics Hub ------------------------------------------- */
     .inv-hub-snapshot-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
@@ -196,7 +202,10 @@
     @media(max-width:768px){ .eom2-charts-row, .eom2-bottleneck-row { flex-direction:column; } }
 
     .eom2-booking-group { margin-bottom:12px; }
-    .eom2-booking-group-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 0 4px; border-bottom:1px solid rgba(148,163,184,.15); margin-bottom:6px; }
+    .eom2-booking-group-title { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding:6px 0 4px; border-bottom:1px solid rgba(148,163,184,.15); margin-bottom:6px; }
+    .eom2-booking-group-summary { font-size:11px; font-weight:600; text-transform:none; letter-spacing:0; }
+    .eom2-booking-group-summary.pos { color:#16a34a; }
+    .eom2-booking-group-summary.neg { color:#dc2626; }
     .eom2-booking-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid rgba(148,163,184,.08); }
     .eom2-booking-row:last-child { border-bottom:none; }
     .eom2-booking-name { flex:1; min-width:120px; font-size:13px; font-weight:500; }
@@ -4771,7 +4780,7 @@
             </div>
             <div class="table-wrapper">
               <table class="modern-table" id="inv-holdings-table">
-                <thead><tr><th>Aktywo</th><th>Grupa</th><th>Ilość</th><th>Śr. koszt</th><th>Akt. cena</th><th>Wartość</th><th>P&amp;L</th><th>Waga</th><th></th></tr></thead>
+                <thead><tr><th class="inv-holdings-sortable" data-sort-key="name">Aktywo<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="qty">Ilość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="avgCost">Śr. koszt<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="currentPrice">Akt. cena<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="value">Wartość<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="pnl">P&amp;L<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="roi">ROI<span class="sort-ind"></span></th><th class="inv-holdings-sortable" data-sort-key="weight">Waga<span class="sort-ind"></span></th><th></th></tr></thead>
                 <tbody></tbody>
                 <tfoot id="inv-holdings-foot"></tfoot>
               </table>
@@ -6930,6 +6939,8 @@
   let invActivePanel='hub';
   let invTradeMode='buy';
   let invTradeFilter='all';
+  let invHoldingsSort={key:'value',dir:'desc'};
+  const invCollapsedGroups=new Set();
 
   const investments=()=>{
     if(!b().investments) b().investments={assets:[],trades:[],groups:[]};
@@ -7577,9 +7588,28 @@
 
   // --- Holdings Table --------------------------------------------------------
   function renderInvHoldingsTable(holdings,stats){
+    const table=document.getElementById('inv-holdings-table');
     const tbody=document.querySelector('#inv-holdings-table tbody');
     const tfoot=document.getElementById('inv-holdings-foot');
-    if(!tbody) return;
+    if(!tbody||!table) return;
+
+    const sortDir=invHoldingsSort.dir==='asc'?1:-1;
+    const sortKey=invHoldingsSort.key||'value';
+
+    table.querySelectorAll('thead th[data-sort-key]').forEach(th=>{
+      const key=th.dataset.sortKey;
+      const ind=th.querySelector('.sort-ind');
+      if(ind) ind.textContent=key===sortKey?(sortDir===1?'▲':'▼'):'↕';
+      th.onclick=()=>{
+        if(invHoldingsSort.key===key){
+          invHoldingsSort.dir=invHoldingsSort.dir==='asc'?'desc':'asc';
+        } else {
+          invHoldingsSort={key,dir:(key==='name'?'asc':'desc')};
+        }
+        renderInvestments();
+      };
+    });
+
     tbody.innerHTML='';
     const active=holdings.filter(h=>h.qty>0.000001);
     if(!active.length){
@@ -7587,20 +7617,53 @@
       if(tfoot) tfoot.innerHTML='';
       return;
     }
+
+    const getVal=(h,key)=>{
+      const value=h.marketValue!==null?h.marketValue:h.costBasis;
+      const pnl=h.unrealizedPnl!==null?h.unrealizedPnl:null;
+      const roi=(pnl!==null&&h.costBasis>0)?(pnl/h.costBasis)*100:null;
+      const totalValue=stats.totalMarketValue>0?stats.totalMarketValue:active.reduce((s,a)=>s+((a.marketValue!==null?a.marketValue:a.costBasis)),0);
+      const weight=totalValue>0?(value/totalValue)*100:0;
+      if(key==='name') return (h.name||'').toLowerCase();
+      if(key==='qty') return h.qty;
+      if(key==='avgCost') return h.avgCost;
+      if(key==='currentPrice') return h.currentPrice||0;
+      if(key==='value') return value;
+      if(key==='pnl') return pnl===null?Number.NEGATIVE_INFINITY:pnl;
+      if(key==='roi') return roi===null?Number.NEGATIVE_INFINITY:roi;
+      if(key==='weight') return weight;
+      return value;
+    };
+
+    const grouped={};
+    for(const h of active){
+      const g=h.group||'Inne';
+      if(!grouped[g]) grouped[g]=[];
+      grouped[g].push(h);
+    }
+
+    const groups=Object.keys(grouped).map(name=>{
+      const items=grouped[name].slice().sort((a,b)=>{
+        const av=getVal(a,sortKey), bv=getVal(b,sortKey);
+        if(typeof av==='string' || typeof bv==='string') return sortDir*String(av).localeCompare(String(bv),'pl');
+        return sortDir*((av||0)-(bv||0));
+      });
+      const cost=items.reduce((s,h)=>s+h.costBasis,0);
+      const value=items.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+      const hasPrice=items.some(h=>h.marketValue!==null);
+      const pnl=hasPrice?(value-cost):null;
+      const roi=(pnl!==null&&cost>0)?(pnl/cost)*100:null;
+      return {name,items,cost,value,pnl,roi,hasPrice};
+    });
+
+    groups.sort((a,b)=>{
+      if(sortKey==='name') return sortDir*a.name.localeCompare(b.name,'pl');
+      return sortDir*((a.value||0)-(b.value||0));
+    });
+
     const totalValue=active.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0)||1;
-    for(const h of active.sort((a,bb)=>(bb.marketValue||bb.costBasis)-(a.marketValue||a.costBasis))){
-      const tr=document.createElement('tr');
-      const val=h.marketValue!==null?h.marketValue:h.costBasis;
-      const weight=((val/totalValue)*100).toFixed(1);
-      let pnlHtml='<span class="inv-pnl-na">—</span>';
-      if(h.unrealizedPnl!==null){
-        const pct=h.costBasis>0?((h.unrealizedPnl/h.costBasis)*100).toFixed(1):'0.0';
-        const cls=h.unrealizedPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
-        const sign=h.unrealizedPnl>=0?'+':'';
-        pnlHtml=`<span class="${cls}">${sign}${fmt(h.unrealizedPnl,state.currency)}<br><small>${sign}${pct}%</small></span>`;
-      }
-      const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
-      tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${escapeHtml(h.group)}</td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
+
+    const bindPriceEditor=tr=>{
       tr.querySelector('.inv-price-cell').onclick=function(){
         const cell=this;
         const aid=cell.dataset.assetId;
@@ -7621,6 +7684,9 @@
         input.onblur=finish;
         input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();finish();}if(e.key==='Escape'){renderInvestments();}};
       };
+    };
+
+    const bindQuickSell=tr=>{
       tr.querySelector('.inv-sell-quick').onclick=function(){
         const aid=this.dataset.sellAsset;
         const qty=this.dataset.sellQty;
@@ -7635,21 +7701,64 @@
           sellForm.scrollIntoView({behavior:'smooth',block:'center'});
         }
       };
-      tbody.appendChild(tr);
+    };
+
+    for(const g of groups){
+      const isCollapsed=invCollapsedGroups.has(g.name);
+      const groupTr=document.createElement('tr');
+      groupTr.className='inv-holdings-group-row';
+      const groupPnlHtml=g.pnl===null?'<span class="muted">P&L: —</span>':`<span class="${g.pnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">P&L: ${g.pnl>=0?'+':''}${fmt(g.pnl,state.currency)}</span>`;
+      const groupRoiHtml=g.roi===null?'<span class="muted">ROI: —</span>':`<span class="${g.roi>=0?'inv-pnl-pos':'inv-pnl-neg'}">ROI: ${g.roi>=0?'+':''}${g.roi.toFixed(1)}%</span>`;
+      groupTr.innerHTML=`<td colspan="9"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><button type="button" class="inv-holdings-group-toggle" data-toggle-group="${escapeHtml(g.name)}"><span class="inv-holdings-group-chevron">${isCollapsed?'▸':'▾'}</span><span>${escapeHtml(g.name)} <span class="muted">(${g.items.length})</span></span></button><div class="inv-holdings-group-metrics"><span>Baza: ${fmt(g.cost,state.currency)}</span><span>Wartość: ${fmt(g.value,state.currency)}</span>${groupPnlHtml}${groupRoiHtml}<span>Waga: ${((g.value/totalValue)*100).toFixed(1)}%</span></div></div></td>`;
+      tbody.appendChild(groupTr);
+
+      if(isCollapsed) continue;
+
+      for(const h of g.items){
+        const tr=document.createElement('tr');
+        const val=h.marketValue!==null?h.marketValue:h.costBasis;
+        const weight=((val/totalValue)*100).toFixed(1);
+        let pnlHtml='<span class="inv-pnl-na">—</span>';
+        let roiHtml='<span class="inv-pnl-na">—</span>';
+        if(h.unrealizedPnl!==null){
+          const pct=h.costBasis>0?((h.unrealizedPnl/h.costBasis)*100):0;
+          const cls=h.unrealizedPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const sign=h.unrealizedPnl>=0?'+':'';
+          pnlHtml=`<span class="${cls}">${sign}${fmt(h.unrealizedPnl,state.currency)}</span>`;
+          roiHtml=`<span class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
+        }
+        const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
+        tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
+        bindPriceEditor(tr);
+        bindQuickSell(tr);
+        tbody.appendChild(tr);
+      }
     }
+
+    tbody.querySelectorAll('[data-toggle-group]').forEach(btn=>{
+      btn.onclick=()=>{
+        const g=btn.dataset.toggleGroup;
+        if(invCollapsedGroups.has(g)) invCollapsedGroups.delete(g); else invCollapsedGroups.add(g);
+        renderInvestments();
+      };
+    });
+
     if(tfoot){
       const totalCost=active.reduce((s,h)=>s+h.costBasis,0);
       const totalMV=active.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
       const totalUPnl=stats.totalUnrealizedPnl;
       let pnlFoot='—';
+      let roiFoot='—';
       if(totalUPnl!==null){
         const cls=totalUPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
         const sign=totalUPnl>=0?'+':'';
         pnlFoot=`<span class="${cls}">${sign}${fmt(totalUPnl,state.currency)}</span>`;
+        roiFoot=`<span class="${cls}">${sign}${(totalCost>0?(totalUPnl/totalCost)*100:0).toFixed(1)}%</span>`;
       }
-      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="3">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>100%</td><td></td></tr>`;
+      tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="2">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>${roiFoot}</td><td>100%</td><td></td></tr>`;
     }
   }
+
 
   // --- Group Summary ---------------------------------------------------------
   function renderInvGroupSummary(holdings,trades){
@@ -11436,7 +11545,7 @@
         if(!accs||!accs.length) continue;
         const groupDiv=document.createElement('div');
         groupDiv.className='eom2-booking-group';
-        groupDiv.innerHTML=`<div class="eom2-booking-group-title">${escapeHtml(eom2TypeLabelMap[type]||type)}</div>`;
+        groupDiv.innerHTML=`<div class="eom2-booking-group-title"><span>${escapeHtml(eom2TypeLabelMap[type]||type)}</span><span class="eom2-booking-group-summary" data-group-delta="${type}">—</span></div>`;
 
         for(const acc of accs){
           const prevBal=prevBalances[acc.id];
@@ -11456,6 +11565,39 @@
       }
 
       // Live delta updates
+      const updateBookingTotals=()=>{
+        let total=0;
+        const byType={};
+        const byTypeHasPrev={};
+        grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
+          const accId=i.dataset.accId;
+          const acc=accounts.find(a=>a.id===accId);
+          if(!acc) return;
+          const type=inferAccountType(acc);
+          if(i.value.trim()){
+            const currentVal=num(i.value);
+            total+=currentVal;
+            const prev=prevBalances[accId];
+            if(prev!==undefined){
+              byType[type]=(byType[type]||0)+(currentVal-prev);
+              byTypeHasPrev[type]=true;
+            }
+          }
+        });
+        const liveTotal=el('eom2-live-total');
+        if(liveTotal) liveTotal.textContent=`Netto: ${fmt(total,cur)}`;
+        grid.querySelectorAll('[data-group-delta]').forEach(summary=>{
+          const type=summary.dataset.groupDelta;
+          const delta=byType[type]||0;
+          if(byTypeHasPrev[type]){
+            summary.textContent=`${delta>=0?'+':''}${fmt(delta,cur)}`;
+            summary.className='eom2-booking-group-summary '+(delta>0?'pos':delta<0?'neg':'');
+          } else {
+            summary.textContent='—';
+            summary.className='eom2-booking-group-summary';
+          }
+        });
+      };
       grid.querySelectorAll('input[data-acc-id]').forEach(inp=>{
         const updateDelta=()=>{
           const accId=inp.dataset.accId;
@@ -11469,14 +11611,9 @@
             deltaEl.className='eom2-booking-delta '+(d>0?'pos':d<0?'neg':'');
           } else {
             deltaEl.textContent='';
+            deltaEl.className='eom2-booking-delta';
           }
-          // Update live total
-          let total=0;
-          grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
-            if(i.value.trim()) total+=num(i.value);
-          });
-          const liveTotal=el('eom2-live-total');
-          if(liveTotal) liveTotal.textContent=`Netto: ${fmt(total,cur)}`;
+          updateBookingTotals();
         };
         inp.addEventListener('input',updateDelta);
         updateDelta(); // init
