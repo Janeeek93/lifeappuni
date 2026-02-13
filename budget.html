@@ -4932,10 +4932,12 @@
                 <!-- Forecast Simulator (data-driven) -->
                 <div class="inv-hub-calc" style="margin-top:14px">
                   <h4>Symulacja portfela — prognoza na bazie Twoich danych</h4>
-                  <p class="muted" style="font-size:12px;margin:-6px 0 10px">Bazuje na aktualnej wartości portfela i Twojej średniej miesięcznej wpłacie (ostatnie 3 miesiące). Scenariusze: obecna, 1.5x, 2x, 3x wpłata.</p>
+                  <p class="muted" style="font-size:12px;margin:-6px 0 10px">Bazuje na realnych wpłatach z zamkniętych miesięcy. Ustaw stopę zwrotu, horyzont i mnożnik obecnego trendu wpłat, aby zobaczyć strukturę portfela (kapitał vs odsetki) dla konkretnego miesiąca.</p>
                   <div class="inv-hub-calc-grid">
                     <label class="inv-hub-calc-field">Roczna stopa zwrotu (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" value="8" /></label>
                     <label class="inv-hub-calc-field">Horyzont (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" value="5" /></label>
+                    <label class="inv-hub-calc-field">Tempo wpłat (mnożnik trendu)<input type="text" id="inv-hub-calc-multiplier" inputmode="decimal" value="1.5" /></label>
+                    <label class="inv-hub-calc-field">Miesiąc podglądu<input type="month" id="inv-hub-calc-target-month" /></label>
                     <div><button class="btn" type="button" id="inv-hub-calc-btn">Przelicz scenariusze</button></div>
                   </div>
                   <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none"></div>
@@ -8257,109 +8259,157 @@
     const el=id=>document.getElementById(id);
     const cur=state.currency;
 
-    // Compute current avg monthly deposit from last 3 months
-    const monthKeys=Object.keys(deposits.monthly).sort();
-    const recentMonths=monthKeys.slice(-3);
-    const avgMonthly=recentMonths.length>0?recentMonths.reduce((s,k)=>s+deposits.monthly[k],0)/recentMonths.length:0;
-
-    // Current portfolio value as starting capital
-    const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
-
-    // Read user-controlled rate and horizon
     const rateInput=el('inv-hub-calc-rate');
     const yearsInput=el('inv-hub-calc-years');
-    const rate=rateInput&&rateInput.value?num(rateInput.value):8;
-    const years=yearsInput&&yearsInput.value?parseInt(yearsInput.value):5;
+    const multiplierInput=el('inv-hub-calc-multiplier');
+    const targetMonthInput=el('inv-hub-calc-target-month');
 
     if(!rateInput?.value) rateInput.value='8';
     if(!yearsInput?.value) yearsInput.value='5';
+    if(!multiplierInput?.value) multiplierInput.value='1.5';
 
-    if(years<=0||years>60) return;
+    const rate=rateInput&&rateInput.value?num(rateInput.value):8;
+    const years=yearsInput&&yearsInput.value?parseInt(yearsInput.value):5;
+    const multiplier=multiplierInput&&multiplierInput.value?num(multiplierInput.value):1.5;
+    if(years<=0||years>60||multiplier<=0) return;
 
-    // Scenarios: current, 1.5x, 2x, 3x monthly deposit
-    const scenarios=[
-      {label:'Obecna wpłata',monthly:avgMonthly,color:'#2563eb'},
-      {label:'1.5x wpłata',monthly:avgMonthly*1.5,color:'#8b5cf6'},
-      {label:'2x wpłata',monthly:avgMonthly*2,color:'#059669'},
-      {label:'3x wpłata',monthly:avgMonthly*3,color:'#f59e0b'}
-    ];
+    const monthKeys=Object.keys(deposits.monthly).sort();
+    const now=new Date();
+    const openMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const closedMonths=monthKeys.filter(m=>m<openMonth);
 
+    const trendMonths=closedMonths.slice(-6);
+    const avgTrendMonthly=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthly[k]||0),0)/trendMonths.length:0;
+
+    const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
+    const currentInvested=stats.capitalFromBudget;
+
+    const monthsForward=years*12;
     const monthlyRate=rate/100/12;
-    const totalMonths=years*12;
+
+    const startDate=new Date(now.getFullYear(),now.getMonth(),1);
     const labels=[];
-    for(let y=0;y<=years;y++) labels.push(`Rok ${y}`);
+    const forecastRows=[];
 
-    const scenarioResults=scenarios.map(sc=>{
-      const dataPoints=[];
-      let balance=currentVal;
-      let deposited=currentVal;
-      for(let m=0;m<=totalMonths;m++){
-        if(m>0){
-          balance=balance*(1+monthlyRate)+sc.monthly;
-          deposited+=sc.monthly;
-        }
-        if(m%12===0) dataPoints.push(Math.round(balance));
+    let balance=currentVal;
+    let totalCapital=currentInvested;
+    for(let i=0;i<=monthsForward;i++){
+      if(i>0){
+        balance=balance*(1+monthlyRate)+(avgTrendMonthly*multiplier);
+        totalCapital+=(avgTrendMonthly*multiplier);
       }
-      return {...sc,data:dataPoints,finalBalance:balance,totalDeposited:deposited};
-    });
+      const d=new Date(startDate.getFullYear(),startDate.getMonth()+i,1);
+      const monthLabel=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      labels.push(monthLabel);
+      forecastRows.push({
+        monthLabel,
+        value:balance,
+        capital:totalCapital,
+        interest:balance-totalCapital
+      });
+    }
 
-    // Display result cards
+    const final=forecastRows[forecastRows.length-1];
+
+    if(targetMonthInput){
+      if(!targetMonthInput.value||targetMonthInput.value<labels[0]||targetMonthInput.value>labels[labels.length-1]){
+        const def=new Date(startDate.getFullYear(),startDate.getMonth()+Math.min(12,monthsForward),1);
+        targetMonthInput.value=`${def.getFullYear()}-${String(def.getMonth()+1).padStart(2,'0')}`;
+      }
+      targetMonthInput.min=labels[0];
+      targetMonthInput.max=labels[labels.length-1];
+    }
+
+    const targetMonth=targetMonthInput?.value;
+    const targetRow=forecastRows.find(r=>r.monthLabel===targetMonth) || final;
+
     const resultEl=el('inv-hub-calc-result');
     if(resultEl){
       resultEl.style.display='block';
-      let html=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">`;
-      for(const sc of scenarioResults){
-        const interest=sc.finalBalance-sc.totalDeposited;
-        const mult=sc.totalDeposited>0?(sc.finalBalance/sc.totalDeposited).toFixed(2):'—';
-        html+=`<div style="padding:10px;border-radius:10px;background:${colorWithAlpha(sc.color,.08)};border:1px solid ${colorWithAlpha(sc.color,.2)}">
-          <div style="font-size:11px;font-weight:700;color:${sc.color};text-transform:uppercase;margin-bottom:4px">${escapeHtml(sc.label)}</div>
-          <div style="font-size:11px;color:var(--muted)">Wpłata: ${fmt(sc.monthly,cur)}/mies.</div>
-          <div style="font-size:18px;font-weight:800;color:${sc.color};margin:4px 0">${fmt(sc.finalBalance,cur)}</div>
-          <div style="font-size:11px;color:var(--muted)">Wpłacono: ${fmt(sc.totalDeposited,cur)}</div>
-          <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(interest,cur)} (${mult}x)</div>
-        </div>`;
-      }
-      html+=`</div>`;
-      resultEl.innerHTML=html;
+      const trendInfo=trendMonths.length
+        ? `Trend z ${trendMonths.length} zamkniętych mies.: ${fmt(avgTrendMonthly,cur)}/mies.`
+        : 'Brak zamkniętych miesięcy z wpłatami — tempo wpłat = 0.';
+      resultEl.innerHTML=`
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#2563eb',.08)};border:1px solid ${colorWithAlpha('#2563eb',.2)}">
+            <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase">Parametry symulacji</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">${escapeHtml(trendInfo)}</div>
+            <div style="font-size:11px;color:var(--muted)">Mnożnik wpłat: ${multiplier.toFixed(2)}x → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
+            <div style="font-size:11px;color:var(--muted)">Roczna stopa: ${rate.toFixed(2)}% | Horyzont: ${years} lat</div>
+          </div>
+          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#059669',.08)};border:1px solid ${colorWithAlpha('#059669',.2)}">
+            <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase">Koniec horyzontu</div>
+            <div style="font-size:18px;font-weight:800;color:#059669;margin:4px 0">${fmt(final.value,cur)}</div>
+            <div style="font-size:11px;color:var(--muted)">Kapitał: ${fmt(final.capital,cur)}</div>
+            <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(final.interest,cur)}</div>
+          </div>
+          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#8b5cf6',.08)};border:1px solid ${colorWithAlpha('#8b5cf6',.2)}">
+            <div style="font-size:11px;font-weight:700;color:#8b5cf6;text-transform:uppercase">Podgląd miesiąca: ${escapeHtml(targetRow.monthLabel)}</div>
+            <div style="font-size:18px;font-weight:800;color:#8b5cf6;margin:4px 0">${fmt(targetRow.value,cur)}</div>
+            <div style="font-size:11px;color:var(--muted)">Kapitał: ${fmt(targetRow.capital,cur)}</div>
+            <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(targetRow.interest,cur)}</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Kliknij słupek miesiąca na wykresie, aby zaktualizować kafelek „Podgląd miesiąca”.</div>`;
     }
 
-    // Forecast Chart
     const canvas=el('inv-hub-calc-chart');
     if(canvas){
-      const datasets=scenarioResults.map((sc,idx)=>({
-        label:sc.label,
-        data:sc.data,
-        borderColor:sc.color,
-        backgroundColor:colorWithAlpha(sc.color,.12),
-        fill:idx===0?'origin':'-1',
-        tension:.35,borderWidth:3,pointRadius:5,pointHoverRadius:7,
-        pointBackgroundColor:sc.color,pointBorderColor:'#fff',pointBorderWidth:2
-      }));
-      // Add deposit baseline (no returns)
-      let depBalance=currentVal;
-      const depData=[Math.round(currentVal)];
-      for(let y=1;y<=years;y++){depBalance+=avgMonthly*12;depData.push(Math.round(depBalance));}
-      datasets.push({label:'Tylko wpłaty (0%)',data:depData,borderColor:'#94a3b8',backgroundColor:'transparent',borderDash:[8,4],borderWidth:2,pointRadius:0,tension:.3,fill:false});
-
+      const capitalData=forecastRows.map(r=>Math.round(r.capital));
+      const interestData=forecastRows.map(r=>Math.round(r.interest));
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
-        type:'line',
-        data:{labels,datasets},
-        options:{responsive:true,maintainAspectRatio:false,
-          plugins:{
-            legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:20,usePointStyle:true,pointStyle:'circle'}},
-            tooltip:{mode:'index',intersect:false,
-              titleFont:{size:13,weight:'700'},bodyFont:{size:12},padding:12,
-              callbacks:{label:ctx=>{
-                const sc=scenarioResults[ctx.datasetIndex];
-                if(sc) return `${sc.label} (${fmt(sc.monthly,cur)}/mies.): ${currencyTicks(ctx.parsed.y)}`;
-                return `Tylko wpłaty: ${currencyTicks(ctx.parsed.y)}`;
-              }}
+        type:'bar',
+        data:{
+          labels,
+          datasets:[
+            {
+              label:'Kapitał (wpłaty)',
+              data:capitalData,
+              stack:'portfolio',
+              borderColor:'#059669',
+              backgroundColor:colorWithAlpha('#059669',.75),
+              borderWidth:1,
+              borderRadius:4,
+              borderSkipped:false
+            },
+            {
+              label:'Odsetki',
+              data:interestData,
+              stack:'portfolio',
+              borderColor:'#8b5cf6',
+              backgroundColor:colorWithAlpha('#8b5cf6',.78),
+              borderWidth:1,
+              borderRadius:4,
+              borderSkipped:false
             }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:18,usePointStyle:true}},
+            tooltip:{mode:'index',intersect:false,callbacks:{
+              label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`,
+              afterBody:items=>{
+                const idx=items?.[0]?.dataIndex||0;
+                const row=forecastRows[idx];
+                if(!row) return '';
+                return `Razem: ${fmt(row.value,cur)} | Kapitał: ${fmt(row.capital,cur)} | Odsetki: ${fmt(row.interest,cur)}`;
+              }
+            }}
           },
-          interaction:{mode:'index',intersect:false},
+          onClick:(evt,elements)=>{
+            if(!elements?.length||!targetMonthInput) return;
+            const idx=elements[0].index;
+            const row=forecastRows[idx];
+            if(!row) return;
+            targetMonthInput.value=row.monthLabel;
+            renderInvHubForecast(stats,deposits);
+          },
           scales:{
-            x:{grid:{display:false},ticks:{font:{size:12,weight:'600'},padding:8}},
-            y:{ticks:{callback:v=>currencyTicks(v),font:{size:11},padding:8,maxTicksLimit:8},grid:{color:'rgba(148,163,184,.1)'}}
+            x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10,font:{size:11}}},
+            y:{stacked:true,ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'}}
           }
         }
       });
@@ -8399,9 +8449,11 @@
     };
     const calcBtn=document.getElementById('inv-hub-calc-btn');
     if(calcBtn) calcBtn.onclick=recalcForecast;
-    ['inv-hub-calc-rate','inv-hub-calc-years'].forEach(id=>{
+    ['inv-hub-calc-rate','inv-hub-calc-years','inv-hub-calc-multiplier','inv-hub-calc-target-month'].forEach(id=>{
       const inp=document.getElementById(id);
-      if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();recalcForecast();}});
+      if(!inp) return;
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();recalcForecast();}});
+      inp.addEventListener('change',recalcForecast);
     });
   }
 
