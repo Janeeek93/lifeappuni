@@ -426,6 +426,241 @@
       margin: 20px 0;
     }
 
+    /* === Schedule Timeline === */
+    .schedule-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .schedule-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .schedule-filter-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .schedule-filter-btn.active {
+      background: var(--ink);
+      color: var(--card);
+      border-color: transparent;
+    }
+
+    .schedule-filter-btn .count {
+      margin-left: 4px;
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    .schedule-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+
+    .schedule-timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 24px;
+      bottom: 24px;
+      width: 2px;
+      background: var(--line);
+      z-index: 0;
+    }
+
+    .schedule-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 12px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .schedule-dot {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      border: 2px solid var(--line);
+      background: var(--card);
+      transition: all 0.2s ease;
+    }
+
+    .schedule-item[data-status="paid"] .schedule-dot {
+      background: var(--green-soft);
+      border-color: var(--green);
+    }
+
+    .schedule-item[data-status="current"] .schedule-dot {
+      background: var(--blue-soft);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+
+    .schedule-item[data-status="planned"] .schedule-dot {
+      background: var(--surface);
+      border-color: var(--line);
+      border-style: dashed;
+    }
+
+    .schedule-item[data-status="overdue"] .schedule-dot {
+      background: hsl(0 76% 95%);
+      border-color: hsl(0 76% 55%);
+    }
+
+    .schedule-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .schedule-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .schedule-date {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .schedule-amount {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .schedule-breakdown {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .schedule-breakdown span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .schedule-breakdown .dot-green { color: var(--green); }
+    .schedule-breakdown .dot-orange { color: var(--orange); }
+    .schedule-breakdown .dot-blue { color: var(--blue); }
+
+    .schedule-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .schedule-badge.paid {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .schedule-badge.current {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .schedule-badge.planned {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px dashed var(--line);
+    }
+
+    .schedule-badge.overdue {
+      background: hsl(0 76% 95%);
+      color: hsl(0 76% 55%);
+    }
+
+    .schedule-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .schedule-actions .btn {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+
+    .schedule-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+
+    .schedule-summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .schedule-summary-item .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .schedule-summary-item .value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .schedule-empty {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .schedule-show-more {
+      text-align: center;
+      padding: 8px;
+    }
+
+    .schedule-show-more .btn {
+      font-size: 12px;
+    }
+
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -689,6 +924,24 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </section>
+
+              <section class="card schedule-card" id="schedule-card">
+                <div class="section-heading">
+                  <h2 class="title">Harmonogram rat</h2>
+                  <span class="tiny muted">Oś czasu spłat z planowanymi ratami i statusami</span>
+                </div>
+                <div id="schedule-summary" class="schedule-summary" style="display:none;"></div>
+                <div class="schedule-controls" id="schedule-controls">
+                  <button class="schedule-filter-btn active" data-filter="all">Wszystkie</button>
+                  <button class="schedule-filter-btn" data-filter="paid">Opłacone</button>
+                  <button class="schedule-filter-btn" data-filter="planned">Planowane</button>
+                  <button class="schedule-filter-btn" data-filter="overdue">Zaległe</button>
+                </div>
+                <div id="schedule-timeline" class="schedule-timeline"></div>
+                <div id="schedule-show-more" class="schedule-show-more" style="display:none;">
+                  <button class="btn soft" id="schedule-show-more-btn">Pokaż więcej rat</button>
                 </div>
               </section>
 
@@ -1082,6 +1335,7 @@ function render() {
     $('#settings-btn').style.display = 'inline-flex';
     renderDashboard();
     renderHistoryTable();
+    renderSchedule();
     renderCharts();
   }
 }
@@ -2289,6 +2543,274 @@ function setupLoanChartTabs() {
   });
 }
 
+/* === Schedule Timeline === */
+let scheduleFilter = 'all';
+let scheduleVisibleCount = 12;
+
+function generateSchedule() {
+  const { loanDetails, payments } = state;
+  if (!loanDetails) return [];
+
+  const schedule = [];
+  const paidMap = {};
+  (payments || []).forEach(p => {
+    paidMap[p.date] = p;
+  });
+
+  const totalMonths = (loanDetails.loanTerm || 30) * 12;
+  const history = loanDetails.interestRateHistory || [];
+  const sortedPayments = [...(payments || [])].sort((a, b) => a.date.localeCompare(b.date));
+
+  // Determine start month
+  let startDate;
+  if (sortedPayments.length) {
+    const [y, m] = sortedPayments[0].date.split('-').map(Number);
+    startDate = new Date(Date.UTC(y, m - 1, 1));
+  } else if (history.length) {
+    const [y, m] = history[0].date.split('-').map(Number);
+    startDate = new Date(Date.UTC(y, m - 1, 1));
+  } else {
+    startDate = new Date();
+    startDate.setDate(1);
+  }
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  // Calculate averages from paid installments for projections
+  const avgCapital = sortedPayments.length
+    ? sortedPayments.reduce((s, p) => s + p.capital, 0) / sortedPayments.length
+    : 0;
+  const avgInterest = sortedPayments.length
+    ? sortedPayments.reduce((s, p) => s + p.interest, 0) / sortedPayments.length
+    : 0;
+
+  let remainingCapital = loanDetails.totalCapital;
+  // Subtract all paid amounts from remaining
+  sortedPayments.forEach(p => {
+    remainingCapital -= (p.capital + (p.overpayment || 0));
+  });
+
+  const cursor = new Date(startDate);
+  for (let i = 0; i < totalMonths && remainingCapital > 0.01; i++) {
+    const monthKey = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+    const paid = paidMap[monthKey];
+
+    let status;
+    if (paid) {
+      status = 'paid';
+    } else if (monthKey === currentMonthKey) {
+      status = 'current';
+    } else if (monthKey < currentMonthKey) {
+      status = 'overdue';
+    } else {
+      status = 'planned';
+    }
+
+    const rate = getRateForDate(monthKey, history);
+    let capital, interest, overpayment, total;
+
+    if (paid) {
+      capital = paid.capital;
+      interest = paid.interest;
+      overpayment = paid.overpayment || 0;
+      total = capital + interest + overpayment;
+    } else {
+      // Project from averages
+      capital = avgCapital > 0 ? Math.min(avgCapital, Math.max(remainingCapital, 0)) : 0;
+      const monthlyRate = (rate || 0) / 100 / 12;
+      interest = avgInterest > 0 ? avgInterest : Math.max(remainingCapital, 0) * monthlyRate;
+      overpayment = 0;
+      total = capital + interest;
+    }
+
+    if (!paid && avgCapital > 0) {
+      remainingCapital -= capital;
+    }
+
+    schedule.push({
+      monthKey,
+      date: new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1)),
+      status,
+      capital,
+      interest,
+      overpayment,
+      total,
+      rate,
+      remainingCapital: Math.max(remainingCapital, 0),
+      paymentId: paid ? paid.id : null
+    });
+
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return schedule;
+}
+
+function renderSchedule() {
+  const timeline = $('#schedule-timeline');
+  const summaryEl = $('#schedule-summary');
+  const showMoreContainer = $('#schedule-show-more');
+  if (!timeline) return;
+
+  const schedule = generateSchedule();
+
+  if (schedule.length === 0) {
+    timeline.innerHTML = '<div class="schedule-empty">Skonfiguruj kredyt i dodaj raty, aby zobaczyć harmonogram.</div>';
+    if (summaryEl) summaryEl.style.display = 'none';
+    if (showMoreContainer) showMoreContainer.style.display = 'none';
+    updateScheduleFilterCounts(schedule);
+    return;
+  }
+
+  // Summary
+  const paidCount = schedule.filter(s => s.status === 'paid').length;
+  const plannedCount = schedule.filter(s => s.status === 'planned').length;
+  const overdueCount = schedule.filter(s => s.status === 'overdue').length;
+  const currentItem = schedule.find(s => s.status === 'current');
+  const totalPaidAmount = schedule.filter(s => s.status === 'paid').reduce((s, item) => s + item.total, 0);
+  const totalPlannedAmount = schedule.filter(s => s.status === 'planned' || s.status === 'current').reduce((s, item) => s + item.total, 0);
+
+  if (summaryEl) {
+    summaryEl.style.display = 'grid';
+    summaryEl.innerHTML = `
+      <div class="schedule-summary-item">
+        <span class="label">Opłacone raty</span>
+        <span class="value">${paidCount} <span class="currency">/ ${schedule.length}</span></span>
+      </div>
+      <div class="schedule-summary-item">
+        <span class="label">Zapłacono łącznie</span>
+        <span class="value">${fmt(totalPaidAmount)}</span>
+      </div>
+      <div class="schedule-summary-item">
+        <span class="label">Do zapłacenia</span>
+        <span class="value">${fmt(totalPlannedAmount)}</span>
+      </div>
+      ${overdueCount > 0 ? `
+      <div class="schedule-summary-item">
+        <span class="label">Zaległe</span>
+        <span class="value" style="color: hsl(0 76% 55%);">${overdueCount} rat</span>
+      </div>` : `
+      <div class="schedule-summary-item">
+        <span class="label">Pozostało rat</span>
+        <span class="value">${plannedCount + (currentItem ? 1 : 0)}</span>
+      </div>`}
+    `;
+  }
+
+  updateScheduleFilterCounts(schedule);
+
+  // Filter
+  const filtered = scheduleFilter === 'all'
+    ? schedule
+    : schedule.filter(s => s.status === scheduleFilter || (scheduleFilter === 'planned' && s.status === 'current'));
+
+  if (filtered.length === 0) {
+    timeline.innerHTML = '<div class="schedule-empty">Brak rat w wybranej kategorii.</div>';
+    if (showMoreContainer) showMoreContainer.style.display = 'none';
+    return;
+  }
+
+  const visible = filtered.slice(0, scheduleVisibleCount);
+  const hasMore = filtered.length > scheduleVisibleCount;
+
+  const statusEmoji = {
+    paid: '&#10003;',
+    current: '&#9679;',
+    planned: '&#8943;',
+    overdue: '!'
+  };
+
+  const statusLabel = {
+    paid: 'Opłacona',
+    current: 'Bieżąca',
+    planned: 'Planowana',
+    overdue: 'Zaległa'
+  };
+
+  timeline.innerHTML = visible.map(item => {
+    const dateLabel = item.date.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+    const breakdownParts = [];
+    if (item.capital > 0) breakdownParts.push(`<span><span class="dot-green">&#9679;</span> Kapitał ${fmtPlain(item.capital)} zł</span>`);
+    if (item.interest > 0) breakdownParts.push(`<span><span class="dot-orange">&#9679;</span> Odsetki ${fmtPlain(item.interest)} zł</span>`);
+    if (item.overpayment > 0) breakdownParts.push(`<span><span class="dot-blue">&#9679;</span> Nadpłata ${fmtPlain(item.overpayment)} zł</span>`);
+
+    const actions = item.paymentId
+      ? `<div class="schedule-actions"><button class="btn tiny" onclick="openPaymentModal('${item.paymentId}')">Edytuj</button></div>`
+      : (item.status === 'current' || item.status === 'overdue')
+        ? `<div class="schedule-actions"><button class="btn tiny primary" onclick="openPaymentModal(null)">Zarejestruj</button></div>`
+        : '';
+
+    return `
+      <div class="schedule-item" data-status="${item.status}">
+        <div class="schedule-dot">${statusEmoji[item.status]}</div>
+        <div class="schedule-body">
+          <div class="schedule-row">
+            <span class="schedule-date">${dateLabel}</span>
+            <span class="schedule-amount">${fmt(item.total)}</span>
+          </div>
+          <div class="schedule-row">
+            <div class="schedule-breakdown">${breakdownParts.join('')}</div>
+            <span class="schedule-badge ${item.status}">${statusLabel[item.status]}</span>
+          </div>
+          ${actions}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (showMoreContainer) {
+    showMoreContainer.style.display = hasMore ? 'block' : 'none';
+  }
+}
+
+function updateScheduleFilterCounts(schedule) {
+  const controls = $('#schedule-controls');
+  if (!controls) return;
+
+  const counts = {
+    all: schedule.length,
+    paid: schedule.filter(s => s.status === 'paid').length,
+    planned: schedule.filter(s => s.status === 'planned' || s.status === 'current').length,
+    overdue: schedule.filter(s => s.status === 'overdue').length
+  };
+
+  controls.querySelectorAll('.schedule-filter-btn').forEach(btn => {
+    const filter = btn.dataset.filter;
+    const countSpan = btn.querySelector('.count');
+    if (countSpan) {
+      countSpan.textContent = `(${counts[filter] || 0})`;
+    } else {
+      const span = document.createElement('span');
+      span.className = 'count';
+      span.textContent = `(${counts[filter] || 0})`;
+      btn.appendChild(span);
+    }
+  });
+}
+
+function setupScheduleControls() {
+  const controls = $('#schedule-controls');
+  if (!controls) return;
+
+  controls.addEventListener('click', (e) => {
+    const btn = e.target.closest('.schedule-filter-btn');
+    if (!btn) return;
+    scheduleFilter = btn.dataset.filter;
+    scheduleVisibleCount = 12;
+    controls.querySelectorAll('.schedule-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderSchedule();
+  });
+
+  const showMoreBtn = $('#schedule-show-more-btn');
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      scheduleVisibleCount += 12;
+      renderSchedule();
+    });
+  }
+}
+
 /* === Event Listeners & Boot === */
 function init() {
   loadState();
@@ -2296,6 +2818,7 @@ function init() {
   setupLoanChartTabs();
   setupLoanChartToggles();
   setupChangeModeSwitch();
+  setupScheduleControls();
   $('#setup-loan-btn').addEventListener('click', openSetupModal);
   $('#settings-btn').addEventListener('click', openSetupModal);
   $('#add-payment-btn').addEventListener('click', () => openPaymentModal(null));

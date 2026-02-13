@@ -916,10 +916,27 @@ function renderKPIData(){
       const capitalRemaining = loanDetails.totalCapital - totalCapitalPaid;
       const progress = (totalCapitalPaid / loanDetails.totalCapital) * 100;
 
+      const paidCount = payments.length;
+      const totalMonths = (loanDetails.loanTerm || 30) * 12;
+      const avgPrincipal = paidCount > 0 ? payments.reduce((s, p) => s + p.capital, 0) / paidCount : 0;
+      const projectedRemaining = avgPrincipal > 0 ? Math.ceil(capitalRemaining / avgPrincipal) : totalMonths - paidCount;
+
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const paidMonths = payments.map(p => p.date);
+      const hasCurrentMonth = paidMonths.includes(currentMonth);
+      const overdueMonths = paidMonths.length > 0
+        ? (() => { const sorted = [...paidMonths].sort(); const last = sorted[sorted.length-1]; const [ly,lm] = last.split('-').map(Number); const ld = new Date(Date.UTC(ly,lm-1,1)); const diff = (now.getFullYear()-ld.getUTCFullYear())*12+(now.getMonth()-ld.getUTCMonth()); return Math.max(0, diff - (hasCurrentMonth ? 0 : 1)); })()
+        : 0;
+
       const detailLines = [
         `Spłacono kapitału: ${fmt(totalCapitalPaid)}.`,
-        `Nadpłaty: ${fmt(totalOverpayments)}.`
+        `Nadpłaty: ${fmt(totalOverpayments)}.`,
+        `Raty: ${paidCount} z ~${paidCount + projectedRemaining}.`
       ];
+      if (overdueMonths > 0) {
+        detailLines.push(`<span style="color:hsl(0 76% 55%)">Zaległe: ${overdueMonths} rat.</span>`);
+      }
       kpiElements.loan.innerHTML = `
         <div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div>
         <div class="kpi-main-value">${fmt(capitalRemaining, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
