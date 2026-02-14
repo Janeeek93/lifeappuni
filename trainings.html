@@ -521,120 +521,34 @@
   transition: width 0.4s ease;
 }
 
-/* Body metrics */
+/* Body Composition Dashboard */
 .body-metrics-card {
   display: flex;
   flex-direction: column;
+  gap: 0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.bm-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
-}
-
-.metrics-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.metrics-form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.metrics-form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-}
-
-.metrics-form-grid label,
-.metrics-form-row label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.metrics-form-grid input,
-.metrics-form-grid select,
-.metrics-form-row input,
-.metrics-form-row select {
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  font-size: 13px;
-  background: var(--surface);
-}
-
-.metrics-actions {
-  display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  padding: 24px 24px 0;
 }
 
-.metrics-feedback {
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--bg-alt);
-  border: 1px dashed var(--line);
-  color: var(--muted);
+.bm-dashboard-header h3 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-.metrics-feedback.success {
-  background: var(--success-soft);
-  border-color: var(--success-border);
-  color: var(--success);
-}
-
-.metrics-feedback.warning {
-  background: var(--warning-soft);
-  border-color: var(--warning-border);
-  color: var(--warning);
-}
-
-.metrics-feedback.danger {
-  background: var(--danger-soft);
-  border-color: var(--danger-border);
-  color: var(--danger);
-}
-
-.metrics-history {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.metrics-log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.metrics-log-item {
+.bm-header-controls {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.metrics-log-item strong { font-size: 13px; }
-.metrics-log-item span { font-size: 12px; color: var(--muted); }
-
-.metrics-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -644,58 +558,592 @@
   gap: 8px;
 }
 
-.metrics-summary {
+.metrics-filter select {
+  padding: 6px 28px 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
   font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.metrics-summary {
+  font-size: 11px;
   color: var(--muted);
   font-weight: 600;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
-.metrics-kpi-grid {
+/* KPI Hero Row */
+.bm-kpi-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px 24px;
 }
 
-.metrics-kpi-card {
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  padding: 12px;
+.bm-kpi-card {
   background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 180px;
+  gap: 10px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
 }
 
-.metrics-kpi-header {
+.bm-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+}
+
+.bm-kpi-card[data-metric="weight"]::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
+.bm-kpi-card[data-metric="bmi"]::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+.bm-kpi-card[data-metric="bf"]::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.bm-kpi-card[data-metric="muscle"]::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+.bm-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.bm-kpi-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 8px;
 }
 
-.metrics-chart {
-  flex: 1;
+.bm-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.bm-kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.bm-kpi-trend.positive { background: #f0fdf4; color: #16a34a; }
+.bm-kpi-trend.negative { background: #fef2f2; color: #dc2626; }
+.bm-kpi-trend.neutral { background: #f1f5f9; color: #64748b; }
+
+.bm-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.bm-kpi-value .bm-kpi-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+.bm-kpi-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bm-kpi-sparkline {
+  height: 32px;
+  margin-top: 4px;
+}
+
+.bm-kpi-sparkline canvas {
+  width: 100% !important;
+  height: 32px !important;
+}
+
+/* Form Section */
+.bm-form-section {
+  padding: 0 24px;
+  margin-bottom: 4px;
+}
+
+.bm-form-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: #fafbfc;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.bm-form-toggle:hover {
+  border-color: var(--primary-border);
+  color: var(--accent);
+  background: var(--primary-soft);
+}
+
+.bm-form-toggle .icon { width: 16px; height: 16px; }
+
+.bm-form-toggle.is-open {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
+  color: var(--accent);
+  border-radius: 14px 14px 0 0;
+  border-bottom: none;
+}
+
+.bm-form-content {
+  display: none;
+  border: 1px dashed var(--line);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 16px;
+  background: #fafbfc;
+}
+
+.bm-form-content.is-open {
+  display: block;
+  border-color: var(--primary-border);
+}
+
+.bm-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bm-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.bm-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bm-form-grid input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  background: #fff;
+  transition: var(--transition);
+}
+
+.bm-form-grid input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
+
+.bm-form-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.metrics-feedback {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+.metrics-feedback.success { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
+.metrics-feedback.warning { background: #fffbeb; border-color: #fde68a; color: #d97706; }
+.metrics-feedback.danger { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+
+/* Main Chart Section */
+.bm-chart-section {
+  padding: 0 24px 8px;
+}
+
+.bm-chart-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bm-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bm-chart-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bm-chart-header h4 .icon { width: 18px; height: 18px; color: var(--accent); }
+
+.bm-chart-toggles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bm-chart-toggle {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bm-chart-toggle .toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bm-chart-toggle.is-active {
+  box-shadow: var(--shadow-sm);
+}
+
+.bm-chart-toggle:hover { border-color: var(--primary-border); }
+
+.bm-chart-container {
+  height: 280px;
+  position: relative;
+}
+
+.bm-chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.bm-chart-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 120px;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-  border-radius: 12px;
-  border: 1px solid #f1f5f9;
-  padding: 8px;
-}
-
-.metrics-chart svg {
-  width: 100%;
   height: 100%;
+  color: var(--muted);
+  font-size: 13px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.metrics-chart-empty {
+.bm-chart-empty .icon { width: 32px; height: 32px; opacity: 0.3; }
+
+/* Analytics Grid (Insights + Table) */
+.bm-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 16px;
+  padding: 8px 24px 24px;
+}
+
+/* Insights Column */
+.bm-insights-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bm-insights-column > h4 {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bm-insights-column > h4 .icon { width: 16px; height: 16px; color: var(--accent); }
+
+.bm-insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bm-insight-card {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.bm-insight-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.bm-insight-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bm-insight-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.bm-insight-icon.info { background: #eff6ff; }
+.bm-insight-icon.success { background: #f0fdf4; }
+.bm-insight-icon.warning { background: #fffbeb; }
+.bm-insight-icon.fire { background: #fef2f2; }
+.bm-insight-icon.target { background: #f5f3ff; }
+
+.bm-insight-body {
+  font-size: 11px;
   color: var(--muted);
-  text-align: center;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.bm-insight-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+/* Table Column */
+.bm-table-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bm-table-column > h4 {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bm-table-column > h4 .icon { width: 16px; height: 16px; color: var(--accent); }
+
+.bm-table-wrapper {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.bm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.bm-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.bm-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--line);
+  white-space: nowrap;
+}
+
+.bm-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.bm-table tr:last-child td { border-bottom: none; }
+
+.bm-table tr:hover td { background: #fafbfc; }
+
+.bm-table .bm-table-date {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bm-table .bm-table-cut {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.bm-table .bm-table-change {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.bm-table .bm-table-change.up { background: #f0fdf4; color: #16a34a; }
+.bm-table .bm-table-change.down { background: #fef2f2; color: #dc2626; }
+
+.bm-table .bm-table-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.bm-table .bm-table-actions button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  color: var(--muted);
+}
+
+.bm-table .bm-table-actions button:hover {
+  background: #f1f5f9;
+  border-color: var(--line);
+}
+
+.bm-table .bm-table-actions button.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.bm-table .bm-table-actions button .icon { width: 13px; height: 13px; }
+
+/* Progress Summary Bar */
+.bm-progress-bar {
+  padding: 0 24px 20px;
+}
+
+.bm-progress-summary {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f0fdf4 100%);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.bm-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.bm-progress-item-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.bm-progress-item-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.bm-progress-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--line);
+}
+
+@media (max-width: 1080px) {
+  .bm-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .bm-analytics-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .bm-kpi-row { grid-template-columns: 1fr; }
+  .bm-dashboard-header { padding: 16px 16px 0; }
+  .bm-kpi-row, .bm-form-section, .bm-chart-section { padding-left: 16px; padding-right: 16px; }
+  .bm-analytics-grid { padding: 8px 16px 16px; }
+  .bm-chart-container { height: 220px; }
 }
 
 /* Sub navigation */
@@ -1041,85 +1489,105 @@
           </section>
 
           <section class="card body-metrics-card section-panel" id="body-metrics">
-            <div class="card-header">
+            <!-- Dashboard Header -->
+            <div class="bm-dashboard-header">
               <div>
-                <h3>Log wagi i składu ciała</h3>
-                <p class="muted tiny">Zapisuj każdy cut, buduj progres i śledź trendy.</p>
+                <h3>Body Composition Dashboard</h3>
+                <p class="muted tiny">Analityka skladu ciala i progresu treningowego</p>
               </div>
-              <span class="month-chip">2026+</span>
+              <div class="bm-header-controls">
+                <div class="metrics-filter">
+                  <span class="tiny muted">Cykl:</span>
+                  <select id="metrics-cut-filter"></select>
+                </div>
+                <span id="metrics-cut-summary" class="metrics-summary"></span>
+              </div>
             </div>
-            <div class="metrics-layout">
-              <div class="metrics-form">
-                <form id="metrics-form" class="metrics-form-grid">
-                  <div class="metrics-form-row">
-                    <label>Data logu
+
+            <!-- KPI Hero Cards -->
+            <div class="bm-kpi-row" id="bm-kpi-row"></div>
+
+            <!-- Collapsible Form -->
+            <div class="bm-form-section">
+              <button class="bm-form-toggle" id="bm-form-toggle" type="button">
+                <i data-lucide="plus-circle" class="icon"></i>
+                Dodaj nowy pomiar
+              </button>
+              <div class="bm-form-content" id="bm-form-content">
+                <form id="metrics-form" class="bm-form-grid">
+                  <div class="bm-form-row">
+                    <label>Data
                       <input type="date" id="metrics-date" required>
                     </label>
-                    <label>Cut / cykl
+                    <label>Cykl / Cut
                       <input type="text" id="metrics-cut" list="metrics-cut-list" placeholder="np. Cut 2026 Wiosna" required>
                       <datalist id="metrics-cut-list"></datalist>
                     </label>
+                  </div>
+                  <div class="bm-form-row">
                     <label>Waga (kg)
-                      <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="np. 84.2">
+                      <input type="number" id="metrics-weight" min="0" step="0.1" placeholder="84.2">
                     </label>
                     <label>BMI
-                      <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="np. 24.8">
+                      <input type="number" id="metrics-bmi" min="0" step="0.1" placeholder="24.8">
                     </label>
                     <label>BF (%)
-                      <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="np. 17.5">
+                      <input type="number" id="metrics-bf" min="0" step="0.1" placeholder="17.5">
                     </label>
-                    <label>Waga mięśni (kg)
-                      <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="np. 34.0">
+                    <label>Masa miesni (kg)
+                      <input type="number" id="metrics-muscle" min="0" step="0.1" placeholder="34.0">
                     </label>
                   </div>
-                  <div class="metrics-actions">
-                    <button class="btn" type="submit"><i data-lucide="save" class="icon"></i>Zapisz log</button>
-                    <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczyść pola</button>
+                  <div class="bm-form-actions">
+                    <button class="btn" type="submit"><i data-lucide="save" class="icon"></i>Zapisz pomiar</button>
+                    <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczysc</button>
                   </div>
                 </form>
-                <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy log, a zobaczysz trendy i komunikaty o progresie.</div>
+                <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy pomiar, aby zobaczyc trendy i insighty.</div>
               </div>
-              <div>
-                <div class="metrics-toolbar">
-                  <div class="metrics-filter">
-                    <span class="tiny muted">Cut:</span>
-                    <select id="metrics-cut-filter"></select>
-                  </div>
-                  <div id="metrics-cut-summary" class="metrics-summary"></div>
+            </div>
+
+            <!-- Main Trend Chart -->
+            <div class="bm-chart-section">
+              <div class="bm-chart-wrapper">
+                <div class="bm-chart-header">
+                  <h4><i data-lucide="trending-up" class="icon"></i>Trend skladu ciala</h4>
+                  <div class="bm-chart-toggles" id="bm-chart-toggles"></div>
                 </div>
-                <div class="metrics-kpi-grid">
-                  <div class="metrics-kpi-card">
-                    <div class="metrics-kpi-header">
-                      <span>Waga</span>
-                      <span id="metrics-weight-stat">--</span>
-                    </div>
-                    <div class="metrics-chart" id="metrics-chart-weight"></div>
-                  </div>
-                  <div class="metrics-kpi-card">
-                    <div class="metrics-kpi-header">
-                      <span>BMI</span>
-                      <span id="metrics-bmi-stat">--</span>
-                    </div>
-                    <div class="metrics-chart" id="metrics-chart-bmi"></div>
-                  </div>
-                  <div class="metrics-kpi-card">
-                    <div class="metrics-kpi-header">
-                      <span>BF %</span>
-                      <span id="metrics-bf-stat">--</span>
-                    </div>
-                    <div class="metrics-chart" id="metrics-chart-bf"></div>
-                  </div>
-                  <div class="metrics-kpi-card">
-                    <div class="metrics-kpi-header">
-                      <span>Waga mięśni</span>
-                      <span id="metrics-muscle-stat">--</span>
-                    </div>
-                    <div class="metrics-chart" id="metrics-chart-muscle"></div>
-                  </div>
+                <div class="bm-chart-container" id="bm-chart-container">
+                  <canvas id="bm-main-chart"></canvas>
                 </div>
-                <div class="metrics-history">
-                  <h4>Historia logów</h4>
-                  <div id="metrics-log-list" class="metrics-log-list"></div>
+              </div>
+            </div>
+
+            <!-- Progress Summary Bar -->
+            <div class="bm-progress-bar">
+              <div class="bm-progress-summary" id="bm-progress-summary"></div>
+            </div>
+
+            <!-- Insights + Table Grid -->
+            <div class="bm-analytics-grid">
+              <div class="bm-insights-column">
+                <h4><i data-lucide="lightbulb" class="icon"></i>Insighty & Analiza</h4>
+                <div id="bm-insights-list" class="bm-insights-list"></div>
+              </div>
+              <div class="bm-table-column">
+                <h4><i data-lucide="table" class="icon"></i>Historia pomiarow</h4>
+                <div class="bm-table-wrapper">
+                  <table class="bm-table" id="bm-table">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Cykl</th>
+                        <th>Waga</th>
+                        <th>BMI</th>
+                        <th>BF%</th>
+                        <th>Miesnie</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="bm-table-body"></tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -2370,64 +2838,19 @@ function getMetricsForCut(cut) {
   return sortMetricsByDate(bodyMetrics.filter(entry => entry.cut === cut));
 }
 
-function renderMetricChart(containerId, entries, metricKey, unit, trendDirection) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const points = entries
-    .map(entry => ({ date: entry.date, value: entry[metricKey] }))
-    .filter(point => Number.isFinite(point.value));
+// ==========================================
+// BODY COMPOSITION DASHBOARD
+// ==========================================
+const BM_METRIC_DEFS = {
+  weight: { label: 'Waga', unit: 'kg', color: '#6366f1', direction: 'down', icon: 'scale' },
+  bmi:    { label: 'BMI', unit: '', color: '#8b5cf6', direction: 'down', icon: 'gauge' },
+  bf:     { label: 'Body Fat', unit: '%', color: '#f59e0b', direction: 'down', icon: 'flame' },
+  muscle: { label: 'Masa miesni', unit: 'kg', color: '#22c55e', direction: 'up', icon: 'dumbbell' }
+};
 
-  if (points.length === 0) {
-    container.innerHTML = `<div class="metrics-chart-empty">Brak danych dla tego parametru.</div>`;
-    return;
-  }
-
-  const width = 260;
-  const height = 120;
-  const padding = 14;
-  const values = points.map(point => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  const coords = points.map((point, index) => {
-    const x = padding + (index / Math.max(points.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - ((point.value - min) / range) * (height - padding * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-
-  const path = coords.join(' ');
-  const first = points[0];
-  const last = points[points.length - 1];
-  const trend = last.value - first.value;
-  const trendLabel = trendDirection === 'down'
-    ? (trend <= 0 ? '⬇️' : '⬆️')
-    : (trend >= 0 ? '⬆️' : '⬇️');
-
-  container.innerHTML = `
-    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-      <polyline fill="none" stroke="var(--primary)" stroke-width="2.5" points="${path}" />
-      <polyline fill="rgba(99, 102, 241, 0.1)" stroke="none"
-        points="${path} ${width - padding},${height - padding} ${padding},${height - padding}" />
-      <circle cx="${coords[coords.length - 1].split(',')[0]}" cy="${coords[coords.length - 1].split(',')[1]}" r="3.5" fill="var(--primary)" />
-    </svg>
-    <div class="tiny muted" style="margin-top: -4px;">${first.date} → ${last.date} ${trendLabel}</div>
-  `;
-}
-
-function getMetricSummary(entries, metricKey, unit, trendDirection) {
-  const values = entries.map(entry => entry[metricKey]).filter(value => Number.isFinite(value));
-  if (values.length === 0) return '--';
-  const first = values[0];
-  const last = values[values.length - 1];
-  const diff = last - first;
-  const arrow = trendDirection === 'down'
-    ? (diff <= 0 ? '▼' : '▲')
-    : (diff >= 0 ? '▲' : '▼');
-  const unitLabel = unit ? ` ${unit}` : '';
-  const diffLabel = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}${unitLabel}`;
-  return `${last.toFixed(1)}${unitLabel} (${arrow} ${diffLabel})`;
-}
+let bmMainChart = null;
+let bmSparklines = {};
+let bmActiveMetrics = { weight: true, bmi: false, bf: true, muscle: true };
 
 function updateMetricsFeedback(message, tone = '') {
   const feedback = document.getElementById('metrics-feedback');
@@ -2438,20 +2861,16 @@ function updateMetricsFeedback(message, tone = '') {
 }
 
 function renderBodyMetrics() {
-  const logList = document.getElementById('metrics-log-list');
   const cutFilter = document.getElementById('metrics-cut-filter');
   const cutList = document.getElementById('metrics-cut-list');
-  if (!logList || !cutFilter || !cutList) return;
+  if (!cutFilter || !cutList) return;
 
   const cuts = getUniqueCuts();
   const formDate = document.getElementById('metrics-date');
   if (formDate && !formDate.value) formDate.value = toYYYYMMDD(new Date());
 
   cutList.innerHTML = cuts.map(cut => `<option value="${cut}"></option>`).join('');
-  cutFilter.innerHTML = `
-    <option value="all">Wszystkie</option>
-    ${cuts.map(cut => `<option value="${cut}">${cut}</option>`).join('')}
-  `;
+  cutFilter.innerHTML = `<option value="all">Wszystkie cykle</option>${cuts.map(cut => `<option value="${cut}">${cut}</option>`).join('')}`;
   if (!cuts.includes(selectedCut) && selectedCut !== 'all') selectedCut = 'all';
   cutFilter.value = selectedCut;
 
@@ -2459,51 +2878,424 @@ function renderBodyMetrics() {
   const summary = document.getElementById('metrics-cut-summary');
   if (summary) {
     if (!filtered.length) {
-      summary.textContent = 'Brak danych dla wybranego cutu.';
+      summary.textContent = 'Brak danych';
     } else {
-      const start = filtered[0].date;
-      const end = filtered[filtered.length - 1].date;
-      summary.textContent = `${filtered.length} logów · ${start} → ${end}`;
+      summary.textContent = `${filtered.length} pomiarow · ${filtered[0].date} - ${filtered[filtered.length - 1].date}`;
     }
   }
 
-  renderMetricChart('metrics-chart-weight', filtered, 'weight', 'kg', 'down');
-  renderMetricChart('metrics-chart-bmi', filtered, 'bmi', '', 'down');
-  renderMetricChart('metrics-chart-bf', filtered, 'bf', '%', 'down');
-  renderMetricChart('metrics-chart-muscle', filtered, 'muscle', 'kg', 'up');
+  renderBMKPICards(filtered);
+  renderBMMainChart(filtered);
+  renderBMProgressSummary(filtered);
+  renderBMInsights(filtered);
+  renderBMTable(filtered);
+  lucide.createIcons();
+}
 
-  document.getElementById('metrics-weight-stat').textContent = getMetricSummary(filtered, 'weight', 'kg', 'down');
-  document.getElementById('metrics-bmi-stat').textContent = getMetricSummary(filtered, 'bmi', '', 'down');
-  document.getElementById('metrics-bf-stat').textContent = getMetricSummary(filtered, 'bf', '%', 'down');
-  document.getElementById('metrics-muscle-stat').textContent = getMetricSummary(filtered, 'muscle', 'kg', 'up');
+function getMetricStats(entries, key) {
+  const values = entries.map(e => e[key]).filter(v => Number.isFinite(v));
+  if (!values.length) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  const diff = last - first;
+  const diffPercent = first !== 0 ? ((diff / Math.abs(first)) * 100) : 0;
+  return { first, last, min, max, avg, diff, diffPercent, count: values.length, values };
+}
 
-  if (!filtered.length) {
-    logList.innerHTML = `<p class="muted tiny">Brak zapisanych logów. Dodaj pierwszy wpis.</p>`;
-  } else {
-    logList.innerHTML = '';
-    filtered.slice().reverse().forEach(entry => {
-      const item = document.createElement('div');
-      item.className = 'metrics-log-item';
-      item.innerHTML = `
-        <div>
-          <strong>${entry.date}</strong>
-          <div class="tiny muted">${entry.cut || 'Bez cutu'} · W: ${entry.weight ?? '--'} kg · BMI: ${entry.bmi ?? '--'} · BF: ${entry.bf ?? '--'}% · M: ${entry.muscle ?? '--'} kg</div>
+function renderBMKPICards(filtered) {
+  const container = document.getElementById('bm-kpi-row');
+  if (!container) return;
+  container.innerHTML = '';
+
+  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
+    const stats = getMetricStats(filtered, key);
+    const card = document.createElement('div');
+    card.className = 'bm-kpi-card';
+    card.dataset.metric = key;
+
+    if (!stats) {
+      card.innerHTML = `
+        <div class="bm-kpi-top">
+          <span class="bm-kpi-label">${def.label}</span>
         </div>
-        <div class="metrics-actions">
-          <button class="btn ghost small" data-edit-id="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
-          <button class="btn ghost small" data-delete-id="${entry.id}"><i data-lucide="trash-2" class="icon"></i></button>
-        </div>
+        <div class="bm-kpi-value">--<span class="bm-kpi-unit">${def.unit}</span></div>
+        <div class="bm-kpi-sub">Brak danych</div>
       `;
-      item.querySelector('[data-delete-id]')?.addEventListener('click', () => {
-        bodyMetrics = bodyMetrics.filter(item => item.id !== entry.id);
-        saveBodyMetrics('Usunięto log');
-        renderBodyMetrics();
+    } else {
+      const isGood = def.direction === 'down' ? stats.diff <= 0 : stats.diff >= 0;
+      const trendClass = stats.diff === 0 ? 'neutral' : (isGood ? 'positive' : 'negative');
+      const arrow = stats.diff > 0 ? '+' : '';
+      const trendText = `${arrow}${stats.diff.toFixed(1)}${def.unit ? ' ' + def.unit : ''}`;
+
+      card.innerHTML = `
+        <div class="bm-kpi-top">
+          <span class="bm-kpi-label">${def.label}</span>
+          <span class="bm-kpi-trend ${trendClass}">${stats.diff === 0 ? '=' : (isGood ? 'v' : '^')} ${trendText}</span>
+        </div>
+        <div class="bm-kpi-value">${stats.last.toFixed(1)}<span class="bm-kpi-unit">${def.unit}</span></div>
+        <div class="bm-kpi-sub">Start: ${stats.first.toFixed(1)}${def.unit ? ' ' + def.unit : ''} · ${stats.count} pomiarow</div>
+        <div class="bm-kpi-sparkline"><canvas id="bm-spark-${key}"></canvas></div>
+      `;
+    }
+    container.appendChild(card);
+
+    // Render sparkline if data exists
+    if (stats && stats.values.length >= 2 && typeof Chart !== 'undefined') {
+      requestAnimationFrame(() => {
+        const canvas = document.getElementById(`bm-spark-${key}`);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (bmSparklines[key]) bmSparklines[key].destroy();
+        bmSparklines[key] = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: stats.values.map((_, i) => i),
+            datasets: [{
+              data: stats.values,
+              borderColor: def.color,
+              borderWidth: 1.5,
+              fill: true,
+              backgroundColor: def.color + '15',
+              tension: 0.4,
+              pointRadius: 0,
+              pointHitRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } },
+            animation: { duration: 600 }
+          }
+        });
       });
-      item.querySelector('[data-edit-id]')?.addEventListener('click', () => showEditMetricsModal(entry));
-      logList.appendChild(item);
+    }
+  });
+}
+
+function renderBMChartToggles() {
+  const container = document.getElementById('bm-chart-toggles');
+  if (!container) return;
+  container.innerHTML = '';
+  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `bm-chart-toggle ${bmActiveMetrics[key] ? 'is-active' : ''}`;
+    btn.style.borderColor = bmActiveMetrics[key] ? def.color : '';
+    btn.innerHTML = `<span class="toggle-dot" style="background: ${def.color}"></span>${def.label}`;
+    btn.addEventListener('click', () => {
+      bmActiveMetrics[key] = !bmActiveMetrics[key];
+      const anyActive = Object.values(bmActiveMetrics).some(v => v);
+      if (!anyActive) { bmActiveMetrics[key] = true; return; }
+      renderBMMainChart(getMetricsForCut(selectedCut));
+      lucide.createIcons();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderBMMainChart(filtered) {
+  renderBMChartToggles();
+  const container = document.getElementById('bm-chart-container');
+  if (!container) return;
+
+  if (filtered.length < 2) {
+    if (bmMainChart) { bmMainChart.destroy(); bmMainChart = null; }
+    const canvas = document.getElementById('bm-main-chart');
+    if (canvas) canvas.style.display = 'none';
+    container.innerHTML = `<div class="bm-chart-empty"><i data-lucide="bar-chart-3" class="icon"></i><span>Dodaj co najmniej 2 pomiary, aby zobaczyc wykres trendu</span></div>`;
+    return;
+  }
+
+  let canvas = document.getElementById('bm-main-chart');
+  if (!canvas) {
+    container.innerHTML = '<canvas id="bm-main-chart"></canvas>';
+    canvas = document.getElementById('bm-main-chart');
+  }
+  canvas.style.display = '';
+  // Remove any empty state
+  const emptyEl = container.querySelector('.bm-chart-empty');
+  if (emptyEl) emptyEl.remove();
+
+  if (typeof Chart === 'undefined') return;
+  const ctx = canvas.getContext('2d');
+
+  const labels = filtered.map(e => e.date);
+  const datasets = [];
+
+  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
+    if (!bmActiveMetrics[key]) return;
+    const data = filtered.map(e => Number.isFinite(e[key]) ? e[key] : null);
+    datasets.push({
+      label: def.label + (def.unit ? ` (${def.unit})` : ''),
+      data,
+      borderColor: def.color,
+      backgroundColor: def.color + '18',
+      fill: true,
+      tension: 0.35,
+      borderWidth: 2.5,
+      pointRadius: filtered.length > 20 ? 2 : 4,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: def.color,
+      pointBorderWidth: 2,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: def.color,
+      spanGaps: true,
+      yAxisID: key === 'bf' ? 'y1' : 'y'
+    });
+  });
+
+  // Check if bf is the only active or if we need dual axis
+  const hasBfActive = bmActiveMetrics.bf;
+  const hasOtherActive = Object.entries(bmActiveMetrics).some(([k, v]) => k !== 'bf' && v);
+  const useDualAxis = hasBfActive && hasOtherActive;
+
+  // If only bf active, use single y axis
+  if (!useDualAxis) {
+    datasets.forEach(ds => { ds.yAxisID = 'y'; });
+  }
+
+  if (bmMainChart) bmMainChart.destroy();
+  bmMainChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleFont: { size: 12, weight: 700 },
+          bodyFont: { size: 11 },
+          padding: 12,
+          cornerRadius: 10,
+          displayColors: true,
+          boxPadding: 4,
+          callbacks: {
+            label: function(context) {
+              const val = context.parsed.y;
+              if (val === null) return null;
+              return ` ${context.dataset.label}: ${val.toFixed(1)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 45, maxTicksLimit: 12 }
+        },
+        y: {
+          position: 'left',
+          grid: { color: '#f1f5f9', borderDash: [4, 4] },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        },
+        ...(useDualAxis ? {
+          y1: {
+            position: 'right',
+            grid: { display: false },
+            ticks: { color: '#f59e0b', font: { size: 10 }, callback: v => v + '%' }
+          }
+        } : {})
+      },
+      animation: { duration: 800, easing: 'easeOutQuart' }
+    }
+  });
+}
+
+function renderBMProgressSummary(filtered) {
+  const container = document.getElementById('bm-progress-summary');
+  if (!container) return;
+
+  if (filtered.length < 2) {
+    container.innerHTML = '<div class="bm-progress-item"><span class="bm-progress-item-label">Status</span><span class="bm-progress-item-value">Dodaj pomiary, aby zobaczyc podsumowanie progresu</span></div>';
+    return;
+  }
+
+  const items = [];
+  const daysDiff = Math.max(1, Math.round((new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / DAY_MS));
+  items.push({ label: 'Okres', value: `${daysDiff} dni` });
+
+  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
+    const stats = getMetricStats(filtered, key);
+    if (!stats) return;
+    const arrow = stats.diff > 0 ? '+' : '';
+    items.push({ label: def.label, value: `${arrow}${stats.diff.toFixed(1)} ${def.unit}` });
+  });
+
+  items.push({ label: 'Pomiary', value: filtered.length });
+
+  container.innerHTML = items.map((item, i) => {
+    const divider = i < items.length - 1 ? '<div class="bm-progress-divider"></div>' : '';
+    return `<div class="bm-progress-item"><span class="bm-progress-item-label">${item.label}</span><span class="bm-progress-item-value">${item.value}</span></div>${divider}`;
+  }).join('');
+}
+
+function renderBMInsights(filtered) {
+  const container = document.getElementById('bm-insights-list');
+  if (!container) return;
+
+  if (filtered.length < 2) {
+    container.innerHTML = '<div class="bm-insight-card"><div class="bm-insight-header"><div class="bm-insight-icon info">📊</div>Czekam na dane</div><div class="bm-insight-body">Dodaj co najmniej 2 pomiary, aby zobaczyc analityczne insighty dotyczace Twojego progresu.</div></div>';
+    return;
+  }
+
+  const insights = [];
+  const weightStats = getMetricStats(filtered, 'weight');
+  const bfStats = getMetricStats(filtered, 'bf');
+  const muscleStats = getMetricStats(filtered, 'muscle');
+  const bmiStats = getMetricStats(filtered, 'bmi');
+
+  // Insight 1: Overall trajectory
+  if (weightStats) {
+    const days = Math.max(1, Math.round((new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / DAY_MS));
+    const weeklyRate = (weightStats.diff / days) * 7;
+    const rateLabel = weeklyRate > 0 ? `+${weeklyRate.toFixed(2)}` : weeklyRate.toFixed(2);
+    const isLosing = weeklyRate < 0;
+    const safeRate = Math.abs(weeklyRate) <= 1.0;
+    let rateComment = '';
+    if (isLosing && safeRate) rateComment = 'Bezpieczne tempo redukcji.';
+    else if (isLosing && !safeRate) rateComment = 'Szybkie tempo — pilnuj regeneracji.';
+    else if (!isLosing && Math.abs(weeklyRate) < 0.3) rateComment = 'Stabilna masa.';
+    else rateComment = 'Faza budowania masy.';
+
+    insights.push({
+      icon: '📉', iconClass: 'info',
+      title: `Tempo: ${rateLabel} kg/tydzien`,
+      body: `${rateComment} W ${days} dni zmiana wagi: ${weightStats.diff > 0 ? '+' : ''}${weightStats.diff.toFixed(1)} kg.`
     });
   }
-  lucide.createIcons();
+
+  // Insight 2: Body Fat analysis
+  if (bfStats && bfStats.count >= 2) {
+    const bfChange = bfStats.diff;
+    if (bfChange < -1) {
+      insights.push({ icon: '🔥', iconClass: 'fire', title: `BF spadl o ${Math.abs(bfChange).toFixed(1)}%`, body: `Z ${bfStats.first.toFixed(1)}% do ${bfStats.last.toFixed(1)}%. Redukcja tluszczu idzie swietnie — utrzymaj deficyt i trening silowy.` });
+    } else if (bfChange > 1) {
+      insights.push({ icon: '⚠️', iconClass: 'warning', title: `BF wzrosl o ${bfChange.toFixed(1)}%`, body: `Z ${bfStats.first.toFixed(1)}% do ${bfStats.last.toFixed(1)}%. Sprawdz diete i zadbaj o regularnosc treningow.` });
+    } else {
+      insights.push({ icon: '📊', iconClass: 'info', title: `BF stabilny: ${bfStats.last.toFixed(1)}%`, body: 'Poziom tluszczu utrzymuje sie na stalym poziomie. Jezeli celujesz w redukcje, potrzebujesz wiekszego deficytu.' });
+    }
+  }
+
+  // Insight 3: Muscle mass
+  if (muscleStats && muscleStats.count >= 2) {
+    if (muscleStats.diff > 0.5) {
+      insights.push({ icon: '💪', iconClass: 'success', title: `+${muscleStats.diff.toFixed(1)} kg masy miesniowej`, body: `Swietna robota! Masa miesni wzrosla z ${muscleStats.first.toFixed(1)} do ${muscleStats.last.toFixed(1)} kg. Trening silowy daje efekty.` });
+    } else if (muscleStats.diff < -0.5) {
+      insights.push({ icon: '⚠️', iconClass: 'warning', title: `${muscleStats.diff.toFixed(1)} kg masy miesniowej`, body: `Spadek masy miesni z ${muscleStats.first.toFixed(1)} do ${muscleStats.last.toFixed(1)} kg. Zwieksz spozycie bialka i zadbaj o progresje treningowa.` });
+    } else {
+      insights.push({ icon: '🛡️', iconClass: 'info', title: 'Masa miesni utrzymana', body: `Stabilny poziom: ${muscleStats.last.toFixed(1)} kg. W trakcie redukcji to dobry znak — nie tracisz tkanki miesniowej.` });
+    }
+  }
+
+  // Insight 4: Recomposition check
+  if (bfStats && muscleStats && bfStats.count >= 2 && muscleStats.count >= 2) {
+    if (bfStats.diff < 0 && muscleStats.diff > 0) {
+      insights.push({ icon: '🏆', iconClass: 'target', title: 'Recompozycja w toku!', body: `Tracisz tluszcz (${bfStats.diff.toFixed(1)}%) i budujesz miesnie (+${muscleStats.diff.toFixed(1)} kg) jednoczesnie. To najlepszy mozliwy scenariusz!` });
+    }
+  }
+
+  // Insight 5: BMI category
+  if (bmiStats) {
+    let category = '';
+    const bmi = bmiStats.last;
+    if (bmi < 18.5) category = 'Niedowaga';
+    else if (bmi < 25) category = 'Norma';
+    else if (bmi < 30) category = 'Nadwaga';
+    else category = 'Otylosc';
+    insights.push({ icon: '📐', iconClass: 'info', title: `BMI ${bmi.toFixed(1)} — ${category}`, body: `Pamietaj: BMI nie rozruznia tluszczu od miesni. Przy aktywnym treningu silowym BF% jest lepszym wskaznikiem.` });
+  }
+
+  // Insight 6: Consistency
+  if (filtered.length >= 3) {
+    const daysBetween = [];
+    for (let i = 1; i < filtered.length; i++) {
+      const gap = Math.round((new Date(filtered[i].date) - new Date(filtered[i - 1].date)) / DAY_MS);
+      daysBetween.push(gap);
+    }
+    const avgGap = daysBetween.reduce((a, b) => a + b, 0) / daysBetween.length;
+    if (avgGap <= 7) {
+      insights.push({ icon: '🎯', iconClass: 'success', title: 'Swietna regularnosc!', body: `Sredni odstep miedzy pomiarami: ${avgGap.toFixed(0)} dni. Regularne wazenie to klucz do kontroli postepow.` });
+    } else if (avgGap <= 14) {
+      insights.push({ icon: '📅', iconClass: 'info', title: 'Dobra regularnosc', body: `Sredni odstep: ${avgGap.toFixed(0)} dni. Sprobuj mierzyc sie co tydzien o tej samej porze dnia.` });
+    } else {
+      insights.push({ icon: '⏰', iconClass: 'warning', title: 'Nieregularne pomiary', body: `Sredni odstep: ${avgGap.toFixed(0)} dni. Sprobuj mierzyc sie co tydzien — regularne dane daja lepsze insighty.` });
+    }
+  }
+
+  // Insight 7: Recent momentum (last 3 entries)
+  if (weightStats && filtered.length >= 3) {
+    const last3 = filtered.slice(-3);
+    const recentDiff = (last3[last3.length - 1].weight || 0) - (last3[0].weight || 0);
+    if (Number.isFinite(recentDiff) && recentDiff !== 0) {
+      const direction = recentDiff < 0 ? 'spadek' : 'wzrost';
+      insights.push({ icon: '📈', iconClass: recentDiff < 0 ? 'success' : 'warning', title: `Ostatnie 3 pomiary: ${direction}`, body: `Zmiana: ${recentDiff > 0 ? '+' : ''}${recentDiff.toFixed(1)} kg w ostatnich 3 wpisach. ${recentDiff < 0 ? 'Trend redukcji sie utrzymuje.' : 'Sprawdz, czy to zamierzony kierunek.'}` });
+    }
+  }
+
+  container.innerHTML = insights.map(insight => `
+    <div class="bm-insight-card">
+      <div class="bm-insight-header">
+        <div class="bm-insight-icon ${insight.iconClass}">${insight.icon}</div>
+        ${insight.title}
+      </div>
+      <div class="bm-insight-body">${insight.body}</div>
+    </div>
+  `).join('');
+}
+
+function renderBMTable(filtered) {
+  const tbody = document.getElementById('bm-table-body');
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">Brak danych. Dodaj pierwszy pomiar.</td></tr>';
+    return;
+  }
+
+  const reversed = filtered.slice().reverse();
+  tbody.innerHTML = reversed.map((entry, i) => {
+    const prevEntry = i < reversed.length - 1 ? reversed[i + 1] : null;
+    const weightChange = prevEntry && Number.isFinite(entry.weight) && Number.isFinite(prevEntry.weight)
+      ? entry.weight - prevEntry.weight : null;
+
+    return `<tr>
+      <td class="bm-table-date">${entry.date}</td>
+      <td><span class="bm-table-cut">${entry.cut || '--'}</span></td>
+      <td>${Number.isFinite(entry.weight) ? entry.weight.toFixed(1) : '--'}${weightChange !== null ? ` <span class="bm-table-change ${weightChange <= 0 ? 'up' : 'down'}">${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)}</span>` : ''}</td>
+      <td>${Number.isFinite(entry.bmi) ? entry.bmi.toFixed(1) : '--'}</td>
+      <td>${Number.isFinite(entry.bf) ? entry.bf.toFixed(1) + '%' : '--'}</td>
+      <td>${Number.isFinite(entry.muscle) ? entry.muscle.toFixed(1) : '--'}</td>
+      <td class="bm-table-actions">
+        <button title="Edytuj" data-bm-edit="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
+        <button class="danger" title="Usun" data-bm-delete="${entry.id}"><i data-lucide="trash-2" class="icon"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Attach event listeners
+  tbody.querySelectorAll('[data-bm-delete]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.bmDelete;
+      bodyMetrics = bodyMetrics.filter(item => item.id !== id);
+      saveBodyMetrics('Usunieto pomiar');
+      renderBodyMetrics();
+    });
+  });
+  tbody.querySelectorAll('[data-bm-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.bmEdit;
+      const entry = bodyMetrics.find(item => item.id === id);
+      if (entry) showEditMetricsModal(entry);
+    });
+  });
 }
 
 function getWeekKey(date) {
@@ -3366,13 +4158,27 @@ function setupEventListeners() {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });
-    updateMetricsFeedback('Pola wyczyszczone. Dodaj nowe wartości.', '');
+    updateMetricsFeedback('Pola wyczyszczone. Dodaj nowe wartosci.', '');
   });
 
   document.getElementById('metrics-cut-filter')?.addEventListener('change', event => {
     selectedCut = event.target.value;
     renderBodyMetrics();
   });
+
+  // Form toggle for body metrics dashboard
+  const formToggle = document.getElementById('bm-form-toggle');
+  const formContent = document.getElementById('bm-form-content');
+  if (formToggle && formContent) {
+    formToggle.addEventListener('click', () => {
+      const isOpen = formContent.classList.toggle('is-open');
+      formToggle.classList.toggle('is-open', isOpen);
+      if (isOpen) {
+        const firstInput = formContent.querySelector('input');
+        if (firstInput) firstInput.focus();
+      }
+    });
+  }
 
 }
 
