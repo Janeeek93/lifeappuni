@@ -220,6 +220,11 @@
     .eom2-booking-actions button { background:none; border:none; cursor:pointer; color:var(--muted); font-size:14px; padding:2px 4px; }
     .eom2-booking-actions button:hover { color:#dc2626; }
 
+    .eom2-bridge-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+    .eom2-bridge-table td, .eom2-bridge-table th { vertical-align:middle; }
+    .eom2-bridge-table select, .eom2-bridge-table input { height:34px; width:100%; }
+    .eom2-bridge-table .tiny { white-space:nowrap; }
+
     .eom2-gainer-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(148,163,184,.08); font-size:13px; }
     .eom2-gainer-item:last-child { border-bottom:none; }
     .eom2-gainer-name { font-weight:500; }
@@ -5078,6 +5083,25 @@
             </div>
           </div>
           <div id="eom2-booking-grid"></div>
+          <div class="card stack" style="margin-top:8px;padding:10px 12px">
+            <div class="eom2-bridge-head">
+              <strong>Połączenie z inwestycjami</strong>
+              <div class="row" style="gap:8px">
+                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
+                <button class="btn soft" type="button" id="eom2-bridge-apply">Pobierz aktualne</button>
+              </div>
+            </div>
+            <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
+            <div class="table-wrapper" style="margin-top:6px">
+              <table class="modern-table eom2-bridge-table">
+                <thead>
+                  <tr><th>Źródło (Inwestycje)</th><th>Księguj na konto EOM</th><th>Znak</th><th>Podgląd</th><th></th></tr>
+                </thead>
+                <tbody id="eom2-bridge-body"></tbody>
+              </table>
+            </div>
+            <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
+          </div>
           <form id="eom2-add-account" class="row" style="gap:8px;margin-top:8px">
             <input name="name" placeholder="Nowe konto (np. Revolut, Karta kredytowa)" style="flex:1;height:38px" required />
             <select name="type" style="height:38px;min-width:140px">
@@ -5699,6 +5723,7 @@
     if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
     if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
+    if(!Array.isArray(bud.eomInvestmentBridge)) bud.eomInvestmentBridge=[];
     for(const t of bud.investments.trades){
       if(!t.side) t.side='buy';
       if(t.side==='buy' && !t.fundSource) t.fundSource='budget';
@@ -5733,7 +5758,8 @@
         createTxOnFixedPay:true,
         recurringTemplates:[],recurringLog:[],
         fixedTemplates:[],
-        investments:{assets:[], trades:[], groups:[]}
+        investments:{assets:[], trades:[], groups:[]},
+        eomInvestmentBridge:[]
       }}
     });
   }
@@ -11474,10 +11500,56 @@
   const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
   const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
 
+  function eom2InvestmentBridge(){
+    if(!Array.isArray(b().eomInvestmentBridge)) b().eomInvestmentBridge=[];
+    b().eomInvestmentBridge=b().eomInvestmentBridge.map((row,idx)=>({
+      id:row?.id||('bridge_'+idx+'_'+Math.random().toString(36).slice(2,7)),
+      sourceKey:typeof row?.sourceKey==='string'&&row.sourceKey?row.sourceKey:'portfolio',
+      targetAccountId:typeof row?.targetAccountId==='string'?row.targetAccountId:'',
+      mode:row?.mode==='negate'?'negate':'normal'
+    }));
+    return b().eomInvestmentBridge;
+  }
+
+  function getInvestmentSnapshot(){
+    const stats=computePortfolioStats();
+    const sourceMap={portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis};
+    for(const h of stats.holdings){
+      if(h.qty<=0.000001) continue;
+      const val=h.marketValue!==null?h.marketValue:h.costBasis;
+      sourceMap[`asset:${h.id}`]=(sourceMap[`asset:${h.id}`]||0)+val;
+      const grp=h.group||'Inne';
+      sourceMap[`group:${grp}`]=(sourceMap[`group:${grp}`]||0)+val;
+    }
+    return {stats,sourceMap};
+  }
+
+  function getInvestmentBridgeOptions(snapshot){
+    const opts=[{value:'portfolio',label:'Cały portfel inwestycyjny'}];
+    const groupPairs=Object.keys(snapshot.sourceMap)
+      .filter(k=>k.startsWith('group:'))
+      .map(k=>({key:k,name:k.slice(6)}))
+      .sort((a,b2)=>a.name.localeCompare(b2.name,'pl'));
+    for(const g of groupPairs) opts.push({value:g.key,label:`Grupa: ${g.name}`});
+
+    const assets=(snapshot.stats?.holdings||[])
+      .filter(h=>h.qty>0.000001)
+      .sort((a,b2)=>(a.name||'').localeCompare(b2.name||'','pl'));
+    for(const h of assets) opts.push({value:`asset:${h.id}`,label:`Aktywo: ${h.name}`});
+    return opts;
+  }
+
+  function valueForBridgeSource(snapshot, sourceKey){
+    return Number(snapshot.sourceMap[sourceKey]||0);
+  }
+
   function renderEomV2(){
     const ctx=buildEomContext();
     const cur=state.currency;
     const accounts=ctx.accounts;
+    const investmentAccounts=accounts.filter(acc=>inferAccountType(acc)==='inwestycje');
+    const investmentSnapshot=getInvestmentSnapshot();
+    const bridgeOptions=getInvestmentBridgeOptions(investmentSnapshot);
     const el=id=>document.getElementById(id);
 
     // --- Month selector ---
@@ -11558,7 +11630,10 @@
             <div class="eom2-booking-prev">${prevBal!==undefined?fmt(prevBal,cur):'—'}</div>
             <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
             <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
-            <div class="eom2-booking-actions"><button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button></div>`;
+            <div class="eom2-booking-actions">
+              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="Pobierz aktualne z inwestycji">⭳</button>`:''}
+              <button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button>
+            </div>`;
           groupDiv.appendChild(row);
         }
         grid.appendChild(groupDiv);
@@ -11626,10 +11701,90 @@
           const acc=accounts.find(a=>a.id===accId);
           if(!confirm(`Usunąć konto "${acc?.name||accId}"? Dane historyczne zostaną zachowane.`)) return;
           b().accounts=b().accounts.filter(a=>a.id!==accId);
+          b().eomInvestmentBridge=(eom2InvestmentBridge()||[]).filter(item=>item.targetAccountId!==accId);
           save(state);renderEomV2();
         };
       });
+
+      const setInvestmentInput=(accId,value)=>{
+        const input=grid.querySelector(`input[data-acc-id="${accId}"]`);
+        if(!input) return false;
+        input.value=String(Number(value.toFixed(2))).replace('.',',');
+        input.dispatchEvent(new Event('input'));
+        return true;
+      };
+
+      const applyMappedInvestmentValue=(accId)=>{
+        const bridgeRows=eom2InvestmentBridge().filter(r=>r.targetAccountId===accId);
+        if(!bridgeRows.length){
+          const currentTotal=investmentSnapshot.stats.hasAnyPrice?investmentSnapshot.stats.totalMarketValue:investmentSnapshot.stats.totalCostBasis;
+          return setInvestmentInput(accId,currentTotal);
+        }
+        const total=bridgeRows.reduce((sum,row)=>{
+          const base=valueForBridgeSource(investmentSnapshot,row.sourceKey||'portfolio');
+          return sum+(row.mode==='negate'?-base:base);
+        },0);
+        return setInvestmentInput(accId,total);
+      };
+
+      grid.querySelectorAll('[data-pull-invest]').forEach(btn=>{
+        btn.onclick=()=>{
+          const accId=btn.dataset.pullInvest;
+          applyMappedInvestmentValue(accId);
+        };
+      });
     }
+
+    // --- Investment Bridge Panel ---
+    const bridgeBody=el('eom2-bridge-body');
+    const bridgeEmpty=el('eom2-bridge-empty');
+    if(bridgeBody){
+      const rows=eom2InvestmentBridge();
+      bridgeBody.innerHTML='';
+      if(!rows.length){
+        if(bridgeEmpty) bridgeEmpty.style.display='block';
+      } else {
+        if(bridgeEmpty) bridgeEmpty.style.display='none';
+      }
+
+      for(const row of rows){
+        const tr=document.createElement('tr');
+        const preview=valueForBridgeSource(investmentSnapshot,row.sourceKey||'portfolio');
+        const signed=row.mode==='negate'?-preview:preview;
+        tr.innerHTML=`
+          <td><select data-bridge-source="${row.id}"></select></td>
+          <td><select data-bridge-account="${row.id}"></select></td>
+          <td><select data-bridge-mode="${row.id}"><option value="normal">+</option><option value="negate">−</option></select></td>
+          <td class="tiny ${signed<0?'inv-pnl-neg':''}">${fmt(signed,cur)}</td>
+          <td><button class="btn soft" type="button" data-bridge-del="${row.id}" style="padding:4px 8px">Usuń</button></td>`;
+        bridgeBody.appendChild(tr);
+
+        const sourceSel=tr.querySelector(`[data-bridge-source="${row.id}"]`);
+        const accSel=tr.querySelector(`[data-bridge-account="${row.id}"]`);
+        const modeSel=tr.querySelector(`[data-bridge-mode="${row.id}"]`);
+
+        for(const opt of bridgeOptions){
+          sourceSel.add(new Option(opt.label,opt.value,false,opt.value===(row.sourceKey||'portfolio')));
+        }
+        for(const acc of investmentAccounts){
+          accSel.add(new Option(acc.name,acc.id,false,acc.id===row.targetAccountId));
+        }
+        if(!investmentAccounts.length) accSel.add(new Option('Brak kont inwestycyjnych','',true,true));
+
+        modeSel.value=row.mode==='negate'?'negate':'normal';
+
+        sourceSel.onchange=()=>{ row.sourceKey=sourceSel.value; save(state); renderEomV2(); };
+        accSel.onchange=()=>{ row.targetAccountId=accSel.value; save(state); };
+        modeSel.onchange=()=>{ row.mode=modeSel.value; save(state); renderEomV2(); };
+        const delBtn=tr.querySelector(`[data-bridge-del="${row.id}"]`);
+        delBtn.onclick=()=>{
+          b().eomInvestmentBridge=eom2InvestmentBridge().filter(item=>item.id!==row.id);
+          save(state);
+          renderEomV2();
+        };
+      }
+    }
+
 
     // --- Net Worth Trend Chart (LINE with category filter) ---
     if(eom2NwChart){eom2NwChart.destroy();eom2NwChart=null;}
@@ -11973,6 +12128,47 @@
         const accId=inp.dataset.accId;
         if(prevBals[accId]!==undefined) inp.value=String(prevBals[accId]).replace('.',',');
         inp.dispatchEvent(new Event('input'));
+      });
+    };
+
+
+    const bridgeAddBtn=document.getElementById('eom2-bridge-add');
+    if(bridgeAddBtn) bridgeAddBtn.onclick=()=>{
+      const invAccounts=(b().accounts||[]).filter(acc=>inferAccountType(acc)==='inwestycje');
+      if(!invAccounts.length){ alert('Najpierw dodaj konto EOM typu Inwestycje.'); return; }
+      const firstSource='portfolio';
+      const id='bridge_'+Math.random().toString(36).slice(2);
+      eom2InvestmentBridge().push({id,sourceKey:firstSource,targetAccountId:invAccounts[0].id,mode:'normal'});
+      save(state);
+      renderEomV2();
+    };
+
+    const bridgeApplyBtn=document.getElementById('eom2-bridge-apply');
+    if(bridgeApplyBtn) bridgeApplyBtn.onclick=()=>{
+      const grid=document.getElementById('eom2-booking-grid');
+      if(!grid) return;
+      const snapshot=getInvestmentSnapshot();
+      const rows=eom2InvestmentBridge();
+      if(!rows.length){
+        const defaultAcc=(b().accounts||[]).find(acc=>inferAccountType(acc)==='inwestycje');
+        if(!defaultAcc){ alert('Brak konta EOM typu Inwestycje.'); return; }
+        const total=snapshot.stats.hasAnyPrice?snapshot.stats.totalMarketValue:snapshot.stats.totalCostBasis;
+        const input=grid.querySelector(`input[data-acc-id="${defaultAcc.id}"]`);
+        if(input){ input.value=String(Number(total.toFixed(2))).replace('.',','); input.dispatchEvent(new Event('input')); }
+        return;
+      }
+      const totals={};
+      for(const row of rows){
+        if(!row.targetAccountId) continue;
+        const base=valueForBridgeSource(snapshot,row.sourceKey||'portfolio');
+        const signed=row.mode==='negate'?-base:base;
+        totals[row.targetAccountId]=(totals[row.targetAccountId]||0)+signed;
+      }
+      Object.entries(totals).forEach(([accId,val])=>{
+        const input=grid.querySelector(`input[data-acc-id="${accId}"]`);
+        if(!input) return;
+        input.value=String(Number(val.toFixed(2))).replace('.',',');
+        input.dispatchEvent(new Event('input'));
       });
     };
 
