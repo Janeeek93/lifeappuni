@@ -11649,7 +11649,10 @@
 
   function getInvestmentSnapshot(){
     const stats=computePortfolioStats();
-    const sourceMap={portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis};
+    const sourceMap={
+      portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis,
+      reinvestPool:stats.reinvestPool
+    };
     for(const h of stats.holdings){
       if(h.qty<=0.000001) continue;
       const val=h.marketValue!==null?h.marketValue:h.costBasis;
@@ -11662,6 +11665,7 @@
 
   function getInvestmentBridgeOptions(snapshot){
     const opts=[{value:'portfolio',label:'Cały portfel inwestycyjny'}];
+    opts.push({value:'reinvestPool',label:'Pula reinwestycyjna (gotówka maklerska)'});
     const groupPairs=Object.keys(snapshot.sourceMap)
       .filter(k=>k.startsWith('group:'))
       .map(k=>({key:k,name:k.slice(6)}))
