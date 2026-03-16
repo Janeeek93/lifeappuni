@@ -4706,7 +4706,10 @@
 
           <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
             <div class="badge">Portfolio Tracker v2</div>
-            <button class="btn ghost" type="button" id="inv-asset-modal-open">Zarządzaj aktywami</button>
+            <div class="row" style="gap:8px">
+              <button class="btn ghost" type="button" id="inv-clipboard-export" title="Kopiuj podsumowanie portfela do schowka">Eksport do schowka</button>
+              <button class="btn ghost" type="button" id="inv-asset-modal-open">Zarządzaj aktywami</button>
+            </div>
           </div>
 
           <!-- Dashboard KPIs -->
@@ -8592,6 +8595,137 @@
     });
   }
 
+  // --- Clipboard Export ------------------------------------------------------
+  function buildPortfolioClipboardText(){
+    const stats=computePortfolioStats();
+    const data=investments();
+    const cur=state.currency;
+    const today=new Date().toISOString().slice(0,10);
+    const lines=[];
+
+    // --- Header ---
+    lines.push(`PORTFEL INWESTYCYJNY — stan na ${today}`);
+    lines.push('='.repeat(50));
+
+    // --- KPIs ---
+    const portfolioVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
+    lines.push('');
+    lines.push('PODSUMOWANIE:');
+    lines.push(`  Wartość portfela: ${fmt(portfolioVal,cur)}${!stats.hasAnyPrice?' (brak wycen rynkowych, baza kosztowa)':''}`);
+    lines.push(`  Baza kosztowa: ${fmt(stats.totalCostBasis,cur)}`);
+    lines.push(`  Kapitał z budżetu: ${fmt(stats.capitalFromBudget,cur)}`);
+    lines.push(`  Niezrealizowany P&L: ${fmt(stats.totalUnrealizedPnl||0,cur)}`);
+    lines.push(`  Zrealizowany P&L: ${fmt(stats.totalRealizedPnl,cur)}`);
+    lines.push(`  Łączny P&L: ${fmt(stats.totalPnl,cur)}`);
+    lines.push(`  ROI: ${stats.capitalFromBudget>0?stats.roi.toFixed(2)+'%':'—'}`);
+    lines.push(`  Pula reinwestycyjna: ${fmt(stats.reinvestPool,cur)}`);
+
+    // --- Holdings ---
+    const active=stats.holdings.filter(h=>h.qty>0.000001);
+    if(active.length){
+      lines.push('');
+      lines.push('AKTYWA W PORTFELU:');
+      const sorted=[...active].sort((a,b)=>(b.marketValue||b.costBasis)-(a.marketValue||a.costBasis));
+      const totalVal=sorted.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+      for(const h of sorted){
+        const val=h.marketValue!==null?h.marketValue:h.costBasis;
+        const weight=totalVal>0?((val/totalVal)*100).toFixed(1):'0.0';
+        const pnl=h.unrealizedPnl!==null?h.unrealizedPnl:0;
+        const roi=h.costBasis>0&&h.unrealizedPnl!==null?((h.unrealizedPnl/h.costBasis)*100).toFixed(1):'—';
+        lines.push(`  ${h.name} [${h.group}]`);
+        lines.push(`    Ilość: ${h.qty.toFixed(4)} | Śr. koszt: ${fmt(h.avgCost,cur)} | Akt. cena: ${h.currentPrice?fmt(h.currentPrice,cur):'brak'}`);
+        lines.push(`    Wartość: ${fmt(val,cur)} (${weight}%) | P&L: ${pnl>=0?'+':''}${fmt(pnl,cur)} (${roi}%)`);
+      }
+    }
+
+    // --- Group Summary ---
+    if(active.length){
+      const groups={};
+      for(const h of active){
+        const g=h.group||'Inne';
+        if(!groups[g]) groups[g]={costBasis:0,value:0,pnl:0,count:0};
+        groups[g].costBasis+=h.costBasis;
+        groups[g].value+=(h.marketValue!==null?h.marketValue:h.costBasis);
+        groups[g].pnl+=(h.unrealizedPnl||0);
+        groups[g].count++;
+      }
+      const totalVal=Object.values(groups).reduce((s,g)=>s+g.value,0);
+      lines.push('');
+      lines.push('STRUKTURA GRUP:');
+      for(const [name,g] of Object.entries(groups).sort((a,b)=>b[1].value-a[1].value)){
+        const share=totalVal>0?((g.value/totalVal)*100).toFixed(1):'0.0';
+        lines.push(`  ${name}: ${fmt(g.value,cur)} (${share}%) | P&L: ${g.pnl>=0?'+':''}${fmt(g.pnl,cur)} | ${g.count} aktyw.`);
+      }
+    }
+
+    // --- Recent trades (last 7 days) ---
+    const cutoff=new Date();
+    cutoff.setDate(cutoff.getDate()-7);
+    const cutoffStr=cutoff.toISOString().slice(0,10);
+    const recentTrades=[...data.trades].filter(t=>t.date>=cutoffStr).sort((a,b)=>b.date.localeCompare(a.date));
+    if(recentTrades.length){
+      lines.push('');
+      lines.push(`OSTATNIE TRANSAKCJE (7 dni, od ${cutoffStr}):`);
+      for(const t of recentTrades){
+        const asset=data.assets.find(a=>a.id===t.assetId);
+        const name=asset?asset.name:t.assetId;
+        const side=t.side==='sell'?'SPRZEDAŻ':'ZAKUP';
+        const src=t.side==='sell'?(t.sellDestination==='budget'?'→ budżet':'→ pula reinwest.'):(t.fundSource==='reinvest'?'z puli reinwest.':'z budżetu');
+        const pnlStr=t.side==='sell'&&t.realizedPnl!==undefined?` | P&L: ${t.realizedPnl>=0?'+':''}${fmt(t.realizedPnl,cur)}`:'';
+        lines.push(`  ${t.date} | ${side} ${name} | ${num(t.quantity).toFixed(4)} szt. × ${fmt(num(t.amount)/num(t.quantity),cur)} = ${fmt(num(t.amount),cur)} | ${src}${pnlStr}${t.note?' | '+t.note:''}`);
+      }
+    } else {
+      lines.push('');
+      lines.push('OSTATNIE TRANSAKCJE (7 dni): brak');
+    }
+
+    // --- Snapshots (last 7) ---
+    const snaps=invHubSnapshots();
+    if(snaps.length){
+      const recentSnaps=snaps.slice(-7);
+      lines.push('');
+      lines.push(`SNAPSHOTY (ostatnie ${recentSnaps.length}):`);
+      for(const s of [...recentSnaps].reverse()){
+        lines.push(`  ${s.date} | Wartość: ${fmt(s.portfolioValue,cur)} | Kapitał: ${fmt(s.capitalFromBudget,cur)} | P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} | ROI: ${s.roi.toFixed(2)}%`);
+      }
+    }
+
+    lines.push('');
+    lines.push('='.repeat(50));
+    lines.push(`Wygenerowano: ${new Date().toLocaleString('pl-PL')}`);
+
+    return lines.join('\n');
+  }
+
+  function invClipboardExport(){
+    const text=buildPortfolioClipboardText();
+    navigator.clipboard.writeText(text).then(()=>{
+      const btn=document.getElementById('inv-clipboard-export');
+      if(btn){
+        const orig=btn.textContent;
+        btn.textContent='Skopiowano!';
+        btn.style.color='#22c55e';
+        setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);
+      }
+    }).catch(()=>{
+      // Fallback for older browsers / non-HTTPS
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      ta.style.position='fixed';ta.style.left='-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const btn=document.getElementById('inv-clipboard-export');
+      if(btn){
+        const orig=btn.textContent;
+        btn.textContent='Skopiowano!';
+        btn.style.color='#22c55e';
+        setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);
+      }
+    });
+  }
+
   // --- Main Render -----------------------------------------------------------
   function renderInvestments(){
     ensureInvestmentCategory();
@@ -8632,6 +8766,8 @@
     if(saveAllBtn&&!saveAllBtn._bound){saveAllBtn._bound=true;saveAllBtn.onclick=saveAllAssetRows;}
     if(refreshBtn&&!refreshBtn._bound){refreshBtn._bound=true;refreshBtn.onclick=refreshInvestmentPrices;}
     if(modalRefreshBtn&&!modalRefreshBtn._bound){modalRefreshBtn._bound=true;modalRefreshBtn.onclick=refreshInvestmentPrices;}
+    const clipExportBtn=document.getElementById('inv-clipboard-export');
+    if(clipExportBtn&&!clipExportBtn._bound){clipExportBtn._bound=true;clipExportBtn.onclick=invClipboardExport;}
     renderAssetManagerList(data.assets,data.trades);
 
     // Buy form
