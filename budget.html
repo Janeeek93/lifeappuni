@@ -8900,82 +8900,11 @@
     const targetMonth=targetMonthInput?.value;
     const targetRow=allRows.find(r=>r.monthLabel===targetMonth)||final;
 
-    // --- Result cards ---
+    // --- Result cards removed on request (to avoid duplicate/misleading summary layer) ---
     const resultEl=el('inv-hub-calc-result');
     if(resultEl){
-      resultEl.style.display='';
-      const monthlyInflow=avgTrendMonthly*multiplier;
-      const trendInflowAvg=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthly[k]||0),0)/trendMonths.length:0;
-      const trendOutflowAvg=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthlyOut?.[k]||0),0)/trendMonths.length:0;
-      const gainVsCapital=final.value-final.capital;
-      const targetGain=targetRow.value-targetRow.capital;
-      const deltaFromToday=targetRow.value-currentVal;
-      const horizonGrowthPct=currentVal>0?((final.value/currentVal)-1)*100:0;
-      const baseOnlyFinal=currentVal*Math.pow(1+monthlyRate,monthsForward);
-      const baseOnlyGain=baseOnlyFinal-currentVal;
-      const baseOnlyGainPct=currentVal>0?(baseOnlyGain/currentVal)*100:0;
-      const selectedMonthDelta=targetMonthInput?.value===openMonth?'Dziś':`Zmiana do ${escapeHtml(targetRow.monthLabel)}`;
-      const trendInfo=trendMonths.length
-        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → bilans netto ${fmt(avgTrendMonthly,cur)}/mies.`
-        :'Brak zamkniętych miesięcy — bilans netto = 0.';
-      resultEl.innerHTML=`<div class="inv-hub-sim-cards">
-        <div class="inv-hub-sim-card inv-hub-sim-card--blue">
-          <div class="inv-hub-sim-card__label">Parametry scenariusza</div>
-          <div class="inv-hub-sim-card__detail-grid">
-            <div class="inv-hub-sim-card__detail">${escapeHtml(trendInfo)}</div>
-            <div class="inv-hub-sim-card__detail">Wpłaty <strong>${fmt(trendInflowAvg,cur)}</strong> · Wypłaty <strong>${fmt(trendOutflowAvg,cur)}</strong> / mies.</div>
-            <div class="inv-hub-sim-card__detail">Mnożnik netto <strong>${multiplier.toFixed(2)}×</strong> → <strong>${fmt(monthlyInflow,cur)}/mies.</strong></div>
-            <div class="inv-hub-sim-card__detail">Stopa <strong>${rate.toFixed(2)}%</strong> rocznie · Horyzont <strong>${years} lat</strong></div>
-          </div>
-          <div class="inv-hub-sim-badge-row">
-            <span class="inv-hub-sim-badge ${monthlyInflow>0?'up':'neutral'}">${monthlyInflow>0?'Aktywne wpłaty':'Bez wpłat'}</span>
-            <span class="inv-hub-sim-badge neutral">Model miesięczny</span>
-          </div>
-        </div>
-        <div class="inv-hub-sim-card inv-hub-sim-card--green">
-          <div class="inv-hub-sim-card__label">Koniec horyzontu · ${final.monthLabel}</div>
-          <div class="inv-hub-sim-card__value">${fmt(final.value,cur)}</div>
-          <div class="inv-hub-sim-card__roi">ROI ${final.roi.toFixed(1)}%</div>
-          <div class="inv-hub-sim-card__detail">Kapitał <strong>${fmt(final.capital,cur)}</strong> · Wynik <strong>${fmt(gainVsCapital,cur)}</strong></div>
-          <div class="inv-hub-sim-badge-row">
-            <span class="inv-hub-sim-badge ${gainVsCapital>=0?'up':'down'}">${gainVsCapital>=0?'Scenariusz zysku':'Scenariusz straty'}</span>
-            <span class="inv-hub-sim-badge ${horizonGrowthPct>=0?'up':'down'}">${horizonGrowthPct>=0?'+':''}${horizonGrowthPct.toFixed(1)}% vs dziś</span>
-          </div>
-        </div>
-        <div class="inv-hub-sim-card inv-hub-sim-card--purple">
-          <div class="inv-hub-sim-card__label">Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
-          <div class="inv-hub-sim-card__value">${fmt(targetRow.value,cur)}</div>
-          <div class="inv-hub-sim-card__roi">ROI ${targetRow.roi.toFixed(1)}%</div>
-          <div class="inv-hub-sim-card__detail">Kapitał <strong>${fmt(targetRow.capital,cur)}</strong> · Wynik <strong>${fmt(targetGain,cur)}</strong></div>
-          <div class="inv-hub-sim-badge-row">
-            <span class="inv-hub-sim-badge ${targetRow.isHist?'neutral':'up'}">${targetRow.isHist?'Snapshot historyczny':'Miesiąc prognozy'}</span>
-            <span class="inv-hub-sim-badge ${deltaFromToday>=0?'up':'down'}">${selectedMonthDelta}: ${deltaFromToday>=0?'+':''}${fmt(deltaFromToday,cur)}</span>
-          </div>
-        </div>
-      </div>
-      <div class="inv-hub-sim-stats">
-        <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Prognozowany zysk netto</span>
-          <span class="inv-hub-sim-stat__value ${gainVsCapital>=0?'positive':'negative'}">${fmt(gainVsCapital,cur)}</span>
-        </div>
-        <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Wzrost bez nowych wpłat</span>
-          <span class="inv-hub-sim-stat__value ${baseOnlyGain>=0?'positive':'negative'}">${fmt(baseOnlyGain,cur)} (${baseOnlyGainPct>=0?'+':''}${baseOnlyGainPct.toFixed(1)}%)</span>
-        </div>
-        <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Miesięczny wkład</span>
-          <span class="inv-hub-sim-stat__value">${fmt(monthlyInflow,cur)}</span>
-        </div>
-        <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Śr. bilans netto (6 mies.)</span>
-          <span class="inv-hub-sim-stat__value ${avgTrendMonthly>=0?'positive':'negative'}">${fmt(avgTrendMonthly,cur)}</span>
-        </div>
-        <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Łączny wzrost wartości</span>
-          <span class="inv-hub-sim-stat__value ${horizonGrowthPct>=0?'positive':'negative'}">${horizonGrowthPct>=0?'+':''}${horizonGrowthPct.toFixed(1)}%</span>
-        </div>
-      </div>
-      <p class="muted" style="font-size:11px;margin:10px 0 0">Kliknij słupek na wykresie, aby ustawić miesiąc podglądu i porównać wartości z historycznymi snapshotami.</p>`;
+      resultEl.innerHTML='';
+      resultEl.style.display='none';
     }
 
     // --- Chart: historical (solid) + forecast (transparent) ---
