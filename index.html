@@ -348,6 +348,16 @@ const HOUSE_STORAGE_KEY = 'buildmaster_pro_v11';
 const LOAN_STORAGE_KEY = 'lifeos_loan_v1';
 const SETTINGS_STORAGE_KEY = 'lifeos_settings_v1';
 const BACKUP_TIMESTAMP_KEY = 'lifeos_last_backup';
+const BODY_METRICS_KEY = 'lifeos_body_metrics_v1';
+const INV_HUB_SNAP_KEY = 'lifeos_inv_hub_snapshots';
+const WORKHUB_STORAGE_KEY = 'lifeos_workhub_v1';
+const KPI_STORAGE_KEY = 'lifeos_kpis_v1';
+const INVEST_SHEET_KEY = 'investSheet';
+const BUDGET_FILTERS_KEY = 'lifeos_budget_filters_v1';
+const BUDGET_EOM_UI_KEY = 'lifeos_budget_eom_ui_v1';
+const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
+const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
+const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
 
 const TRAINING_GOALS = {
   gym: { target: 3, unit: 'sesje', name: 'Siłownia', icon: '🏋️' },
@@ -1030,6 +1040,16 @@ exportBtn.onclick = ()=>{
     house: JSON.parse(localStorage.getItem(HOUSE_STORAGE_KEY) || 'null'),
     loan: JSON.parse(localStorage.getItem(LOAN_STORAGE_KEY) || 'null'),
     settings: JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || 'null'),
+    body_metrics: JSON.parse(localStorage.getItem(BODY_METRICS_KEY) || 'null'),
+    inv_hub_snapshots: JSON.parse(localStorage.getItem(INV_HUB_SNAP_KEY) || 'null'),
+    workhub: JSON.parse(localStorage.getItem(WORKHUB_STORAGE_KEY) || 'null'),
+    kpis: JSON.parse(localStorage.getItem(KPI_STORAGE_KEY) || 'null'),
+    invest_sheet: JSON.parse(localStorage.getItem(INVEST_SHEET_KEY) || 'null'),
+    budget_filters: JSON.parse(localStorage.getItem(BUDGET_FILTERS_KEY) || 'null'),
+    budget_eom_ui: JSON.parse(localStorage.getItem(BUDGET_EOM_UI_KEY) || 'null'),
+    inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
+    inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
+    trainings_migration: localStorage.getItem(TRAININGS_MIGRATION_KEY) || null,
   };
   const blob = new Blob([JSON.stringify(allData, null, 2)],{type:'application/json'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -1055,6 +1075,16 @@ importInput.onchange = (e)=>{
       if(data.house) localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(data.house));
       if(data.loan) localStorage.setItem(LOAN_STORAGE_KEY, JSON.stringify(data.loan));
       if(data.settings) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data.settings));
+      if(data.body_metrics) localStorage.setItem(BODY_METRICS_KEY, JSON.stringify(data.body_metrics));
+      if(data.inv_hub_snapshots) localStorage.setItem(INV_HUB_SNAP_KEY, JSON.stringify(data.inv_hub_snapshots));
+      if(data.workhub) localStorage.setItem(WORKHUB_STORAGE_KEY, JSON.stringify(data.workhub));
+      if(data.kpis) localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(data.kpis));
+      if(data.invest_sheet) localStorage.setItem(INVEST_SHEET_KEY, JSON.stringify(data.invest_sheet));
+      if(data.budget_filters) localStorage.setItem(BUDGET_FILTERS_KEY, JSON.stringify(data.budget_filters));
+      if(data.budget_eom_ui) localStorage.setItem(BUDGET_EOM_UI_KEY, JSON.stringify(data.budget_eom_ui));
+      if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
+      if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);
+      if(data.trainings_migration) localStorage.setItem(TRAININGS_MIGRATION_KEY, data.trainings_migration);
       showNotification('Dane zostały pomyślnie zaimportowane!','success');
       setTimeout(renderAll, 300);
     } catch { showNotification('Błąd importu. Sprawdź plik.','error') }
