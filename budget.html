@@ -177,6 +177,46 @@
     .inv-hub-table tr:last-child td { border-bottom:none; }
     .inv-hub-empty { text-align:center; padding:30px 0; color:var(--muted); font-size:13px; }
 
+    /* --- Hub time-mode tabs -------------------------------------------------- */
+    .inv-hub-section-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+    .inv-hub-section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    .inv-hub-time-tabs { display:inline-flex; gap:3px; padding:3px; border-radius:999px; background:rgba(148,163,184,.14); }
+    .inv-hub-time-tab { border:none; background:transparent; padding:5px 11px; border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; transition:background .18s,color .18s; white-space:nowrap; }
+    .inv-hub-time-tab:hover { background:rgba(255,255,255,.6); color:var(--ink); }
+    .inv-hub-time-tab.is-active { background:#2563eb; color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.3); }
+    .inv-hub-time-range-wrap { display:flex; align-items:center; gap:6px; }
+    .inv-hub-time-range-wrap input[type=range] { accent-color:#2563eb; }
+    .inv-hub-section-divider { border:none; border-top:1px solid rgba(148,163,184,.13); margin:18px 0 12px; }
+
+    /* --- Monthly Performance heatmap-table ----------------------------------- */
+    .inv-hub-monthly-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .inv-hub-monthly-table th { text-align:left; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; padding:7px 9px; border-bottom:1px solid rgba(148,163,184,.2); white-space:nowrap; }
+    .inv-hub-monthly-table td { padding:7px 9px; border-bottom:1px solid rgba(148,163,184,.08); }
+    .inv-hub-monthly-table tr:last-child td { border-bottom:none; }
+    .inv-hub-monthly-table tr:hover td { background:rgba(37,99,235,.04); }
+    .inv-hub-month-badge { display:inline-block; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:700; text-transform:uppercase; }
+    .inv-hub-pill-pos { background:rgba(34,197,94,.12); color:#16a34a; }
+    .inv-hub-pill-neg { background:rgba(239,68,68,.1); color:#dc2626; }
+    .inv-hub-pill-neu { background:rgba(148,163,184,.12); color:var(--muted); }
+
+    /* --- DCA Table ----------------------------------------------------------- */
+    .inv-hub-dca-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .inv-hub-dca-table th { text-align:left; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; padding:7px 9px; border-bottom:1px solid rgba(148,163,184,.2); white-space:nowrap; }
+    .inv-hub-dca-table td { padding:7px 9px; border-bottom:1px solid rgba(148,163,184,.08); }
+    .inv-hub-dca-table tr:last-child td { border-bottom:none; }
+    .inv-hub-dca-table tr:hover td { background:rgba(37,99,235,.04); }
+    .inv-hub-dca-bar-wrap { position:relative; height:6px; border-radius:3px; background:rgba(148,163,184,.18); overflow:hidden; margin-top:4px; min-width:60px; }
+    .inv-hub-dca-bar { position:absolute; left:0; top:0; height:100%; border-radius:3px; }
+
+    /* --- Forecast ROI callout ------------------------------------------------ */
+    .inv-hub-roi-callout { display:inline-flex; align-items:baseline; gap:5px; font-size:22px; font-weight:800; }
+    .inv-hub-roi-callout .unit { font-size:13px; font-weight:600; opacity:.8; }
+
+    /* --- Chart card control row --------------------------------------------- */
+    .inv-hub-chart-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+    .inv-hub-chart-card-header h4 { margin:0; font-size:13px; font-weight:700; color:var(--ink); }
+    @media(max-width:640px){ .inv-hub-monthly-table, .inv-hub-dca-table { font-size:11px; } .inv-hub-monthly-table th, .inv-hub-dca-table th { padding:5px 6px; } .inv-hub-monthly-table td, .inv-hub-dca-table td { padding:5px 6px; } }
+
     details.card > summary { list-style:none; }
     details.card > summary::-webkit-details-marker { display:none; }
     details.card > summary::after { content:''; display:inline-block; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--muted); margin-left:8px; transition:transform .2s; }
@@ -4885,9 +4925,9 @@
                     <span class="kpi-sub" id="inv-hub-kpi-value-sub"></span>
                   </div>
                   <div class="inv-hub-kpi" id="inv-hub-kpi-roi-card">
-                    <span class="kpi-label">ROI</span>
+                    <span class="kpi-label">ROI całkowity</span>
                     <span class="kpi-val" id="inv-hub-kpi-roi">—</span>
-                    <span class="kpi-sub">Zwrot na kapitale</span>
+                    <span class="kpi-sub">Zwrot na zainwestowanym kapitale</span>
                   </div>
                   <div class="inv-hub-kpi" id="inv-hub-kpi-pnl-card">
                     <span class="kpi-label">Łączny P&amp;L</span>
@@ -4904,6 +4944,11 @@
                     <span class="kpi-val" id="inv-hub-kpi-weekly">—</span>
                     <span class="kpi-sub" id="inv-hub-kpi-weekly-sub"></span>
                   </div>
+                  <div class="inv-hub-kpi" id="inv-hub-kpi-best-month-card">
+                    <span class="kpi-label">Najlepszy miesiąc</span>
+                    <span class="kpi-val" id="inv-hub-kpi-best-month">—</span>
+                    <span class="kpi-sub" id="inv-hub-kpi-best-month-sub"></span>
+                  </div>
                   <div class="inv-hub-kpi">
                     <span class="kpi-label">Liczba snapshotów</span>
                     <span class="kpi-val" id="inv-hub-kpi-snaps">0</span>
@@ -4911,47 +4956,118 @@
                   </div>
                 </div>
 
-                <!-- Charts 2x2 -->
+                <!-- ── Section: Wyniki w czasie ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Wyniki w czasie</span>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <div class="inv-hub-time-tabs">
+                      <button type="button" class="inv-hub-time-tab is-active" data-time-mode="daily">Dzienne</button>
+                      <button type="button" class="inv-hub-time-tab" data-time-mode="weekly">Tygodniowe</button>
+                      <button type="button" class="inv-hub-time-tab" data-time-mode="monthly">Miesięczne</button>
+                    </div>
+                    <div class="inv-hub-time-range-wrap" id="inv-hub-time-range-wrap">
+                      <span class="muted" style="font-size:11px;white-space:nowrap">Ostatnie:</span>
+                      <input type="range" id="inv-hub-time-range" min="7" max="365" value="90" style="width:90px" />
+                      <span id="inv-hub-time-range-label" class="muted" style="font-size:11px;min-width:42px">90 dni</span>
+                    </div>
+                  </div>
+                </div>
                 <div class="inv-hub-charts">
                   <div class="inv-hub-chart-card">
-                    <h4>ROI w czasie</h4>
+                    <div class="inv-hub-chart-card-header">
+                      <h4>ROI w czasie</h4>
+                      <span class="muted" style="font-size:10px" id="inv-hub-roi-meta"></span>
+                    </div>
                     <div class="inv-hub-chart-box"><canvas id="inv-hub-roi-chart"></canvas></div>
                   </div>
                   <div class="inv-hub-chart-card">
-                    <h4>P&amp;L w czasie</h4>
+                    <div class="inv-hub-chart-card-header">
+                      <h4>P&amp;L w czasie</h4>
+                      <span class="muted" style="font-size:10px" id="inv-hub-pnl-meta"></span>
+                    </div>
                     <div class="inv-hub-chart-box"><canvas id="inv-hub-pnl-chart"></canvas></div>
                   </div>
+                </div>
+
+                <!-- ── Section: Wpłaty + Spread ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Przepływy i zysk</span>
+                </div>
+                <div class="inv-hub-charts">
                   <div class="inv-hub-chart-card">
-                    <div class="row" style="justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-                      <h4 style="margin:0">Wpłaty</h4>
-                      <div class="inv-trade-filters" style="margin:0">
-                        <button type="button" class="inv-hub-dep-mode is-active" data-dep-mode="monthly">Miesięczne</button>
-                        <button type="button" class="inv-hub-dep-mode" data-dep-mode="weekly">Tygodniowe</button>
+                    <div class="inv-hub-chart-card-header">
+                      <h4>Wpłaty</h4>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <div class="inv-trade-filters" style="margin:0">
+                          <button type="button" class="inv-hub-dep-mode is-active" data-dep-mode="monthly">Miesięczne</button>
+                          <button type="button" class="inv-hub-dep-mode" data-dep-mode="weekly">Tygodniowe</button>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px">
+                          <input type="range" id="inv-hub-dep-range" min="1" max="52" value="12" style="width:70px;accent-color:#2563eb" />
+                          <span class="muted" style="font-size:10px;min-width:40px" id="inv-hub-dep-range-label">12 mies.</span>
+                        </div>
                       </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                      <span class="muted" style="font-size:11px;white-space:nowrap">Ostatnie:</span>
-                      <input type="range" id="inv-hub-dep-range" min="1" max="52" value="12" style="flex:1;accent-color:#2563eb" />
-                      <span class="muted" style="font-size:11px;min-width:48px;text-align:right" id="inv-hub-dep-range-label">12</span>
                     </div>
                     <div class="inv-hub-chart-box"><canvas id="inv-hub-deposits-chart"></canvas></div>
                   </div>
                   <div class="inv-hub-chart-card">
-                    <h4>Kapitał kumulatywny</h4>
-                    <div class="inv-hub-chart-box"><canvas id="inv-hub-cumulative-chart"></canvas></div>
+                    <div class="inv-hub-chart-card-header">
+                      <h4>Zysk vs kapitał (spread)</h4>
+                      <span class="muted" style="font-size:10px">Snapshoty — barwy: P&amp;L &gt; 0 = zielony</span>
+                    </div>
+                    <div class="inv-hub-chart-box"><canvas id="inv-hub-spread-chart"></canvas></div>
                   </div>
                 </div>
 
-                <!-- Top Holdings Chart (full width, bar sorted by PNL + ROI line) -->
-                <div class="inv-hub-chart-card" style="margin-top:14px">
-                  <h4>Ranking pozycji — P&amp;L + ROI</h4>
+                <!-- ── Section: Ranking pozycji ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Ranking pozycji</span>
+                </div>
+                <div class="inv-hub-chart-card">
+                  <div class="inv-hub-chart-card-header">
+                    <h4>P&amp;L + ROI na pozycję</h4>
+                    <span class="muted" style="font-size:10px">Posortowane wg P&amp;L malejąco</span>
+                  </div>
                   <div style="height:280px;position:relative"><canvas id="inv-hub-top-chart"></canvas></div>
                 </div>
 
-                <!-- Forecast Simulator (data-driven) -->
-                <div class="inv-hub-calc" style="margin-top:14px">
-                  <h4>Symulacja portfela — prognoza na bazie Twoich danych</h4>
-                  <p class="muted" style="font-size:12px;margin:-6px 0 10px">Bazuje na realnych wpłatach z zamkniętych miesięcy. Ustaw stopę zwrotu, horyzont i mnożnik obecnego trendu wpłat, aby zobaczyć strukturę portfela (kapitał vs odsetki) dla konkretnego miesiąca.</p>
+                <!-- ── Section: Miesięczne wyniki ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Miesięczne wyniki (na koniec miesiąca)</span>
+                  <span class="muted" style="font-size:10px">Ostatni snapshot każdego miesiąca</span>
+                </div>
+                <div class="inv-hub-structure-card">
+                  <div class="table-wrapper" id="inv-hub-monthly-perf"></div>
+                </div>
+
+                <!-- ── Section: Analiza DCA ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Analiza DCA — średni koszt vs cena bieżąca</span>
+                  <span class="muted" style="font-size:10px">Aktywne pozycje z cenami rynkowymi</span>
+                </div>
+                <div class="inv-hub-structure-card">
+                  <div id="inv-hub-dca-grid"></div>
+                </div>
+
+                <!-- ── Section: Symulacja portfela ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Symulacja portfela</span>
+                </div>
+                <div class="inv-hub-calc">
+                  <div class="inv-hub-chart-card-header" style="margin-bottom:10px">
+                    <div>
+                      <h4 style="margin:0">Prognoza na bazie Twoich danych</h4>
+                      <p class="muted" style="font-size:11px;margin:3px 0 0">Bazuje na realnych wpłatach z zamkniętych miesięcy. Górny panel pokazuje historyczne P&amp;L na koniec każdego miesiąca.</p>
+                    </div>
+                  </div>
+                  <!-- Historical monthly P&L (from snapshots) -->
+                  <div id="inv-hub-hist-monthly" style="margin-bottom:14px"></div>
                   <div class="inv-hub-calc-grid">
                     <label class="inv-hub-calc-field">Roczna stopa zwrotu (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" value="8" /></label>
                     <label class="inv-hub-calc-field">Horyzont (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" value="5" /></label>
@@ -4963,8 +5079,9 @@
                   <div class="inv-hub-calc-chart-box"><canvas id="inv-hub-calc-chart"></canvas></div>
                 </div>
 
-                <!-- Snapshot history table -->
-                <div class="inv-hub-structure-card" style="margin-top:14px">
+                <!-- ── Section: Historia snapshotów ── -->
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-structure-card">
                   <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
                     <h4 style="margin:0">Historia snapshotów</h4>
                     <button class="btn ghost" type="button" id="inv-hub-snap-clear" style="font-size:11px">Wyczyść historię</button>
@@ -8047,7 +8164,10 @@
   // --- Investment Analytics Hub -----------------------------------------------
   const INV_HUB_SNAP_KEY='lifeos_inv_hub_snapshots';
   let invHubRoiChart=null, invHubPnlChart=null, invHubDepositsChart=null, invHubCumulativeChart=null, invHubCalcChart=null;
+  let invHubSpreadChart=null;
   let invHubBound=false;
+  let invHubTimeMode='daily'; // 'daily'|'weekly'|'monthly'
+  let invHubTimeDays=90;
 
   function invHubSnapshots(){
     try{ return JSON.parse(localStorage.getItem(INV_HUB_SNAP_KEY))||[]; }catch{ return []; }
@@ -8100,14 +8220,37 @@
   }
 
   function invHubWeekKey(dateStr){
-    const d=new Date(dateStr);
-    const jan1=new Date(d.getFullYear(),0,1);
-    const week=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
-    return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+    // ISO 8601: week starts Monday
+    const d=new Date(dateStr+'T00:00:00');
+    const day=d.getDay()||7; // 1=Mon…7=Sun
+    d.setDate(d.getDate()+4-day); // Thursday of ISO week
+    const yearStart=new Date(d.getFullYear(),0,1);
+    const weekNum=Math.ceil(((d-yearStart)/86400000+1)/7);
+    return `${d.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
   }
 
   function invHubMonthKey(dateStr){
     return dateStr.slice(0,7);
+  }
+
+  // Aggregate snapshots by mode, return last n groups (last snapshot per group)
+  function invHubAggregateSnaps(snaps,mode,n){
+    if(!snaps.length) return [];
+    if(mode==='daily') return snaps.slice(-n);
+    const groups={};
+    for(const s of snaps){
+      const key=mode==='weekly'?invHubWeekKey(s.date):invHubMonthKey(s.date);
+      groups[key]=s; // take last snapshot of each group
+    }
+    const keys=Object.keys(groups).sort();
+    return keys.slice(-n).map(k=>groups[k]);
+  }
+
+  // Label for aggregated snapshot (show period key, not raw date)
+  function invHubAggLabel(snap,mode){
+    if(mode==='monthly') return invHubMonthKey(snap.date);
+    if(mode==='weekly') return invHubWeekKey(snap.date);
+    return snap.date;
   }
 
   function invHubComputeDeposits(){
@@ -8125,6 +8268,111 @@
 
   let invHubDepMode='monthly';
   let invHubTopChart=null;
+
+  function renderInvHubRoiChart(snaps){
+    if(invHubRoiChart){invHubRoiChart.destroy();invHubRoiChart=null;}
+    const canvas=document.getElementById('inv-hub-roi-chart');
+    const metaEl=document.getElementById('inv-hub-roi-meta');
+    if(!canvas) return;
+    const n=invHubTimeMode==='daily'?invHubTimeDays:invHubTimeMode==='weekly'?52:36;
+    const data=invHubAggregateSnaps(snaps,invHubTimeMode,n);
+    if(metaEl) metaEl.textContent=data.length?`${data.length} obserwacji`:'Brak snapshotów';
+    if(!data.length) return;
+    const labels=data.map(s=>invHubAggLabel(s,invHubTimeMode));
+    const roiVals=data.map(s=>+s.roi.toFixed(2));
+    const ptR=data.length<=50?3:data.length<=150?1:0;
+    invHubRoiChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[{
+        label:'ROI %',data:roiVals,
+        borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',.1),
+        fill:true,tension:.35,borderWidth:2,pointRadius:ptR,pointBackgroundColor:'#2563eb',
+        pointHoverRadius:5
+      }]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            title:ctx=>ctx[0].label,
+            label:ctx=>`ROI: ${ctx.parsed.y.toFixed(2)}%`
+          }}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},
+          y:{ticks:{callback:v=>v.toFixed(1)+'%',font:{size:10}},grid:{color:'rgba(148,163,184,.12)'},
+             title:{display:true,text:'ROI %',font:{size:10},color:'var(--muted)'}}
+        }
+      }
+    });
+  }
+
+  function renderInvHubPnlChartNew(snaps,cur){
+    if(invHubPnlChart){invHubPnlChart.destroy();invHubPnlChart=null;}
+    const canvas=document.getElementById('inv-hub-pnl-chart');
+    const metaEl=document.getElementById('inv-hub-pnl-meta');
+    if(!canvas) return;
+    const n=invHubTimeMode==='daily'?invHubTimeDays:invHubTimeMode==='weekly'?52:36;
+    const data=invHubAggregateSnaps(snaps,invHubTimeMode,n);
+    if(metaEl) metaEl.textContent=data.length?`${data.length} obserwacji`:'Brak snapshotów';
+    if(!data.length) return;
+    const labels=data.map(s=>invHubAggLabel(s,invHubTimeMode));
+    const pnlColors=data.map(s=>s.totalPnl>=0?colorWithAlpha('#22c55e',.7):colorWithAlpha('#ef4444',.7));
+    const ptR=data.length<=50?2:0;
+    invHubPnlChart=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'P&L',data:data.map(s=>+s.totalPnl.toFixed(2)),backgroundColor:pnlColors,borderRadius:3,yAxisID:'y',order:2},
+        {label:'Wartość portfela',data:data.map(s=>+s.portfolioValue.toFixed(2)),type:'line',borderColor:'#8b5cf6',backgroundColor:'transparent',borderWidth:2,pointRadius:ptR,yAxisID:'y2',tension:.3,order:1}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:12}},
+          tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}
+        },
+        interaction:{mode:'index',intersect:false},
+        scales:{
+          x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},
+          y:{position:'left',ticks:{callback:v=>currencyTicks(v),font:{size:10}},grid:{color:'rgba(148,163,184,.12)'},title:{display:true,text:'P&L',font:{size:10},color:'var(--muted)'}},
+          y2:{position:'right',ticks:{callback:v=>currencyTicks(v),font:{size:10}},grid:{display:false}}
+        }
+      }
+    });
+  }
+
+  function renderInvHubSpreadChart(snaps,cur){
+    if(invHubSpreadChart){invHubSpreadChart.destroy();invHubSpreadChart=null;}
+    const canvas=document.getElementById('inv-hub-spread-chart');
+    if(!canvas||!snaps.length) return;
+    // All snapshots (no aggregation - shows the spread even with many observations)
+    const data=snaps.slice(-90); // last 90 snapshots for readability
+    if(!data.length) return;
+    const labels=data.map(s=>s.date);
+    const spreadData=data.map(s=>+(s.portfolioValue-(s.costBasis||s.capitalFromBudget)).toFixed(2));
+    const roiData=data.map(s=>+s.roi.toFixed(2));
+    const barColors=spreadData.map(v=>v>=0?colorWithAlpha('#22c55e',.65):colorWithAlpha('#ef4444',.65));
+    const ptR=data.length<=50?2:0;
+    invHubSpreadChart=new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Zysk abs. (wartość−koszt)',data:spreadData,backgroundColor:barColors,borderRadius:3,yAxisID:'y',order:2},
+        {label:'ROI %',data:roiData,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:ptR,pointBackgroundColor:'#f59e0b',yAxisID:'y2',tension:.3,order:1}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:12}},
+          tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>
+            ctx.dataset.yAxisID==='y2'?`ROI: ${ctx.parsed.y.toFixed(2)}%`:`Zysk: ${currencyTicks(ctx.parsed.y)}`
+          }}
+        },
+        interaction:{mode:'index',intersect:false},
+        scales:{
+          x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},
+          y:{ticks:{callback:v=>currencyTicks(v),font:{size:10}},grid:{color:'rgba(148,163,184,.12)'},title:{display:true,text:'Zysk',font:{size:10},color:'var(--muted)'}},
+          y2:{position:'right',ticks:{callback:v=>v.toFixed(1)+'%',font:{size:10}},grid:{display:false}}
+        }
+      }
+    });
+  }
 
   function renderInvHub(){
     const stats=computePortfolioStats();
@@ -8158,6 +8406,33 @@
     el('inv-hub-kpi-weekly').textContent=fmt(avgWeekly,cur);
     el('inv-hub-kpi-weekly-sub').textContent=weekKeys.length?`Z ${weekKeys.length} tygodni`:'Brak danych';
 
+    // Best month KPI from snapshots
+    const bestMonthKpiCard=el('inv-hub-kpi-best-month-card');
+    const bestMonthEl=el('inv-hub-kpi-best-month');
+    const bestMonthSubEl=el('inv-hub-kpi-best-month-sub');
+    if(snaps.length){
+      // Group snapshots by month, take last of each
+      const mGroups={};
+      for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
+      const mKeys=Object.keys(mGroups).sort();
+      let bestM=null,bestDelta=-Infinity;
+      for(let i=1;i<mKeys.length;i++){
+        const delta=mGroups[mKeys[i]].totalPnl-mGroups[mKeys[i-1]].totalPnl;
+        if(delta>bestDelta){bestDelta=delta;bestM=mKeys[i];}
+      }
+      if(bestM){
+        if(bestMonthEl) bestMonthEl.textContent=bestM;
+        if(bestMonthSubEl) bestMonthSubEl.textContent=`Δ P&L: +${fmt(bestDelta,cur)}`;
+        if(bestMonthKpiCard) bestMonthKpiCard.className='inv-hub-kpi positive';
+      } else {
+        if(bestMonthEl) bestMonthEl.textContent='—';
+        if(bestMonthSubEl) bestMonthSubEl.textContent='Za mało danych';
+      }
+    } else {
+      if(bestMonthEl) bestMonthEl.textContent='—';
+      if(bestMonthSubEl) bestMonthSubEl.textContent='Brak snapshotów';
+    }
+
     el('inv-hub-kpi-snaps').textContent=String(snaps.length);
 
     // --- Streak ---
@@ -8166,7 +8441,7 @@
     if(streakEl){
       if(streak>0){
         streakEl.style.display='inline-flex';
-        streakEl.textContent=`Seria: ${streak} ${streak===1?'dzień':streak<5?'dni':'dni'} z rzędu`;
+        streakEl.textContent=`Seria: ${streak} ${streak===1?'dzień':'dni'} z rzędu`;
       } else {
         streakEl.style.display='none';
       }
@@ -8184,148 +8459,76 @@
       }
     }
 
-    // --- ROI Chart ---
-    if(invHubRoiChart){invHubRoiChart.destroy();invHubRoiChart=null;}
-    const roiCanvas=el('inv-hub-roi-chart');
-    if(roiCanvas&&snaps.length>0){
-      invHubRoiChart=new Chart(roiCanvas.getContext('2d'),{
-        type:'line',
-        data:{
-          labels:snaps.map(s=>s.date),
-          datasets:[{
-            label:'ROI %',data:snaps.map(s=>s.roi),
-            borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',.1),
-            fill:true,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:'#2563eb'
-          }]
-        },
-        options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`ROI: ${ctx.parsed.y.toFixed(2)}%`}}},
-          scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},y:{ticks:{callback:v=>v.toFixed(1)+'%'},grid:{color:'rgba(148,163,184,.12)'}}}
-        }
-      });
+    // --- Time range slider update ---
+    const timeRangeInput=el('inv-hub-time-range');
+    const timeRangeLabel=el('inv-hub-time-range-label');
+    if(timeRangeInput){
+      invHubTimeDays=parseInt(timeRangeInput.value)||90;
+      const maxDays=Math.max(snaps.length,7);
+      timeRangeInput.max=String(Math.min(maxDays,365));
     }
-
-    // --- PNL Chart ---
-    if(invHubPnlChart){invHubPnlChart.destroy();invHubPnlChart=null;}
-    const pnlCanvas=el('inv-hub-pnl-chart');
-    if(pnlCanvas&&snaps.length>0){
-      const pnlColors=snaps.map(s=>s.totalPnl>=0?colorWithAlpha('#22c55e',.7):colorWithAlpha('#ef4444',.7));
-      invHubPnlChart=new Chart(pnlCanvas.getContext('2d'),{
-        type:'bar',
-        data:{
-          labels:snaps.map(s=>s.date),
-          datasets:[
-            {label:'P&L',data:snaps.map(s=>s.totalPnl),backgroundColor:pnlColors,borderRadius:4},
-            {label:'Wartość portfela',data:snaps.map(s=>s.portfolioValue),type:'line',borderColor:'#8b5cf6',backgroundColor:'transparent',borderWidth:2,pointRadius:2,yAxisID:'y2',tension:.3}
-          ]
-        },
-        options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}},
-          scales:{
-            x:{grid:{display:false},ticks:{maxTicksLimit:10,font:{size:10}}},
-            y:{position:'left',ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}},
-            y2:{position:'right',ticks:{callback:v=>currencyTicks(v)},grid:{display:false}}
-          }
-        }
-      });
+    if(timeRangeLabel){
+      if(invHubTimeMode==='daily') timeRangeLabel.textContent=`${invHubTimeDays} dni`;
+      else if(invHubTimeMode==='weekly') timeRangeLabel.textContent='52 tyg.';
+      else timeRangeLabel.textContent='36 mies.';
     }
+    // Show/hide range slider (only useful in daily mode)
+    const rangeWrap=el('inv-hub-time-range-wrap');
+    if(rangeWrap) rangeWrap.style.display=invHubTimeMode==='daily'?'flex':'none';
 
-    // --- Deposits Chart (weekly/monthly with slider) ---
+    // --- ROI + PnL charts (time-mode aware) ---
+    renderInvHubRoiChart(snaps);
+    renderInvHubPnlChartNew(snaps,cur);
+
+    // --- Deposits Chart ---
     renderInvHubDeposits(deposits);
 
-    // --- Cumulative Capital + PNL overlay ---
-    if(invHubCumulativeChart){invHubCumulativeChart.destroy();invHubCumulativeChart=null;}
-    const cumCanvas=el('inv-hub-cumulative-chart');
-    if(cumCanvas){
-      // Build date-keyed cumulative capital from buy trades
-      const allTrades=[...data.trades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-      const buyTrades=allTrades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
-      if(buyTrades.length>0){
-        // Collect all unique dates across buys and snapshots
-        const dateSet=new Set(buyTrades.map(t=>t.date));
-        snaps.forEach(s=>dateSet.add(s.date));
-        const allDates=[...dateSet].sort();
+    // --- Spread Chart (replaces cumulative) ---
+    renderInvHubSpreadChart(snaps,cur);
 
-        // Cumulative capital at each date
-        let running=0;
-        const cumByDate={};
-        for(const t of buyTrades){
-          running+=num(t.amount);
-          cumByDate[t.date]=running;
-        }
-        // Fill forward
-        let lastCum=0;
-        const cumData=allDates.map(d=>{
-          if(cumByDate[d]!==undefined) lastCum=cumByDate[d];
-          return lastCum;
-        });
-
-        // PNL from snapshots keyed by date
-        const pnlByDate={};
-        snaps.forEach(s=>{pnlByDate[s.date]=s.portfolioValue;});
-        // Portfolio value line - only show points where we have snapshot data
-        const portfolioData=allDates.map(d=>pnlByDate[d]!==undefined?pnlByDate[d]:null);
-
-        const datasets=[
-          {label:'Zainwestowany kapitał',data:cumData,borderColor:'#059669',backgroundColor:colorWithAlpha('#059669',.1),fill:true,tension:.3,borderWidth:2,pointRadius:1},
-          {label:'Wartość portfela (snapshoty)',data:portfolioData,borderColor:'#8b5cf6',backgroundColor:colorWithAlpha('#8b5cf6',.08),fill:true,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:'#8b5cf6',spanGaps:true}
-        ];
-
-        invHubCumulativeChart=new Chart(cumCanvas.getContext('2d'),{
-          type:'line',
-          data:{labels:allDates,datasets},
-          options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>ctx.parsed.y!==null?`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`:null}}},
-            interaction:{mode:'index',intersect:false},
-            scales:{x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}}}
-          }
-        });
-      }
-    }
-
-    // --- Top Holdings Bar Chart (sorted by PNL, full width) ---
+    // --- Top Holdings Bar Chart ---
     if(invHubTopChart){invHubTopChart.destroy();invHubTopChart=null;}
     const topCanvas=el('inv-hub-top-chart');
     if(topCanvas){
       const active=stats.holdings.filter(h=>h.qty>0.000001);
       if(active.length>0){
         const sorted=[...active].sort((a,b)=>{
-          const pnlA=a.marketValue!==null?(a.marketValue-a.costBasis):0;
-          const pnlB=b.marketValue!==null?(b.marketValue-b.costBasis):0;
+          const pnlA=a.pnl||0, pnlB=b.pnl||0;
           return pnlB-pnlA;
         });
         const labels=sorted.map(h=>h.name);
-        const pnlData=sorted.map(h=>h.marketValue!==null?(h.marketValue-h.costBasis):0);
-        const roiData=sorted.map(h=>h.costBasis>0&&h.marketValue!==null?((h.marketValue-h.costBasis)/h.costBasis*100):0);
-        const barColors=pnlData.map(v=>v>=0?colorWithAlpha('#22c55e',.7):colorWithAlpha('#ef4444',.7));
+        const pnlData=sorted.map(h=>+(h.pnl||0).toFixed(2));
+        const roiData=sorted.map(h=>+(h.roi||0).toFixed(2));
+        const barColors=pnlData.map(v=>v>=0?colorWithAlpha('#22c55e',.75):colorWithAlpha('#ef4444',.75));
 
         invHubTopChart=new Chart(topCanvas.getContext('2d'),{
           type:'bar',
-          data:{
-            labels,
-            datasets:[
-              {label:'P&L',data:pnlData,backgroundColor:barColors,borderRadius:4,yAxisID:'y',order:2},
-              {label:'ROI %',data:roiData,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#2563eb',tension:.3,yAxisID:'y2',order:1}
-            ]
-          },
+          data:{labels,datasets:[
+            {label:'P&L',data:pnlData,backgroundColor:barColors,borderRadius:5,yAxisID:'y',order:2},
+            {label:'ROI %',data:roiData,type:'line',borderColor:'#2563eb',backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#2563eb',tension:.3,yAxisID:'y2',order:1}
+          ]},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{position:'bottom',labels:{font:{size:11}}},
-              tooltip:{callbacks:{label:ctx=>{
-                if(ctx.dataset.label==='ROI %') return `ROI: ${ctx.parsed.y.toFixed(1)}%`;
-                return `P&L: ${currencyTicks(ctx.parsed.y)}`;
-              }}}
+            plugins:{
+              legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:12}},
+              tooltip:{callbacks:{label:ctx=>ctx.dataset.label==='ROI %'?`ROI: ${ctx.parsed.y.toFixed(2)}%`:`P&L: ${currencyTicks(ctx.parsed.y)}`}}
             },
             scales:{
-              x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},
-              y:{position:'left',ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.12)'}},
-              y2:{position:'right',ticks:{callback:v=>v.toFixed(0)+'%'},grid:{display:false}}
+              x:{grid:{display:false},ticks:{font:{size:10},maxRotation:40}},
+              y:{position:'left',ticks:{callback:v=>currencyTicks(v),font:{size:10}},grid:{color:'rgba(148,163,184,.12)'}},
+              y2:{position:'right',ticks:{callback:v=>v.toFixed(0)+'%',font:{size:10}},grid:{display:false}}
             }
           }
         });
       }
     }
 
-    // --- Forecast Simulator (data-driven) ---
+    // --- Monthly Performance Table ---
+    renderInvHubMonthlyPerf(snaps,cur);
+
+    // --- DCA Analysis ---
+    renderInvHubDca(stats,cur);
+
+    // --- Forecast Simulator ---
     renderInvHubForecast(stats,deposits);
 
     // --- Snapshot History Table ---
@@ -8350,6 +8553,111 @@
         }
       }
     }
+  }
+
+  // --- Monthly Performance Table ---
+  function renderInvHubMonthlyPerf(snaps,cur){
+    const container=document.getElementById('inv-hub-monthly-perf');
+    if(!container) return;
+    if(!snaps.length){
+      container.innerHTML='<div class="inv-hub-empty">Brak snapshotów — zapisz pierwsze snapshoty, aby śledzić wyniki miesięczne.</div>';
+      return;
+    }
+    // Group by month, take last snapshot of each
+    const mGroups={};
+    for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
+    const months=Object.keys(mGroups).sort();
+    if(!months.length){ container.innerHTML='<div class="inv-hub-empty">Brak danych</div>'; return; }
+
+    let html=`<div class="table-wrapper"><table class="inv-hub-monthly-table">
+      <thead><tr>
+        <th>Miesiąc</th>
+        <th>P&amp;L (EOM)</th>
+        <th>ROI&nbsp;%</th>
+        <th>Δ P&amp;L vs prev.</th>
+        <th>Δ ROI</th>
+        <th>Wartość portfela</th>
+        <th>Zainwestowano</th>
+      </tr></thead><tbody>`;
+
+    for(let i=0;i<months.length;i++){
+      const m=months[i];
+      const s=mGroups[m];
+      const prev=i>0?mGroups[months[i-1]]:null;
+      const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
+      const deltaRoi=prev!=null?s.roi-prev.roi:null;
+      const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
+      const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
+      const dPnlCls=deltaPnl!=null?(deltaPnl>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+      const dRoiCls=deltaRoi!=null?(deltaRoi>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+      const badgeCls=s.roi>=2?'inv-hub-pill-pos':s.roi<0?'inv-hub-pill-neg':'inv-hub-pill-neu';
+      html+=`<tr>
+        <td><span class="inv-hub-month-badge ${badgeCls}">${m}</span></td>
+        <td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td>
+        <td class="${roiCls}"><strong>${s.roi.toFixed(2)}%</strong></td>
+        <td class="${dPnlCls}">${deltaPnl!=null?(deltaPnl>=0?'+':'')+fmt(deltaPnl,cur):'—'}</td>
+        <td class="${dRoiCls}">${deltaRoi!=null?(deltaRoi>=0?'+':'')+deltaRoi.toFixed(2)+'%':'—'}</td>
+        <td>${fmt(s.portfolioValue,cur)}</td>
+        <td>${fmt(s.capitalFromBudget,cur)}</td>
+      </tr>`;
+    }
+    html+='</tbody></table></div>';
+    container.innerHTML=html;
+  }
+
+  // --- DCA Analysis Table ---
+  function renderInvHubDca(stats,cur){
+    const container=document.getElementById('inv-hub-dca-grid');
+    if(!container) return;
+    const active=stats.holdings.filter(h=>h.qty>0.000001);
+    if(!active.length){
+      container.innerHTML='<div class="inv-hub-empty">Brak aktywnych pozycji.</div>';
+      return;
+    }
+    const sorted=[...active].sort((a,b)=>b.roi-a.roi);
+    const maxAbsPnl=Math.max(...sorted.map(h=>Math.abs(h.pnl||0)),1);
+
+    let html=`<div class="table-wrapper"><table class="inv-hub-dca-table">
+      <thead><tr>
+        <th>Aktywo</th>
+        <th>Ilość</th>
+        <th>Śr. koszt zakupu</th>
+        <th>Cena bieżąca</th>
+        <th>Różnica ceny</th>
+        <th>Koszt całkowity</th>
+        <th>Wartość bieżąca</th>
+        <th>P&amp;L</th>
+        <th>ROI&nbsp;%</th>
+      </tr></thead><tbody>`;
+
+    for(const h of sorted){
+      const avgCost=h.qty>0?h.costBasis/h.qty:0;
+      const priceDiff=h.currentPrice&&avgCost>0?((h.currentPrice-avgCost)/avgCost*100):null;
+      const pnlCls=(h.pnl||0)>=0?'inv-pnl-pos':'inv-pnl-neg';
+      const roiCls=(h.roi||0)>=0?'inv-pnl-pos':'inv-pnl-neg';
+      const pdCls=priceDiff!=null?(priceDiff>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+      const barPct=maxAbsPnl>0?Math.abs(h.pnl||0)/maxAbsPnl*100:0;
+      const barColor=(h.pnl||0)>=0?'#22c55e':'#ef4444';
+      html+=`<tr>
+        <td>
+          <strong>${escapeHtml(h.name)}</strong>
+          <span class="muted" style="font-size:10px;display:block">${escapeHtml(h.group||'Inne')}</span>
+        </td>
+        <td>${h.qty.toFixed(4)}</td>
+        <td>${fmt(avgCost,cur)}</td>
+        <td>${h.currentPrice!=null?fmt(h.currentPrice,cur):'—'}</td>
+        <td class="${pdCls}">${priceDiff!=null?(priceDiff>=0?'+':'')+priceDiff.toFixed(2)+'%':'—'}</td>
+        <td>${fmt(h.costBasis,cur)}</td>
+        <td>${h.marketValue!=null?fmt(h.marketValue,cur):'—'}</td>
+        <td class="${pnlCls}">
+          ${(h.pnl||0)>=0?'+':''}${fmt(h.pnl||0,cur)}
+          <div class="inv-hub-dca-bar-wrap"><div class="inv-hub-dca-bar" style="width:${barPct.toFixed(1)}%;background:${barColor}"></div></div>
+        </td>
+        <td class="${roiCls}"><strong>${(h.roi||0).toFixed(2)}%</strong></td>
+      </tr>`;
+    }
+    html+='</tbody></table></div>';
+    container.innerHTML=html;
   }
 
   // --- Deposits sub-chart with mode + range ---
@@ -8424,6 +8732,42 @@
     const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
     const currentInvested=stats.capitalFromBudget;
 
+    // --- Historical monthly P&L panel (from snapshots) ---
+    const snaps=invHubSnapshots();
+    const histEl=el('inv-hub-hist-monthly');
+    if(histEl){
+      if(snaps.length){
+        const mGroups={};
+        for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
+        const months=Object.keys(mGroups).sort();
+        if(months.length){
+          let hHtml=`<div style=”font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px”>Historyczne P&amp;L i ROI na koniec miesiąca (z Twoich snapshotów)</div>`;
+          hHtml+=`<div style=”display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px”>`;
+          for(let i=0;i<months.length;i++){
+            const m=months[i];
+            const s=mGroups[m];
+            const prev=i>0?mGroups[months[i-1]]:null;
+            const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
+            const bg=s.roi>=2?'rgba(34,197,94,.1)':s.roi<0?'rgba(239,68,68,.08)':'rgba(148,163,184,.1)';
+            const clr=s.roi>=2?'#16a34a':s.roi<0?'#dc2626':'var(--muted)';
+            const border=s.roi>=2?'rgba(34,197,94,.3)':s.roi<0?'rgba(239,68,68,.25)':'rgba(148,163,184,.2)';
+            hHtml+=`<div style=”padding:8px 12px;border-radius:10px;background:${bg};border:1px solid ${border};min-width:120px”>
+              <div style=”font-size:10px;font-weight:700;color:var(--muted)”>${m}</div>
+              <div style=”font-size:15px;font-weight:800;color:${clr}”>${s.roi.toFixed(2)}%</div>
+              <div style=”font-size:10px;color:var(--muted)”>P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
+              ${deltaPnl!=null?`<div style=”font-size:10px;color:${deltaPnl>=0?'#16a34a':'#dc2626'}”>Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
+            </div>`;
+          }
+          hHtml+='</div>';
+          histEl.innerHTML=hHtml;
+        } else {
+          histEl.innerHTML='';
+        }
+      } else {
+        histEl.innerHTML=`<div class=”inv-hub-empty” style=”padding:12px 0;font-size:12px”>Brak snapshotów — kliknij „Zapisz dzisiejszy snapshot” powyżej, aby zacząć śledzić miesięczne wyniki.</div>`;
+      }
+    }
+
     const monthsForward=years*12;
     const monthlyRate=rate/100/12;
 
@@ -8441,12 +8785,8 @@
       const d=new Date(startDate.getFullYear(),startDate.getMonth()+i,1);
       const monthLabel=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
       labels.push(monthLabel);
-      forecastRows.push({
-        monthLabel,
-        value:balance,
-        capital:totalCapital,
-        interest:balance-totalCapital
-      });
+      const roi=totalCapital>0?(balance-totalCapital)/totalCapital*100:0;
+      forecastRows.push({monthLabel,value:balance,capital:totalCapital,interest:balance-totalCapital,roi});
     }
 
     const final=forecastRows[forecastRows.length-1];
@@ -8461,81 +8801,71 @@
     }
 
     const targetMonth=targetMonthInput?.value;
-    const targetRow=forecastRows.find(r=>r.monthLabel===targetMonth) || final;
+    const targetRow=forecastRows.find(r=>r.monthLabel===targetMonth)||final;
 
     const resultEl=el('inv-hub-calc-result');
     if(resultEl){
       resultEl.style.display='block';
       const trendInfo=trendMonths.length
-        ? `Trend z ${trendMonths.length} zamkniętych mies.: ${fmt(avgTrendMonthly,cur)}/mies.`
-        : 'Brak zamkniętych miesięcy z wpłatami — tempo wpłat = 0.';
+        ?`Trend z ${trendMonths.length} zamkniętych mies.: ${fmt(avgTrendMonthly,cur)}/mies.`
+        :'Brak zamkniętych miesięcy z wpłatami — tempo wpłat = 0.';
+      const finalRoiStr=final.roi.toFixed(1)+'%';
+      const targetRoiStr=targetRow.roi.toFixed(1)+'%';
       resultEl.innerHTML=`
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#2563eb',.08)};border:1px solid ${colorWithAlpha('#2563eb',.2)}">
-            <div style="font-size:11px;font-weight:700;color:#2563eb;text-transform:uppercase">Parametry symulacji</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">${escapeHtml(trendInfo)}</div>
-            <div style="font-size:11px;color:var(--muted)">Mnożnik wpłat: ${multiplier.toFixed(2)}x → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
-            <div style="font-size:11px;color:var(--muted)">Roczna stopa: ${rate.toFixed(2)}% | Horyzont: ${years} lat</div>
+        <div style=”display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px”>
+          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#2563eb',.07)};border:1px solid ${colorWithAlpha('#2563eb',.18)}”>
+            <div style=”font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.04em”>Parametry symulacji</div>
+            <div style=”font-size:11px;color:var(--muted);margin-top:5px”>${escapeHtml(trendInfo)}</div>
+            <div style=”font-size:11px;color:var(--muted)”>Mnożnik: ${multiplier.toFixed(2)}× → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
+            <div style=”font-size:11px;color:var(--muted)”>Stopa: ${rate.toFixed(2)}% rocznie | Horyzont: ${years} lat</div>
           </div>
-          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#059669',.08)};border:1px solid ${colorWithAlpha('#059669',.2)}">
-            <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase">Koniec horyzontu</div>
-            <div style="font-size:18px;font-weight:800;color:#059669;margin:4px 0">${fmt(final.value,cur)}</div>
-            <div style="font-size:11px;color:var(--muted)">Kapitał: ${fmt(final.capital,cur)}</div>
-            <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(final.interest,cur)}</div>
+          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#059669',.07)};border:1px solid ${colorWithAlpha('#059669',.18)}”>
+            <div style=”font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.04em”>Koniec horyzontu (${final.monthLabel})</div>
+            <div style=”font-size:20px;font-weight:800;color:#059669;margin:5px 0 2px”>${fmt(final.value,cur)}</div>
+            <div style=”font-size:13px;font-weight:700;color:#16a34a;margin-bottom:4px”>ROI: ${finalRoiStr}</div>
+            <div style=”font-size:11px;color:var(--muted)”>Kapitał: ${fmt(final.capital,cur)} | Zysk: ${fmt(final.interest,cur)}</div>
           </div>
-          <div style="padding:10px;border-radius:10px;background:${colorWithAlpha('#8b5cf6',.08)};border:1px solid ${colorWithAlpha('#8b5cf6',.2)}">
-            <div style="font-size:11px;font-weight:700;color:#8b5cf6;text-transform:uppercase">Podgląd miesiąca: ${escapeHtml(targetRow.monthLabel)}</div>
-            <div style="font-size:18px;font-weight:800;color:#8b5cf6;margin:4px 0">${fmt(targetRow.value,cur)}</div>
-            <div style="font-size:11px;color:var(--muted)">Kapitał: ${fmt(targetRow.capital,cur)}</div>
-            <div style="font-size:11px;color:var(--muted)">Odsetki: ${fmt(targetRow.interest,cur)}</div>
+          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#8b5cf6',.07)};border:1px solid ${colorWithAlpha('#8b5cf6',.18)}”>
+            <div style=”font-size:10px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.04em”>Podgląd: ${escapeHtml(targetRow.monthLabel)}</div>
+            <div style=”font-size:20px;font-weight:800;color:#8b5cf6;margin:5px 0 2px”>${fmt(targetRow.value,cur)}</div>
+            <div style=”font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:4px”>ROI: ${targetRoiStr}</div>
+            <div style=”font-size:11px;color:var(--muted)”>Kapitał: ${fmt(targetRow.capital,cur)} | Zysk: ${fmt(targetRow.interest,cur)}</div>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:8px">Kliknij słupek miesiąca na wykresie, aby zaktualizować kafelek „Podgląd miesiąca”.</div>`;
+        <div style=”font-size:11px;color:var(--muted);margin-top:8px”>Kliknij słupek na wykresie, aby zaktualizować kafelek „Podgląd miesiąca”.</div>`;
     }
 
     const canvas=el('inv-hub-calc-chart');
     if(canvas){
       const capitalData=forecastRows.map(r=>Math.round(r.capital));
-      const interestData=forecastRows.map(r=>Math.round(r.interest));
+      const interestData=forecastRows.map(r=>Math.max(0,Math.round(r.interest)));
+      const roiLineData=forecastRows.map(r=>+r.roi.toFixed(2));
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
         type:'bar',
         data:{
           labels,
           datasets:[
-            {
-              label:'Kapitał (wpłaty)',
-              data:capitalData,
-              stack:'portfolio',
-              borderColor:'#059669',
-              backgroundColor:colorWithAlpha('#059669',.75),
-              borderWidth:1,
-              borderRadius:4,
-              borderSkipped:false
-            },
-            {
-              label:'Odsetki',
-              data:interestData,
-              stack:'portfolio',
-              borderColor:'#8b5cf6',
-              backgroundColor:colorWithAlpha('#8b5cf6',.78),
-              borderWidth:1,
-              borderRadius:4,
-              borderSkipped:false
-            }
+            {label:'Kapitał (wpłaty)',data:capitalData,stack:'portfolio',backgroundColor:colorWithAlpha('#059669',.72),borderColor:'#059669',borderWidth:1,borderRadius:3,borderSkipped:false,yAxisID:'y',order:3},
+            {label:'Zysk (odsetki)',data:interestData,stack:'portfolio',backgroundColor:colorWithAlpha('#8b5cf6',.75),borderColor:'#8b5cf6',borderWidth:1,borderRadius:3,borderSkipped:false,yAxisID:'y',order:2},
+            {label:'ROI %',data:roiLineData,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,pointHoverRadius:5,tension:.4,yAxisID:'y2',order:1}
           ]
         },
         options:{
           responsive:true,
           maintainAspectRatio:false,
           plugins:{
-            legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:18,usePointStyle:true}},
+            legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:16,usePointStyle:true}},
             tooltip:{mode:'index',intersect:false,callbacks:{
-              label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`,
+              label:ctx=>{
+                if(ctx.dataset.label==='ROI %') return `ROI: ${ctx.parsed.y.toFixed(2)}%`;
+                return `${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`;
+              },
               afterBody:items=>{
-                const idx=items?.[0]?.dataIndex||0;
+                const idx=items?.[0]?.dataIndex;
+                if(idx==null) return '';
                 const row=forecastRows[idx];
                 if(!row) return '';
-                return `Razem: ${fmt(row.value,cur)} | Kapitał: ${fmt(row.capital,cur)} | Odsetki: ${fmt(row.interest,cur)}`;
+                return [`Razem: ${fmt(row.value,cur)}`];
               }
             }}
           },
@@ -8549,7 +8879,8 @@
           },
           scales:{
             x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10,font:{size:11}}},
-            y:{stacked:true,ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'}}
+            y:{stacked:true,position:'left',ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'},title:{display:true,text:'Wartość portfela',font:{size:10},color:'var(--muted)'}},
+            y2:{position:'right',ticks:{callback:v=>v.toFixed(0)+'%',font:{size:11}},grid:{display:false},title:{display:true,text:'ROI %',font:{size:10},color:'#f59e0b'}}
           }
         }
       });
@@ -8567,6 +8898,40 @@
         invHubSaveSnapshots([]);
         renderInvHub();
       }
+    };
+
+    // Time mode tabs (ROI/PnL charts aggregation)
+    document.querySelectorAll('.inv-hub-time-tab').forEach(btn=>{
+      btn.onclick=()=>{
+        invHubTimeMode=btn.dataset.timeMode||'daily';
+        document.querySelectorAll('.inv-hub-time-tab').forEach(b=>b.classList.toggle('is-active',b===btn));
+        // Show/hide range slider
+        const wrap=document.getElementById('inv-hub-time-range-wrap');
+        if(wrap) wrap.style.display=invHubTimeMode==='daily'?'flex':'none';
+        const snaps=invHubSnapshots();
+        const cur=state.currency;
+        renderInvHubRoiChart(snaps);
+        renderInvHubPnlChartNew(snaps,cur);
+        // Update range label
+        const lbl=document.getElementById('inv-hub-time-range-label');
+        if(lbl){
+          if(invHubTimeMode==='daily') lbl.textContent=`${invHubTimeDays} dni`;
+          else if(invHubTimeMode==='weekly') lbl.textContent='52 tyg.';
+          else lbl.textContent='36 mies.';
+        }
+      };
+    });
+
+    // Time range slider (daily mode)
+    const timeRange=document.getElementById('inv-hub-time-range');
+    if(timeRange) timeRange.oninput=()=>{
+      invHubTimeDays=parseInt(timeRange.value)||90;
+      const lbl=document.getElementById('inv-hub-time-range-label');
+      if(lbl) lbl.textContent=`${invHubTimeDays} dni`;
+      const snaps=invHubSnapshots();
+      const cur=state.currency;
+      renderInvHubRoiChart(snaps);
+      renderInvHubPnlChartNew(snaps,cur);
     };
 
     // Deposits toggle
