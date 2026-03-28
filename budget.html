@@ -225,6 +225,31 @@
     .inv-hub-sim-card--green .inv-hub-sim-card__roi { color:#16a34a; }
     .inv-hub-sim-card--purple .inv-hub-sim-card__roi { color:#6d28d9; }
     .inv-hub-sim-card__detail { font-size:11px; color:var(--muted); line-height:1.5; }
+    .inv-hub-sim-card__detail strong { color:var(--ink); font-weight:700; }
+    .inv-hub-sim-card__detail-grid { display:grid; gap:4px; margin-top:8px; }
+    .inv-hub-sim-badge-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .inv-hub-sim-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.01em; text-transform:uppercase; }
+    .inv-hub-sim-badge.up { background:rgba(34,197,94,.14); color:#15803d; }
+    .inv-hub-sim-badge.down { background:rgba(239,68,68,.14); color:#b91c1c; }
+    .inv-hub-sim-badge.neutral { background:rgba(148,163,184,.16); color:var(--muted); }
+    .inv-hub-sim-stats { margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+    .inv-hub-sim-stat { background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.2); border-radius:10px; padding:9px 10px; display:flex; flex-direction:column; gap:3px; }
+    .inv-hub-sim-stat__label { font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .inv-hub-sim-stat__value { font-size:14px; font-weight:700; color:var(--ink); line-height:1.2; }
+    .inv-hub-sim-stat__value.positive { color:#15803d; }
+    .inv-hub-sim-stat__value.negative { color:#b91c1c; }
+    .inv-hub-hist-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+    .inv-hub-hist-card { border:1px solid rgba(148,163,184,.22); border-radius:11px; padding:10px 12px; background:var(--surface); border-left:4px solid rgba(148,163,184,.45); box-shadow:0 4px 14px rgba(15,23,42,.04); }
+    .inv-hub-hist-card.positive { border-left-color:#22c55e; }
+    .inv-hub-hist-card.negative { border-left-color:#ef4444; }
+    .inv-hub-hist-card__month { font-size:10px; font-weight:700; color:var(--muted); margin-bottom:4px; letter-spacing:.04em; text-transform:uppercase; }
+    .inv-hub-hist-card__roi { font-size:18px; font-weight:800; line-height:1; }
+    .inv-hub-hist-card.positive .inv-hub-hist-card__roi { color:#15803d; }
+    .inv-hub-hist-card.negative .inv-hub-hist-card__roi { color:#b91c1c; }
+    .inv-hub-hist-card__pnl { font-size:11px; color:var(--muted); margin-top:5px; }
+    .inv-hub-hist-card__delta { font-size:10px; margin-top:2px; font-weight:700; }
+    .inv-hub-hist-card__delta.positive { color:#15803d; }
+    .inv-hub-hist-card__delta.negative { color:#b91c1c; }
 
     /* --- Chart card control row --------------------------------------------- */
     .inv-hub-chart-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
@@ -8744,26 +8769,24 @@
     const histEl=el('inv-hub-hist-monthly');
     if(histEl){
       if(histMonths.length){
-        let hHtml='<div style=”display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px”>';
+        let hHtml='<div class="inv-hub-hist-grid">';
         for(let i=0;i<histMonths.length;i++){
           const m=histMonths[i];
           const s=mGroups[m];
           const prev=i>0?mGroups[histMonths[i-1]]:null;
           const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
           const isPos=s.roi>=0;
-          const borderClr=isPos?'#22c55e':'#ef4444';
-          const roiClr=isPos?'#16a34a':'#dc2626';
-          hHtml+=`<div style=”border:1px solid ${borderClr}33;border-left:3px solid ${borderClr};border-radius:10px;padding:10px 12px;background:var(--surface)”>
-            <div style=”font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px”>${m}</div>
-            <div style=”font-size:18px;font-weight:800;color:${roiClr};line-height:1”>${s.roi.toFixed(2)}<span style=”font-size:11px;font-weight:600”>%</span></div>
-            <div style=”font-size:11px;color:var(--muted);margin-top:3px”>${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
-            ${deltaPnl!=null?`<div style=”font-size:10px;font-weight:600;color:${deltaPnl>=0?'#16a34a':'#dc2626'};margin-top:2px”>Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
+          hHtml+=`<div class="inv-hub-hist-card ${isPos?'positive':'negative'}">
+            <div class="inv-hub-hist-card__month">${m}</div>
+            <div class="inv-hub-hist-card__roi">${s.roi.toFixed(2)}<span style="font-size:11px;font-weight:600">%</span></div>
+            <div class="inv-hub-hist-card__pnl">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
+            ${deltaPnl!=null?`<div class="inv-hub-hist-card__delta ${deltaPnl>=0?'positive':'negative'}">Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
           </div>`;
         }
         hHtml+='</div>';
         histEl.innerHTML=hHtml;
       } else {
-        histEl.innerHTML='<p class=”muted” style=”font-size:12px;margin:0”>Brak snapshotów — zapisz pierwszy snapshot, aby zobaczyć historię miesięczną.</p>';
+        histEl.innerHTML='<p class="muted" style="font-size:12px;margin:0">Brak snapshotów — zapisz pierwszy snapshot, aby zobaczyć historię miesięczną.</p>';
       }
     }
 
@@ -8826,30 +8849,69 @@
     const resultEl=el('inv-hub-calc-result');
     if(resultEl){
       resultEl.style.display='';
+      const monthlyInflow=avgTrendMonthly*multiplier;
+      const gainVsCapital=final.value-final.capital;
+      const targetGain=targetRow.value-targetRow.capital;
+      const deltaFromToday=targetRow.value-currentVal;
+      const horizonGrowthPct=currentVal>0?((final.value/currentVal)-1)*100:0;
+      const yearlyCagr=years>0&&currentVal>0?((Math.pow(final.value/currentVal,1/years)-1)*100):0;
+      const selectedMonthDelta=targetMonthInput?.value===openMonth?'Dziś':`Zmiana do ${escapeHtml(targetRow.monthLabel)}`;
       const trendInfo=trendMonths.length
         ?`Bazuje na ${trendMonths.length} zamkniętych mies. → śr. ${fmt(avgTrendMonthly,cur)}/mies.`
         :'Brak zamkniętych miesięcy — tempo wpłat = 0.';
-      resultEl.innerHTML=`<div class=”inv-hub-sim-cards”>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--blue”>
-          <div class=”inv-hub-sim-card__label”>Parametry</div>
-          <div class=”inv-hub-sim-card__detail”>${escapeHtml(trendInfo)}</div>
-          <div class=”inv-hub-sim-card__detail”>Mnożnik <strong>${multiplier.toFixed(2)}×</strong> → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
-          <div class=”inv-hub-sim-card__detail”>Stopa <strong>${rate.toFixed(2)}%</strong> · Horyzont <strong>${years} lat</strong></div>
+      resultEl.innerHTML=`<div class="inv-hub-sim-cards">
+        <div class="inv-hub-sim-card inv-hub-sim-card--blue">
+          <div class="inv-hub-sim-card__label">Parametry scenariusza</div>
+          <div class="inv-hub-sim-card__detail-grid">
+            <div class="inv-hub-sim-card__detail">${escapeHtml(trendInfo)}</div>
+            <div class="inv-hub-sim-card__detail">Mnożnik wpłat <strong>${multiplier.toFixed(2)}×</strong> → <strong>${fmt(monthlyInflow,cur)}/mies.</strong></div>
+            <div class="inv-hub-sim-card__detail">Stopa <strong>${rate.toFixed(2)}%</strong> rocznie · Horyzont <strong>${years} lat</strong></div>
+          </div>
+          <div class="inv-hub-sim-badge-row">
+            <span class="inv-hub-sim-badge ${monthlyInflow>0?'up':'neutral'}">${monthlyInflow>0?'Aktywne wpłaty':'Bez wpłat'}</span>
+            <span class="inv-hub-sim-badge neutral">Model miesięczny</span>
+          </div>
         </div>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--green”>
-          <div class=”inv-hub-sim-card__label”>Koniec horyzontu · ${final.monthLabel}</div>
-          <div class=”inv-hub-sim-card__value”>${fmt(final.value,cur)}</div>
-          <div class=”inv-hub-sim-card__roi”>ROI ${final.roi.toFixed(1)}%</div>
-          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(final.capital,cur)} · Zysk ${fmt(final.interest,cur)}</div>
+        <div class="inv-hub-sim-card inv-hub-sim-card--green">
+          <div class="inv-hub-sim-card__label">Koniec horyzontu · ${final.monthLabel}</div>
+          <div class="inv-hub-sim-card__value">${fmt(final.value,cur)}</div>
+          <div class="inv-hub-sim-card__roi">ROI ${final.roi.toFixed(1)}%</div>
+          <div class="inv-hub-sim-card__detail">Kapitał <strong>${fmt(final.capital,cur)}</strong> · Wynik <strong>${fmt(gainVsCapital,cur)}</strong></div>
+          <div class="inv-hub-sim-badge-row">
+            <span class="inv-hub-sim-badge ${gainVsCapital>=0?'up':'down'}">${gainVsCapital>=0?'Scenariusz zysku':'Scenariusz straty'}</span>
+            <span class="inv-hub-sim-badge ${horizonGrowthPct>=0?'up':'down'}">${horizonGrowthPct>=0?'+':''}${horizonGrowthPct.toFixed(1)}% vs dziś</span>
+          </div>
         </div>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--purple”>
-          <div class=”inv-hub-sim-card__label”>Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
-          <div class=”inv-hub-sim-card__value”>${fmt(targetRow.value,cur)}</div>
-          <div class=”inv-hub-sim-card__roi”>ROI ${targetRow.roi.toFixed(1)}%</div>
-          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(targetRow.capital,cur)} · Zysk ${fmt(targetRow.interest,cur)}</div>
+        <div class="inv-hub-sim-card inv-hub-sim-card--purple">
+          <div class="inv-hub-sim-card__label">Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
+          <div class="inv-hub-sim-card__value">${fmt(targetRow.value,cur)}</div>
+          <div class="inv-hub-sim-card__roi">ROI ${targetRow.roi.toFixed(1)}%</div>
+          <div class="inv-hub-sim-card__detail">Kapitał <strong>${fmt(targetRow.capital,cur)}</strong> · Wynik <strong>${fmt(targetGain,cur)}</strong></div>
+          <div class="inv-hub-sim-badge-row">
+            <span class="inv-hub-sim-badge ${targetRow.isHist?'neutral':'up'}">${targetRow.isHist?'Snapshot historyczny':'Miesiąc prognozy'}</span>
+            <span class="inv-hub-sim-badge ${deltaFromToday>=0?'up':'down'}">${selectedMonthDelta}: ${deltaFromToday>=0?'+':''}${fmt(deltaFromToday,cur)}</span>
+          </div>
         </div>
       </div>
-      <p class=”muted” style=”font-size:11px;margin:8px 0 0”>Kliknij słupek na wykresie, aby wybrać miesiąc podglądu.</p>`;
+      <div class="inv-hub-sim-stats">
+        <div class="inv-hub-sim-stat">
+          <span class="inv-hub-sim-stat__label">Prognozowany zysk netto</span>
+          <span class="inv-hub-sim-stat__value ${gainVsCapital>=0?'positive':'negative'}">${fmt(gainVsCapital,cur)}</span>
+        </div>
+        <div class="inv-hub-sim-stat">
+          <span class="inv-hub-sim-stat__label">Szacowany CAGR</span>
+          <span class="inv-hub-sim-stat__value ${yearlyCagr>=0?'positive':'negative'}">${Number.isFinite(yearlyCagr)?`${yearlyCagr.toFixed(2)}%`:'—'}</span>
+        </div>
+        <div class="inv-hub-sim-stat">
+          <span class="inv-hub-sim-stat__label">Miesięczny wkład</span>
+          <span class="inv-hub-sim-stat__value">${fmt(monthlyInflow,cur)}</span>
+        </div>
+        <div class="inv-hub-sim-stat">
+          <span class="inv-hub-sim-stat__label">Łączny wzrost wartości</span>
+          <span class="inv-hub-sim-stat__value ${horizonGrowthPct>=0?'positive':'negative'}">${horizonGrowthPct>=0?'+':''}${horizonGrowthPct.toFixed(1)}%</span>
+        </div>
+      </div>
+      <p class="muted" style="font-size:11px;margin:10px 0 0">Kliknij słupek na wykresie, aby ustawić miesiąc podglądu i porównać wartości z historycznymi snapshotami.</p>`;
     }
 
     // --- Chart: historical (solid) + forecast (transparent) ---
