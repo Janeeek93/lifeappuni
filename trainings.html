@@ -1133,6 +1133,157 @@
   background: var(--line);
 }
 
+/* Weekly view additions */
+.bm-week-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(90deg, var(--primary-soft) 0%, #f0fdf4 100%);
+  border: 1px solid var(--primary-border);
+  border-radius: 12px;
+  margin: 0 24px 4px;
+  flex-wrap: wrap;
+}
+.bm-week-bar-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.bm-week-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.bm-week-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--line);
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: var(--transition);
+}
+.bm-week-dot.filled {
+  background: var(--success);
+  border-color: #bbf7d0;
+  color: #fff;
+}
+.bm-week-dot.today {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--primary-soft);
+}
+.bm-week-bar-meta {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-left: auto;
+}
+.bm-week-bar-avg {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
+/* Table view toggle */
+.bm-table-view-tabs {
+  display: flex;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+  background: #f8fafc;
+}
+.bm-table-view-tab {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.bm-table-view-tab.is-active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Weekly row styling */
+.bm-table .bm-week-row td {
+  background: #fafbfc;
+  font-weight: 600;
+}
+.bm-week-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--primary-soft);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+.bm-table .bm-count-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.bm-table .bm-count-badge.full {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.bm-avg-label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Chart overlay note */
+.bm-chart-note {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bm-chart-note-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.bm-chart-note-line {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+}
+.bm-chart-note-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: transparent;
+}
+
 @media (max-width: 1080px) {
   .bm-kpi-row { grid-template-columns: repeat(2, 1fr); }
   .bm-analytics-grid { grid-template-columns: 1fr; }
@@ -1493,7 +1644,7 @@
             <div class="bm-dashboard-header">
               <div>
                 <h3>Body Composition Dashboard</h3>
-                <p class="muted tiny">Analityka skladu ciala i progresu treningowego</p>
+                <p class="muted tiny">Codzienne ważenie · średnie tygodniowe · analityka progresu</p>
               </div>
               <div class="bm-header-controls">
                 <div class="metrics-filter">
@@ -1507,11 +1658,14 @@
             <!-- KPI Hero Cards -->
             <div class="bm-kpi-row" id="bm-kpi-row"></div>
 
+            <!-- Current week progress bar -->
+            <div id="bm-week-bar" class="bm-week-bar"></div>
+
             <!-- Collapsible Form -->
             <div class="bm-form-section">
               <button class="bm-form-toggle" id="bm-form-toggle" type="button">
                 <i data-lucide="plus-circle" class="icon"></i>
-                Dodaj nowy pomiar
+                Zaloguj dzisiejszy pomiar
               </button>
               <div class="bm-form-content" id="bm-form-content">
                 <form id="metrics-form" class="bm-form-grid">
@@ -1543,7 +1697,7 @@
                     <button class="btn soft" type="button" id="metrics-clear-btn"><i data-lucide="rotate-ccw" class="icon"></i>Wyczysc</button>
                   </div>
                 </form>
-                <div id="metrics-feedback" class="metrics-feedback" role="status">Dodaj pierwszy pomiar, aby zobaczyc trendy i insighty.</div>
+                <div id="metrics-feedback" class="metrics-feedback" role="status">Ważysz się codziennie? Idealnie! Wyciągamy tygodniową średnią automatycznie.</div>
               </div>
             </div>
 
@@ -1552,11 +1706,14 @@
               <div class="bm-chart-wrapper">
                 <div class="bm-chart-header">
                   <h4><i data-lucide="trending-up" class="icon"></i>Trend skladu ciala</h4>
-                  <div class="bm-chart-toggles" id="bm-chart-toggles"></div>
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <div class="bm-chart-toggles" id="bm-chart-toggles"></div>
+                  </div>
                 </div>
                 <div class="bm-chart-container" id="bm-chart-container">
                   <canvas id="bm-main-chart"></canvas>
                 </div>
+                <div class="bm-chart-note" id="bm-chart-note"></div>
               </div>
             </div>
 
@@ -1572,18 +1729,23 @@
                 <div id="bm-insights-list" class="bm-insights-list"></div>
               </div>
               <div class="bm-table-column">
-                <h4><i data-lucide="table" class="icon"></i>Historia pomiarow</h4>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <h4><i data-lucide="table" class="icon"></i>Historia pomiarow</h4>
+                  <div class="bm-table-view-tabs" id="bm-table-view-tabs">
+                    <button type="button" class="bm-table-view-tab is-active" data-view="weekly">Śr. tygodniowe</button>
+                    <button type="button" class="bm-table-view-tab" data-view="daily">Dziennik</button>
+                  </div>
+                </div>
                 <div class="bm-table-wrapper">
                   <table class="bm-table" id="bm-table">
-                    <thead>
+                    <thead id="bm-table-head">
                       <tr>
-                        <th>Data</th>
-                        <th>Cykl</th>
-                        <th>Waga</th>
-                        <th>BMI</th>
-                        <th>BF%</th>
-                        <th>Miesnie</th>
-                        <th></th>
+                        <th>Tydzień</th>
+                        <th>Zakres</th>
+                        <th>Waga śr.</th>
+                        <th>BF% śr.</th>
+                        <th>Miesnie śr.</th>
+                        <th>Dni</th>
                       </tr>
                     </thead>
                     <tbody id="bm-table-body"></tbody>
@@ -2838,6 +3000,55 @@ function getMetricsForCut(cut) {
   return sortMetricsByDate(bodyMetrics.filter(entry => entry.cut === cut));
 }
 
+// ---- WEEKLY AVERAGES ----
+function getWeeklyAverages(entries) {
+  const weeks = {};
+  entries.forEach(entry => {
+    const d = parseDate(entry.date);
+    const info = getISOWeekInfo(d);
+    const key = `${info.year}-W${String(info.week).padStart(2, '0')}`;
+    if (!weeks[key]) {
+      weeks[key] = { key, year: info.year, week: info.week, entries: [] };
+    }
+    weeks[key].entries.push(entry);
+  });
+
+  return Object.values(weeks)
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .map(w => {
+      const sorted = sortMetricsByDate(w.entries);
+      const avg = {};
+      ['weight', 'bmi', 'bf', 'muscle'].forEach(k => {
+        const vals = sorted.map(e => e[k]).filter(v => Number.isFinite(v));
+        avg[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      });
+      return {
+        weekKey: w.key,
+        week: w.week,
+        year: w.year,
+        startDate: sorted[0].date,
+        endDate: sorted[sorted.length - 1].date,
+        count: sorted.length,
+        cut: sorted[sorted.length - 1].cut,
+        ...avg
+      };
+    });
+}
+
+function getCurrentWeekLogged(entries) {
+  const today = new Date();
+  const weekStart = startOfWeek(today);
+  const days = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
+  return days.map((label, i) => {
+    const d = addDays(weekStart, i);
+    const key = toYYYYMMDD(d);
+    const logged = entries.some(e => e.date === key);
+    const isToday = toYYYYMMDD(today) === key;
+    const isFuture = d > today;
+    return { label, key, logged, isToday, isFuture };
+  });
+}
+
 // ==========================================
 // BODY COMPOSITION DASHBOARD
 // ==========================================
@@ -2851,6 +3062,7 @@ const BM_METRIC_DEFS = {
 let bmMainChart = null;
 let bmSparklines = {};
 let bmActiveMetrics = { weight: true, bmi: false, bf: true, muscle: true };
+let bmTableView = 'weekly'; // 'weekly' | 'daily'
 
 function updateMetricsFeedback(message, tone = '') {
   const feedback = document.getElementById('metrics-feedback');
@@ -2858,6 +3070,35 @@ function updateMetricsFeedback(message, tone = '') {
   feedback.classList.remove('success', 'warning', 'danger');
   if (tone) feedback.classList.add(tone);
   feedback.textContent = message;
+}
+
+function renderBMWeekBar(filtered) {
+  const bar = document.getElementById('bm-week-bar');
+  if (!bar) return;
+
+  const days = getCurrentWeekLogged(filtered);
+  const loggedCount = days.filter(d => d.logged && !d.isFuture).length;
+  const passedCount = days.filter(d => !d.isFuture).length;
+
+  // Current week average weight
+  const weekAvgs = getWeeklyAverages(filtered);
+  const currentWeekKey = (() => {
+    const info = getISOWeekInfo(new Date());
+    return `${info.year}-W${String(info.week).padStart(2, '0')}`;
+  })();
+  const thisWeek = weekAvgs.find(w => w.weekKey === currentWeekKey);
+  const avgLabel = thisWeek && Number.isFinite(thisWeek.weight)
+    ? `<span class="bm-week-bar-avg">⌀ ${thisWeek.weight.toFixed(1)} kg</span>`
+    : '';
+
+  bar.innerHTML = `
+    <span class="bm-week-bar-label">Ten tydzień</span>
+    <div class="bm-week-dots">
+      ${days.map(d => `<div class="bm-week-dot ${d.logged ? 'filled' : ''} ${d.isToday && !d.logged ? 'today' : ''}" title="${d.label}">${d.label.charAt(0)}</div>`).join('')}
+    </div>
+    ${avgLabel}
+    <span class="bm-week-bar-meta">${loggedCount}/${passedCount} pomiarów</span>
+  `;
 }
 
 function renderBodyMetrics() {
@@ -2880,10 +3121,12 @@ function renderBodyMetrics() {
     if (!filtered.length) {
       summary.textContent = 'Brak danych';
     } else {
-      summary.textContent = `${filtered.length} pomiarow · ${filtered[0].date} - ${filtered[filtered.length - 1].date}`;
+      const weeklyAvgs = getWeeklyAverages(filtered);
+      summary.textContent = `${filtered.length} wpisów · ${weeklyAvgs.length} tygodni`;
     }
   }
 
+  renderBMWeekBar(filtered);
   renderBMKPICards(filtered);
   renderBMMainChart(filtered);
   renderBMProgressSummary(filtered);
@@ -2905,18 +3148,29 @@ function getMetricStats(entries, key) {
   return { first, last, min, max, avg, diff, diffPercent, count: values.length, values };
 }
 
+function getWeeklyMetricStats(weeklyAvgs, key) {
+  const values = weeklyAvgs.map(w => w[key]).filter(v => Number.isFinite(v));
+  if (!values.length) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  const diff = last - first;
+  return { first, last, diff, count: values.length, values };
+}
+
 function renderBMKPICards(filtered) {
   const container = document.getElementById('bm-kpi-row');
   if (!container) return;
   container.innerHTML = '';
 
+  const weeklyAvgs = getWeeklyAverages(filtered);
+
   Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
-    const stats = getMetricStats(filtered, key);
+    const wStats = getWeeklyMetricStats(weeklyAvgs, key);
     const card = document.createElement('div');
     card.className = 'bm-kpi-card';
     card.dataset.metric = key;
 
-    if (!stats) {
+    if (!wStats) {
       card.innerHTML = `
         <div class="bm-kpi-top">
           <span class="bm-kpi-label">${def.label}</span>
@@ -2925,25 +3179,24 @@ function renderBMKPICards(filtered) {
         <div class="bm-kpi-sub">Brak danych</div>
       `;
     } else {
-      const isGood = def.direction === 'down' ? stats.diff <= 0 : stats.diff >= 0;
-      const trendClass = stats.diff === 0 ? 'neutral' : (isGood ? 'positive' : 'negative');
-      const arrow = stats.diff > 0 ? '+' : '';
-      const trendText = `${arrow}${stats.diff.toFixed(1)}${def.unit ? ' ' + def.unit : ''}`;
+      const isGood = def.direction === 'down' ? wStats.diff <= 0 : wStats.diff >= 0;
+      const trendClass = wStats.diff === 0 ? 'neutral' : (isGood ? 'positive' : 'negative');
+      const arrow = wStats.diff > 0 ? '+' : '';
+      const trendText = `${arrow}${wStats.diff.toFixed(1)}${def.unit ? ' ' + def.unit : ''}`;
 
       card.innerHTML = `
         <div class="bm-kpi-top">
           <span class="bm-kpi-label">${def.label}</span>
-          <span class="bm-kpi-trend ${trendClass}">${stats.diff === 0 ? '=' : (isGood ? 'v' : '^')} ${trendText}</span>
+          <span class="bm-kpi-trend ${trendClass}">${wStats.diff === 0 ? '=' : (isGood ? 'v' : '^')} ${trendText}</span>
         </div>
-        <div class="bm-kpi-value">${stats.last.toFixed(1)}<span class="bm-kpi-unit">${def.unit}</span></div>
-        <div class="bm-kpi-sub">Start: ${stats.first.toFixed(1)}${def.unit ? ' ' + def.unit : ''} · ${stats.count} pomiarow</div>
+        <div class="bm-kpi-value">${wStats.last.toFixed(1)}<span class="bm-kpi-unit">${def.unit}</span></div>
+        <div class="bm-kpi-sub">Śr. tyg. · Start: ${wStats.first.toFixed(1)}${def.unit ? ' ' + def.unit : ''} · ${wStats.count} tyg.</div>
         <div class="bm-kpi-sparkline"><canvas id="bm-spark-${key}"></canvas></div>
       `;
     }
     container.appendChild(card);
 
-    // Render sparkline if data exists
-    if (stats && stats.values.length >= 2 && typeof Chart !== 'undefined') {
+    if (wStats && wStats.values.length >= 2 && typeof Chart !== 'undefined') {
       requestAnimationFrame(() => {
         const canvas = document.getElementById(`bm-spark-${key}`);
         if (!canvas) return;
@@ -2952,9 +3205,9 @@ function renderBMKPICards(filtered) {
         bmSparklines[key] = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: stats.values.map((_, i) => i),
+            labels: wStats.values.map((_, i) => i),
             datasets: [{
-              data: stats.values,
+              data: wStats.values,
               borderColor: def.color,
               borderWidth: 1.5,
               fill: true,
@@ -2991,7 +3244,8 @@ function renderBMChartToggles() {
       bmActiveMetrics[key] = !bmActiveMetrics[key];
       const anyActive = Object.values(bmActiveMetrics).some(v => v);
       if (!anyActive) { bmActiveMetrics[key] = true; return; }
-      renderBMMainChart(getMetricsForCut(selectedCut));
+      const filtered = getMetricsForCut(selectedCut);
+      renderBMMainChart(filtered);
       lucide.createIcons();
     });
     container.appendChild(btn);
@@ -3003,11 +3257,13 @@ function renderBMMainChart(filtered) {
   const container = document.getElementById('bm-chart-container');
   if (!container) return;
 
-  if (filtered.length < 2) {
+  const weeklyAvgs = getWeeklyAverages(filtered);
+
+  if (weeklyAvgs.length < 2) {
     if (bmMainChart) { bmMainChart.destroy(); bmMainChart = null; }
     const canvas = document.getElementById('bm-main-chart');
     if (canvas) canvas.style.display = 'none';
-    container.innerHTML = `<div class="bm-chart-empty"><i data-lucide="bar-chart-3" class="icon"></i><span>Dodaj co najmniej 2 pomiary, aby zobaczyc wykres trendu</span></div>`;
+    container.innerHTML = `<div class="bm-chart-empty"><i data-lucide="bar-chart-3" class="icon"></i><span>Dodaj pomiary z co najmniej 2 tygodni, aby zobaczyc wykres</span></div>`;
     return;
   }
 
@@ -3017,52 +3273,47 @@ function renderBMMainChart(filtered) {
     canvas = document.getElementById('bm-main-chart');
   }
   canvas.style.display = '';
-  // Remove any empty state
   const emptyEl = container.querySelector('.bm-chart-empty');
   if (emptyEl) emptyEl.remove();
 
   if (typeof Chart === 'undefined') return;
   const ctx = canvas.getContext('2d');
 
-  const labels = filtered.map(e => e.date);
+  const weekLabels = weeklyAvgs.map(w => `T${w.week}`);
   const datasets = [];
 
-  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
-    if (!bmActiveMetrics[key]) return;
-    const data = filtered.map(e => Number.isFinite(e[key]) ? e[key] : null);
-    datasets.push({
-      label: def.label + (def.unit ? ` (${def.unit})` : ''),
-      data,
-      borderColor: def.color,
-      backgroundColor: def.color + '18',
-      fill: true,
-      tension: 0.35,
-      borderWidth: 2.5,
-      pointRadius: filtered.length > 20 ? 2 : 4,
-      pointBackgroundColor: '#fff',
-      pointBorderColor: def.color,
-      pointBorderWidth: 2,
-      pointHoverRadius: 6,
-      pointHoverBackgroundColor: def.color,
-      spanGaps: true,
-      yAxisID: key === 'bf' ? 'y1' : 'y'
-    });
-  });
-
-  // Check if bf is the only active or if we need dual axis
   const hasBfActive = bmActiveMetrics.bf;
   const hasOtherActive = Object.entries(bmActiveMetrics).some(([k, v]) => k !== 'bf' && v);
   const useDualAxis = hasBfActive && hasOtherActive;
 
-  // If only bf active, use single y axis
-  if (!useDualAxis) {
-    datasets.forEach(ds => { ds.yAxisID = 'y'; });
-  }
+  Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
+    if (!bmActiveMetrics[key]) return;
+    // Weekly average line (main, bold)
+    const avgData = weeklyAvgs.map(w => Number.isFinite(w[key]) ? w[key] : null);
+    datasets.push({
+      label: def.label + ' (śr. tyg.)',
+      data: avgData,
+      borderColor: def.color,
+      backgroundColor: def.color + '18',
+      fill: key === 'weight' && !hasOtherActive,
+      tension: 0.35,
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: def.color,
+      pointBorderWidth: 2,
+      pointHoverRadius: 7,
+      pointHoverBackgroundColor: def.color,
+      spanGaps: true,
+      yAxisID: (key === 'bf' && useDualAxis) ? 'y1' : 'y',
+      order: 1
+    });
+  });
 
   if (bmMainChart) bmMainChart.destroy();
   bmMainChart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets },
+    data: { labels: weekLabels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -3078,10 +3329,17 @@ function renderBMMainChart(filtered) {
           displayColors: true,
           boxPadding: 4,
           callbacks: {
+            title: (items) => {
+              const idx = items[0].dataIndex;
+              const w = weeklyAvgs[idx];
+              if (!w) return items[0].label;
+              return `Tydzień ${w.week} (${w.startDate} – ${w.endDate}) · ${w.count} dni`;
+            },
             label: function(context) {
               const val = context.parsed.y;
               if (val === null) return null;
-              return ` ${context.dataset.label}: ${val.toFixed(1)}`;
+              const label = context.dataset.label || '';
+              return ` ${label}: ${val.toFixed(1)}`;
             }
           }
         }
@@ -3089,7 +3347,7 @@ function renderBMMainChart(filtered) {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 10 }, maxRotation: 45, maxTicksLimit: 12 }
+          ticks: { color: '#94a3b8', font: { size: 10 } }
         },
         y: {
           position: 'left',
@@ -3107,29 +3365,46 @@ function renderBMMainChart(filtered) {
       animation: { duration: 800, easing: 'easeOutQuart' }
     }
   });
+
+  // Update chart legend note
+  const noteEl = document.getElementById('bm-chart-note');
+  if (noteEl) {
+    const activeColors = Object.entries(BM_METRIC_DEFS)
+      .filter(([k]) => bmActiveMetrics[k])
+      .map(([, def]) => `<span class="bm-chart-note-item"><span class="bm-chart-note-line" style="background:${def.color};height:3px;display:inline-block;width:16px;border-radius:2px;vertical-align:middle;margin-right:2px;"></span>${def.label}</span>`)
+      .join('');
+    noteEl.innerHTML = `<span style="color:var(--muted);font-size:10px;">Oś X = tygodnie ISO · wartości = średnie z dziennych pomiarów</span>&nbsp;&nbsp;${activeColors}`;
+  }
 }
 
 function renderBMProgressSummary(filtered) {
   const container = document.getElementById('bm-progress-summary');
   if (!container) return;
 
-  if (filtered.length < 2) {
-    container.innerHTML = '<div class="bm-progress-item"><span class="bm-progress-item-label">Status</span><span class="bm-progress-item-value">Dodaj pomiary, aby zobaczyc podsumowanie progresu</span></div>';
+  const weeklyAvgs = getWeeklyAverages(filtered);
+
+  if (weeklyAvgs.length < 2) {
+    container.innerHTML = '<div class="bm-progress-item"><span class="bm-progress-item-label">Status</span><span class="bm-progress-item-value">Dodaj pomiary z min. 2 tygodni</span></div>';
     return;
   }
 
   const items = [];
   const daysDiff = Math.max(1, Math.round((new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / DAY_MS));
   items.push({ label: 'Okres', value: `${daysDiff} dni` });
+  items.push({ label: 'Tygodnie', value: weeklyAvgs.length });
+
+  // Total daily entries this month
+  const today = new Date();
+  const monthStart = toYYYYMMDD(new Date(today.getFullYear(), today.getMonth(), 1));
+  const thisMonthEntries = filtered.filter(e => e.date >= monthStart).length;
+  items.push({ label: 'Wpisy (mies.)', value: thisMonthEntries });
 
   Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
-    const stats = getMetricStats(filtered, key);
-    if (!stats) return;
-    const arrow = stats.diff > 0 ? '+' : '';
-    items.push({ label: def.label, value: `${arrow}${stats.diff.toFixed(1)} ${def.unit}` });
+    const wStats = getWeeklyMetricStats(weeklyAvgs, key);
+    if (!wStats) return;
+    const arrow = wStats.diff > 0 ? '+' : '';
+    items.push({ label: def.label + ' (tyg.)', value: `${arrow}${wStats.diff.toFixed(1)} ${def.unit}` });
   });
-
-  items.push({ label: 'Pomiary', value: filtered.length });
 
   container.innerHTML = items.map((item, i) => {
     const divider = i < items.length - 1 ? '<div class="bm-progress-divider"></div>' : '';
@@ -3141,21 +3416,22 @@ function renderBMInsights(filtered) {
   const container = document.getElementById('bm-insights-list');
   if (!container) return;
 
-  if (filtered.length < 2) {
-    container.innerHTML = '<div class="bm-insight-card"><div class="bm-insight-header"><div class="bm-insight-icon info">📊</div>Czekam na dane</div><div class="bm-insight-body">Dodaj co najmniej 2 pomiary, aby zobaczyc analityczne insighty dotyczace Twojego progresu.</div></div>';
+  const weeklyAvgs = getWeeklyAverages(filtered);
+
+  if (weeklyAvgs.length < 2) {
+    container.innerHTML = '<div class="bm-insight-card"><div class="bm-insight-header"><div class="bm-insight-icon info">📊</div>Czekam na dane</div><div class="bm-insight-body">Dodaj pomiary z co najmniej 2 tygodni, aby zobaczyc insighty oparte na tygodniowych sredniach.</div></div>';
     return;
   }
 
   const insights = [];
-  const weightStats = getMetricStats(filtered, 'weight');
-  const bfStats = getMetricStats(filtered, 'bf');
-  const muscleStats = getMetricStats(filtered, 'muscle');
-  const bmiStats = getMetricStats(filtered, 'bmi');
+  const wWeightStats = getWeeklyMetricStats(weeklyAvgs, 'weight');
+  const wBfStats = getWeeklyMetricStats(weeklyAvgs, 'bf');
+  const wMuscleStats = getWeeklyMetricStats(weeklyAvgs, 'muscle');
+  const wBmiStats = getWeeklyMetricStats(weeklyAvgs, 'bmi');
 
-  // Insight 1: Overall trajectory
-  if (weightStats) {
-    const days = Math.max(1, Math.round((new Date(filtered[filtered.length - 1].date) - new Date(filtered[0].date)) / DAY_MS));
-    const weeklyRate = (weightStats.diff / days) * 7;
+  // Insight 1: Weekly rate of change
+  if (wWeightStats && weeklyAvgs.length >= 2) {
+    const weeklyRate = wWeightStats.diff / (weeklyAvgs.length - 1);
     const rateLabel = weeklyRate > 0 ? `+${weeklyRate.toFixed(2)}` : weeklyRate.toFixed(2);
     const isLosing = weeklyRate < 0;
     const safeRate = Math.abs(weeklyRate) <= 1.0;
@@ -3164,79 +3440,81 @@ function renderBMInsights(filtered) {
     else if (isLosing && !safeRate) rateComment = 'Szybkie tempo — pilnuj regeneracji.';
     else if (!isLosing && Math.abs(weeklyRate) < 0.3) rateComment = 'Stabilna masa.';
     else rateComment = 'Faza budowania masy.';
-
     insights.push({
       icon: '📉', iconClass: 'info',
-      title: `Tempo: ${rateLabel} kg/tydzien`,
-      body: `${rateComment} W ${days} dni zmiana wagi: ${weightStats.diff > 0 ? '+' : ''}${weightStats.diff.toFixed(1)} kg.`
+      title: `Tempo: ${rateLabel} kg/tydzień (śr.)`,
+      body: `${rateComment} Zmiana łączna w ${weeklyAvgs.length} tyg.: ${wWeightStats.diff > 0 ? '+' : ''}${wWeightStats.diff.toFixed(1)} kg (śr. tygodniowe).`
     });
   }
 
-  // Insight 2: Body Fat analysis
-  if (bfStats && bfStats.count >= 2) {
-    const bfChange = bfStats.diff;
+  // Insight 2: Daily coverage this week
+  const days = getCurrentWeekLogged(filtered);
+  const today = new Date();
+  const passedDays = days.filter(d => !d.isFuture);
+  const loggedToday = days.find(d => d.isToday)?.logged;
+  const loggedCount = days.filter(d => d.logged && !d.isFuture).length;
+  if (passedDays.length > 0) {
+    const coverage = Math.round((loggedCount / passedDays.length) * 100);
+    if (coverage === 100) {
+      insights.push({ icon: '🎯', iconClass: 'success', title: `Ten tydzień: ${loggedCount}/${passedDays.length} dni uzupełnione`, body: 'Idealna seria! Codzienne ważenie daje najprecyzyjniejszą średnią tygodniową.' });
+    } else if (!loggedToday) {
+      insights.push({ icon: '⏰', iconClass: 'warning', title: 'Dzisiaj brak pomiaru', body: `Masz ${loggedCount}/${passedDays.length} pomiarów w tym tygodniu. Zaloguj dzisiejszą wagę, aby utrzymać kompletną serię.` });
+    } else {
+      insights.push({ icon: '📅', iconClass: 'info', title: `Tydzień: ${loggedCount}/${passedDays.length} dni`, body: `${coverage}% dni z pomiarem. Im więcej wpisów w tygodniu, tym bardziej miarodajna średnia.` });
+    }
+  }
+
+  // Insight 3: Body Fat
+  if (wBfStats && wBfStats.count >= 2) {
+    const bfChange = wBfStats.diff;
     if (bfChange < -1) {
-      insights.push({ icon: '🔥', iconClass: 'fire', title: `BF spadl o ${Math.abs(bfChange).toFixed(1)}%`, body: `Z ${bfStats.first.toFixed(1)}% do ${bfStats.last.toFixed(1)}%. Redukcja tluszczu idzie swietnie — utrzymaj deficyt i trening silowy.` });
+      insights.push({ icon: '🔥', iconClass: 'fire', title: `BF (śr.) spadl o ${Math.abs(bfChange).toFixed(1)}%`, body: `Ze ${wBfStats.first.toFixed(1)}% do ${wBfStats.last.toFixed(1)}% (tygodniowe srednie). Redukcja tluszczu idzie swietnie.` });
     } else if (bfChange > 1) {
-      insights.push({ icon: '⚠️', iconClass: 'warning', title: `BF wzrosl o ${bfChange.toFixed(1)}%`, body: `Z ${bfStats.first.toFixed(1)}% do ${bfStats.last.toFixed(1)}%. Sprawdz diete i zadbaj o regularnosc treningow.` });
+      insights.push({ icon: '⚠️', iconClass: 'warning', title: `BF (śr.) wzrosl o ${bfChange.toFixed(1)}%`, body: `Ze ${wBfStats.first.toFixed(1)}% do ${wBfStats.last.toFixed(1)}% (tygodniowe srednie). Sprawdz diete i regularnosc treningow.` });
     } else {
-      insights.push({ icon: '📊', iconClass: 'info', title: `BF stabilny: ${bfStats.last.toFixed(1)}%`, body: 'Poziom tluszczu utrzymuje sie na stalym poziomie. Jezeli celujesz w redukcje, potrzebujesz wiekszego deficytu.' });
+      insights.push({ icon: '📊', iconClass: 'info', title: `BF stabilny: ${wBfStats.last.toFixed(1)}% (śr.)`, body: 'Poziom tluszczu utrzymuje sie na stalym poziomie (tygodniowe srednie).' });
     }
   }
 
-  // Insight 3: Muscle mass
-  if (muscleStats && muscleStats.count >= 2) {
-    if (muscleStats.diff > 0.5) {
-      insights.push({ icon: '💪', iconClass: 'success', title: `+${muscleStats.diff.toFixed(1)} kg masy miesniowej`, body: `Swietna robota! Masa miesni wzrosla z ${muscleStats.first.toFixed(1)} do ${muscleStats.last.toFixed(1)} kg. Trening silowy daje efekty.` });
-    } else if (muscleStats.diff < -0.5) {
-      insights.push({ icon: '⚠️', iconClass: 'warning', title: `${muscleStats.diff.toFixed(1)} kg masy miesniowej`, body: `Spadek masy miesni z ${muscleStats.first.toFixed(1)} do ${muscleStats.last.toFixed(1)} kg. Zwieksz spozycie bialka i zadbaj o progresje treningowa.` });
+  // Insight 4: Muscle mass
+  if (wMuscleStats && wMuscleStats.count >= 2) {
+    if (wMuscleStats.diff > 0.5) {
+      insights.push({ icon: '💪', iconClass: 'success', title: `+${wMuscleStats.diff.toFixed(1)} kg masy (śr. tyg.)`, body: `Swietna robota! Masa miesni wzrosla z ${wMuscleStats.first.toFixed(1)} do ${wMuscleStats.last.toFixed(1)} kg (srednie tygodniowe).` });
+    } else if (wMuscleStats.diff < -0.5) {
+      insights.push({ icon: '⚠️', iconClass: 'warning', title: `${wMuscleStats.diff.toFixed(1)} kg masy (śr. tyg.)`, body: `Spadek masy miesni z ${wMuscleStats.first.toFixed(1)} do ${wMuscleStats.last.toFixed(1)} kg. Zwieksz spozycie bialka.` });
     } else {
-      insights.push({ icon: '🛡️', iconClass: 'info', title: 'Masa miesni utrzymana', body: `Stabilny poziom: ${muscleStats.last.toFixed(1)} kg. W trakcie redukcji to dobry znak — nie tracisz tkanki miesniowej.` });
+      insights.push({ icon: '🛡️', iconClass: 'info', title: 'Masa miesni utrzymana', body: `Stabilny poziom: ${wMuscleStats.last.toFixed(1)} kg (tygodniowa srednia). Dobry znak w trakcie redukcji.` });
     }
   }
 
-  // Insight 4: Recomposition check
-  if (bfStats && muscleStats && bfStats.count >= 2 && muscleStats.count >= 2) {
-    if (bfStats.diff < 0 && muscleStats.diff > 0) {
-      insights.push({ icon: '🏆', iconClass: 'target', title: 'Recompozycja w toku!', body: `Tracisz tluszcz (${bfStats.diff.toFixed(1)}%) i budujesz miesnie (+${muscleStats.diff.toFixed(1)} kg) jednoczesnie. To najlepszy mozliwy scenariusz!` });
+  // Insight 5: Recomposition
+  if (wBfStats && wMuscleStats && wBfStats.count >= 2 && wMuscleStats.count >= 2) {
+    if (wBfStats.diff < 0 && wMuscleStats.diff > 0) {
+      insights.push({ icon: '🏆', iconClass: 'target', title: 'Recompozycja w toku!', body: `Tracisz tluszcz (${wBfStats.diff.toFixed(1)}%) i budujesz miesnie (+${wMuscleStats.diff.toFixed(1)} kg) jednoczesnie. Najlepszy mozliwy scenariusz!` });
     }
   }
 
-  // Insight 5: BMI category
-  if (bmiStats) {
+  // Insight 6: BMI category
+  if (wBmiStats) {
     let category = '';
-    const bmi = bmiStats.last;
+    const bmi = wBmiStats.last;
     if (bmi < 18.5) category = 'Niedowaga';
     else if (bmi < 25) category = 'Norma';
     else if (bmi < 30) category = 'Nadwaga';
     else category = 'Otylosc';
-    insights.push({ icon: '📐', iconClass: 'info', title: `BMI ${bmi.toFixed(1)} — ${category}`, body: `Pamietaj: BMI nie rozruznia tluszczu od miesni. Przy aktywnym treningu silowym BF% jest lepszym wskaznikiem.` });
+    insights.push({ icon: '📐', iconClass: 'info', title: `BMI ${bmi.toFixed(1)} — ${category}`, body: 'Pamietaj: BMI nie rozruznia tluszczu od miesni. BF% jest lepszym wskaznikiem przy aktywnym treningu.' });
   }
 
-  // Insight 6: Consistency
-  if (filtered.length >= 3) {
-    const daysBetween = [];
-    for (let i = 1; i < filtered.length; i++) {
-      const gap = Math.round((new Date(filtered[i].date) - new Date(filtered[i - 1].date)) / DAY_MS);
-      daysBetween.push(gap);
-    }
-    const avgGap = daysBetween.reduce((a, b) => a + b, 0) / daysBetween.length;
-    if (avgGap <= 7) {
-      insights.push({ icon: '🎯', iconClass: 'success', title: 'Swietna regularnosc!', body: `Sredni odstep miedzy pomiarami: ${avgGap.toFixed(0)} dni. Regularne wazenie to klucz do kontroli postepow.` });
-    } else if (avgGap <= 14) {
-      insights.push({ icon: '📅', iconClass: 'info', title: 'Dobra regularnosc', body: `Sredni odstep: ${avgGap.toFixed(0)} dni. Sprobuj mierzyc sie co tydzien o tej samej porze dnia.` });
-    } else {
-      insights.push({ icon: '⏰', iconClass: 'warning', title: 'Nieregularne pomiary', body: `Sredni odstep: ${avgGap.toFixed(0)} dni. Sprobuj mierzyc sie co tydzien — regularne dane daja lepsze insighty.` });
-    }
-  }
-
-  // Insight 7: Recent momentum (last 3 entries)
-  if (weightStats && filtered.length >= 3) {
-    const last3 = filtered.slice(-3);
-    const recentDiff = (last3[last3.length - 1].weight || 0) - (last3[0].weight || 0);
-    if (Number.isFinite(recentDiff) && recentDiff !== 0) {
-      const direction = recentDiff < 0 ? 'spadek' : 'wzrost';
-      insights.push({ icon: '📈', iconClass: recentDiff < 0 ? 'success' : 'warning', title: `Ostatnie 3 pomiary: ${direction}`, body: `Zmiana: ${recentDiff > 0 ? '+' : ''}${recentDiff.toFixed(1)} kg w ostatnich 3 wpisach. ${recentDiff < 0 ? 'Trend redukcji sie utrzymuje.' : 'Sprawdz, czy to zamierzony kierunek.'}` });
+  // Insight 7: Recent weekly momentum
+  if (wWeightStats && weeklyAvgs.length >= 3) {
+    const last3 = weeklyAvgs.slice(-3);
+    const vals = last3.map(w => w.weight).filter(v => Number.isFinite(v));
+    if (vals.length >= 2) {
+      const recentDiff = vals[vals.length - 1] - vals[0];
+      if (Number.isFinite(recentDiff) && recentDiff !== 0) {
+        const direction = recentDiff < 0 ? 'spadek' : 'wzrost';
+        insights.push({ icon: '📈', iconClass: recentDiff < 0 ? 'success' : 'warning', title: `Ostatnie 3 tygodnie: ${direction}`, body: `Zmiana sredniej tygodniowej: ${recentDiff > 0 ? '+' : ''}${recentDiff.toFixed(1)} kg. ${recentDiff < 0 ? 'Trend redukcji sie utrzymuje.' : 'Sprawdz, czy to zamierzony kierunek.'}` });
+      }
     }
   }
 
@@ -3253,12 +3531,69 @@ function renderBMInsights(filtered) {
 
 function renderBMTable(filtered) {
   const tbody = document.getElementById('bm-table-body');
+  const thead = document.getElementById('bm-table-head');
   if (!tbody) return;
 
   if (!filtered.length) {
+    if (thead) thead.innerHTML = '<tr><th>Data</th><th>Cykl</th><th>Waga</th><th>BMI</th><th>BF%</th><th>Mięśnie</th><th></th></tr>';
     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">Brak danych. Dodaj pierwszy pomiar.</td></tr>';
     return;
   }
+
+  if (bmTableView === 'weekly') {
+    renderBMTableWeekly(filtered, tbody, thead);
+  } else {
+    renderBMTableDaily(filtered, tbody, thead);
+  }
+}
+
+function renderBMTableWeekly(filtered, tbody, thead) {
+  if (thead) thead.innerHTML = `<tr>
+    <th>Tydzień</th>
+    <th>Zakres dat</th>
+    <th>Waga śr.</th>
+    <th>BF% śr.</th>
+    <th>Mięśnie śr.</th>
+    <th>Dni</th>
+  </tr>`;
+
+  const weeklyAvgs = getWeeklyAverages(filtered).slice().reverse();
+
+  if (!weeklyAvgs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">Brak danych tygodniowych.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = weeklyAvgs.map((w, i) => {
+    const prevW = i < weeklyAvgs.length - 1 ? weeklyAvgs[i + 1] : null;
+    const weightChange = prevW && Number.isFinite(w.weight) && Number.isFinite(prevW.weight)
+      ? w.weight - prevW.weight : null;
+    const wChange = weightChange !== null
+      ? ` <span class="bm-table-change ${weightChange <= 0 ? 'up' : 'down'}">${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)}</span>`
+      : '';
+    const isFullWeek = w.count >= 7;
+
+    return `<tr class="bm-week-row">
+      <td><span class="bm-week-key">T${w.week} '${String(w.year).slice(-2)}</span></td>
+      <td class="bm-table-date" style="font-size:11px;">${w.startDate}<br><span style="color:var(--muted)">${w.endDate}</span></td>
+      <td>${Number.isFinite(w.weight) ? w.weight.toFixed(1) + ' kg' : '--'}${wChange}</td>
+      <td>${Number.isFinite(w.bf) ? w.bf.toFixed(1) + '%' : '--'}</td>
+      <td>${Number.isFinite(w.muscle) ? w.muscle.toFixed(1) + ' kg' : '--'}</td>
+      <td><span class="bm-count-badge ${isFullWeek ? 'full' : ''}">${w.count}/7</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBMTableDaily(filtered, tbody, thead) {
+  if (thead) thead.innerHTML = `<tr>
+    <th>Data</th>
+    <th>Cykl</th>
+    <th>Waga</th>
+    <th>BMI</th>
+    <th>BF%</th>
+    <th>Mięśnie</th>
+    <th></th>
+  </tr>`;
 
   const reversed = filtered.slice().reverse();
   tbody.innerHTML = reversed.map((entry, i) => {
@@ -3280,7 +3615,6 @@ function renderBMTable(filtered) {
     </tr>`;
   }).join('');
 
-  // Attach event listeners
   tbody.querySelectorAll('[data-bm-delete]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.bmDelete;
@@ -4126,6 +4460,30 @@ function setupEventListeners() {
         return;
       }
 
+      // Check for duplicate date entry
+      const existingIndex = bodyMetrics.findIndex(e => e.date === date && e.cut === cut);
+      if (existingIndex !== -1) {
+        // Update existing entry instead of adding duplicate
+        const existing = bodyMetrics[existingIndex];
+        const newWeight = parseMetricValue(document.getElementById('metrics-weight')?.value);
+        const newBmi = parseMetricValue(document.getElementById('metrics-bmi')?.value);
+        const newBf = parseMetricValue(document.getElementById('metrics-bf')?.value);
+        const newMuscle = parseMetricValue(document.getElementById('metrics-muscle')?.value);
+        if (newWeight !== null) existing.weight = newWeight;
+        if (newBmi !== null) existing.bmi = newBmi;
+        if (newBf !== null) existing.bf = newBf;
+        if (newMuscle !== null) existing.muscle = newMuscle;
+        selectedCut = cut;
+        saveBodyMetrics('Zaktualizowano wpis z ' + date);
+        updateMetricsFeedback(`Zaktualizowano wpis z ${date}. Już masz pomiar na ten dzień — wartości podmienione.`, 'success');
+        renderBodyMetrics();
+        ['metrics-weight', 'metrics-bmi', 'metrics-bf', 'metrics-muscle'].forEach(id => {
+          const input = document.getElementById(id);
+          if (input) input.value = '';
+        });
+        return;
+      }
+
       const entry = {
         id: `metric_${Date.now()}_${Math.random().toString(16).slice(2)}`,
         date,
@@ -4138,11 +4496,35 @@ function setupEventListeners() {
 
       bodyMetrics.push(entry);
       selectedCut = cut;
-      const sortedCut = getMetricsForCut(cut);
-      const currentIndex = sortedCut.findIndex(item => item.id === entry.id);
-      const previous = currentIndex > 0 ? sortedCut[currentIndex - 1] : null;
-      const progress = evaluateProgress(entry, previous);
-      updateMetricsFeedback(progress.message, progress.tone);
+
+      // Calculate feedback based on weekly averages
+      const filtered = getMetricsForCut(cut);
+      const weeklyAvgs = getWeeklyAverages(filtered);
+      const currentWeekKey = (() => {
+        const info = getISOWeekInfo(parseDate(date));
+        return `${info.year}-W${String(info.week).padStart(2, '0')}`;
+      })();
+      const thisWeek = weeklyAvgs.find(w => w.weekKey === currentWeekKey);
+
+      let feedbackMsg = `Zapisano pomiar na ${date}.`;
+      let feedbackTone = 'success';
+      if (thisWeek) {
+        feedbackMsg += ` Ten tydzień: ${thisWeek.count} dzień. `;
+        if (thisWeek.count >= 7) feedbackMsg += '🎯 Pełny tydzień — najlepsza możliwa średnia!';
+        else if (thisWeek.count >= 5) feedbackMsg += '👍 Solidna seria tygodniowa.';
+        else feedbackMsg += `Jeszcze ${7 - thisWeek.count} pomiarów do pełnego tygodnia.`;
+      }
+      if (weeklyAvgs.length >= 2) {
+        const prev = weeklyAvgs[weeklyAvgs.length - 2];
+        const curr = weeklyAvgs[weeklyAvgs.length - 1];
+        if (curr.weekKey !== prev.weekKey && Number.isFinite(curr.weight) && Number.isFinite(prev.weight)) {
+          const diff = curr.weight - prev.weight;
+          feedbackMsg += ` Zmiana śr. wagi tydzień do tygodnia: ${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg.`;
+          if (diff > 0) feedbackTone = 'warning';
+        }
+      }
+
+      updateMetricsFeedback(feedbackMsg, feedbackTone);
       saveBodyMetrics('Zapisano log wagi');
       renderBodyMetrics();
 
@@ -4150,6 +4532,17 @@ function setupEventListeners() {
         const input = document.getElementById(id);
         if (input) input.value = '';
       });
+      // Advance date to tomorrow for easy daily logging
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayStr = toYYYYMMDD(nextDay);
+      const today = toYYYYMMDD(new Date());
+      const dateInput = document.getElementById('metrics-date');
+      if (dateInput && nextDayStr <= today) {
+        dateInput.value = nextDayStr;
+      } else if (dateInput) {
+        dateInput.value = today;
+      }
     });
   }
 
@@ -4164,6 +4557,16 @@ function setupEventListeners() {
   document.getElementById('metrics-cut-filter')?.addEventListener('change', event => {
     selectedCut = event.target.value;
     renderBodyMetrics();
+  });
+
+  // Table view toggle (weekly / daily)
+  document.querySelectorAll('.bm-table-view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      bmTableView = tab.dataset.view;
+      document.querySelectorAll('.bm-table-view-tab').forEach(t => t.classList.toggle('is-active', t === tab));
+      renderBMTable(getMetricsForCut(selectedCut));
+      lucide.createIcons();
+    });
   });
 
   // Form toggle for body metrics dashboard

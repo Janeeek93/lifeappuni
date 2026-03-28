@@ -4708,6 +4708,8 @@
             <div class="badge">Portfolio Tracker v2</div>
             <div class="row" style="gap:8px">
               <button class="btn ghost" type="button" id="inv-clipboard-export" title="Kopiuj podsumowanie portfela do schowka">Eksport do schowka</button>
+              <button class="btn ghost" type="button" id="inv-export-json" title="Pobierz pełną historię inwestycji jako JSON">Eksport AI (JSON)</button>
+              <button class="btn ghost" type="button" id="inv-export-csv" title="Pobierz historię transakcji jako CSV">Eksport transakcji (CSV)</button>
               <button class="btn ghost" type="button" id="inv-asset-modal-open">Zarządzaj aktywami</button>
             </div>
           </div>
@@ -8595,6 +8597,178 @@
     });
   }
 
+  function downloadTextFile(filename, content, mimeType='text/plain;charset=utf-8'){
+    const blob=new Blob([content],{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0);
+  }
+
+  function buildInvestmentAiExportPayload(){
+    const data=investments();
+    const stats=computePortfolioStats();
+    const cur=state.currency;
+    const assetsById=Object.fromEntries((data.assets||[]).map(a=>[a.id,a]));
+    const sortedTrades=[...(data.trades||[])].sort((a,b2)=>String(a.date||'').localeCompare(String(b2.date||'')));
+
+    const lotState={};
+    const runningByAsset={};
+    let reinvestPool=0;
+    let capitalFromBudget=0;
+    let capitalReturned=0;
+    let realizedPnl=0;
+
+    const timeline=sortedTrades.map((t,idx)=>{
+      const asset=assetsById[t.assetId]||null;
+      const assetName=asset?.name||t.assetId;
+      if(!lotState[t.assetId]) lotState[t.assetId]=[];
+      if(!runningByAsset[t.assetId]) runningByAsset[t.assetId]={qty:0,costBasis:0};
+      const lots=lotState[t.assetId];
+      const run=runningByAsset[t.assetId];
+      let tradeCostBasis=0;
+      let tradeRealizedPnl=0;
+
+      if(t.side==='sell'){
+        let remaining=num(t.quantity);
+        while(remaining>0.000001&&lots.length){
+          const lot=lots[0];
+          const take=Math.min(remaining,lot.qty);
+          tradeCostBasis+=take*lot.costPerUnit;
+          lot.qty-=take;
+          remaining-=take;
+          if(lot.qty<0.000001) lots.shift();
+        }
+        run.qty=lots.reduce((s,l)=>s+l.qty,0);
+        run.costBasis=lots.reduce((s,l)=>s+l.qty*l.costPerUnit,0);
+        tradeRealizedPnl=num(t.amount)-tradeCostBasis;
+        realizedPnl+=tradeRealizedPnl;
+        if(t.sellDestination==='budget') capitalReturned+=num(t.amount);
+        else reinvestPool+=num(t.amount);
+      } else {
+        const qty=num(t.quantity);
+        const amt=num(t.amount);
+        if(qty>0) lots.push({qty,costPerUnit:amt/qty});
+        run.qty=lots.reduce((s,l)=>s+l.qty,0);
+        run.costBasis=lots.reduce((s,l)=>s+l.qty*l.costPerUnit,0);
+        if(t.fundSource==='reinvest') reinvestPool-=amt;
+        else capitalFromBudget+=amt;
+      }
+
+      const openCostBasis=Object.values(runningByAsset).reduce((s,v)=>s+v.costBasis,0);
+      const marketValueUsingCurrentPrices=Object.entries(runningByAsset).reduce((sum,[assetId,val])=>{
+        if(val.qty<=0.000001) return sum;
+        const currentPrice=num(assetsById[assetId]?.currentPrice);
+        if(currentPrice>0) return sum+(val.qty*currentPrice);
+        return sum+val.costBasis;
+      },0);
+
+      return {
+        index:idx+1,
+        date:t.date||'',
+        side:t.side==='sell'?'sell':'buy',
+        assetId:t.assetId,
+        assetName,
+        group:asset?.group||'Inne',
+        quantity:num(t.quantity),
+        amount:num(t.amount),
+        pricePerUnit:num(t.quantity)>0?num(t.amount)/num(t.quantity):0,
+        fundSource:t.fundSource||null,
+        sellDestination:t.sellDestination||null,
+        note:t.note||'',
+        realizedPnlOnTrade:tradeRealizedPnl,
+        costBasisClosedOnTrade:tradeCostBasis,
+        running:{
+          reinvestPool:Math.max(0,reinvestPool),
+          capitalFromBudget,
+          capitalReturned,
+          netFromBudget:capitalFromBudget-capitalReturned,
+          realizedPnl,
+          openCostBasis,
+          marketValueUsingCurrentPrices,
+          totalPnlUsingCurrentPrices:realizedPnl+(marketValueUsingCurrentPrices-openCostBasis)
+        }
+      };
+    });
+
+    const tradesForCsv=timeline.map(row=>({
+      date:row.date,
+      side:row.side,
+      asset:row.assetName,
+      group:row.group,
+      quantity:row.quantity,
+      amount:row.amount,
+      pricePerUnit:row.pricePerUnit,
+      fundSource:row.fundSource||'',
+      sellDestination:row.sellDestination||'',
+      realizedPnlOnTrade:row.realizedPnlOnTrade,
+      reinvestPoolAfterTrade:row.running.reinvestPool,
+      openCostBasisAfterTrade:row.running.openCostBasis,
+      marketValueUsingCurrentPricesAfterTrade:row.running.marketValueUsingCurrentPrices,
+      totalPnlUsingCurrentPricesAfterTrade:row.running.totalPnlUsingCurrentPrices,
+      note:row.note
+    }));
+
+    return {
+      meta:{
+        generatedAt:new Date().toISOString(),
+        currency:cur,
+        source:'lifeappuni/budget.html',
+        schemaVersion:'investment-export-v1'
+      },
+      summary:{
+        holdingsCount:stats.holdings.filter(h=>h.qty>0.000001).length,
+        tradesCount:data.trades.length,
+        capitalFromBudget:stats.capitalFromBudget,
+        capitalReturned:stats.capitalReturned,
+        netFromBudget:stats.netFromBudget,
+        reinvestPool:stats.reinvestPool,
+        totalCostBasis:stats.totalCostBasis,
+        totalMarketValue:stats.totalMarketValue,
+        totalRealizedPnl:stats.totalRealizedPnl,
+        totalUnrealizedPnl:stats.totalUnrealizedPnl,
+        totalPnl:stats.totalPnl,
+        roi:stats.roi
+      },
+      assets:data.assets,
+      holdings:stats.holdings,
+      trades:data.trades,
+      timelineByTrade:timeline,
+      tradesForCsv
+    };
+  }
+
+  function toCsvCell(value){
+    const raw=value===null||value===undefined?'':String(value);
+    return /[";,\n]/.test(raw)?`"${raw.replace(/"/g,'""')}"`:raw;
+  }
+
+  function buildInvestmentTradesCsv(rows){
+    if(!rows.length) return 'date;side;asset;group;quantity;amount;pricePerUnit;fundSource;sellDestination;realizedPnlOnTrade;reinvestPoolAfterTrade;openCostBasisAfterTrade;marketValueUsingCurrentPricesAfterTrade;totalPnlUsingCurrentPricesAfterTrade;note';
+    const headers=Object.keys(rows[0]);
+    const lines=[headers.join(';')];
+    for(const row of rows){
+      lines.push(headers.map(key=>toCsvCell(row[key])).join(';'));
+    }
+    return lines.join('\n');
+  }
+
+  function exportInvestmentsJson(){
+    const payload=buildInvestmentAiExportPayload();
+    const stamp=new Date().toISOString().slice(0,10);
+    downloadTextFile(`inwestycje_historia_${stamp}.json`, JSON.stringify(payload,null,2), 'application/json;charset=utf-8');
+  }
+
+  function exportInvestmentsCsv(){
+    const payload=buildInvestmentAiExportPayload();
+    const csv=buildInvestmentTradesCsv(payload.tradesForCsv);
+    const stamp=new Date().toISOString().slice(0,10);
+    downloadTextFile(`inwestycje_transakcje_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
+  }
+
   // --- Clipboard Export ------------------------------------------------------
   function buildPortfolioClipboardText(){
     const stats=computePortfolioStats();
@@ -8768,6 +8942,10 @@
     if(modalRefreshBtn&&!modalRefreshBtn._bound){modalRefreshBtn._bound=true;modalRefreshBtn.onclick=refreshInvestmentPrices;}
     const clipExportBtn=document.getElementById('inv-clipboard-export');
     if(clipExportBtn&&!clipExportBtn._bound){clipExportBtn._bound=true;clipExportBtn.onclick=invClipboardExport;}
+    const exportJsonBtn=document.getElementById('inv-export-json');
+    if(exportJsonBtn&&!exportJsonBtn._bound){exportJsonBtn._bound=true;exportJsonBtn.onclick=exportInvestmentsJson;}
+    const exportCsvBtn=document.getElementById('inv-export-csv');
+    if(exportCsvBtn&&!exportCsvBtn._bound){exportCsvBtn._bound=true;exportCsvBtn.onclick=exportInvestmentsCsv;}
     renderAssetManagerList(data.assets,data.trades);
 
     // Buy form
@@ -11649,7 +11827,10 @@
 
   function getInvestmentSnapshot(){
     const stats=computePortfolioStats();
-    const sourceMap={portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis};
+    const sourceMap={
+      portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis,
+      reinvestPool:stats.reinvestPool
+    };
     for(const h of stats.holdings){
       if(h.qty<=0.000001) continue;
       const val=h.marketValue!==null?h.marketValue:h.costBasis;
@@ -11662,6 +11843,7 @@
 
   function getInvestmentBridgeOptions(snapshot){
     const opts=[{value:'portfolio',label:'Cały portfel inwestycyjny'}];
+    opts.push({value:'reinvestPool',label:'Pula reinwestycyjna (gotówka maklerska)'});
     const groupPairs=Object.keys(snapshot.sourceMap)
       .filter(k=>k.startsWith('group:'))
       .map(k=>({key:k,name:k.slice(6)}))
