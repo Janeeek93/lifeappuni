@@ -8568,7 +8568,7 @@
     }
 
     // --- Monthly Performance Table ---
-    renderInvHubMonthlyPerf(snaps,cur);
+    renderInvHubMonthlyPerf(snaps,cur,deposits);
 
     // --- Forecast Simulator ---
     renderInvHubForecast(stats,deposits);
@@ -8598,18 +8598,26 @@
   }
 
   // --- Monthly Performance Table ---
-  function renderInvHubMonthlyPerf(snaps,cur){
+  function renderInvHubMonthlyPerf(snaps,cur,deposits){
     const container=document.getElementById('inv-hub-monthly-perf');
     if(!container) return;
-    if(!snaps.length){
+    const hasDepositMonths=Object.keys(deposits?.monthlyNet||{}).length>0;
+    if(!snaps.length && !hasDepositMonths){
       container.innerHTML='<div class="inv-hub-empty">Brak snapshotów — zapisz pierwsze snapshoty, aby śledzić wyniki miesięczne.</div>';
       return;
     }
     // Group by month, take last snapshot of each
     const mGroups={};
     for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
-    const months=Object.keys(mGroups).sort();
+    const depositMonths=Object.keys(deposits?.monthlyNet||{}).sort();
+    const months=[...new Set([...Object.keys(mGroups),...depositMonths])].sort();
     if(!months.length){ container.innerHTML='<div class="inv-hub-empty">Brak danych</div>'; return; }
+    const capitalCumByMonth={};
+    let runningNet=0;
+    for(const m of months){
+      runningNet+=(deposits?.monthlyNet?.[m]||0);
+      capitalCumByMonth[m]=runningNet;
+    }
 
     let html=`<div class="table-wrapper"><table class="inv-hub-monthly-table">
       <thead><tr>
@@ -8618,30 +8626,45 @@
         <th>ROI&nbsp;%</th>
         <th>Δ P&amp;L vs prev.</th>
         <th>Δ ROI</th>
+        <th>MoM majątek netto</th>
         <th>Wartość portfela</th>
         <th>Zainwestowano</th>
       </tr></thead><tbody>`;
 
+    let prevNetWealth=null;
     for(let i=0;i<months.length;i++){
       const m=months[i];
-      const s=mGroups[m];
-      const prev=i>0?mGroups[months[i-1]]:null;
-      const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
-      const deltaRoi=prev!=null?s.roi-prev.roi:null;
+      const snap=mGroups[m];
+      const isSynthetic=!snap;
+      const s=snap||{
+        totalPnl:0,
+        roi:0,
+        portfolioValue:capitalCumByMonth[m]||0,
+        capitalFromBudget:capitalCumByMonth[m]||0
+      };
+      const prevMonth=i>0?months[i-1]:null;
+      const prev=prevMonth?(mGroups[prevMonth]||null):null;
+      const deltaPnl=!isSynthetic&&prev!=null?s.totalPnl-prev.totalPnl:null;
+      const deltaRoi=!isSynthetic&&prev!=null?s.roi-prev.roi:null;
       const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
       const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
       const dPnlCls=deltaPnl!=null?(deltaPnl>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
       const dRoiCls=deltaRoi!=null?(deltaRoi>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
       const badgeCls=s.roi>=2?'inv-hub-pill-pos':s.roi<0?'inv-hub-pill-neg':'inv-hub-pill-neu';
+      const netWealth=s.portfolioValue;
+      const deltaWealth=prevNetWealth!=null?netWealth-prevNetWealth:null;
+      const deltaWealthCls=deltaWealth!=null?(deltaWealth>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
       html+=`<tr>
-        <td><span class="inv-hub-month-badge ${badgeCls}">${m}</span></td>
+        <td><span class="inv-hub-month-badge ${badgeCls}">${m}</span>${isSynthetic?'<span class="tiny muted" style="margin-left:6px">bez snapshotu</span>':''}</td>
         <td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td>
-        <td class="${roiCls}"><strong>${s.roi.toFixed(2)}%</strong></td>
+        <td class="${roiCls}"><strong>${(isSynthetic?0:s.roi).toFixed(2)}%</strong></td>
         <td class="${dPnlCls}">${deltaPnl!=null?(deltaPnl>=0?'+':'')+fmt(deltaPnl,cur):'—'}</td>
         <td class="${dRoiCls}">${deltaRoi!=null?(deltaRoi>=0?'+':'')+deltaRoi.toFixed(2)+'%':'—'}</td>
+        <td class="${deltaWealthCls}">${deltaWealth!=null?(deltaWealth>=0?'+':'')+fmt(deltaWealth,cur):'—'}</td>
         <td>${fmt(s.portfolioValue,cur)}</td>
         <td>${fmt(s.capitalFromBudget,cur)}</td>
       </tr>`;
+      prevNetWealth=netWealth;
     }
     html+='</tbody></table></div>';
     container.innerHTML=html;
@@ -8782,6 +8805,12 @@
     const histMonths=Object.keys(mGroups).sort().filter(m=>m<=openMonth);
     const dataOnlyMonths=netMonthKeys.filter(m=>m<=openMonth);
     const histDisplayMonths=[...new Set([...histMonths,...dataOnlyMonths])].sort();
+    const capitalCumByMonth={};
+    let runningNet=0;
+    for(const m of histDisplayMonths){
+      runningNet+=(deposits.monthlyNet?.[m]||0);
+      capitalCumByMonth[m]=runningNet;
+    }
 
     // --- Historical P&L panel ---
     const histEl=el('inv-hub-hist-monthly');
@@ -8835,7 +8864,7 @@
 
     // Build combined chart data: historical (from snapshots) + forecast
     // Historical months that have snapshot data
-    const prevHistMonths=histMonths.filter(m=>m<openMonth);
+    const prevHistMonths=histDisplayMonths.filter(m=>m<openMonth);
     const combinedLabels=[...prevHistMonths,...forecastLabels];
     // Remove duplicates (current month appears in both)
     const allLabels=[...new Set(combinedLabels)].sort();
@@ -8846,6 +8875,10 @@
         const s=mGroups[m];
         const histRoi=s.capitalFromBudget>0?s.totalPnl/s.capitalFromBudget*100:0;
         return {monthLabel:m,value:s.portfolioValue,capital:s.capitalFromBudget,interest:Math.max(0,s.portfolioValue-s.capitalFromBudget),roi:histRoi,isHist:true};
+      }
+      if(m<openMonth){
+        const syntheticCap=capitalCumByMonth[m]||0;
+        return {monthLabel:m,value:syntheticCap,capital:syntheticCap,interest:0,roi:0,isHist:true,isSyntheticHist:true};
       }
       return forecastRows.find(r=>r.monthLabel===m)||null;
     }).filter(Boolean);
@@ -8878,7 +8911,9 @@
       const targetGain=targetRow.value-targetRow.capital;
       const deltaFromToday=targetRow.value-currentVal;
       const horizonGrowthPct=currentVal>0?((final.value/currentVal)-1)*100:0;
-      const yearlyCagr=years>0&&currentVal>0?((Math.pow(final.value/currentVal,1/years)-1)*100):0;
+      const baseOnlyFinal=currentVal*Math.pow(1+monthlyRate,monthsForward);
+      const baseOnlyGain=baseOnlyFinal-currentVal;
+      const baseOnlyGainPct=currentVal>0?(baseOnlyGain/currentVal)*100:0;
       const selectedMonthDelta=targetMonthInput?.value===openMonth?'Dziś':`Zmiana do ${escapeHtml(targetRow.monthLabel)}`;
       const trendInfo=trendMonths.length
         ?`Bazuje na ${trendMonths.length} zamkniętych mies. → bilans netto ${fmt(avgTrendMonthly,cur)}/mies.`
@@ -8924,8 +8959,8 @@
           <span class="inv-hub-sim-stat__value ${gainVsCapital>=0?'positive':'negative'}">${fmt(gainVsCapital,cur)}</span>
         </div>
         <div class="inv-hub-sim-stat">
-          <span class="inv-hub-sim-stat__label">Szacowany CAGR</span>
-          <span class="inv-hub-sim-stat__value ${yearlyCagr>=0?'positive':'negative'}">${Number.isFinite(yearlyCagr)?`${yearlyCagr.toFixed(2)}%`:'—'}</span>
+          <span class="inv-hub-sim-stat__label">Wzrost bez nowych wpłat</span>
+          <span class="inv-hub-sim-stat__value ${baseOnlyGain>=0?'positive':'negative'}">${fmt(baseOnlyGain,cur)} (${baseOnlyGainPct>=0?'+':''}${baseOnlyGainPct.toFixed(1)}%)</span>
         </div>
         <div class="inv-hub-sim-stat">
           <span class="inv-hub-sim-stat__label">Miesięczny wkład</span>
