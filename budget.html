@@ -208,9 +208,23 @@
     .inv-hub-dca-bar-wrap { position:relative; height:6px; border-radius:3px; background:rgba(148,163,184,.18); overflow:hidden; margin-top:4px; min-width:60px; }
     .inv-hub-dca-bar { position:absolute; left:0; top:0; height:100%; border-radius:3px; }
 
-    /* --- Forecast ROI callout ------------------------------------------------ */
-    .inv-hub-roi-callout { display:inline-flex; align-items:baseline; gap:5px; font-size:22px; font-weight:800; }
-    .inv-hub-roi-callout .unit { font-size:13px; font-weight:600; opacity:.8; }
+    /* --- Simulation result cards --------------------------------------------- */
+    .inv-hub-sim-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+    .inv-hub-sim-card { border-radius:14px; padding:14px 16px; border:1px solid; }
+    .inv-hub-sim-card--blue { background:rgba(37,99,235,.06); border-color:rgba(37,99,235,.2); }
+    .inv-hub-sim-card--green { background:rgba(5,150,105,.06); border-color:rgba(5,150,105,.2); }
+    .inv-hub-sim-card--purple { background:rgba(139,92,246,.06); border-color:rgba(139,92,246,.2); }
+    .inv-hub-sim-card__label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:6px; }
+    .inv-hub-sim-card--blue .inv-hub-sim-card__label { color:#2563eb; }
+    .inv-hub-sim-card--green .inv-hub-sim-card__label { color:#059669; }
+    .inv-hub-sim-card--purple .inv-hub-sim-card__label { color:#7c3aed; }
+    .inv-hub-sim-card__value { font-size:22px; font-weight:800; color:var(--ink); line-height:1.1; }
+    .inv-hub-sim-card--green .inv-hub-sim-card__value { color:#059669; }
+    .inv-hub-sim-card--purple .inv-hub-sim-card__value { color:#7c3aed; }
+    .inv-hub-sim-card__roi { font-size:14px; font-weight:700; margin:3px 0 5px; }
+    .inv-hub-sim-card--green .inv-hub-sim-card__roi { color:#16a34a; }
+    .inv-hub-sim-card--purple .inv-hub-sim-card__roi { color:#6d28d9; }
+    .inv-hub-sim-card__detail { font-size:11px; color:var(--muted); line-height:1.5; }
 
     /* --- Chart card control row --------------------------------------------- */
     .inv-hub-chart-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
@@ -5044,16 +5058,6 @@
                   <div class="table-wrapper" id="inv-hub-monthly-perf"></div>
                 </div>
 
-                <!-- ── Section: Analiza DCA ── -->
-                <hr class="inv-hub-section-divider">
-                <div class="inv-hub-section-header">
-                  <span class="inv-hub-section-title">Analiza DCA — średni koszt vs cena bieżąca</span>
-                  <span class="muted" style="font-size:10px">Aktywne pozycje z cenami rynkowymi</span>
-                </div>
-                <div class="inv-hub-structure-card">
-                  <div id="inv-hub-dca-grid"></div>
-                </div>
-
                 <!-- ── Section: Symulacja portfela ── -->
                 <hr class="inv-hub-section-divider">
                 <div class="inv-hub-section-header">
@@ -8493,12 +8497,13 @@
       const active=stats.holdings.filter(h=>h.qty>0.000001);
       if(active.length>0){
         const sorted=[...active].sort((a,b)=>{
-          const pnlA=a.pnl||0, pnlB=b.pnl||0;
+          const pnlA=a.marketValue!=null?(a.marketValue-a.costBasis):0;
+          const pnlB=b.marketValue!=null?(b.marketValue-b.costBasis):0;
           return pnlB-pnlA;
         });
         const labels=sorted.map(h=>h.name);
-        const pnlData=sorted.map(h=>+(h.pnl||0).toFixed(2));
-        const roiData=sorted.map(h=>+(h.roi||0).toFixed(2));
+        const pnlData=sorted.map(h=>+(h.marketValue!=null?(h.marketValue-h.costBasis):0).toFixed(2));
+        const roiData=sorted.map(h=>+(h.costBasis>0&&h.marketValue!=null?((h.marketValue-h.costBasis)/h.costBasis*100):0).toFixed(2));
         const barColors=pnlData.map(v=>v>=0?colorWithAlpha('#22c55e',.75):colorWithAlpha('#ef4444',.75));
 
         invHubTopChart=new Chart(topCanvas.getContext('2d'),{
@@ -8524,9 +8529,6 @@
 
     // --- Monthly Performance Table ---
     renderInvHubMonthlyPerf(snaps,cur);
-
-    // --- DCA Analysis ---
-    renderInvHubDca(stats,cur);
 
     // --- Forecast Simulator ---
     renderInvHubForecast(stats,deposits);
@@ -8732,47 +8734,44 @@
     const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
     const currentInvested=stats.capitalFromBudget;
 
-    // --- Historical monthly P&L panel (from snapshots) ---
+    // --- Historical monthly snapshots (end-of-month) ---
     const snaps=invHubSnapshots();
+    const mGroups={};
+    for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
+    const histMonths=Object.keys(mGroups).sort().filter(m=>m<=openMonth);
+
+    // --- Historical P&L panel ---
     const histEl=el('inv-hub-hist-monthly');
     if(histEl){
-      if(snaps.length){
-        const mGroups={};
-        for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
-        const months=Object.keys(mGroups).sort();
-        if(months.length){
-          let hHtml=`<div style=”font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px”>Historyczne P&amp;L i ROI na koniec miesiąca (z Twoich snapshotów)</div>`;
-          hHtml+=`<div style=”display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px”>`;
-          for(let i=0;i<months.length;i++){
-            const m=months[i];
-            const s=mGroups[m];
-            const prev=i>0?mGroups[months[i-1]]:null;
-            const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
-            const bg=s.roi>=2?'rgba(34,197,94,.1)':s.roi<0?'rgba(239,68,68,.08)':'rgba(148,163,184,.1)';
-            const clr=s.roi>=2?'#16a34a':s.roi<0?'#dc2626':'var(--muted)';
-            const border=s.roi>=2?'rgba(34,197,94,.3)':s.roi<0?'rgba(239,68,68,.25)':'rgba(148,163,184,.2)';
-            hHtml+=`<div style=”padding:8px 12px;border-radius:10px;background:${bg};border:1px solid ${border};min-width:120px”>
-              <div style=”font-size:10px;font-weight:700;color:var(--muted)”>${m}</div>
-              <div style=”font-size:15px;font-weight:800;color:${clr}”>${s.roi.toFixed(2)}%</div>
-              <div style=”font-size:10px;color:var(--muted)”>P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
-              ${deltaPnl!=null?`<div style=”font-size:10px;color:${deltaPnl>=0?'#16a34a':'#dc2626'}”>Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
-            </div>`;
-          }
-          hHtml+='</div>';
-          histEl.innerHTML=hHtml;
-        } else {
-          histEl.innerHTML='';
+      if(histMonths.length){
+        let hHtml='<div style=”display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px”>';
+        for(let i=0;i<histMonths.length;i++){
+          const m=histMonths[i];
+          const s=mGroups[m];
+          const prev=i>0?mGroups[histMonths[i-1]]:null;
+          const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
+          const isPos=s.roi>=0;
+          const borderClr=isPos?'#22c55e':'#ef4444';
+          const roiClr=isPos?'#16a34a':'#dc2626';
+          hHtml+=`<div style=”border:1px solid ${borderClr}33;border-left:3px solid ${borderClr};border-radius:10px;padding:10px 12px;background:var(--surface)”>
+            <div style=”font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px”>${m}</div>
+            <div style=”font-size:18px;font-weight:800;color:${roiClr};line-height:1”>${s.roi.toFixed(2)}<span style=”font-size:11px;font-weight:600”>%</span></div>
+            <div style=”font-size:11px;color:var(--muted);margin-top:3px”>${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
+            ${deltaPnl!=null?`<div style=”font-size:10px;font-weight:600;color:${deltaPnl>=0?'#16a34a':'#dc2626'};margin-top:2px”>Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
+          </div>`;
         }
+        hHtml+='</div>';
+        histEl.innerHTML=hHtml;
       } else {
-        histEl.innerHTML=`<div class=”inv-hub-empty” style=”padding:12px 0;font-size:12px”>Brak snapshotów — kliknij „Zapisz dzisiejszy snapshot” powyżej, aby zacząć śledzić miesięczne wyniki.</div>`;
+        histEl.innerHTML='<p class=”muted” style=”font-size:12px;margin:0”>Brak snapshotów — zapisz pierwszy snapshot, aby zobaczyć historię miesięczną.</p>';
       }
     }
 
+    // --- Forecast rows (starting from current month) ---
     const monthsForward=years*12;
     const monthlyRate=rate/100/12;
-
     const startDate=new Date(now.getFullYear(),now.getMonth(),1);
-    const labels=[];
+    const forecastLabels=[];
     const forecastRows=[];
 
     let balance=currentVal;
@@ -8784,77 +8783,103 @@
       }
       const d=new Date(startDate.getFullYear(),startDate.getMonth()+i,1);
       const monthLabel=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      labels.push(monthLabel);
+      forecastLabels.push(monthLabel);
       const roi=totalCapital>0?(balance-totalCapital)/totalCapital*100:0;
-      forecastRows.push({monthLabel,value:balance,capital:totalCapital,interest:balance-totalCapital,roi});
+      forecastRows.push({monthLabel,value:balance,capital:totalCapital,interest:Math.max(0,balance-totalCapital),roi,isHist:false});
     }
 
+    // Build combined chart data: historical (from snapshots) + forecast
+    // Historical months that have snapshot data
+    const prevHistMonths=histMonths.filter(m=>m<openMonth);
+    const combinedLabels=[...prevHistMonths,...forecastLabels];
+    // Remove duplicates (current month appears in both)
+    const allLabels=[...new Set(combinedLabels)].sort();
+
+    const histSplitIdx=allLabels.indexOf(openMonth); // index where forecast begins
+    const allRows=allLabels.map(m=>{
+      if(m<openMonth&&mGroups[m]){
+        const s=mGroups[m];
+        const histRoi=s.capitalFromBudget>0?s.totalPnl/s.capitalFromBudget*100:0;
+        return {monthLabel:m,value:s.portfolioValue,capital:s.capitalFromBudget,interest:Math.max(0,s.portfolioValue-s.capitalFromBudget),roi:histRoi,isHist:true};
+      }
+      return forecastRows.find(r=>r.monthLabel===m)||null;
+    }).filter(Boolean);
+
     const final=forecastRows[forecastRows.length-1];
+    const allLabelsClean=allRows.map(r=>r.monthLabel);
 
     if(targetMonthInput){
-      if(!targetMonthInput.value||targetMonthInput.value<labels[0]||targetMonthInput.value>labels[labels.length-1]){
+      const tMin=allLabelsClean[0];
+      const tMax=allLabelsClean[allLabelsClean.length-1];
+      if(!targetMonthInput.value||targetMonthInput.value<tMin||targetMonthInput.value>tMax){
         const def=new Date(startDate.getFullYear(),startDate.getMonth()+Math.min(12,monthsForward),1);
         targetMonthInput.value=`${def.getFullYear()}-${String(def.getMonth()+1).padStart(2,'0')}`;
       }
-      targetMonthInput.min=labels[0];
-      targetMonthInput.max=labels[labels.length-1];
+      targetMonthInput.min=tMin;
+      targetMonthInput.max=tMax;
     }
 
     const targetMonth=targetMonthInput?.value;
-    const targetRow=forecastRows.find(r=>r.monthLabel===targetMonth)||final;
+    const targetRow=allRows.find(r=>r.monthLabel===targetMonth)||final;
 
+    // --- Result cards ---
     const resultEl=el('inv-hub-calc-result');
     if(resultEl){
-      resultEl.style.display='block';
+      resultEl.style.display='';
       const trendInfo=trendMonths.length
-        ?`Trend z ${trendMonths.length} zamkniętych mies.: ${fmt(avgTrendMonthly,cur)}/mies.`
-        :'Brak zamkniętych miesięcy z wpłatami — tempo wpłat = 0.';
-      const finalRoiStr=final.roi.toFixed(1)+'%';
-      const targetRoiStr=targetRow.roi.toFixed(1)+'%';
-      resultEl.innerHTML=`
-        <div style=”display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px”>
-          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#2563eb',.07)};border:1px solid ${colorWithAlpha('#2563eb',.18)}”>
-            <div style=”font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:.04em”>Parametry symulacji</div>
-            <div style=”font-size:11px;color:var(--muted);margin-top:5px”>${escapeHtml(trendInfo)}</div>
-            <div style=”font-size:11px;color:var(--muted)”>Mnożnik: ${multiplier.toFixed(2)}× → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
-            <div style=”font-size:11px;color:var(--muted)”>Stopa: ${rate.toFixed(2)}% rocznie | Horyzont: ${years} lat</div>
-          </div>
-          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#059669',.07)};border:1px solid ${colorWithAlpha('#059669',.18)}”>
-            <div style=”font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.04em”>Koniec horyzontu (${final.monthLabel})</div>
-            <div style=”font-size:20px;font-weight:800;color:#059669;margin:5px 0 2px”>${fmt(final.value,cur)}</div>
-            <div style=”font-size:13px;font-weight:700;color:#16a34a;margin-bottom:4px”>ROI: ${finalRoiStr}</div>
-            <div style=”font-size:11px;color:var(--muted)”>Kapitał: ${fmt(final.capital,cur)} | Zysk: ${fmt(final.interest,cur)}</div>
-          </div>
-          <div style=”padding:12px;border-radius:12px;background:${colorWithAlpha('#8b5cf6',.07)};border:1px solid ${colorWithAlpha('#8b5cf6',.18)}”>
-            <div style=”font-size:10px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.04em”>Podgląd: ${escapeHtml(targetRow.monthLabel)}</div>
-            <div style=”font-size:20px;font-weight:800;color:#8b5cf6;margin:5px 0 2px”>${fmt(targetRow.value,cur)}</div>
-            <div style=”font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:4px”>ROI: ${targetRoiStr}</div>
-            <div style=”font-size:11px;color:var(--muted)”>Kapitał: ${fmt(targetRow.capital,cur)} | Zysk: ${fmt(targetRow.interest,cur)}</div>
-          </div>
+        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → śr. ${fmt(avgTrendMonthly,cur)}/mies.`
+        :'Brak zamkniętych miesięcy — tempo wpłat = 0.';
+      resultEl.innerHTML=`<div class=”inv-hub-sim-cards”>
+        <div class=”inv-hub-sim-card inv-hub-sim-card--blue”>
+          <div class=”inv-hub-sim-card__label”>Parametry</div>
+          <div class=”inv-hub-sim-card__detail”>${escapeHtml(trendInfo)}</div>
+          <div class=”inv-hub-sim-card__detail”>Mnożnik <strong>${multiplier.toFixed(2)}×</strong> → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
+          <div class=”inv-hub-sim-card__detail”>Stopa <strong>${rate.toFixed(2)}%</strong> · Horyzont <strong>${years} lat</strong></div>
         </div>
-        <div style=”font-size:11px;color:var(--muted);margin-top:8px”>Kliknij słupek na wykresie, aby zaktualizować kafelek „Podgląd miesiąca”.</div>`;
+        <div class=”inv-hub-sim-card inv-hub-sim-card--green”>
+          <div class=”inv-hub-sim-card__label”>Koniec horyzontu · ${final.monthLabel}</div>
+          <div class=”inv-hub-sim-card__value”>${fmt(final.value,cur)}</div>
+          <div class=”inv-hub-sim-card__roi”>ROI ${final.roi.toFixed(1)}%</div>
+          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(final.capital,cur)} · Zysk ${fmt(final.interest,cur)}</div>
+        </div>
+        <div class=”inv-hub-sim-card inv-hub-sim-card--purple”>
+          <div class=”inv-hub-sim-card__label”>Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
+          <div class=”inv-hub-sim-card__value”>${fmt(targetRow.value,cur)}</div>
+          <div class=”inv-hub-sim-card__roi”>ROI ${targetRow.roi.toFixed(1)}%</div>
+          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(targetRow.capital,cur)} · Zysk ${fmt(targetRow.interest,cur)}</div>
+        </div>
+      </div>
+      <p class=”muted” style=”font-size:11px;margin:8px 0 0”>Kliknij słupek na wykresie, aby wybrać miesiąc podglądu.</p>`;
     }
 
+    // --- Chart: historical (solid) + forecast (transparent) ---
     const canvas=el('inv-hub-calc-chart');
     if(canvas){
-      const capitalData=forecastRows.map(r=>Math.round(r.capital));
-      const interestData=forecastRows.map(r=>Math.max(0,Math.round(r.interest)));
-      const roiLineData=forecastRows.map(r=>+r.roi.toFixed(2));
+      // Split data: historical uses solid color, forecast uses lighter alpha
+      const capitalData=allRows.map(r=>Math.round(r.capital));
+      const interestData=allRows.map(r=>Math.round(r.interest));
+      const roiLineData=allRows.map(r=>+r.roi.toFixed(2));
+      // Color arrays: historical = solid, forecast = lighter
+      const capColors=allRows.map(r=>r.isHist?colorWithAlpha('#059669',.85):colorWithAlpha('#059669',.45));
+      const intColors=allRows.map(r=>r.isHist?colorWithAlpha('#8b5cf6',.85):colorWithAlpha('#8b5cf6',.45));
+
       invHubCalcChart=new Chart(canvas.getContext('2d'),{
         type:'bar',
         data:{
-          labels,
+          labels:allLabelsClean,
           datasets:[
-            {label:'Kapitał (wpłaty)',data:capitalData,stack:'portfolio',backgroundColor:colorWithAlpha('#059669',.72),borderColor:'#059669',borderWidth:1,borderRadius:3,borderSkipped:false,yAxisID:'y',order:3},
-            {label:'Zysk (odsetki)',data:interestData,stack:'portfolio',backgroundColor:colorWithAlpha('#8b5cf6',.75),borderColor:'#8b5cf6',borderWidth:1,borderRadius:3,borderSkipped:false,yAxisID:'y',order:2},
-            {label:'ROI %',data:roiLineData,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2.5,pointRadius:0,pointHoverRadius:5,tension:.4,yAxisID:'y2',order:1}
+            {label:'Kapitał (wpłaty)',data:capitalData,stack:'p',backgroundColor:capColors,borderWidth:0,borderRadius:2,borderSkipped:false,yAxisID:'y',order:3},
+            {label:'Zysk',data:interestData,stack:'p',backgroundColor:intColors,borderWidth:0,borderRadius:2,borderSkipped:false,yAxisID:'y',order:2},
+            {label:'ROI %',data:roiLineData,type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:.4,yAxisID:'y2',order:1}
           ]
         },
         options:{
-          responsive:true,
-          maintainAspectRatio:false,
+          responsive:true,maintainAspectRatio:false,
           plugins:{
             legend:{position:'bottom',labels:{font:{size:12,weight:'600'},padding:16,usePointStyle:true}},
+            annotation:{annotations:{
+              splitLine:{type:'line',xMin:histSplitIdx>=0?histSplitIdx-.5:undefined,xMax:histSplitIdx>=0?histSplitIdx-.5:undefined,borderColor:'rgba(148,163,184,.4)',borderWidth:1,borderDash:[4,4],label:{display:histSplitIdx>=0,content:'Dziś →',position:'start',font:{size:10},color:'var(--muted)'}}
+            }},
             tooltip:{mode:'index',intersect:false,callbacks:{
               label:ctx=>{
                 if(ctx.dataset.label==='ROI %') return `ROI: ${ctx.parsed.y.toFixed(2)}%`;
@@ -8862,24 +8887,23 @@
               },
               afterBody:items=>{
                 const idx=items?.[0]?.dataIndex;
-                if(idx==null) return '';
-                const row=forecastRows[idx];
-                if(!row) return '';
-                return [`Razem: ${fmt(row.value,cur)}`];
+                if(idx==null) return [];
+                const row=allRows[idx];
+                if(!row) return [];
+                return [`Razem: ${fmt(row.value,cur)}${row.isHist?' [hist.]':' [prognoza]'}`];
               }
             }}
           },
           onClick:(evt,elements)=>{
             if(!elements?.length||!targetMonthInput) return;
-            const idx=elements[0].index;
-            const row=forecastRows[idx];
+            const row=allRows[elements[0].index];
             if(!row) return;
             targetMonthInput.value=row.monthLabel;
             renderInvHubForecast(stats,deposits);
           },
           scales:{
-            x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10,font:{size:11}}},
-            y:{stacked:true,position:'left',ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'},title:{display:true,text:'Wartość portfela',font:{size:10},color:'var(--muted)'}},
+            x:{stacked:true,grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:12,font:{size:11}}},
+            y:{stacked:true,position:'left',ticks:{callback:v=>currencyTicks(v),font:{size:11}},grid:{color:'rgba(148,163,184,.1)'}},
             y2:{position:'right',ticks:{callback:v=>v.toFixed(0)+'%',font:{size:11}},grid:{display:false},title:{display:true,text:'ROI %',font:{size:10},color:'#f59e0b'}}
           }
         }
