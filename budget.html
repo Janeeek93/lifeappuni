@@ -9104,10 +9104,13 @@
   }
 
   function invCalPositionTooltip(tt,e){
+    const margin=8;
     const tw=tt.offsetWidth||220, th=tt.offsetHeight||140;
     let x=e.clientX+18, y=e.clientY-10;
-    if(x+tw>window.innerWidth-6) x=e.clientX-tw-18;
-    if(y+th>window.innerHeight-6) y=e.clientY-th-10;
+    if(x+tw>window.innerWidth-margin) x=e.clientX-tw-18;
+    if(y+th>window.innerHeight-margin) y=e.clientY-th-10;
+    x=Math.max(margin,Math.min(x,window.innerWidth-tw-margin));
+    y=Math.max(margin,Math.min(y,window.innerHeight-th-margin));
     tt.style.left=x+'px';
     tt.style.top=y+'px';
   }
@@ -9210,7 +9213,10 @@
       return;
     }
 
-    const allVals=wkKeys.map(k=>invCalValue(wkGroups[k].snap,wkGroups[k].prevSnap));
+    const allVals=wkKeys.map((k,i)=>{
+      const prevWeekSnap=i>0?wkGroups[wkKeys[i-1]].snap:null;
+      return invCalValue(wkGroups[k].snap,prevWeekSnap);
+    });
     const maxAbsVal=Math.max(...allVals.map(Math.abs),0.001);
     invCalRenderLegend(allVals,maxAbsVal);
 
@@ -9218,15 +9224,17 @@
     for(let i=0;i<wkKeys.length;i++){
       const wk=wkKeys[i];
       const entry=wkGroups[wk];
-      const val=invCalValue(entry.snap,entry.prevSnap);
+      const prevWeekEntry=i>0?wkGroups[wkKeys[i-1]]:null;
+      const prevWeekSnap=prevWeekEntry?prevWeekEntry.snap:null;
+      const val=invCalValue(entry.snap,prevWeekSnap);
       const pct=Math.min(Math.abs(val)/maxAbsVal*100,100).toFixed(1);
       const isPos=val>=0;
       const barColor=isPos?'#22c55e':'#ef4444';
       const bg=isPos?'rgba(34,197,94,.06)':'rgba(239,68,68,.06)';
       const borderClr=isPos?'rgba(34,197,94,.22)':'rgba(239,68,68,.2)';
       const valColor=isPos?'#15803d':'#b91c1c';
-      const dRoi=entry.prevSnap!=null?entry.snap.roi-entry.prevSnap.roi:null;
-      const dPnl=entry.prevSnap!=null?entry.snap.totalPnl-entry.prevSnap.totalPnl:null;
+      const dRoi=prevWeekSnap!=null?entry.snap.roi-prevWeekSnap.roi:null;
+      const dPnl=prevWeekSnap!=null?entry.snap.totalPnl-prevWeekSnap.totalPnl:null;
 
       html+=`<div class="inv-cal-week-row" style="background:${bg};border-color:${borderClr}"
         data-date="${entry.snap.date}"
@@ -9236,7 +9244,7 @@
         data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
         data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
         data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
-        data-prev-date="${entry.prevSnap?entry.prevSnap.date:''}">
+        data-prev-date="${prevWeekSnap?prevWeekSnap.date:''}">
         <div>
           <div class="inv-cal-week-label">${wk}</div>
           <div class="inv-cal-week-date">${entry.snap.date}</div>
@@ -9255,6 +9263,12 @@
   function bindInvCalendar(){
     if(invCalBound) return;
     invCalBound=true;
+    const updateDeltaModeLabel=()=>{
+      const deltaBtn=document.querySelector('[data-cal-mode="delta"]');
+      if(!deltaBtn) return;
+      deltaBtn.textContent=invCalView==='weekly'?'Zmiana tygodniowa':'Zmiana dzienna';
+    };
+    updateDeltaModeLabel();
 
     // Mode tabs
     document.querySelectorAll('[data-cal-mode]').forEach(btn=>{
@@ -9278,6 +9292,7 @@
         invCalView=btn.dataset.calView;
         document.querySelectorAll('[data-cal-view]').forEach(b=>b.classList.toggle('is-active',b===btn));
         if(invCalView==='monthly'){invCalYear=new Date().getFullYear();invCalMonth=new Date().getMonth();}
+        updateDeltaModeLabel();
         renderInvCalendar();
       };
     });
