@@ -8285,14 +8285,29 @@
   function invHubComputeDeposits(){
     const trades=investments().trades;
     const buys=trades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
+    const sellsToBudget=trades.filter(t=>t.side==='sell'&&t.sellDestination==='budget');
     const weekly={}, monthly={};
+    const weeklyOut={}, monthlyOut={};
+    const weeklyNet={}, monthlyNet={};
     for(const t of buys){
       const wk=invHubWeekKey(t.date);
       const mk=invHubMonthKey(t.date);
-      weekly[wk]=(weekly[wk]||0)+num(t.amount);
-      monthly[mk]=(monthly[mk]||0)+num(t.amount);
+      const amt=num(t.amount);
+      weekly[wk]=(weekly[wk]||0)+amt;
+      monthly[mk]=(monthly[mk]||0)+amt;
+      weeklyNet[wk]=(weeklyNet[wk]||0)+amt;
+      monthlyNet[mk]=(monthlyNet[mk]||0)+amt;
     }
-    return {weekly,monthly};
+    for(const t of sellsToBudget){
+      const wk=invHubWeekKey(t.date);
+      const mk=invHubMonthKey(t.date);
+      const amt=num(t.amount);
+      weeklyOut[wk]=(weeklyOut[wk]||0)+amt;
+      monthlyOut[mk]=(monthlyOut[mk]||0)+amt;
+      weeklyNet[wk]=(weeklyNet[wk]||0)-amt;
+      monthlyNet[mk]=(monthlyNet[mk]||0)-amt;
+    }
+    return {weekly,monthly,weeklyOut,monthlyOut,weeklyNet,monthlyNet};
   }
 
   let invHubDepMode='monthly';
@@ -8749,12 +8764,13 @@
     if(years<=0||years>60||multiplier<=0) return;
 
     const monthKeys=Object.keys(deposits.monthly).sort();
+    const netMonthKeys=Object.keys(deposits.monthlyNet||{}).sort();
     const now=new Date();
     const openMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const closedMonths=monthKeys.filter(m=>m<openMonth);
+    const closedMonths=netMonthKeys.filter(m=>m<openMonth);
 
     const trendMonths=closedMonths.slice(-6);
-    const avgTrendMonthly=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthly[k]||0),0)/trendMonths.length:0;
+    const avgTrendMonthly=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthlyNet[k]||0),0)/trendMonths.length:0;
 
     const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
     const currentInvested=stats.capitalFromBudget;
@@ -8764,22 +8780,28 @@
     const mGroups={};
     for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
     const histMonths=Object.keys(mGroups).sort().filter(m=>m<=openMonth);
+    const dataOnlyMonths=netMonthKeys.filter(m=>m<=openMonth);
+    const histDisplayMonths=[...new Set([...histMonths,...dataOnlyMonths])].sort();
 
     // --- Historical P&L panel ---
     const histEl=el('inv-hub-hist-monthly');
     if(histEl){
-      if(histMonths.length){
+      if(histDisplayMonths.length){
         let hHtml='<div class="inv-hub-hist-grid">';
-        for(let i=0;i<histMonths.length;i++){
-          const m=histMonths[i];
+        for(let i=0;i<histDisplayMonths.length;i++){
+          const m=histDisplayMonths[i];
           const s=mGroups[m];
-          const prev=i>0?mGroups[histMonths[i-1]]:null;
-          const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
-          const isPos=s.roi>=0;
+          const prevMonth=i>0?histDisplayMonths[i-1]:null;
+          const prev=prevMonth?mGroups[prevMonth]:null;
+          const isSynthetic=!s;
+          const pnlVal=isSynthetic?0:s.totalPnl;
+          const roiVal=isSynthetic?0:s.roi;
+          const deltaPnl=!isSynthetic&&prev!=null?s.totalPnl-prev.totalPnl:null;
+          const isPos=roiVal>=0;
           hHtml+=`<div class="inv-hub-hist-card ${isPos?'positive':'negative'}">
             <div class="inv-hub-hist-card__month">${m}</div>
-            <div class="inv-hub-hist-card__roi">${s.roi.toFixed(2)}<span style="font-size:11px;font-weight:600">%</span></div>
-            <div class="inv-hub-hist-card__pnl">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
+            <div class="inv-hub-hist-card__roi">${roiVal.toFixed(2)}<span style="font-size:11px;font-weight:600">%</span></div>
+            <div class="inv-hub-hist-card__pnl">${pnlVal>=0?'+':''}${fmt(pnlVal,cur)}${isSynthetic?' · bez snapshotu':''}</div>
             ${deltaPnl!=null?`<div class="inv-hub-hist-card__delta ${deltaPnl>=0?'positive':'negative'}">Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
           </div>`;
         }
@@ -8850,6 +8872,8 @@
     if(resultEl){
       resultEl.style.display='';
       const monthlyInflow=avgTrendMonthly*multiplier;
+      const trendInflowAvg=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthly[k]||0),0)/trendMonths.length:0;
+      const trendOutflowAvg=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthlyOut?.[k]||0),0)/trendMonths.length:0;
       const gainVsCapital=final.value-final.capital;
       const targetGain=targetRow.value-targetRow.capital;
       const deltaFromToday=targetRow.value-currentVal;
@@ -8857,14 +8881,15 @@
       const yearlyCagr=years>0&&currentVal>0?((Math.pow(final.value/currentVal,1/years)-1)*100):0;
       const selectedMonthDelta=targetMonthInput?.value===openMonth?'Dziś':`Zmiana do ${escapeHtml(targetRow.monthLabel)}`;
       const trendInfo=trendMonths.length
-        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → śr. ${fmt(avgTrendMonthly,cur)}/mies.`
-        :'Brak zamkniętych miesięcy — tempo wpłat = 0.';
+        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → bilans netto ${fmt(avgTrendMonthly,cur)}/mies.`
+        :'Brak zamkniętych miesięcy — bilans netto = 0.';
       resultEl.innerHTML=`<div class="inv-hub-sim-cards">
         <div class="inv-hub-sim-card inv-hub-sim-card--blue">
           <div class="inv-hub-sim-card__label">Parametry scenariusza</div>
           <div class="inv-hub-sim-card__detail-grid">
             <div class="inv-hub-sim-card__detail">${escapeHtml(trendInfo)}</div>
-            <div class="inv-hub-sim-card__detail">Mnożnik wpłat <strong>${multiplier.toFixed(2)}×</strong> → <strong>${fmt(monthlyInflow,cur)}/mies.</strong></div>
+            <div class="inv-hub-sim-card__detail">Wpłaty <strong>${fmt(trendInflowAvg,cur)}</strong> · Wypłaty <strong>${fmt(trendOutflowAvg,cur)}</strong> / mies.</div>
+            <div class="inv-hub-sim-card__detail">Mnożnik netto <strong>${multiplier.toFixed(2)}×</strong> → <strong>${fmt(monthlyInflow,cur)}/mies.</strong></div>
             <div class="inv-hub-sim-card__detail">Stopa <strong>${rate.toFixed(2)}%</strong> rocznie · Horyzont <strong>${years} lat</strong></div>
           </div>
           <div class="inv-hub-sim-badge-row">
@@ -8905,6 +8930,10 @@
         <div class="inv-hub-sim-stat">
           <span class="inv-hub-sim-stat__label">Miesięczny wkład</span>
           <span class="inv-hub-sim-stat__value">${fmt(monthlyInflow,cur)}</span>
+        </div>
+        <div class="inv-hub-sim-stat">
+          <span class="inv-hub-sim-stat__label">Śr. bilans netto (6 mies.)</span>
+          <span class="inv-hub-sim-stat__value ${avgTrendMonthly>=0?'positive':'negative'}">${fmt(avgTrendMonthly,cur)}</span>
         </div>
         <div class="inv-hub-sim-stat">
           <span class="inv-hub-sim-stat__label">Łączny wzrost wartości</span>
