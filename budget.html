@@ -360,11 +360,12 @@
     .inv-r100k-title { font-size:14px; font-weight:800; color:var(--ink); margin:0 0 2px; letter-spacing:-.01em; }
     .inv-r100k-sub { font-size:11px; color:var(--muted); line-height:1.5; }
     .inv-r100k-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-    .inv-r100k-slider-group { display:flex; flex-direction:column; gap:3px; }
-    .inv-r100k-slider-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
-    .inv-r100k-slider-row { display:flex; align-items:center; gap:8px; }
-    .inv-r100k-slider-row input[type=range] { width:140px; accent-color:#2563eb; cursor:pointer; }
-    .inv-r100k-slider-val { font-size:16px; font-weight:800; color:#2563eb; min-width:40px; }
+    .inv-r100k-mult-group { display:flex; flex-direction:column; gap:3px; }
+    .inv-r100k-mult-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+    .inv-r100k-mult-row { display:flex; align-items:center; gap:6px; }
+    .inv-r100k-mult-input { width:68px; height:36px; font-size:18px; font-weight:800; color:#2563eb; text-align:center; border:2px solid rgba(37,99,235,.25); border-radius:9px; background:rgba(37,99,235,.04); padding:0 4px; }
+    .inv-r100k-mult-input:focus { outline:none; border-color:#2563eb; background:rgba(37,99,235,.07); }
+    .inv-r100k-mult-unit { font-size:18px; font-weight:800; color:#2563eb; }
     .inv-r100k-legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:4px; }
     .inv-r100k-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-weight:600; }
     .inv-r100k-legend-swatch { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
@@ -9406,7 +9407,7 @@
     const avgMonthly=avgWeekly*(365.25/12/7);
     const accMonthly=avgMonthly*invCalR100kMult;
 
-    // Last snapshot per month (for historical line)
+    // Last snapshot per month
     const histByMonth={};
     for(const e of arr){
       const mk=e.snap.date.slice(0,7);
@@ -9420,7 +9421,8 @@
 
     const baseMonthsToGoal=currentVal>=goal?1:Math.min(Math.ceil((goal-currentVal)/avgMonthly),120);
     const accMonthsToGoal=currentVal>=goal?1:Math.min(Math.ceil((goal-currentVal)/accMonthly),120);
-    const totalFwdMonths=Math.max(baseMonthsToGoal,accMonthsToGoal)+2;
+    // Chart ends when the SLOWER projection reaches goal (+1 buffer)
+    const totalFwdMonths=Math.max(baseMonthsToGoal,accMonthsToGoal)+1;
 
     // Build full month list
     const allMonths=[];
@@ -9434,21 +9436,45 @@
     }
     const todayIdx=allMonths.indexOf(todayMk);
 
-    // Build dataset arrays
-    const histLine=[], baseLine=[], accLineArr=[];
+    // Three separate datasets:
+    // 1. histData  — solid line, actual snapshots, ends at todayIdx
+    // 2. baseData  — dashed baseline projection, starts at todayIdx, stops at goal
+    // 3. accData   — dashed accelerated, starts at todayIdx, stops at goal
+    const histData=[], baseData=[], accData=[];
+    let baseReachedGoal=false, accReachedGoal=false;
+
     for(let i=0;i<allMonths.length;i++){
       const mk=allMonths[i];
-      if(mk<=todayMk){
+      if(mk<todayMk){
         const snap=histByMonth[mk];
-        const v=snap?snap.portfolioValue:null;
-        histLine.push(v);
-        baseLine.push(v);
-        accLineArr.push(i===todayIdx?currentVal:null);
+        histData.push(snap?snap.portfolioValue:null);
+        baseData.push(null);
+        accData.push(null);
+      } else if(mk===todayMk){
+        // Overlap point: history ends here, projections start here
+        const snap=histByMonth[mk];
+        histData.push(snap?snap.portfolioValue:currentVal);
+        baseData.push(currentVal);
+        accData.push(currentVal);
       } else {
+        histData.push(null);
         const mAhead=i-todayIdx;
-        histLine.push(null);
-        baseLine.push(Math.min(currentVal+avgMonthly*mAhead,goal*1.005));
-        accLineArr.push(Math.min(currentVal+accMonthly*mAhead,goal*1.005));
+        // Baseline — stop after reaching goal
+        if(!baseReachedGoal){
+          const bv=currentVal+avgMonthly*mAhead;
+          if(bv>=goal){baseData.push(goal);baseReachedGoal=true;}
+          else baseData.push(bv);
+        } else {
+          baseData.push(null);
+        }
+        // Accelerated — stop after reaching goal
+        if(!accReachedGoal){
+          const av=currentVal+accMonthly*mAhead;
+          if(av>=goal){accData.push(goal);accReachedGoal=true;}
+          else accData.push(av);
+        } else {
+          accData.push(null);
+        }
       }
     }
 
@@ -9458,6 +9484,7 @@
       const targetVal=goal*frac;
       const achieved=currentVal>=targetVal;
       let achievedDate=null,baseEta=null,accEta=null,monthsSaved=null;
+      let baseEtaIdx=null,accEtaIdx=null;
       if(achieved){
         achievedDate=invCalFirstCrossDate(arr,targetVal);
       } else {
@@ -9467,28 +9494,17 @@
         const ad=new Date(today.getFullYear(),today.getMonth()+accM,1);
         baseEta=bd.toISOString().slice(0,7);
         accEta=ad.toISOString().slice(0,7);
+        baseEtaIdx=todayIdx+baseM;
+        accEtaIdx=todayIdx+accM;
         monthsSaved=baseM-accM;
       }
-      return {frac,targetVal,achieved,achievedDate,baseEta,accEta,monthsSaved};
+      return {frac,targetVal,achieved,achievedDate,baseEta,accEta,baseEtaIdx,accEtaIdx,monthsSaved};
     });
 
     const finalCp=checkpoints[4];
     const daysSaved=(!finalCp.achieved&&finalCp.baseEta&&finalCp.accEta)
       ?Math.round((new Date(finalCp.baseEta+'-01')-new Date(finalCp.accEta+'-01'))/86400000)
       :null;
-
-    // Checkpoint horizontal lines as datasets
-    const cpLineDatasets=cpFracs.map((f,idx)=>({
-      label:`_cp${idx}`,
-      data:allMonths.map(()=>Math.round(goal*f)),
-      borderColor:'rgba(148,163,184,.18)',
-      borderDash:[4,4],
-      borderWidth:1,
-      pointRadius:0,
-      fill:false,
-      spanGaps:false,
-      order:10
-    }));
 
     const multLabel=`${invCalR100kMult.toFixed(1)}×`;
     const goalLabel=goal>=1000?(goal/1000).toFixed(0)+'k':goal;
@@ -9500,26 +9516,30 @@
       <div class="inv-r100k-header">
         <div>
           <div class="inv-r100k-title">Road to ${goalLabel} ${cur}</div>
-          <div class="inv-r100k-sub">Baseline wg bieżącego tempa (śr. tygodniowa × 28 dni) · Przesuń suwak i sprawdź, ile szybciej osiągniesz cel</div>
+          <div class="inv-r100k-sub">Linia ciągła = historia · przerywana = projekcja. Wpisz przyspieszenie i sprawdź ile wcześniej osiągniesz cel.</div>
         </div>
         <div class="inv-r100k-controls">
-          <div class="inv-r100k-slider-group">
-            <div class="inv-r100k-slider-label">Przyspieszenie ×</div>
-            <div class="inv-r100k-slider-row">
-              <input type="range" id="inv-r100k-slider" min="1.1" max="10" step="0.1" value="${invCalR100kMult}" />
-              <span class="inv-r100k-slider-val" id="inv-r100k-slider-val">${multLabel}</span>
+          <div class="inv-r100k-mult-group">
+            <div class="inv-r100k-mult-label">Przyspieszenie</div>
+            <div class="inv-r100k-mult-row">
+              <input type="number" id="inv-r100k-mult" min="1.1" max="50" step="0.1" value="${invCalR100kMult}" class="inv-r100k-mult-input" />
+              <span class="inv-r100k-mult-unit">×</span>
             </div>
           </div>
         </div>
       </div>
       <div class="inv-r100k-legend">
         <div class="inv-r100k-legend-item">
-          <div class="inv-r100k-legend-swatch" style="background:#2563eb"></div>
-          <span>Historia + Baseline (${fmt(avgMonthly,cur)}/mies.)</span>
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#2563eb" stroke-width="2.5"/></svg>
+          <span>Historia</span>
         </div>
         <div class="inv-r100k-legend-item">
-          <div class="inv-r100k-legend-swatch" style="background:#e15759"></div>
-          <span id="inv-r100k-acc-label">Scenariusz ${multLabel} (${fmt(accMonthly,cur)}/mies.)</span>
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 3"/></svg>
+          <span>Baseline (${fmt(avgMonthly,cur)}/mies.)</span>
+        </div>
+        <div class="inv-r100k-legend-item">
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#e15759" stroke-width="2" stroke-dasharray="5 3"/></svg>
+          <span>×${invCalR100kMult.toFixed(1)} (${fmt(accMonthly,cur)}/mies.)</span>
         </div>
         ${savingHtml}
       </div>
@@ -9533,7 +9553,7 @@
       let cHtml='';
       for(const cp of checkpoints){
         const pctLbl=`${(cp.frac*100).toFixed(0)}%`;
-        const valLbl=cp.targetVal>=1000?(cp.targetVal/1000).toFixed(0)+'k':cp.targetVal;
+        const valLbl=cp.targetVal>=1000?(cp.targetVal/1000).toFixed(0)+'k':String(cp.targetVal);
         if(cp.achieved){
           cHtml+=`<div class="inv-r100k-cp achieved">
             <div class="inv-r100k-cp-pct">✓ ${pctLbl}</div>
@@ -9559,52 +9579,108 @@
       cpWrap.innerHTML=cHtml;
     }
 
-    // Destroy previous chart instance
+    // Destroy previous chart
     if(invCalR100kChart){invCalR100kChart.destroy();invCalR100kChart=null;}
     const canvas=document.getElementById('inv-r100k-canvas');
     if(!canvas) return;
 
-    // Display labels: "Sty 25", "Lut 25", …
     const MNS=['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
     const displayLabels=allMonths.map(mk=>{
       const d=new Date(mk+'-01');
       return `${MNS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
     });
 
-    // Custom plugin: "Dziś" vertical separator + checkpoint value labels on y-axis right side
+    // Gradient fills
+    const chartCtx=canvas.getContext('2d');
+    const h=canvas.offsetHeight||300;
+    const blueGrad=chartCtx.createLinearGradient(0,0,0,h);
+    blueGrad.addColorStop(0,'rgba(37,99,235,.10)');
+    blueGrad.addColorStop(1,'rgba(37,99,235,.0)');
+    const redGrad=chartCtx.createLinearGradient(0,0,0,h);
+    redGrad.addColorStop(0,'rgba(225,87,89,.09)');
+    redGrad.addColorStop(1,'rgba(225,87,89,.0)');
+
+    // Checkpoint horizontal lines as very subtle datasets
+    const cpHorizDatasets=cpFracs.map((f,idx)=>({
+      label:`_cp${idx}`,
+      data:allMonths.map(()=>Math.round(goal*f)),
+      borderColor:'rgba(148,163,184,.15)',
+      borderDash:[3,5],
+      borderWidth:1,
+      pointRadius:0,fill:false,spanGaps:false,order:10
+    }));
+
+    // Custom drawing plugin: "Dziś" line + checkpoint markers on projection lines
     const r100kDecoPlugin={
       id:'r100kDeco',
-      afterDraw(chart){
+      afterDatasetsDraw(chart){
         const ctx=chart.ctx;
         const {top,bottom,left,right}=chart.chartArea;
-        // "Dziś" vertical line
+
+        // "Dziś" separator
         if(todayIdx>=0&&todayIdx<allMonths.length){
           const xPos=chart.scales.x.getPixelForValue(todayIdx);
           ctx.save();
-          ctx.strokeStyle='rgba(100,116,139,.4)';
+          ctx.strokeStyle='rgba(100,116,139,.35)';
           ctx.lineWidth=1;
-          ctx.setLineDash([5,4]);
+          ctx.setLineDash([4,5]);
           ctx.beginPath();ctx.moveTo(xPos,top);ctx.lineTo(xPos,bottom);ctx.stroke();
           ctx.setLineDash([]);
-          ctx.fillStyle='rgba(100,116,139,.65)';
-          ctx.font='bold 9px sans-serif';
+          ctx.fillStyle='rgba(100,116,139,.55)';
+          ctx.font='bold 9px system-ui,sans-serif';
           ctx.textAlign='left';
-          ctx.fillText('Dziś',xPos+4,top+12);
+          ctx.fillText('Dziś',xPos+4,top+11);
           ctx.restore();
         }
-        // Checkpoint value labels on right edge
+
+        // Checkpoint labels on right side of chart
         ctx.save();
-        ctx.font='9px sans-serif';
+        ctx.font='bold 9px system-ui,sans-serif';
         ctx.textAlign='left';
-        cpFracs.forEach((f,i)=>{
+        cpFracs.forEach(f=>{
           const yv=Math.round(goal*f);
           const yPos=chart.scales.y.getPixelForValue(yv);
           if(yPos<top||yPos>bottom) return;
-          ctx.fillStyle='rgba(148,163,184,.7)';
+          ctx.fillStyle='rgba(148,163,184,.65)';
           const lbl=yv>=1000?(yv/1000).toFixed(0)+'k':String(yv);
-          ctx.fillText(lbl,right+4,yPos+3);
+          ctx.fillText(lbl,right+5,yPos+3);
         });
         ctx.restore();
+
+        // Checkpoint dots & labels on projection lines
+        const drawDot=(x,y,color,label,labelSide)=>{
+          if(x<left||x>right||y<top||y>bottom) return;
+          ctx.save();
+          ctx.beginPath();ctx.arc(x,y,5.5,0,Math.PI*2);
+          ctx.fillStyle=color;ctx.fill();
+          ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+          ctx.font='bold 9px system-ui,sans-serif';
+          ctx.fillStyle=color;
+          ctx.textAlign=labelSide==='right'?'left':'right';
+          ctx.fillText(label,x+(labelSide==='right'?9:-9),y-8);
+          ctx.restore();
+        };
+
+        cpFracs.forEach((f,i)=>{
+          const cp=checkpoints[i];
+          if(cp.achieved) return;
+          const targetVal=goal*f;
+          const lbl=targetVal>=1000?(targetVal/1000).toFixed(0)+'k':String(targetVal);
+          // Baseline dot
+          if(cp.baseEtaIdx!=null&&cp.baseEtaIdx<allMonths.length){
+            const x=chart.scales.x.getPixelForValue(cp.baseEtaIdx);
+            const y=chart.scales.y.getPixelForValue(targetVal);
+            const side=cp.baseEtaIdx<allMonths.length*0.85?'right':'left';
+            drawDot(x,y,'#2563eb',lbl,side);
+          }
+          // Accelerated dot (offset label slightly to avoid overlap with baseline)
+          if(cp.accEtaIdx!=null&&cp.accEtaIdx<allMonths.length){
+            const x=chart.scales.x.getPixelForValue(cp.accEtaIdx);
+            const y=chart.scales.y.getPixelForValue(targetVal);
+            const side=cp.accEtaIdx<allMonths.length*0.85?'right':'left';
+            drawDot(x,y,'#e15759','',side); // label already on baseline dot
+          }
+        });
       }
     };
 
@@ -9614,33 +9690,37 @@
       data:{
         labels:displayLabels,
         datasets:[
-          ...cpLineDatasets,
-          {label:'_goal',data:allMonths.map(()=>goal),borderColor:'rgba(37,99,235,.22)',borderDash:[8,4],borderWidth:1.5,pointRadius:0,fill:false,spanGaps:false,order:9},
-          {label:'Historia + Baseline',data:baseLine,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.05)',borderWidth:2,pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3,spanGaps:true,order:2},
-          {label:`Scenariusz ${multLabel}`,data:accLineArr,borderColor:'#e15759',backgroundColor:'rgba(225,87,89,.05)',borderWidth:2,pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3,spanGaps:true,order:1}
+          ...cpHorizDatasets,
+          // History — solid thick blue
+          {label:'Historia',data:histData,borderColor:'#1d4ed8',backgroundColor:blueGrad,borderWidth:2.5,pointRadius:0,pointHoverRadius:4,fill:true,tension:0.35,spanGaps:true,order:3,borderCapStyle:'round'},
+          // Baseline projection — dashed blue
+          {label:'Baseline',data:baseData,borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,borderDash:[7,4],pointRadius:0,pointHoverRadius:4,fill:false,tension:0.3,spanGaps:false,order:2,borderCapStyle:'round'},
+          // Accelerated — dashed red
+          {label:`Scenariusz ×${multLabel}`,data:accData,borderColor:'#e15759',backgroundColor:redGrad,borderWidth:2,borderDash:[7,4],pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3,spanGaps:false,order:1,borderCapStyle:'round'}
         ]
       },
       options:{
         responsive:true,
         maintainAspectRatio:false,
-        layout:{padding:{right:36}},
+        layout:{padding:{right:40,top:6}},
         interaction:{mode:'index',intersect:false},
         plugins:{
           legend:{display:false},
           tooltip:{
-            backgroundColor:'rgba(255,255,255,.97)',
-            borderColor:'rgba(148,163,184,.28)',
+            backgroundColor:'rgba(15,23,42,.88)',
+            borderColor:'rgba(148,163,184,.2)',
             borderWidth:1,
-            titleColor:'#0f172a',
-            bodyColor:'#64748b',
-            padding:10,
+            titleColor:'#f1f5f9',
+            bodyColor:'#94a3b8',
+            padding:{x:12,y:10},
+            cornerRadius:10,
             callbacks:{
               title:items=>allMonths[items[0]?.dataIndex]||'',
               label:ctx=>{
                 if(!ctx.dataset.label||ctx.dataset.label.startsWith('_')) return null;
                 const v=ctx.parsed.y;
                 if(v==null) return null;
-                return `${ctx.dataset.label}: ${fmt(v,cur)}`;
+                return ` ${ctx.dataset.label}: ${fmt(v,cur)}`;
               }
             },
             filter:item=>item.dataset.label&&!item.dataset.label.startsWith('_')&&item.parsed.y!=null
@@ -9650,24 +9730,33 @@
           x:{
             grid:{display:false},
             border:{display:false},
-            ticks:{maxTicksLimit:10,maxRotation:0,font:{size:10},color:'#94a3b8'}
+            ticks:{maxTicksLimit:10,maxRotation:0,font:{size:10,weight:'500'},color:'#94a3b8'}
           },
           y:{
-            grid:{color:'rgba(226,232,240,.8)',drawBorder:false},
-            border:{display:false,dash:[4,4]},
-            ticks:{font:{size:10},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}
+            grid:{color:'rgba(226,232,240,.6)'},
+            border:{display:false},
+            ticks:{font:{size:10},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},
+            beginAtZero:false
           }
         }
       }
     });
 
-    // Bind slider (rebinds each render; invCalR100kMult persists)
-    document.getElementById('inv-r100k-slider')?.addEventListener('input',e=>{
-      invCalR100kMult=parseFloat(e.target.value)||2.0;
-      const snaps=invHubSnapshots();
-      const {arr:newArr}=invCalBuildSnapIndex(snaps);
-      renderInvCalR100k(newArr,cur);
-    });
+    // Bind multiplier input
+    const multInp=document.getElementById('inv-r100k-mult');
+    if(multInp){
+      const applyMult=()=>{
+        const v=parseFloat(multInp.value);
+        if(v>0&&v<=50){
+          invCalR100kMult=v;
+          const snaps=invHubSnapshots();
+          const {arr:newArr}=invCalBuildSnapIndex(snaps);
+          renderInvCalR100k(newArr,cur);
+        }
+      };
+      multInp.addEventListener('change',applyMult);
+      multInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyMult();}});
+    }
   }
   // === /ROAD TO 100K SIMULATION ==============================================
 
