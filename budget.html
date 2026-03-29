@@ -304,8 +304,36 @@
     .inv-cal-week-bar { position:absolute; top:0; left:0; height:100%; border-radius:6px; transition:width .4s cubic-bezier(.4,0,.2,1); }
     .inv-cal-week-val { font-size:13px; font-weight:800; text-align:right; }
 
+    /* Road-to widget */
+    .inv-cal-roadto { margin:12px 0 16px; padding:14px 16px; background:linear-gradient(135deg,rgba(37,99,235,.05),rgba(124,58,237,.04)); border:1px solid rgba(37,99,235,.15); border-radius:14px; }
+    .inv-cal-roadto-header { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .inv-cal-roadto-lhs { display:flex; flex-direction:column; gap:1px; }
+    .inv-cal-roadto-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); }
+    .inv-cal-roadto-value { font-size:20px; font-weight:800; color:var(--ink); line-height:1.2; }
+    .inv-cal-roadto-rhs { text-align:right; }
+    .inv-cal-roadto-goal-wrap { display:flex; align-items:center; gap:4px; justify-content:flex-end; }
+    .inv-cal-roadto-goal-btn { font-size:13px; font-weight:700; color:#2563eb; cursor:pointer; border:none; background:transparent; padding:0; text-decoration:underline dotted; text-underline-offset:2px; }
+    .inv-cal-roadto-goal-btn:hover { color:#7c3aed; }
+    .inv-cal-roadto-goal-edit-icon { font-size:11px; color:var(--muted); cursor:pointer; }
+    .inv-cal-roadto-remaining { font-size:11px; color:var(--muted); margin-top:2px; }
+    .inv-cal-roadto-track-wrap { position:relative; }
+    .inv-cal-roadto-track { position:relative; height:22px; border-radius:11px; background:rgba(148,163,184,.18); overflow:hidden; cursor:pointer; }
+    .inv-cal-roadto-fill { height:100%; border-radius:11px; background:linear-gradient(90deg,#2563eb 0%,#7c3aed 60%,#a855f7 100%); transition:width .7s cubic-bezier(.4,0,.2,1); min-width:0; position:relative; }
+    .inv-cal-roadto-fill::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(255,255,255,.22) 0%,transparent 60%); border-radius:inherit; }
+    .inv-cal-roadto-fill-label { position:absolute; left:0; top:0; height:100%; display:flex; align-items:center; padding:0 10px; font-size:11px; font-weight:700; color:#fff; pointer-events:none; white-space:nowrap; }
+    .inv-cal-roadto-pct-label { position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:11px; font-weight:700; color:var(--muted); pointer-events:none; }
+    .inv-cal-roadto-done { background:linear-gradient(90deg,#16a34a,#22c55e); }
+    .inv-cal-roadto-stats { display:flex; gap:12px; margin-top:10px; flex-wrap:wrap; }
+    .inv-cal-roadto-stat { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:3px; }
+    .inv-cal-roadto-stat strong { color:var(--ink); font-weight:700; }
+    .inv-cal-roadto-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:700; }
+    .inv-cal-roadto-chip.pos { background:rgba(34,197,94,.12); color:#15803d; }
+    .inv-cal-roadto-chip.neg { background:rgba(239,68,68,.1); color:#b91c1c; }
+    .inv-cal-roadto-chip.eta { background:rgba(37,99,235,.1); color:#1d4ed8; }
+    .inv-cal-roadto-empty { font-size:12px; color:var(--muted); font-style:italic; padding:6px 0; }
+
     /* Tooltip */
-    .inv-cal-tooltip { position:fixed; pointer-events:none; z-index:9999; background:var(--surface); border:1px solid rgba(148,163,184,.28); border-radius:14px; padding:12px 16px; box-shadow:0 10px 32px rgba(15,23,42,.18); font-size:12px; min-width:200px; display:none; }
+    .inv-cal-tooltip { position:fixed; pointer-events:none; z-index:9999; background:var(--surface); border:1px solid rgba(148,163,184,.28); border-radius:14px; padding:12px 16px; box-shadow:0 10px 32px rgba(15,23,42,.18); font-size:12px; min-width:210px; display:none; }
     .inv-cal-tooltip-title { font-weight:700; color:var(--ink); margin-bottom:8px; font-size:13px; }
     .inv-cal-tooltip-row { display:flex; justify-content:space-between; align-items:baseline; gap:16px; color:var(--muted); margin-top:3px; }
     .inv-cal-tooltip-row .val { font-weight:700; color:var(--ink); }
@@ -5007,6 +5035,7 @@
                   </div>
                 </div>
                 <div class="inv-cal-legend" id="inv-cal-legend"></div>
+                <div id="inv-cal-roadto"></div>
                 <div id="inv-cal-grid"></div>
                 <div class="inv-cal-tooltip" id="inv-cal-tooltip"></div>
               </div>
@@ -9075,6 +9104,167 @@
   let invCalMonth=new Date().getMonth(); // 0-indexed
   let invCalBound=false;
 
+  // === ROAD-TO GOAL =============================================================
+  const INV_CAL_GOAL_KEY='invCalGoal';
+  let invCalGoal=(()=>{ const v=parseFloat(localStorage.getItem(INV_CAL_GOAL_KEY)); return v>0?v:100000; })();
+
+  function invCalSaveGoal(v){ invCalGoal=v; localStorage.setItem(INV_CAL_GOAL_KEY,String(v)); }
+
+  function invCalRoadToStats(arr){
+    // avg daily Δ value from last 7 consecutive snapshots
+    const last=arr.slice(-8);
+    const dailyDeltas=[];
+    for(let i=1;i<last.length;i++) dailyDeltas.push(last[i].snap.portfolioValue-last[i-1].snap.portfolioValue);
+    const avgDaily=dailyDeltas.length?dailyDeltas.reduce((a,b)=>a+b,0)/dailyDeltas.length:null;
+
+    // avg weekly Δ value — group all snaps by ISO week, take last per week, compute deltas for last 7 weeks
+    const wkMap={};
+    for(const e of arr){ const k=invHubWeekKey(e.snap.date); wkMap[k]=e; }
+    const wkKeys=Object.keys(wkMap).sort();
+    const last8wk=wkKeys.slice(-8);
+    const weeklyDeltas=[];
+    for(let i=1;i<last8wk.length;i++) weeklyDeltas.push(wkMap[last8wk[i]].snap.portfolioValue-wkMap[last8wk[i-1]].snap.portfolioValue);
+    const avgWeekly=weeklyDeltas.length?weeklyDeltas.reduce((a,b)=>a+b,0)/weeklyDeltas.length:null;
+
+    return {avgDaily,avgWeekly,dailyN:dailyDeltas.length,weeklyN:weeklyDeltas.length};
+  }
+
+  function renderInvCalRoadTo(arr,cur){
+    const el=document.getElementById('inv-cal-roadto');
+    if(!el) return;
+    if(!arr.length){ el.innerHTML=''; return; }
+
+    const latest=arr[arr.length-1].snap;
+    const currentVal=latest.portfolioValue;
+    const goal=invCalGoal;
+    const remaining=Math.max(0,goal-currentVal);
+    const pct=Math.min(currentVal/goal*100,100);
+    const done=currentVal>=goal;
+    const {avgDaily,avgWeekly,dailyN,weeklyN}=invCalRoadToStats(arr);
+
+    const daysToGoal=(avgDaily&&avgDaily>0&&!done)?Math.ceil(remaining/avgDaily):null;
+    const weeksToGoal=(avgWeekly&&avgWeekly>0&&!done)?Math.ceil(remaining/avgWeekly):null;
+    const etaDate=daysToGoal?new Date(Date.now()+daysToGoal*86400000).toISOString().slice(0,10):null;
+
+    const rc=v=>v>0?'#16a34a':v<0?'#dc2626':'var(--muted)';
+    const sign=v=>v>=0?'+':'';
+    const fmtDelta=v=>`${sign(v)}${fmt(v,cur)}`;
+
+    let html=`<div class="inv-cal-roadto">`;
+
+    // Header row: value left, goal right
+    html+=`<div class="inv-cal-roadto-header">`;
+    html+=`<div class="inv-cal-roadto-lhs">
+      <div class="inv-cal-roadto-label">Wartość portfela</div>
+      <div class="inv-cal-roadto-value">${fmt(currentVal,cur)}</div>
+    </div>`;
+    html+=`<div class="inv-cal-roadto-rhs">
+      <div class="inv-cal-roadto-label">Cel</div>
+      <div class="inv-cal-roadto-goal-wrap">
+        <button class="inv-cal-roadto-goal-btn" id="inv-cal-roadto-goal-btn" title="Kliknij, aby zmienić cel">${fmt(goal,cur)} ✎</button>
+      </div>
+      ${!done?`<div class="inv-cal-roadto-remaining">Pozostało: <strong>${fmt(remaining,cur)}</strong></div>`:''}
+    </div>`;
+    html+=`</div>`;
+
+    // Progress bar
+    const fillCls=done?'inv-cal-roadto-fill inv-cal-roadto-done':'inv-cal-roadto-fill';
+    html+=`<div class="inv-cal-roadto-track" id="inv-cal-roadto-track">
+      <div class="${fillCls}" style="width:${pct.toFixed(2)}%">
+        ${pct>12?`<span class="inv-cal-roadto-fill-label">${pct.toFixed(1)}%</span>`:''}
+      </div>
+      ${pct<=12?`<span class="inv-cal-roadto-pct-label">${pct.toFixed(1)}%</span>`:''}
+    </div>`;
+
+    // Stats chips row
+    html+=`<div class="inv-cal-roadto-stats">`;
+    if(avgDaily!==null){
+      const cls=avgDaily>=0?'pos':'neg';
+      html+=`<span class="inv-cal-roadto-chip ${cls}">Śr. dzienna (${dailyN}d): ${fmtDelta(avgDaily)}</span>`;
+    }
+    if(avgWeekly!==null){
+      const cls=avgWeekly>=0?'pos':'neg';
+      html+=`<span class="inv-cal-roadto-chip ${cls}">Śr. tygodniowa (${weeklyN}tyg.): ${fmtDelta(avgWeekly)}</span>`;
+    }
+    if(!done){
+      if(invCalView==='monthly'&&daysToGoal) html+=`<span class="inv-cal-roadto-chip eta">~${daysToGoal} dni do celu</span>`;
+      else if(invCalView==='weekly'&&weeksToGoal) html+=`<span class="inv-cal-roadto-chip eta">~${weeksToGoal} tyg. do celu</span>`;
+      else if(daysToGoal) html+=`<span class="inv-cal-roadto-chip eta">~${daysToGoal} dni do celu</span>`;
+    } else {
+      html+=`<span class="inv-cal-roadto-chip pos">Cel osiągnięty!</span>`;
+    }
+    html+=`</div></div>`;
+
+    el.innerHTML=html;
+
+    // Bind goal edit button
+    document.getElementById('inv-cal-roadto-goal-btn')?.addEventListener('click',()=>{
+      const raw=prompt(`Nowy cel (${cur||'PLN'}):`,String(Math.round(goal)));
+      const n=parseFloat(raw);
+      if(n>0){ invCalSaveGoal(n); renderInvCalendar(); }
+    });
+
+    // Bind track hover tooltip
+    const track=document.getElementById('inv-cal-roadto-track');
+    if(track){
+      const ttData={currentVal,goal,remaining,pct,done,avgDaily,avgWeekly,dailyN,weeklyN,daysToGoal,weeksToGoal,etaDate,cur};
+      track.addEventListener('mouseenter',e=>invCalRoadToShowTooltip(e,ttData));
+      track.addEventListener('mousemove',e=>{
+        const tt=document.getElementById('inv-cal-tooltip');
+        if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,{event:e});
+      });
+      track.addEventListener('mouseleave',()=>{
+        const tt=document.getElementById('inv-cal-tooltip');
+        if(tt) tt.style.display='none';
+      });
+    }
+  }
+
+  function invCalRoadToShowTooltip(e,d){
+    const tt=document.getElementById('inv-cal-tooltip');
+    if(!tt) return;
+    const sign=v=>v>=0?'+':'';
+    const fmtD=v=>`${sign(v)}${fmt(v,d.cur)}`;
+    const rc=v=>v>0?'#16a34a':v<0?'#dc2626':'var(--muted)';
+
+    let h=`<div class="inv-cal-tooltip-title">Road to ${fmt(d.goal,d.cur)}</div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>Aktualna wartość</span><span class="val">${fmt(d.currentVal,d.cur)}</span></div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>Postęp</span><span class="val">${d.pct.toFixed(2)}%</span></div>`;
+    if(!d.done){
+      h+=`<div class="inv-cal-tooltip-row"><span>Pozostało do celu</span><span class="val">${fmt(d.remaining,d.cur)}</span></div>`;
+    } else {
+      h+=`<div class="inv-cal-tooltip-row"><span>Nadwyżka ponad cel</span><span class="val" style="color:#16a34a">+${fmt(d.currentVal-d.goal,d.cur)}</span></div>`;
+    }
+
+    if(d.avgDaily!==null||d.avgWeekly!==null){
+      h+=`<hr class="inv-cal-tooltip-sep"><div class="inv-cal-tooltip-sub">Średnie zmiany wartości</div>`;
+      if(d.avgDaily!==null){
+        h+=`<div class="inv-cal-tooltip-row"><span>Śr. dzienna (${d.dailyN}d)</span><span class="val" style="color:${rc(d.avgDaily)}">${fmtD(d.avgDaily)}</span></div>`;
+      }
+      if(d.avgWeekly!==null){
+        h+=`<div class="inv-cal-tooltip-row"><span>Śr. tygodniowa (${d.weeklyN}tyg.)</span><span class="val" style="color:${rc(d.avgWeekly)}">${fmtD(d.avgWeekly)}</span></div>`;
+      }
+    }
+
+    if(!d.done&&(d.daysToGoal||d.weeksToGoal)){
+      h+=`<hr class="inv-cal-tooltip-sep"><div class="inv-cal-tooltip-sub">Prognoza (wg śr. dziennej)</div>`;
+      if(d.daysToGoal){
+        h+=`<div class="inv-cal-tooltip-row"><span>Dni do celu</span><span class="val" style="color:#2563eb">~${d.daysToGoal} dni</span></div>`;
+        h+=`<div class="inv-cal-tooltip-row"><span>Tygodni do celu</span><span class="val" style="color:#2563eb">~${Math.ceil(d.daysToGoal/7)} tyg.</span></div>`;
+        if(d.etaDate) h+=`<div class="inv-cal-tooltip-row"><span>Szacowana data</span><span class="val">${d.etaDate}</span></div>`;
+      } else if(d.weeksToGoal){
+        h+=`<div class="inv-cal-tooltip-row"><span>Tygodni do celu</span><span class="val" style="color:#2563eb">~${d.weeksToGoal} tyg.</span></div>`;
+      }
+    }
+    if(d.done) h+=`<div style="margin-top:8px;font-weight:700;color:#16a34a;text-align:center">Cel osiągnięty!</div>`;
+
+    tt.innerHTML=h;
+    tt.style.display='block';
+    if(tt.parentNode!==document.body) document.body.appendChild(tt);
+    invCalPositionTooltip(tt,{event:e});
+  }
+  // === /ROAD-TO GOAL ============================================================
+
   const INV_CAL_MONTH_NAMES=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
   const INV_CAL_DAY_ABBR=['Pon','Wt','Śr','Czw','Pt','Sob','Ndz'];
 
@@ -9240,6 +9430,8 @@
       if(invCalView==='monthly') navTitle.textContent=`${INV_CAL_MONTH_NAMES[invCalMonth]} ${invCalYear}`;
       else navTitle.textContent=String(invCalYear);
     }
+
+    renderInvCalRoadTo(arr,cur);
 
     const grid=document.getElementById('inv-cal-grid');
     if(!grid) return;
