@@ -9211,6 +9211,8 @@
 
   function invCalBindCells(container){
     const tt=document.getElementById('inv-cal-tooltip');
+    // Move tooltip to body so .card:hover transform doesn't break position:fixed
+    if(tt&&tt.parentNode!==document.body) document.body.appendChild(tt);
     container.querySelectorAll('[data-date]').forEach(cell=>{
       cell.addEventListener('mouseenter',e=>invCalRenderTooltip(cell,e));
       cell.addEventListener('mousemove',e=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,{cell,event:e});});
