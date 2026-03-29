@@ -8360,15 +8360,30 @@
 
   function invHubComputeDeposits(){
     const trades=investments().trades;
-    const buys=trades.filter(t=>t.side!=='sell'&&t.fundSource!=='reinvest');
     const weekly={}, monthly={};
-    for(const t of buys){
+    const weeklyOut={}, monthlyOut={};
+    const weeklyNet={}, monthlyNet={};
+    let totalIn=0, totalOut=0;
+    for(const t of trades){
+      const isBudgetBuy=t.side!=='sell'&&t.fundSource!=='reinvest';
+      const isBudgetSell=t.side==='sell'&&t.sellDestination==='budget';
+      if(!isBudgetBuy&&!isBudgetSell) continue;
       const wk=invHubWeekKey(t.date);
       const mk=invHubMonthKey(t.date);
-      weekly[wk]=(weekly[wk]||0)+num(t.amount);
-      monthly[mk]=(monthly[mk]||0)+num(t.amount);
+      const amt=num(t.amount);
+      if(isBudgetBuy){
+        weekly[wk]=(weekly[wk]||0)+amt;
+        monthly[mk]=(monthly[mk]||0)+amt;
+        totalIn+=amt;
+      } else {
+        weeklyOut[wk]=(weeklyOut[wk]||0)+amt;
+        monthlyOut[mk]=(monthlyOut[mk]||0)+amt;
+        totalOut+=amt;
+      }
+      weeklyNet[wk]=(weekly[wk]||0)-(weeklyOut[wk]||0);
+      monthlyNet[mk]=(monthly[mk]||0)-(monthlyOut[mk]||0);
     }
-    return {weekly,monthly};
+    return {weekly,monthly,weeklyOut,monthlyOut,weeklyNet,monthlyNet,totalIn,totalOut,totalNet:totalIn-totalOut};
   }
 
   let invHubDepMode='monthly';
@@ -8662,15 +8677,12 @@
   function renderInvHubMonthlyPerf(snaps,cur){
     const container=document.getElementById('inv-hub-monthly-perf');
     if(!container) return;
-    if(!snaps.length){
+    const openMonth=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    const closeRows=invHubBuildMonthlyCloseRows(snaps,invHubComputeDeposits(),openMonth);
+    if(!closeRows.length){
       container.innerHTML='<div class="inv-hub-empty">Brak snapshotów — zapisz pierwsze snapshoty, aby śledzić wyniki miesięczne.</div>';
       return;
     }
-    // Group by month, take last snapshot of each
-    const mGroups={};
-    for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
-    const months=Object.keys(mGroups).sort();
-    if(!months.length){ container.innerHTML='<div class="inv-hub-empty">Brak danych</div>'; return; }
 
     let html=`<div class="table-wrapper"><table class="inv-hub-monthly-table">
       <thead><tr>
@@ -8679,33 +8691,75 @@
         <th>ROI&nbsp;%</th>
         <th>Δ P&amp;L vs prev.</th>
         <th>Δ ROI</th>
+        <th>MoM majątek netto</th>
         <th>Wartość portfela</th>
         <th>Zainwestowano</th>
       </tr></thead><tbody>`;
 
-    for(let i=0;i<months.length;i++){
-      const m=months[i];
-      const s=mGroups[m];
-      const prev=i>0?mGroups[months[i-1]]:null;
+    for(let i=0;i<closeRows.length;i++){
+      const row=closeRows[i];
+      const s=row.snapshot;
+      const m=row.month;
+      const prev=i>0?closeRows[i-1].snapshot:null;
       const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
       const deltaRoi=prev!=null?s.roi-prev.roi:null;
+      const deltaNetWorth=prev!=null?s.portfolioValue-prev.portfolioValue:null;
       const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
       const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
       const dPnlCls=deltaPnl!=null?(deltaPnl>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
       const dRoiCls=deltaRoi!=null?(deltaRoi>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+      const dWorthCls=deltaNetWorth!=null?(deltaNetWorth>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
       const badgeCls=s.roi>=2?'inv-hub-pill-pos':s.roi<0?'inv-hub-pill-neg':'inv-hub-pill-neu';
       html+=`<tr>
-        <td><span class="inv-hub-month-badge ${badgeCls}">${m}</span></td>
+        <td><span class="inv-hub-month-badge ${badgeCls}">${m}${row.synthetic?' · est.':''}</span></td>
         <td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td>
         <td class="${roiCls}"><strong>${s.roi.toFixed(2)}%</strong></td>
         <td class="${dPnlCls}">${deltaPnl!=null?(deltaPnl>=0?'+':'')+fmt(deltaPnl,cur):'—'}</td>
         <td class="${dRoiCls}">${deltaRoi!=null?(deltaRoi>=0?'+':'')+deltaRoi.toFixed(2)+'%':'—'}</td>
+        <td class="${dWorthCls}">${deltaNetWorth!=null?(deltaNetWorth>=0?'+':'')+fmt(deltaNetWorth,cur):'—'}</td>
         <td>${fmt(s.portfolioValue,cur)}</td>
         <td>${fmt(s.capitalFromBudget,cur)}</td>
       </tr>`;
     }
     html+='</tbody></table></div>';
     container.innerHTML=html;
+  }
+
+  function invHubBuildMonthlyCloseRows(snaps,deposits,upToMonth){
+    const mGroups={};
+    for(const s of snaps||[]) mGroups[invHubMonthKey(s.date)]=s;
+    const tradeMonths=Object.keys(deposits?.monthlyNet||{});
+    const allMonths=[...new Set([...Object.keys(mGroups),...tradeMonths])]
+      .filter(m=>!upToMonth||m<=upToMonth)
+      .sort();
+    if(!allMonths.length) return [];
+
+    let capitalRunning=0;
+    const out=[];
+    for(const month of allMonths){
+      capitalRunning+=(deposits?.monthlyNet?.[month]||0);
+      const snap=mGroups[month];
+      if(snap){
+        out.push({month,snapshot:snap,synthetic:false,monthlyIn:deposits?.monthly?.[month]||0,monthlyOut:deposits?.monthlyOut?.[month]||0,monthlyNet:deposits?.monthlyNet?.[month]||0});
+        continue;
+      }
+      const estCapital=Math.max(0,capitalRunning);
+      out.push({
+        month,
+        synthetic:true,
+        monthlyIn:deposits?.monthly?.[month]||0,
+        monthlyOut:deposits?.monthlyOut?.[month]||0,
+        monthlyNet:deposits?.monthlyNet?.[month]||0,
+        snapshot:{
+          date:`${month}-01`,
+          portfolioValue:estCapital,
+          capitalFromBudget:estCapital,
+          totalPnl:0,
+          roi:0
+        }
+      });
+    }
+    return out;
   }
 
   // --- DCA Analysis Table ---
@@ -8824,47 +8878,45 @@
     const multiplier=multiplierInput&&multiplierInput.value?num(multiplierInput.value):1.5;
     if(years<=0||years>60||multiplier<=0) return;
 
-    const monthKeys=Object.keys(deposits.monthly).sort();
+    const monthKeys=Object.keys(deposits.monthlyNet||deposits.monthly).sort();
     const now=new Date();
     const openMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     const closedMonths=monthKeys.filter(m=>m<openMonth);
 
     const trendMonths=closedMonths.slice(-6);
-    const avgTrendMonthly=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthly[k]||0),0)/trendMonths.length:0;
+    const avgTrendMonthly=trendMonths.length?trendMonths.reduce((s,k)=>s+(deposits.monthlyNet?.[k]||0),0)/trendMonths.length:0;
 
     const currentVal=stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis;
     const currentInvested=stats.capitalFromBudget;
 
     // --- Historical monthly snapshots (end-of-month) ---
     const snaps=invHubSnapshots();
-    const mGroups={};
-    for(const s of snaps) mGroups[invHubMonthKey(s.date)]=s;
-    const histMonths=Object.keys(mGroups).sort().filter(m=>m<=openMonth);
+    const closeRows=invHubBuildMonthlyCloseRows(snaps,deposits,openMonth);
+    const histRows=closeRows.filter(r=>r.month<openMonth);
 
     // --- Historical P&L panel ---
     const histEl=el('inv-hub-hist-monthly');
     if(histEl){
-      if(histMonths.length){
-        let hHtml='<div style=”display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px”>';
-        for(let i=0;i<histMonths.length;i++){
-          const m=histMonths[i];
-          const s=mGroups[m];
-          const prev=i>0?mGroups[histMonths[i-1]]:null;
+      if(histRows.length){
+        let hHtml='<div class="inv-hub-hist-grid">';
+        for(let i=0;i<histRows.length;i++){
+          const row=histRows[i];
+          const s=row.snapshot;
+          const prev=i>0?histRows[i-1].snapshot:null;
+          const m=row.month;
           const deltaPnl=prev!=null?s.totalPnl-prev.totalPnl:null;
           const isPos=s.roi>=0;
-          const borderClr=isPos?'#22c55e':'#ef4444';
-          const roiClr=isPos?'#16a34a':'#dc2626';
-          hHtml+=`<div style=”border:1px solid ${borderClr}33;border-left:3px solid ${borderClr};border-radius:10px;padding:10px 12px;background:var(--surface)”>
-            <div style=”font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px”>${m}</div>
-            <div style=”font-size:18px;font-weight:800;color:${roiClr};line-height:1”>${s.roi.toFixed(2)}<span style=”font-size:11px;font-weight:600”>%</span></div>
-            <div style=”font-size:11px;color:var(--muted);margin-top:3px”>${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</div>
-            ${deltaPnl!=null?`<div style=”font-size:10px;font-weight:600;color:${deltaPnl>=0?'#16a34a':'#dc2626'};margin-top:2px”>Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
+          hHtml+=`<div class="inv-hub-hist-card ${isPos?'positive':'negative'}">
+            <div class="inv-hub-hist-card__month">${m}${row.synthetic?' · est.':''}</div>
+            <div class="inv-hub-hist-card__roi">${s.roi.toFixed(2)}%</div>
+            <div class="inv-hub-hist-card__pnl">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} · Netto ${fmt(row.monthlyNet,cur)}</div>
+            ${deltaPnl!=null?`<div class="inv-hub-hist-card__delta ${deltaPnl>=0?'positive':'negative'}">Δ ${deltaPnl>=0?'+':''}${fmt(deltaPnl,cur)}</div>`:''}
           </div>`;
         }
         hHtml+='</div>';
         histEl.innerHTML=hHtml;
       } else {
-        histEl.innerHTML='<p class=”muted” style=”font-size:12px;margin:0”>Brak snapshotów — zapisz pierwszy snapshot, aby zobaczyć historię miesięczną.</p>';
+        histEl.innerHTML='<p class="muted" style="font-size:12px;margin:0">Brak snapshotów — zapisz pierwszy snapshot, aby zobaczyć historię miesięczną.</p>';
       }
     }
 
@@ -8891,15 +8943,17 @@
 
     // Build combined chart data: historical (from snapshots) + forecast
     // Historical months that have snapshot data
-    const prevHistMonths=histMonths.filter(m=>m<openMonth);
+    const prevHistMonths=histRows.map(r=>r.month);
     const combinedLabels=[...prevHistMonths,...forecastLabels];
     // Remove duplicates (current month appears in both)
     const allLabels=[...new Set(combinedLabels)].sort();
 
     const histSplitIdx=allLabels.indexOf(openMonth); // index where forecast begins
     const allRows=allLabels.map(m=>{
-      if(m<openMonth&&mGroups[m]){
-        const s=mGroups[m];
+      if(m<openMonth){
+        const row=histRows.find(r=>r.month===m);
+        if(!row) return null;
+        const s=row.snapshot;
         const histRoi=s.capitalFromBudget>0?s.totalPnl/s.capitalFromBudget*100:0;
         return {monthLabel:m,value:s.portfolioValue,capital:s.capitalFromBudget,interest:Math.max(0,s.portfolioValue-s.capitalFromBudget),roi:histRoi,isHist:true};
       }
@@ -8928,29 +8982,30 @@
     if(resultEl){
       resultEl.style.display='';
       const trendInfo=trendMonths.length
-        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → śr. ${fmt(avgTrendMonthly,cur)}/mies.`
+        ?`Bazuje na ${trendMonths.length} zamkniętych mies. → śr. bilans netto ${fmt(avgTrendMonthly,cur)}/mies.`
         :'Brak zamkniętych miesięcy — tempo wpłat = 0.';
-      resultEl.innerHTML=`<div class=”inv-hub-sim-cards”>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--blue”>
-          <div class=”inv-hub-sim-card__label”>Parametry</div>
-          <div class=”inv-hub-sim-card__detail”>${escapeHtml(trendInfo)}</div>
-          <div class=”inv-hub-sim-card__detail”>Mnożnik <strong>${multiplier.toFixed(2)}×</strong> → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
-          <div class=”inv-hub-sim-card__detail”>Stopa <strong>${rate.toFixed(2)}%</strong> · Horyzont <strong>${years} lat</strong></div>
+      resultEl.innerHTML=`<div class="inv-hub-sim-cards">
+        <div class="inv-hub-sim-card inv-hub-sim-card--blue">
+          <div class="inv-hub-sim-card__label">Parametry</div>
+          <div class="inv-hub-sim-card__detail">${escapeHtml(trendInfo)}</div>
+          <div class="inv-hub-sim-card__detail">Mnożnik <strong>${multiplier.toFixed(2)}×</strong> → ${fmt(avgTrendMonthly*multiplier,cur)}/mies.</div>
+          <div class="inv-hub-sim-card__detail">Stopa <strong>${rate.toFixed(2)}%</strong> · Horyzont <strong>${years} lat</strong></div>
+          <div class="inv-hub-sim-card__detail">Wpłaty: <strong>${fmt(deposits.totalIn||0,cur)}</strong> · Wypłaty: <strong>${fmt(deposits.totalOut||0,cur)}</strong> · Bilans netto: <strong>${fmt(deposits.totalNet||0,cur)}</strong></div>
         </div>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--green”>
-          <div class=”inv-hub-sim-card__label”>Koniec horyzontu · ${final.monthLabel}</div>
-          <div class=”inv-hub-sim-card__value”>${fmt(final.value,cur)}</div>
-          <div class=”inv-hub-sim-card__roi”>ROI ${final.roi.toFixed(1)}%</div>
-          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(final.capital,cur)} · Zysk ${fmt(final.interest,cur)}</div>
+        <div class="inv-hub-sim-card inv-hub-sim-card--green">
+          <div class="inv-hub-sim-card__label">Koniec horyzontu · ${final.monthLabel}</div>
+          <div class="inv-hub-sim-card__value">${fmt(final.value,cur)}</div>
+          <div class="inv-hub-sim-card__roi">ROI ${final.roi.toFixed(1)}%</div>
+          <div class="inv-hub-sim-card__detail">Kapitał ${fmt(final.capital,cur)} · Zysk ${fmt(final.interest,cur)}</div>
         </div>
-        <div class=”inv-hub-sim-card inv-hub-sim-card--purple”>
-          <div class=”inv-hub-sim-card__label”>Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
-          <div class=”inv-hub-sim-card__value”>${fmt(targetRow.value,cur)}</div>
-          <div class=”inv-hub-sim-card__roi”>ROI ${targetRow.roi.toFixed(1)}%</div>
-          <div class=”inv-hub-sim-card__detail”>Kapitał ${fmt(targetRow.capital,cur)} · Zysk ${fmt(targetRow.interest,cur)}</div>
+        <div class="inv-hub-sim-card inv-hub-sim-card--purple">
+          <div class="inv-hub-sim-card__label">Podgląd · ${escapeHtml(targetRow.monthLabel)}${targetRow.isHist?' (hist.)':''}</div>
+          <div class="inv-hub-sim-card__value">${fmt(targetRow.value,cur)}</div>
+          <div class="inv-hub-sim-card__roi">ROI ${targetRow.roi.toFixed(1)}%</div>
+          <div class="inv-hub-sim-card__detail">Kapitał ${fmt(targetRow.capital,cur)} · Zysk ${fmt(targetRow.interest,cur)}</div>
         </div>
       </div>
-      <p class=”muted” style=”font-size:11px;margin:8px 0 0”>Kliknij słupek na wykresie, aby wybrać miesiąc podglądu.</p>`;
+      <p class="muted" style="font-size:11px;margin:8px 0 0">Kliknij słupek na wykresie, aby wybrać miesiąc podglądu.</p>`;
     }
 
     // --- Chart: historical (solid) + forecast (transparent) ---
