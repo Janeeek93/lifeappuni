@@ -344,6 +344,47 @@
     .inv-cal-milestone.future .inv-cal-milestone-date { color:#2563eb; }
     @media(max-width:600px){ .inv-cal-milestones { grid-template-columns:repeat(3,1fr); } }
 
+    /* ===================== MONTHLY AGGREGATE CALENDAR VIEW ==================== */
+    .inv-cal-magg-grid { display:flex; flex-direction:column; gap:5px; }
+    .inv-cal-magg-row { display:grid; grid-template-columns:100px 1fr 90px; align-items:center; gap:10px; border-radius:11px; padding:9px 14px; border:1px solid; cursor:default; transition:filter .15s; }
+    .inv-cal-magg-row:hover { filter:brightness(.96); }
+    .inv-cal-magg-label { font-size:12px; font-weight:700; color:var(--ink); }
+    .inv-cal-magg-date { font-size:10px; color:var(--muted); font-weight:400; }
+    .inv-cal-magg-bar-wrap { position:relative; height:28px; border-radius:6px; overflow:hidden; background:rgba(148,163,184,.12); }
+    .inv-cal-magg-bar { position:absolute; top:0; left:0; height:100%; border-radius:6px; }
+    .inv-cal-magg-val { font-size:13px; font-weight:800; text-align:right; }
+
+    /* ===================== ROAD TO 100K SIMULATION ============================ */
+    .inv-r100k-wrap { background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:14px; padding:16px 18px; margin-top:12px; }
+    .inv-r100k-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+    .inv-r100k-title { font-size:14px; font-weight:800; color:var(--ink); margin:0 0 2px; letter-spacing:-.01em; }
+    .inv-r100k-sub { font-size:11px; color:var(--muted); line-height:1.5; }
+    .inv-r100k-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .inv-r100k-mult-group { display:flex; flex-direction:column; gap:3px; }
+    .inv-r100k-mult-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+    .inv-r100k-mult-row { display:flex; align-items:center; gap:6px; }
+    .inv-r100k-mult-input { width:68px; height:36px; font-size:18px; font-weight:800; color:#2563eb; text-align:center; border:2px solid rgba(37,99,235,.25); border-radius:9px; background:rgba(37,99,235,.04); padding:0 4px; }
+    .inv-r100k-mult-input:focus { outline:none; border-color:#2563eb; background:rgba(37,99,235,.07); }
+    .inv-r100k-mult-unit { font-size:18px; font-weight:800; color:#2563eb; }
+    .inv-r100k-legend { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:4px; }
+    .inv-r100k-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-weight:600; }
+    .inv-r100k-legend-swatch { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
+    .inv-r100k-saving-badge { background:rgba(22,163,74,.1); color:#15803d; font-weight:700; padding:3px 10px; border-radius:999px; font-size:11px; }
+    .inv-r100k-chart-box { height:300px; position:relative; margin:8px 0 4px; }
+    .inv-r100k-cps { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:10px; }
+    .inv-r100k-cp { border-radius:10px; padding:8px 10px; border:1px solid; display:flex; flex-direction:column; gap:2px; }
+    .inv-r100k-cp.achieved { background:rgba(22,163,74,.06); border-color:rgba(22,163,74,.2); }
+    .inv-r100k-cp.future { background:rgba(37,99,235,.04); border-color:rgba(37,99,235,.12); }
+    .inv-r100k-cp.no-eta { background:rgba(148,163,184,.05); border-color:rgba(148,163,184,.15); }
+    .inv-r100k-cp-pct { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:1px; }
+    .inv-r100k-cp.achieved .inv-r100k-cp-pct { color:#16a34a; }
+    .inv-r100k-cp-val { font-size:12px; font-weight:800; color:var(--ink); }
+    .inv-r100k-cp-row { font-size:10px; line-height:1.55; }
+    .inv-r100k-cp-row.base { color:var(--muted); }
+    .inv-r100k-cp-row.acc { color:#2563eb; font-weight:700; }
+    .inv-r100k-cp-row.saved { color:#16a34a; font-weight:700; }
+    @media(max-width:600px){ .inv-r100k-cps { grid-template-columns:repeat(3,1fr); } }
+
     /* Tooltip */
     .inv-cal-tooltip { position:fixed; pointer-events:none; z-index:9999; background:var(--surface); border:1px solid rgba(148,163,184,.28); border-radius:14px; padding:12px 16px; box-shadow:0 10px 32px rgba(15,23,42,.18); font-size:12px; min-width:210px; display:none; }
     .inv-cal-tooltip-title { font-weight:700; color:var(--ink); margin-bottom:8px; font-size:13px; }
@@ -5036,8 +5077,9 @@
                   <div class="inv-cal-group">
                     <span class="inv-cal-group-label">Widok</span>
                     <div class="inv-cal-tabs">
-                      <button class="inv-cal-tab is-active" data-cal-view="monthly">Miesięczny</button>
+                      <button class="inv-cal-tab is-active" data-cal-view="monthly">Dzienny</button>
                       <button class="inv-cal-tab" data-cal-view="weekly">Tygodniowy</button>
+                      <button class="inv-cal-tab" data-cal-view="months">Miesięczny</button>
                     </div>
                   </div>
                   <div class="inv-cal-nav">
@@ -5048,6 +5090,7 @@
                 </div>
                 <div class="inv-cal-legend" id="inv-cal-legend"></div>
                 <div id="inv-cal-roadto"></div>
+                <div id="inv-cal-r100k"></div>
                 <div id="inv-cal-grid"></div>
                 <div class="inv-cal-tooltip" id="inv-cal-tooltip"></div>
               </div>
@@ -9343,6 +9386,380 @@
   }
   // === /ROAD-TO GOAL ============================================================
 
+  // === ROAD TO 100K SIMULATION CHART ==========================================
+  let invCalR100kChart=null;
+  let invCalR100kMult=2.0;
+
+  function renderInvCalR100k(arr,cur){
+    const wrap=document.getElementById('inv-cal-r100k');
+    if(!wrap) return;
+    if(!arr.length){wrap.innerHTML='';return;}
+
+    const goal=invCalGoal;
+    const currentVal=arr[arr.length-1].snap.portfolioValue;
+    const {avgWeekly}=invCalRoadToStats(arr);
+
+    if(!avgWeekly||avgWeekly<=0){
+      wrap.innerHTML='<p class="muted" style="font-size:12px;padding:6px 0 2px">Potrzeba min. 28 dni historii snapshotów, aby wygenerować symulację Road to celu.</p>';
+      return;
+    }
+
+    const avgMonthly=avgWeekly*(365.25/12/7);
+    const accMonthly=avgMonthly*invCalR100kMult;
+
+    // Last snapshot per month
+    const histByMonth={};
+    for(const e of arr){
+      const mk=e.snap.date.slice(0,7);
+      if(!histByMonth[mk]||e.snap.date>=histByMonth[mk].date) histByMonth[mk]=e.snap;
+    }
+
+    const today=new Date();
+    const todayMk=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+    const histMonthsSorted=Object.keys(histByMonth).sort();
+    const firstMonth=histMonthsSorted[0];
+
+    const baseMonthsToGoal=currentVal>=goal?1:Math.min(Math.ceil((goal-currentVal)/avgMonthly),120);
+    const accMonthsToGoal=currentVal>=goal?1:Math.min(Math.ceil((goal-currentVal)/accMonthly),120);
+    // Chart ends when the SLOWER projection reaches goal (+1 buffer)
+    const totalFwdMonths=Math.max(baseMonthsToGoal,accMonthsToGoal)+1;
+
+    // Build full month list
+    const allMonths=[];
+    {
+      let d=new Date(firstMonth+'-01');
+      const endD=new Date(today.getFullYear(),today.getMonth()+totalFwdMonths,1);
+      while(d<=endD){
+        allMonths.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+        d.setMonth(d.getMonth()+1);
+      }
+    }
+    const todayIdx=allMonths.indexOf(todayMk);
+
+    // Three separate datasets:
+    // 1. histData  — solid line, actual snapshots, ends at todayIdx
+    // 2. baseData  — dashed baseline projection, starts at todayIdx, stops at goal
+    // 3. accData   — dashed accelerated, starts at todayIdx, stops at goal
+    const histData=[], baseData=[], accData=[];
+    let baseReachedGoal=false, accReachedGoal=false;
+
+    for(let i=0;i<allMonths.length;i++){
+      const mk=allMonths[i];
+      if(mk<todayMk){
+        const snap=histByMonth[mk];
+        histData.push(snap?snap.portfolioValue:null);
+        baseData.push(null);
+        accData.push(null);
+      } else if(mk===todayMk){
+        // Overlap point: history ends here, projections start here
+        const snap=histByMonth[mk];
+        histData.push(snap?snap.portfolioValue:currentVal);
+        baseData.push(currentVal);
+        accData.push(currentVal);
+      } else {
+        histData.push(null);
+        const mAhead=i-todayIdx;
+        // Baseline — stop after reaching goal
+        if(!baseReachedGoal){
+          const bv=currentVal+avgMonthly*mAhead;
+          if(bv>=goal){baseData.push(goal);baseReachedGoal=true;}
+          else baseData.push(bv);
+        } else {
+          baseData.push(null);
+        }
+        // Accelerated — stop after reaching goal
+        if(!accReachedGoal){
+          const av=currentVal+accMonthly*mAhead;
+          if(av>=goal){accData.push(goal);accReachedGoal=true;}
+          else accData.push(av);
+        } else {
+          accData.push(null);
+        }
+      }
+    }
+
+    // Checkpoint calculations (20%…100%)
+    const cpFracs=[0.2,0.4,0.6,0.8,1.0];
+    const checkpoints=cpFracs.map(frac=>{
+      const targetVal=goal*frac;
+      const achieved=currentVal>=targetVal;
+      let achievedDate=null,baseEta=null,accEta=null,monthsSaved=null;
+      let baseEtaIdx=null,accEtaIdx=null;
+      if(achieved){
+        achievedDate=invCalFirstCrossDate(arr,targetVal);
+      } else {
+        const baseM=Math.ceil((targetVal-currentVal)/avgMonthly);
+        const accM=Math.ceil((targetVal-currentVal)/accMonthly);
+        const bd=new Date(today.getFullYear(),today.getMonth()+baseM,1);
+        const ad=new Date(today.getFullYear(),today.getMonth()+accM,1);
+        baseEta=bd.toISOString().slice(0,7);
+        accEta=ad.toISOString().slice(0,7);
+        baseEtaIdx=todayIdx+baseM;
+        accEtaIdx=todayIdx+accM;
+        monthsSaved=baseM-accM;
+      }
+      return {frac,targetVal,achieved,achievedDate,baseEta,accEta,baseEtaIdx,accEtaIdx,monthsSaved};
+    });
+
+    const finalCp=checkpoints[4];
+    const daysSaved=(!finalCp.achieved&&finalCp.baseEta&&finalCp.accEta)
+      ?Math.round((new Date(finalCp.baseEta+'-01')-new Date(finalCp.accEta+'-01'))/86400000)
+      :null;
+
+    const multLabel=`${invCalR100kMult.toFixed(1)}×`;
+    const goalLabel=goal>=1000?(goal/1000).toFixed(0)+'k':goal;
+    const savingHtml=(daysSaved&&daysSaved>0)
+      ?`<span class="inv-r100k-saving-badge">⚡ Oszczędzasz ~${daysSaved} dni (${Math.round(daysSaved/30)} mies.)</span>`
+      :'';
+
+    wrap.innerHTML=`<div class="inv-r100k-wrap">
+      <div class="inv-r100k-header">
+        <div>
+          <div class="inv-r100k-title">Road to ${goalLabel} ${cur}</div>
+          <div class="inv-r100k-sub">Linia ciągła = historia · przerywana = projekcja. Wpisz przyspieszenie i sprawdź ile wcześniej osiągniesz cel.</div>
+        </div>
+        <div class="inv-r100k-controls">
+          <div class="inv-r100k-mult-group">
+            <div class="inv-r100k-mult-label">Przyspieszenie</div>
+            <div class="inv-r100k-mult-row">
+              <input type="number" id="inv-r100k-mult" min="1.1" max="50" step="0.1" value="${invCalR100kMult}" class="inv-r100k-mult-input" />
+              <span class="inv-r100k-mult-unit">×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="inv-r100k-legend">
+        <div class="inv-r100k-legend-item">
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#2563eb" stroke-width="2.5"/></svg>
+          <span>Historia</span>
+        </div>
+        <div class="inv-r100k-legend-item">
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#2563eb" stroke-width="2" stroke-dasharray="5 3"/></svg>
+          <span>Baseline (${fmt(avgMonthly,cur)}/mies.)</span>
+        </div>
+        <div class="inv-r100k-legend-item">
+          <svg width="26" height="10" viewBox="0 0 26 10" style="flex-shrink:0"><line x1="0" y1="5" x2="26" y2="5" stroke="#e15759" stroke-width="2" stroke-dasharray="5 3"/></svg>
+          <span>×${invCalR100kMult.toFixed(1)} (${fmt(accMonthly,cur)}/mies.)</span>
+        </div>
+        ${savingHtml}
+      </div>
+      <div class="inv-r100k-chart-box"><canvas id="inv-r100k-canvas"></canvas></div>
+      <div class="inv-r100k-cps" id="inv-r100k-cps"></div>
+    </div>`;
+
+    // Checkpoint cards
+    const cpWrap=document.getElementById('inv-r100k-cps');
+    if(cpWrap){
+      let cHtml='';
+      for(const cp of checkpoints){
+        const pctLbl=`${(cp.frac*100).toFixed(0)}%`;
+        const valLbl=cp.targetVal>=1000?(cp.targetVal/1000).toFixed(0)+'k':String(cp.targetVal);
+        if(cp.achieved){
+          cHtml+=`<div class="inv-r100k-cp achieved">
+            <div class="inv-r100k-cp-pct">✓ ${pctLbl}</div>
+            <div class="inv-r100k-cp-val">${valLbl} ${cur}</div>
+            <div class="inv-r100k-cp-row base">Osiągnięto: ${cp.achievedDate||'—'}</div>
+          </div>`;
+        } else if(cp.baseEta){
+          cHtml+=`<div class="inv-r100k-cp future">
+            <div class="inv-r100k-cp-pct">${pctLbl}</div>
+            <div class="inv-r100k-cp-val">${valLbl} ${cur}</div>
+            <div class="inv-r100k-cp-row base">Baseline: ~${cp.baseEta}</div>
+            <div class="inv-r100k-cp-row acc">${multLabel}: ~${cp.accEta}</div>
+            ${cp.monthsSaved>0?`<div class="inv-r100k-cp-row saved">−${cp.monthsSaved} mies. szybciej</div>`:''}
+          </div>`;
+        } else {
+          cHtml+=`<div class="inv-r100k-cp no-eta">
+            <div class="inv-r100k-cp-pct">${pctLbl}</div>
+            <div class="inv-r100k-cp-val">${valLbl} ${cur}</div>
+            <div class="inv-r100k-cp-row base">—</div>
+          </div>`;
+        }
+      }
+      cpWrap.innerHTML=cHtml;
+    }
+
+    // Destroy previous chart
+    if(invCalR100kChart){invCalR100kChart.destroy();invCalR100kChart=null;}
+    const canvas=document.getElementById('inv-r100k-canvas');
+    if(!canvas) return;
+
+    const MNS=['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+    const displayLabels=allMonths.map(mk=>{
+      const d=new Date(mk+'-01');
+      return `${MNS[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
+    });
+
+    // Gradient fills
+    const chartCtx=canvas.getContext('2d');
+    const h=canvas.offsetHeight||300;
+    const blueGrad=chartCtx.createLinearGradient(0,0,0,h);
+    blueGrad.addColorStop(0,'rgba(37,99,235,.10)');
+    blueGrad.addColorStop(1,'rgba(37,99,235,.0)');
+    const redGrad=chartCtx.createLinearGradient(0,0,0,h);
+    redGrad.addColorStop(0,'rgba(225,87,89,.09)');
+    redGrad.addColorStop(1,'rgba(225,87,89,.0)');
+
+    // Checkpoint horizontal lines as very subtle datasets
+    const cpHorizDatasets=cpFracs.map((f,idx)=>({
+      label:`_cp${idx}`,
+      data:allMonths.map(()=>Math.round(goal*f)),
+      borderColor:'rgba(148,163,184,.15)',
+      borderDash:[3,5],
+      borderWidth:1,
+      pointRadius:0,fill:false,spanGaps:false,order:10
+    }));
+
+    // Custom drawing plugin: "Dziś" line + checkpoint markers on projection lines
+    const r100kDecoPlugin={
+      id:'r100kDeco',
+      afterDatasetsDraw(chart){
+        const ctx=chart.ctx;
+        const {top,bottom,left,right}=chart.chartArea;
+
+        // "Dziś" separator
+        if(todayIdx>=0&&todayIdx<allMonths.length){
+          const xPos=chart.scales.x.getPixelForValue(todayIdx);
+          ctx.save();
+          ctx.strokeStyle='rgba(100,116,139,.35)';
+          ctx.lineWidth=1;
+          ctx.setLineDash([4,5]);
+          ctx.beginPath();ctx.moveTo(xPos,top);ctx.lineTo(xPos,bottom);ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle='rgba(100,116,139,.55)';
+          ctx.font='bold 9px system-ui,sans-serif';
+          ctx.textAlign='left';
+          ctx.fillText('Dziś',xPos+4,top+11);
+          ctx.restore();
+        }
+
+        // Checkpoint labels on right side of chart
+        ctx.save();
+        ctx.font='bold 9px system-ui,sans-serif';
+        ctx.textAlign='left';
+        cpFracs.forEach(f=>{
+          const yv=Math.round(goal*f);
+          const yPos=chart.scales.y.getPixelForValue(yv);
+          if(yPos<top||yPos>bottom) return;
+          ctx.fillStyle='rgba(148,163,184,.65)';
+          const lbl=yv>=1000?(yv/1000).toFixed(0)+'k':String(yv);
+          ctx.fillText(lbl,right+5,yPos+3);
+        });
+        ctx.restore();
+
+        // Checkpoint dots & labels on projection lines
+        const drawDot=(x,y,color,label,labelSide)=>{
+          if(x<left||x>right||y<top||y>bottom) return;
+          ctx.save();
+          ctx.beginPath();ctx.arc(x,y,5.5,0,Math.PI*2);
+          ctx.fillStyle=color;ctx.fill();
+          ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+          ctx.font='bold 9px system-ui,sans-serif';
+          ctx.fillStyle=color;
+          ctx.textAlign=labelSide==='right'?'left':'right';
+          ctx.fillText(label,x+(labelSide==='right'?9:-9),y-8);
+          ctx.restore();
+        };
+
+        cpFracs.forEach((f,i)=>{
+          const cp=checkpoints[i];
+          if(cp.achieved) return;
+          const targetVal=goal*f;
+          const lbl=targetVal>=1000?(targetVal/1000).toFixed(0)+'k':String(targetVal);
+          // Baseline dot
+          if(cp.baseEtaIdx!=null&&cp.baseEtaIdx<allMonths.length){
+            const x=chart.scales.x.getPixelForValue(cp.baseEtaIdx);
+            const y=chart.scales.y.getPixelForValue(targetVal);
+            const side=cp.baseEtaIdx<allMonths.length*0.85?'right':'left';
+            drawDot(x,y,'#2563eb',lbl,side);
+          }
+          // Accelerated dot (offset label slightly to avoid overlap with baseline)
+          if(cp.accEtaIdx!=null&&cp.accEtaIdx<allMonths.length){
+            const x=chart.scales.x.getPixelForValue(cp.accEtaIdx);
+            const y=chart.scales.y.getPixelForValue(targetVal);
+            const side=cp.accEtaIdx<allMonths.length*0.85?'right':'left';
+            drawDot(x,y,'#e15759','',side); // label already on baseline dot
+          }
+        });
+      }
+    };
+
+    invCalR100kChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      plugins:[r100kDecoPlugin],
+      data:{
+        labels:displayLabels,
+        datasets:[
+          ...cpHorizDatasets,
+          // History — solid thick blue
+          {label:'Historia',data:histData,borderColor:'#1d4ed8',backgroundColor:blueGrad,borderWidth:2.5,pointRadius:0,pointHoverRadius:4,fill:true,tension:0.35,spanGaps:true,order:3,borderCapStyle:'round'},
+          // Baseline projection — dashed blue
+          {label:'Baseline',data:baseData,borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,borderDash:[7,4],pointRadius:0,pointHoverRadius:4,fill:false,tension:0.3,spanGaps:false,order:2,borderCapStyle:'round'},
+          // Accelerated — dashed red
+          {label:`Scenariusz ×${multLabel}`,data:accData,borderColor:'#e15759',backgroundColor:redGrad,borderWidth:2,borderDash:[7,4],pointRadius:0,pointHoverRadius:4,fill:true,tension:0.3,spanGaps:false,order:1,borderCapStyle:'round'}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        layout:{padding:{right:40,top:6}},
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'rgba(15,23,42,.88)',
+            borderColor:'rgba(148,163,184,.2)',
+            borderWidth:1,
+            titleColor:'#f1f5f9',
+            bodyColor:'#94a3b8',
+            padding:{x:12,y:10},
+            cornerRadius:10,
+            callbacks:{
+              title:items=>allMonths[items[0]?.dataIndex]||'',
+              label:ctx=>{
+                if(!ctx.dataset.label||ctx.dataset.label.startsWith('_')) return null;
+                const v=ctx.parsed.y;
+                if(v==null) return null;
+                return ` ${ctx.dataset.label}: ${fmt(v,cur)}`;
+              }
+            },
+            filter:item=>item.dataset.label&&!item.dataset.label.startsWith('_')&&item.parsed.y!=null
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false},
+            border:{display:false},
+            ticks:{maxTicksLimit:10,maxRotation:0,font:{size:10,weight:'500'},color:'#94a3b8'}
+          },
+          y:{
+            grid:{color:'rgba(226,232,240,.6)'},
+            border:{display:false},
+            ticks:{font:{size:10},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},
+            beginAtZero:false
+          }
+        }
+      }
+    });
+
+    // Bind multiplier input
+    const multInp=document.getElementById('inv-r100k-mult');
+    if(multInp){
+      const applyMult=()=>{
+        const v=parseFloat(multInp.value);
+        if(v>0&&v<=50){
+          invCalR100kMult=v;
+          const snaps=invHubSnapshots();
+          const {arr:newArr}=invCalBuildSnapIndex(snaps);
+          renderInvCalR100k(newArr,cur);
+        }
+      };
+      multInp.addEventListener('change',applyMult);
+      multInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyMult();}});
+    }
+  }
+  // === /ROAD TO 100K SIMULATION ==============================================
+
   const INV_CAL_MONTH_NAMES=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
   const INV_CAL_DAY_ABBR=['Pon','Wt','Śr','Czw','Pt','Sob','Ndz'];
 
@@ -9510,11 +9927,13 @@
     }
 
     renderInvCalRoadTo(arr,cur);
+    renderInvCalR100k(arr,cur);
 
     const grid=document.getElementById('inv-cal-grid');
     if(!grid) return;
 
     if(invCalView==='monthly') invCalRenderMonthly(grid,arr,map,cur);
+    else if(invCalView==='months') invCalRenderMonthlyAgg(grid,arr,cur);
     else invCalRenderWeekly(grid,arr,cur);
   }
 
@@ -9635,13 +10054,76 @@
     invCalBindCells(grid);
   }
 
+  function invCalRenderMonthlyAgg(grid,arr,cur){
+    const year=invCalYear;
+    const mkGroups={};
+    const MN=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+    for(const e of arr){
+      const mk=e.snap.date.slice(0,7);
+      if(mk.slice(0,4)===String(year)){
+        if(!mkGroups[mk]||e.snap.date>=mkGroups[mk].snap.date) mkGroups[mk]=e;
+      }
+    }
+    const mkKeys=Object.keys(mkGroups).sort();
+    if(!mkKeys.length){
+      grid.innerHTML='<div class="inv-hub-empty">Brak snapshotów dla wybranego roku.</div>';
+      document.getElementById('inv-cal-legend').innerHTML='';
+      return;
+    }
+    const allVals=mkKeys.map((k,i)=>{
+      const prevSnap=i>0?mkGroups[mkKeys[i-1]].snap:null;
+      return invCalValue(mkGroups[k].snap,prevSnap);
+    });
+    const maxAbsVal=Math.max(...allVals.map(Math.abs),0.001);
+    invCalRenderLegend(allVals,maxAbsVal);
+    let html='<div class="inv-cal-magg-grid">';
+    for(let i=0;i<mkKeys.length;i++){
+      const mk=mkKeys[i];
+      const entry=mkGroups[mk];
+      const prevSnap=i>0?mkGroups[mkKeys[i-1]].snap:null;
+      const val=invCalValue(entry.snap,prevSnap);
+      const pct=Math.min(Math.abs(val)/maxAbsVal*100,100).toFixed(1);
+      const isPos=val>=0;
+      const barColor=isPos?'#22c55e':'#ef4444';
+      const bg=isPos?'rgba(34,197,94,.06)':'rgba(239,68,68,.06)';
+      const borderClr=isPos?'rgba(34,197,94,.22)':'rgba(239,68,68,.2)';
+      const valColor=isPos?'#15803d':'#b91c1c';
+      const mIdx=parseInt(mk.slice(5,7))-1;
+      const dRoi=prevSnap!=null?entry.snap.roi-prevSnap.roi:null;
+      const dPnl=prevSnap!=null?entry.snap.totalPnl-prevSnap.totalPnl:null;
+      html+=`<div class="inv-cal-magg-row" style="background:${bg};border-color:${borderClr}"
+        data-date="${entry.snap.date}"
+        data-roi="${entry.snap.roi.toFixed(3)}"
+        data-pnl="${entry.snap.totalPnl.toFixed(2)}"
+        data-value="${entry.snap.portfolioValue.toFixed(2)}"
+        data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
+        data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
+        data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+        data-prev-date="${prevSnap?prevSnap.date:''}">
+        <div>
+          <div class="inv-cal-magg-label">${MN[mIdx]} ${year}</div>
+          <div class="inv-cal-magg-date">${entry.snap.date}</div>
+        </div>
+        <div class="inv-cal-magg-bar-wrap">
+          <div class="inv-cal-magg-bar" style="width:${pct}%;background:${barColor};opacity:.75"></div>
+        </div>
+        <div class="inv-cal-magg-val" style="color:${valColor}">${invCalFmtVal(val)}</div>
+      </div>`;
+    }
+    html+='</div>';
+    grid.innerHTML=html;
+    invCalBindCells(grid);
+  }
+
   function bindInvCalendar(){
     if(invCalBound) return;
     invCalBound=true;
     const updateDeltaModeLabel=()=>{
       const deltaBtn=document.querySelector('[data-cal-mode="delta"]');
       if(!deltaBtn) return;
-      deltaBtn.textContent=invCalView==='weekly'?'Zmiana tygodniowa':'Zmiana dzienna';
+      if(invCalView==='weekly') deltaBtn.textContent='Zmiana tygodniowa';
+      else if(invCalView==='months') deltaBtn.textContent='Zmiana miesięczna';
+      else deltaBtn.textContent='Zmiana dzienna';
     };
     updateDeltaModeLabel();
 
@@ -9667,6 +10149,7 @@
         invCalView=btn.dataset.calView;
         document.querySelectorAll('[data-cal-view]').forEach(b=>b.classList.toggle('is-active',b===btn));
         if(invCalView==='monthly'){invCalYear=new Date().getFullYear();invCalMonth=new Date().getMonth();}
+        else if(invCalView==='months'||invCalView==='weekly'){invCalYear=new Date().getFullYear();}
         updateDeltaModeLabel();
         renderInvCalendar();
       };
