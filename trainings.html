@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="pl">
 <head>
@@ -151,16 +152,16 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
-  grid-auto-rows: minmax(80px, 1fr);
+  gap: 6px;
+  grid-auto-rows: minmax(54px, auto);
   flex: 1;
 }
 
 .calendar-day {
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid var(--line);
-  padding: 8px;
+  padding: 6px 8px;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -188,20 +189,20 @@
 
 .calendar-date-number {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
   border: 1px solid transparent;
   display: inline-block;
-  padding: 2px;
-  border-radius: 6px;
+  padding: 2px 3px;
+  border-radius: 5px;
 }
 
 .calendar-day-emojis {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  min-height: 28px;
-  font-size: 20px;
+  gap: 2px;
+  min-height: 16px;
+  font-size: 13px;
 }
 .activity-emoji {
   opacity: 1;
@@ -1485,6 +1486,71 @@
   .calendar-weekdays { display: none; }
   .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); grid-auto-rows: 70px; }
 }
+
+/* Analytics Habit Calendar */
+.analytics-habit-cal-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 280px;
+}
+.analytics-habit-cal-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.analytics-habit-cal {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+.analytics-habit-dot {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: #e2e8f0;
+  cursor: default;
+  transition: transform 0.15s ease;
+  position: relative;
+}
+.analytics-habit-dot:hover { transform: scale(1.3); }
+.analytics-habit-dot.active { background: var(--success); }
+.analytics-habit-dot.today { outline: 2px solid var(--accent); outline-offset: 1px; }
+.analytics-habit-dot.rest { background: #f8fafc; border: 1px solid var(--line); }
+
+/* Improved bm-kpi-card hover */
+.bm-kpi-card {
+  background: linear-gradient(135deg, var(--surface) 0%, #fafbff 100%);
+}
+
+/* Better analytics score cards */
+.analytics-score-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+  transition: var(--transition);
+}
+.analytics-score-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+/* Analytics top row */
+.analytics-top-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
   </style>
 </head>
 <body data-page="trainings">
@@ -1708,6 +1774,9 @@
                   <h4><i data-lucide="trending-up" class="icon"></i>Trend skladu ciala</h4>
                   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                     <div class="bm-chart-toggles" id="bm-chart-toggles"></div>
+                    <button type="button" class="bm-chart-toggle" id="bm-normalize-btn" title="Pokaż zmianę % od wartości bazowej">
+                      <span class="toggle-dot" style="background: #6366f1"></span>% zmiana
+                    </button>
                   </div>
                 </div>
                 <div class="bm-chart-container" id="bm-chart-container">
@@ -1780,6 +1849,10 @@
                             <h4>Aktualna Seria</h4>
                             <p>Dni z rzędu z jakąkolwiek aktywnością</p>
                         </div>
+                    </div>
+                    <div class="analytics-score-card analytics-habit-cal-card">
+                        <div class="analytics-habit-cal-title">Ostatnie 30 dni</div>
+                        <div id="analytics-habit-cal" class="analytics-habit-cal"></div>
                     </div>
                 </div>
 
@@ -1985,6 +2058,7 @@ let saveTimeout;
 let bodyMetrics = [];
 let selectedCut = 'all';
 let analyticsCharts = {};
+let bmNormalized = false;
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -3254,6 +3328,20 @@ function renderBMChartToggles() {
 
 function renderBMMainChart(filtered) {
   renderBMChartToggles();
+
+  // Handle normalize button state
+  const normalizeBtn = document.getElementById('bm-normalize-btn');
+  if (normalizeBtn) {
+    normalizeBtn.classList.toggle('is-active', bmNormalized);
+    normalizeBtn.style.borderColor = bmNormalized ? '#6366f1' : '';
+    normalizeBtn.onclick = () => {
+      bmNormalized = !bmNormalized;
+      const filtered2 = getMetricsForCut(selectedCut);
+      renderBMMainChart(filtered2);
+      lucide.createIcons();
+    };
+  }
+
   const container = document.getElementById('bm-chart-container');
   if (!container) return;
 
@@ -3289,7 +3377,14 @@ function renderBMMainChart(filtered) {
   Object.entries(BM_METRIC_DEFS).forEach(([key, def]) => {
     if (!bmActiveMetrics[key]) return;
     // Weekly average line (main, bold)
-    const avgData = weeklyAvgs.map(w => Number.isFinite(w[key]) ? w[key] : null);
+    const rawAvgData = weeklyAvgs.map(w => Number.isFinite(w[key]) ? w[key] : null);
+    let avgData;
+    if (bmNormalized) {
+      const baseline = rawAvgData.find(v => v !== null);
+      avgData = rawAvgData.map(v => v !== null && baseline ? Math.round(((v - baseline) / baseline) * 1000) / 10 : null);
+    } else {
+      avgData = rawAvgData;
+    }
     datasets.push({
       label: def.label + ' (śr. tyg.)',
       data: avgData,
@@ -3305,7 +3400,7 @@ function renderBMMainChart(filtered) {
       pointHoverRadius: 7,
       pointHoverBackgroundColor: def.color,
       spanGaps: true,
-      yAxisID: (key === 'bf' && useDualAxis) ? 'y1' : 'y',
+      yAxisID: (!bmNormalized && key === 'bf' && useDualAxis) ? 'y1' : 'y',
       order: 1
     });
   });
@@ -3344,24 +3439,56 @@ function renderBMMainChart(filtered) {
           }
         }
       },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
-        },
-        y: {
-          position: 'left',
-          grid: { color: '#f1f5f9', borderDash: [4, 4] },
-          ticks: { color: '#94a3b8', font: { size: 10 } }
-        },
-        ...(useDualAxis ? {
-          y1: {
-            position: 'right',
+      scales: (() => {
+        if (bmNormalized) {
+          return {
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: {
+              position: 'left',
+              grid: { color: '#f1f5f9', borderDash: [4, 4] },
+              ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v.toFixed(1) + '%' }
+            }
+          };
+        }
+        // Calculate tight bounds for left axis (weight, bmi, muscle)
+        const yVals = [];
+        const y1Vals = [];
+        datasets.forEach(ds => {
+          const key = Object.entries(BM_METRIC_DEFS).find(([k, def]) => def.label + ' (śr. tyg.)' === ds.label)?.[0];
+          if (!key) return;
+          const vals = ds.data.filter(v => v !== null);
+          if (key === 'bf' && useDualAxis) y1Vals.push(...vals);
+          else yVals.push(...vals);
+        });
+        const pad = (vals, pct=0.15) => {
+          if (!vals.length) return {};
+          const min = Math.min(...vals), max = Math.max(...vals);
+          const range = max - min || 1;
+          return { min: Math.floor((min - range * pct) * 10) / 10, max: Math.ceil((max + range * pct) * 10) / 10 };
+        };
+        const yBounds = pad(yVals);
+        const y1Bounds = pad(y1Vals, 0.2);
+        return {
+          x: {
             grid: { display: false },
-            ticks: { color: '#f59e0b', font: { size: 10 }, callback: v => v + '%' }
-          }
-        } : {})
-      },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+          },
+          y: {
+            position: 'left',
+            grid: { color: '#f1f5f9', borderDash: [4, 4] },
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            ...(yBounds.min !== undefined ? { min: yBounds.min, max: yBounds.max } : {})
+          },
+          ...(useDualAxis ? {
+            y1: {
+              position: 'right',
+              grid: { display: false },
+              ticks: { color: '#f59e0b', font: { size: 10 }, callback: v => v.toFixed(1) + '%' },
+              ...(y1Bounds.min !== undefined ? { min: y1Bounds.min, max: y1Bounds.max } : {})
+            }
+          } : {})
+        };
+      })(),
       animation: { duration: 800, easing: 'easeOutQuart' }
     }
   });
@@ -3658,6 +3785,29 @@ function getLastWeeks(count) {
 // NEW ANALYTICS LOGIC
 // ==========================================
 
+function renderHabitCalendar() {
+  const container = document.getElementById('analytics-habit-cal');
+  if (!container) return;
+  const today = normalizeDate(new Date());
+  const todayStr = toYYYYMMDD(today);
+  container.innerHTML = '';
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const k = toYYYYMMDD(d);
+    const acts = (state.activities[k] || []).filter(a => a.completed);
+    const extras = (state.extras[k] || []).filter(e => e.completed);
+    const vac = isVacationDay(k);
+    const dot = document.createElement('div');
+    dot.className = 'analytics-habit-dot';
+    if (vac) dot.classList.add('rest');
+    else if (acts.length > 0 || extras.length > 0) dot.classList.add('active');
+    if (k === todayStr) dot.classList.add('today');
+    dot.title = `${k}: ${acts.length + extras.length} aktywności`;
+    container.appendChild(dot);
+  }
+}
+
 function calculateHabitScore() {
     const today = normalizeDate(new Date());
     let activeDays = 0;
@@ -3750,7 +3900,8 @@ function getAnalyticsData() {
 
 function renderNewAnalytics() {
     if (typeof Chart === 'undefined') return;
-    
+    renderHabitCalendar();
+
     const data = getAnalyticsData();
     const score = calculateHabitScore();
     const streak = calculateStreak();

@@ -208,7 +208,7 @@
     .inv-hub-dca-bar-wrap { position:relative; height:6px; border-radius:3px; background:rgba(148,163,184,.18); overflow:hidden; margin-top:4px; min-width:60px; }
     .inv-hub-dca-bar { position:absolute; left:0; top:0; height:100%; border-radius:3px; }
 
-    /* --- Simulation result cards --------------------------------------------- */
+     /* --- Simulation result cards --------------------------------------------- */
     .inv-hub-sim-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
     .inv-hub-sim-card { border-radius:14px; padding:14px 16px; border:1px solid; }
     .inv-hub-sim-card--blue { background:rgba(37,99,235,.06); border-color:rgba(37,99,235,.2); }
@@ -225,11 +225,93 @@
     .inv-hub-sim-card--green .inv-hub-sim-card__roi { color:#16a34a; }
     .inv-hub-sim-card--purple .inv-hub-sim-card__roi { color:#6d28d9; }
     .inv-hub-sim-card__detail { font-size:11px; color:var(--muted); line-height:1.5; }
+    .inv-hub-sim-card__detail strong { color:var(--ink); font-weight:700; }
+    .inv-hub-sim-card__detail-grid { display:grid; gap:4px; margin-top:8px; }
+    .inv-hub-sim-badge-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .inv-hub-sim-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.01em; text-transform:uppercase; }
+    .inv-hub-sim-badge.up { background:rgba(34,197,94,.14); color:#15803d; }
+    .inv-hub-sim-badge.down { background:rgba(239,68,68,.14); color:#b91c1c; }
+    .inv-hub-sim-badge.neutral { background:rgba(148,163,184,.16); color:var(--muted); }
+    .inv-hub-sim-stats { margin-top:12px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+    .inv-hub-sim-stat { background:rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.2); border-radius:10px; padding:9px 10px; display:flex; flex-direction:column; gap:3px; }
+    .inv-hub-sim-stat__label { font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .inv-hub-sim-stat__value { font-size:14px; font-weight:700; color:var(--ink); line-height:1.2; }
+    .inv-hub-sim-stat__value.positive { color:#15803d; }
+    .inv-hub-sim-stat__value.negative { color:#b91c1c; }
+    .inv-hub-hist-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+    .inv-hub-hist-card { border:1px solid rgba(148,163,184,.22); border-radius:11px; padding:10px 12px; background:var(--surface); border-left:4px solid rgba(148,163,184,.45); box-shadow:0 4px 14px rgba(15,23,42,.04); }
+    .inv-hub-hist-card.positive { border-left-color:#22c55e; }
+    .inv-hub-hist-card.negative { border-left-color:#ef4444; }
+    .inv-hub-hist-card__month { font-size:10px; font-weight:700; color:var(--muted); margin-bottom:4px; letter-spacing:.04em; text-transform:uppercase; }
+    .inv-hub-hist-card__roi { font-size:18px; font-weight:800; line-height:1; }
+    .inv-hub-hist-card.positive .inv-hub-hist-card__roi { color:#15803d; }
+    .inv-hub-hist-card.negative .inv-hub-hist-card__roi { color:#b91c1c; }
+    .inv-hub-hist-card__pnl { font-size:11px; color:var(--muted); margin-top:5px; }
+    .inv-hub-hist-card__delta { font-size:10px; margin-top:2px; font-weight:700; }
+    .inv-hub-hist-card__delta.positive { color:#15803d; }
+    .inv-hub-hist-card__delta.negative { color:#b91c1c; }
 
     /* --- Chart card control row --------------------------------------------- */
     .inv-hub-chart-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
     .inv-hub-chart-card-header h4 { margin:0; font-size:13px; font-weight:700; color:var(--ink); }
     @media(max-width:640px){ .inv-hub-monthly-table, .inv-hub-dca-table { font-size:11px; } .inv-hub-monthly-table th, .inv-hub-dca-table th { padding:5px 6px; } .inv-hub-monthly-table td, .inv-hub-dca-table td { padding:5px 6px; } }
+
+    /* ===================== CALENDAR P&L ======================================= */
+    .inv-cal-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; padding:12px 14px; background:var(--surface); border:1px solid rgba(148,163,184,.18); border-radius:14px; }
+    .inv-cal-group { display:flex; flex-direction:column; gap:3px; }
+    .inv-cal-group-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); padding-left:2px; }
+    .inv-cal-tabs { display:inline-flex; gap:2px; padding:2px; border-radius:999px; background:rgba(148,163,184,.13); }
+    .inv-cal-tab { border:none; background:transparent; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .inv-cal-tab:hover:not(.is-active) { background:rgba(37,99,235,.1); color:#2563eb; }
+    .inv-cal-tab.is-active { background:#2563eb; color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.28); }
+    .inv-cal-nav { display:flex; align-items:center; gap:8px; margin-left:auto; }
+    .inv-cal-nav-btn { border:1px solid rgba(148,163,184,.3); background:var(--surface); border-radius:9px; width:32px; height:32px; font-size:20px; line-height:1; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; }
+    .inv-cal-nav-btn:hover { background:rgba(37,99,235,.08); border-color:#2563eb; }
+    .inv-cal-nav-title { font-size:14px; font-weight:700; min-width:150px; text-align:center; color:var(--ink); }
+
+    /* Legend */
+    .inv-cal-legend { display:flex; align-items:center; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+    .inv-cal-legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); white-space:nowrap; }
+    .inv-cal-legend-swatch { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+
+    /* Monthly grid */
+    .inv-cal-month-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .inv-cal-day-header { font-size:10px; font-weight:700; text-align:center; color:var(--muted); padding:5px 0 8px; }
+    .inv-cal-day { min-height:70px; border-radius:11px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; cursor:default; transition:transform .12s, box-shadow .12s; user-select:none; }
+    .inv-cal-day[data-date]:hover { transform:scale(1.06); box-shadow:0 6px 18px rgba(15,23,42,.14); z-index:2; }
+    .inv-cal-day--empty { min-height:70px; }
+    .inv-cal-day--no-data { background:rgba(148,163,184,.07); }
+    .inv-cal-day-num { font-size:10px; font-weight:600; color:var(--muted); position:absolute; top:6px; left:8px; }
+    .inv-cal-day-val { font-size:13px; font-weight:800; margin-top:10px; }
+    /* Color bands — bg intensity scales with magnitude */
+    .inv-cal-day--pp2 { background:rgba(22,163,74,.92); } .inv-cal-day--pp2 .inv-cal-day-val,.inv-cal-day--pp2 .inv-cal-day-num { color:#fff; }
+    .inv-cal-day--p2  { background:rgba(34,197,94,.72); } .inv-cal-day--p2  .inv-cal-day-val { color:#14532d; } .inv-cal-day--p2  .inv-cal-day-num { color:rgba(20,83,45,.7); }
+    .inv-cal-day--p1  { background:rgba(134,239,172,.65); } .inv-cal-day--p1  .inv-cal-day-val { color:#166534; }
+    .inv-cal-day--p0  { background:rgba(187,247,208,.5); } .inv-cal-day--p0  .inv-cal-day-val { color:#15803d; }
+    .inv-cal-day--n0  { background:rgba(254,202,202,.5); } .inv-cal-day--n0  .inv-cal-day-val { color:#b91c1c; }
+    .inv-cal-day--n1  { background:rgba(252,165,165,.65); } .inv-cal-day--n1  .inv-cal-day-val { color:#991b1b; }
+    .inv-cal-day--n2  { background:rgba(239,68,68,.72); } .inv-cal-day--n2  .inv-cal-day-val,.inv-cal-day--n2  .inv-cal-day-num { color:#fff; }
+    .inv-cal-day--nn2 { background:rgba(185,28,28,.90); } .inv-cal-day--nn2 .inv-cal-day-val,.inv-cal-day--nn2 .inv-cal-day-num { color:#fff; }
+    .inv-cal-day--today-ring { outline:2.5px solid #2563eb; outline-offset:2px; }
+
+    /* Weekly grid */
+    .inv-cal-week-grid { display:flex; flex-direction:column; gap:5px; }
+    .inv-cal-week-row { display:grid; grid-template-columns:110px 1fr 90px; align-items:center; gap:10px; border-radius:11px; padding:9px 14px; border:1px solid; cursor:default; }
+    .inv-cal-week-row[data-date]:hover { filter:brightness(.96); }
+    .inv-cal-week-label { font-size:11px; font-weight:700; color:var(--ink); }
+    .inv-cal-week-date { font-size:10px; color:var(--muted); font-weight:400; }
+    .inv-cal-week-bar-wrap { position:relative; height:28px; border-radius:6px; overflow:hidden; background:rgba(148,163,184,.12); }
+    .inv-cal-week-bar { position:absolute; top:0; left:0; height:100%; border-radius:6px; transition:width .4s cubic-bezier(.4,0,.2,1); }
+    .inv-cal-week-val { font-size:13px; font-weight:800; text-align:right; }
+
+    /* Tooltip */
+    .inv-cal-tooltip { position:fixed; pointer-events:none; z-index:9999; background:var(--surface); border:1px solid rgba(148,163,184,.28); border-radius:14px; padding:12px 16px; box-shadow:0 10px 32px rgba(15,23,42,.18); font-size:12px; min-width:200px; display:none; }
+    .inv-cal-tooltip-title { font-weight:700; color:var(--ink); margin-bottom:8px; font-size:13px; }
+    .inv-cal-tooltip-row { display:flex; justify-content:space-between; align-items:baseline; gap:16px; color:var(--muted); margin-top:3px; }
+    .inv-cal-tooltip-row .val { font-weight:700; color:var(--ink); }
+    .inv-cal-tooltip-sep { border:none; border-top:1px solid rgba(148,163,184,.18); margin:7px 0; }
+    .inv-cal-tooltip-sub { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:3px; }
+    @media(max-width:700px){ .inv-cal-month-grid { gap:2px; } .inv-cal-day { min-height:48px; } .inv-cal-day-val { font-size:10px; } .inv-cal-day-num { font-size:9px; } }
 
     details.card > summary { list-style:none; }
     details.card > summary::-webkit-details-marker { display:none; }
@@ -4889,39 +4971,47 @@
               <strong>Analityka</strong>
               <div class="inv-analytics-nav" role="tablist">
                 <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)">Hub analityczny</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="capital">Przepływy kapitału</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="cumulative">Skumulowany kapitał</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="allocation">Alokacja</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="pnl">P&amp;L</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="calendar" style="background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,.25)">Kalendarz P&amp;L</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
-              <div class="inv-analytics-panel" data-panel="capital">
-                <div class="chart-box"><canvas id="inv-capital-chart"></canvas><div class="chart-empty" id="inv-capital-empty" style="display:none">Brak danych</div></div>
-              </div>
-              <div class="inv-analytics-panel" data-panel="cumulative">
-                <div class="chart-box"><canvas id="inv-cumulative-chart"></canvas><div class="chart-empty" id="inv-cumulative-empty" style="display:none">Dodaj transakcje</div></div>
-              </div>
-              <div class="inv-analytics-panel" data-panel="allocation">
-                <div class="inv-allocation-grid">
-                  <div class="card stack" style="box-shadow:none;border:1px solid rgba(148,163,184,.25)">
-                    <strong>Struktura wg grup</strong>
-                    <div class="chart-box" style="height:220px"><canvas id="inv-allocation-chart"></canvas><div class="chart-empty" id="inv-allocation-empty" style="display:none">Brak aktywów</div></div>
-                  </div>
-                  <div class="card stack" style="box-shadow:none;border:1px solid rgba(148,163,184,.25)">
-                    <div class="row" style="justify-content:space-between;align-items:center">
-                      <strong id="inv-allocation-detail-title">Szczegóły grupy</strong>
-                      <span class="tiny muted" id="inv-allocation-detail-meta">Kliknij segment</span>
+
+              <!-- =============== KALENDARZ P&L =============== -->
+              <div class="inv-analytics-panel" data-panel="calendar">
+                <div class="inv-cal-toolbar">
+                  <div class="inv-cal-group">
+                    <span class="inv-cal-group-label">Tryb</span>
+                    <div class="inv-cal-tabs">
+                      <button class="inv-cal-tab is-active" data-cal-mode="total">Kumulatywny</button>
+                      <button class="inv-cal-tab" data-cal-mode="delta">Zmiana dzienna</button>
                     </div>
-                    <div class="chart-box" style="height:220px"><canvas id="inv-allocation-detail-chart"></canvas><div class="chart-empty" id="inv-allocation-detail-empty" style="display:none">Kliknij grupę</div></div>
+                  </div>
+                  <div class="inv-cal-group">
+                    <span class="inv-cal-group-label">Metryka</span>
+                    <div class="inv-cal-tabs">
+                      <button class="inv-cal-tab is-active" data-cal-metric="roi">ROI %</button>
+                      <button class="inv-cal-tab" data-cal-metric="pnl">P&amp;L</button>
+                    </div>
+                  </div>
+                  <div class="inv-cal-group">
+                    <span class="inv-cal-group-label">Widok</span>
+                    <div class="inv-cal-tabs">
+                      <button class="inv-cal-tab is-active" data-cal-view="monthly">Miesięczny</button>
+                      <button class="inv-cal-tab" data-cal-view="weekly">Tygodniowy</button>
+                    </div>
+                  </div>
+                  <div class="inv-cal-nav">
+                    <button class="inv-cal-nav-btn" id="inv-cal-prev">‹</button>
+                    <span class="inv-cal-nav-title" id="inv-cal-nav-title">—</span>
+                    <button class="inv-cal-nav-btn" id="inv-cal-next">›</button>
                   </div>
                 </div>
+                <div class="inv-cal-legend" id="inv-cal-legend"></div>
+                <div id="inv-cal-grid"></div>
+                <div class="inv-cal-tooltip" id="inv-cal-tooltip"></div>
               </div>
-              <div class="inv-analytics-panel" data-panel="pnl">
-                <div class="chart-box"><canvas id="inv-pnl-chart"></canvas><div class="chart-empty" id="inv-pnl-empty" style="display:none">Brak zrealizowanych zysków</div></div>
-              </div>
+              <!-- =============== /KALENDARZ P&L =============== -->
 
-              <!-- =============== HUB ANALITYCZNY =============== -->
               <div class="inv-analytics-panel is-active" data-panel="hub">
 
                 <!-- Snapshot bar -->
@@ -7275,8 +7365,19 @@
         }
       }
     });
+    // Calendar button: also keep gradient but dimmed when inactive
+    document.querySelectorAll('.inv-analytics-btn').forEach(btn=>{
+      if(btn.dataset.invPanelBtn==='calendar'){
+        const isA=panel==='calendar';
+        btn.style.background='linear-gradient(135deg,#0891b2,#2563eb)';
+        btn.style.color='#fff';
+        btn.style.boxShadow=isA?'0 4px 16px rgba(8,145,178,.35)':'0 2px 8px rgba(8,145,178,.2)';
+        btn.style.opacity=isA?'1':'0.75';
+      }
+    });
     document.querySelectorAll('.inv-analytics-panel').forEach(p=>p.classList.toggle('is-active',p.dataset.panel===panel));
     if(panel==='hub') renderInvHub();
+    if(panel==='calendar') renderInvCalendar();
   }
 
   function bindInvestmentAnalyticsNav(){
@@ -8911,6 +9012,329 @@
     }
   }
 
+  // === CALENDAR P&L =============================================================
+  let invCalMode='total';   // 'total'|'delta'
+  let invCalMetric='roi';   // 'roi'|'pnl'
+  let invCalView='monthly'; // 'monthly'|'weekly'
+  let invCalYear=new Date().getFullYear();
+  let invCalMonth=new Date().getMonth(); // 0-indexed
+  let invCalBound=false;
+
+  const INV_CAL_MONTH_NAMES=['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  const INV_CAL_DAY_ABBR=['Pon','Wt','Śr','Czw','Pt','Sob','Ndz'];
+
+  // Return the display value for a snapshot entry {snap, prevSnap}
+  function invCalValue(snap,prevSnap){
+    if(invCalMode==='total'){
+      return invCalMetric==='roi'?snap.roi:snap.totalPnl;
+    }
+    // delta
+    if(!prevSnap) return invCalMetric==='roi'?snap.roi:snap.totalPnl;
+    return invCalMetric==='roi'
+      ?snap.roi-prevSnap.roi
+      :snap.totalPnl-prevSnap.totalPnl;
+  }
+
+  // Map value to color class using relative scale (maxAbsVal for the current view)
+  function invCalColorClass(val,maxAbsVal){
+    if(maxAbsVal<=0) return 'inv-cal-day--no-data';
+    const pct=val/maxAbsVal; // -1..+1
+    if(pct>0.7)  return 'inv-cal-day--pp2';
+    if(pct>0.4)  return 'inv-cal-day--p2';
+    if(pct>0.15) return 'inv-cal-day--p1';
+    if(pct>0)    return 'inv-cal-day--p0';
+    if(pct>-0.15)return 'inv-cal-day--n0';
+    if(pct>-0.4) return 'inv-cal-day--n1';
+    if(pct>-0.7) return 'inv-cal-day--n2';
+    return 'inv-cal-day--nn2';
+  }
+
+  function invCalFmtVal(val){
+    const cur=state.currency;
+    if(invCalMetric==='roi') return (val>=0?'+':'')+val.toFixed(2)+'%';
+    return (val>=0?'+':'')+fmt(val,cur);
+  }
+
+  function invCalFmtShort(val){
+    if(invCalMetric==='roi') return (val>=0?'+':'')+val.toFixed(1)+'%';
+    // abbreviated PLN
+    const abs=Math.abs(val);
+    const s=abs>=1000?(val>=0?'+':'-')+(abs/1000).toFixed(1)+'k':(val>=0?'+':'')+val.toFixed(0);
+    return s+'\u202F'+(state.currency||'PLN');
+  }
+
+  function invCalBuildSnapIndex(snaps){
+    // Returns array of {snap,prevSnap} sorted by date, plus snapByDate map
+    const sorted=[...snaps].sort((a,b)=>a.date.localeCompare(b.date));
+    const arr=sorted.map((s,i)=>({snap:s,prevSnap:i>0?sorted[i-1]:null}));
+    const map={};
+    for(const e of arr) map[e.snap.date]=e;
+    return {arr,map};
+  }
+
+  function invCalRenderLegend(allVals,maxAbsVal){
+    const el=document.getElementById('inv-cal-legend');
+    if(!el) return;
+    if(!allVals.length){el.innerHTML='';return;}
+    const classes=['inv-cal-day--pp2','inv-cal-day--p2','inv-cal-day--p1','inv-cal-day--p0','inv-cal-day--n0','inv-cal-day--n1','inv-cal-day--n2','inv-cal-day--nn2'];
+    const thresholds=[0.7,0.4,0.15,0,-0.15,-0.4,-0.7];
+    const labels=['>70%','40-70%','15-40%','0-15%','0-15%','15-40%','40-70%','>70%'];
+    const sides=['Zysk','Zysk','Zysk','Zysk','Strata','Strata','Strata','Strata'];
+    let html='<span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px">Skala:</span>';
+    for(let i=0;i<classes.length;i++){
+      const pctLo=i<4?thresholds[i]*maxAbsVal:thresholds[i]*maxAbsVal;
+      html+=`<span class="inv-cal-legend-item"><span class="inv-cal-legend-swatch ${classes[i]}"></span>${labels[i]} zakresu</span>`;
+    }
+    // simpler legend: just color gradient row
+    html='<span style="font-size:10px;font-weight:700;color:var(--muted);margin-right:8px">Silna strata</span>';
+    const swatches=['inv-cal-day--nn2','inv-cal-day--n2','inv-cal-day--n1','inv-cal-day--n0','inv-cal-day--p0','inv-cal-day--p1','inv-cal-day--p2','inv-cal-day--pp2'];
+    for(const cls of swatches){
+      html+=`<span class="inv-cal-legend-item"><span class="inv-cal-legend-swatch ${cls}"></span></span>`;
+    }
+    html+='<span style="font-size:10px;font-weight:700;color:var(--muted);margin-left:4px">Silny zysk</span>';
+    if(maxAbsVal>0){
+      const unit=invCalMetric==='roi'?'%':'\u202F'+(state.currency||'PLN');
+      html+=`<span style="font-size:10px;color:var(--muted);margin-left:12px">Max obserwacja: ${maxAbsVal.toFixed(invCalMetric==='roi'?2:0)}${unit}</span>`;
+    }
+    el.innerHTML=html;
+  }
+
+  function invCalRenderTooltip(cell,e){
+    const tt=document.getElementById('inv-cal-tooltip');
+    if(!tt) return;
+    const cur=state.currency;
+    const date=cell.dataset.date;
+    const roi=parseFloat(cell.dataset.roi)||0;
+    const pnl=parseFloat(cell.dataset.pnl)||0;
+    const val=parseFloat(cell.dataset.value)||0;
+    const cap=parseFloat(cell.dataset.capital)||0;
+    const dRoi=cell.dataset.deltaRoi!==''?parseFloat(cell.dataset.deltaRoi):null;
+    const dPnl=cell.dataset.deltaPnl!==''?parseFloat(cell.dataset.deltaPnl):null;
+    const prevDate=cell.dataset.prevDate||'';
+
+    const rc=v=>v>=0?'#16a34a':'#dc2626';
+    let h=`<div class="inv-cal-tooltip-title">${date}</div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>ROI całkowity</span><span class="val" style="color:${rc(roi)}">${roi>=0?'+':''}${roi.toFixed(2)}%</span></div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>P&L całkowity</span><span class="val" style="color:${rc(pnl)}">${pnl>=0?'+':''}${fmt(pnl,cur)}</span></div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>Wartość portfela</span><span class="val">${fmt(val,cur)}</span></div>`;
+    h+=`<div class="inv-cal-tooltip-row"><span>Zainwestowano</span><span class="val">${fmt(cap,cur)}</span></div>`;
+    if(dRoi!=null){
+      h+=`<hr class="inv-cal-tooltip-sep"><div class="inv-cal-tooltip-sub">Zmiana vs ${prevDate||'—'}</div>`;
+      h+=`<div class="inv-cal-tooltip-row"><span>Δ ROI</span><span class="val" style="color:${rc(dRoi)}">${dRoi>=0?'+':''}${dRoi.toFixed(2)}%</span></div>`;
+      h+=`<div class="inv-cal-tooltip-row"><span>Δ P&L</span><span class="val" style="color:${rc(dPnl||0)}">${(dPnl||0)>=0?'+':''}${fmt(dPnl||0,cur)}</span></div>`;
+    }
+    tt.innerHTML=h;
+    tt.style.display='block';
+    invCalPositionTooltip(tt,e);
+  }
+
+  function invCalPositionTooltip(tt,e){
+    const margin=8;
+    const tw=tt.offsetWidth||220, th=tt.offsetHeight||140;
+    let x=e.clientX+18, y=e.clientY-10;
+    if(x+tw>window.innerWidth-margin) x=e.clientX-tw-18;
+    if(y+th>window.innerHeight-margin) y=e.clientY-th-10;
+    x=Math.max(margin,Math.min(x,window.innerWidth-tw-margin));
+    y=Math.max(margin,Math.min(y,window.innerHeight-th-margin));
+    tt.style.left=x+'px';
+    tt.style.top=y+'px';
+  }
+
+  function invCalBindCells(container){
+    const tt=document.getElementById('inv-cal-tooltip');
+    container.querySelectorAll('[data-date]').forEach(cell=>{
+      cell.addEventListener('mouseenter',e=>invCalRenderTooltip(cell,e));
+      cell.addEventListener('mousemove',e=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,e);});
+      cell.addEventListener('mouseleave',()=>{if(tt) tt.style.display='none';});
+    });
+  }
+
+  function renderInvCalendar(){
+    const snaps=invHubSnapshots();
+    const cur=state.currency;
+    const {arr,map}=invCalBuildSnapIndex(snaps);
+
+    // Update nav title
+    const navTitle=document.getElementById('inv-cal-nav-title');
+    if(navTitle){
+      if(invCalView==='monthly') navTitle.textContent=`${INV_CAL_MONTH_NAMES[invCalMonth]} ${invCalYear}`;
+      else navTitle.textContent=String(invCalYear);
+    }
+
+    const grid=document.getElementById('inv-cal-grid');
+    if(!grid) return;
+
+    if(invCalView==='monthly') invCalRenderMonthly(grid,arr,map,cur);
+    else invCalRenderWeekly(grid,arr,cur);
+  }
+
+  function invCalRenderMonthly(grid,arr,map,cur){
+    const year=invCalYear, month=invCalMonth;
+    const firstDay=new Date(year,month,1);
+    const lastDay=new Date(year,month+1,0);
+    const today=new Date().toISOString().slice(0,10);
+
+    // Collect all entries for this month to compute scale
+    const monthEntries=[];
+    for(let d=1;d<=lastDay.getDate();d++){
+      const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      if(map[ds]) monthEntries.push(invCalValue(map[ds].snap,map[ds].prevSnap));
+    }
+    const maxAbsVal=monthEntries.length?Math.max(...monthEntries.map(Math.abs),0.001):0;
+    invCalRenderLegend(monthEntries,maxAbsVal);
+
+    // DOW offset: 0=Mon..6=Sun
+    let startDow=firstDay.getDay();
+    startDow=(startDow===0)?6:startDow-1;
+
+    let html='<div class="inv-cal-month-grid">';
+    for(const d of INV_CAL_DAY_ABBR) html+=`<div class="inv-cal-day-header">${d}</div>`;
+    for(let i=0;i<startDow;i++) html+='<div class="inv-cal-day inv-cal-day--empty"></div>';
+
+    for(let d=1;d<=lastDay.getDate();d++){
+      const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday=ds===today;
+      const todayCls=isToday?' inv-cal-day--today-ring':'';
+      const entry=map[ds];
+      if(entry){
+        const val=invCalValue(entry.snap,entry.prevSnap);
+        const colorCls=invCalColorClass(val,maxAbsVal);
+        const dRoi=entry.prevSnap!=null?entry.snap.roi-entry.prevSnap.roi:null;
+        const dPnl=entry.prevSnap!=null?entry.snap.totalPnl-entry.prevSnap.totalPnl:null;
+        html+=`<div class="inv-cal-day ${colorCls}${todayCls}"
+          data-date="${ds}"
+          data-roi="${entry.snap.roi.toFixed(3)}"
+          data-pnl="${entry.snap.totalPnl.toFixed(2)}"
+          data-value="${entry.snap.portfolioValue.toFixed(2)}"
+          data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
+          data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
+          data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+          data-prev-date="${entry.prevSnap?entry.prevSnap.date:''}">
+          <span class="inv-cal-day-num">${d}</span>
+          <span class="inv-cal-day-val">${invCalFmtShort(val)}</span>
+        </div>`;
+      } else {
+        html+=`<div class="inv-cal-day inv-cal-day--no-data${todayCls}"><span class="inv-cal-day-num">${d}</span></div>`;
+      }
+    }
+    html+='</div>';
+    grid.innerHTML=html;
+    invCalBindCells(grid);
+  }
+
+  function invCalRenderWeekly(grid,arr,cur){
+    const year=invCalYear;
+    // Group by ISO week key, take last snap of each week
+    const wkGroups={};
+    for(const e of arr){
+      const wk=invHubWeekKey(e.snap.date);
+      if(wk.startsWith(String(year))) wkGroups[wk]=e;
+    }
+    const wkKeys=Object.keys(wkGroups).sort();
+
+    if(!wkKeys.length){
+      grid.innerHTML='<div class="inv-hub-empty">Brak snapshotów dla wybranego roku.</div>';
+      document.getElementById('inv-cal-legend').innerHTML='';
+      return;
+    }
+
+    const allVals=wkKeys.map((k,i)=>{
+      const prevWeekSnap=i>0?wkGroups[wkKeys[i-1]].snap:null;
+      return invCalValue(wkGroups[k].snap,prevWeekSnap);
+    });
+    const maxAbsVal=Math.max(...allVals.map(Math.abs),0.001);
+    invCalRenderLegend(allVals,maxAbsVal);
+
+    let html='<div class="inv-cal-week-grid">';
+    for(let i=0;i<wkKeys.length;i++){
+      const wk=wkKeys[i];
+      const entry=wkGroups[wk];
+      const prevWeekEntry=i>0?wkGroups[wkKeys[i-1]]:null;
+      const prevWeekSnap=prevWeekEntry?prevWeekEntry.snap:null;
+      const val=invCalValue(entry.snap,prevWeekSnap);
+      const pct=Math.min(Math.abs(val)/maxAbsVal*100,100).toFixed(1);
+      const isPos=val>=0;
+      const barColor=isPos?'#22c55e':'#ef4444';
+      const bg=isPos?'rgba(34,197,94,.06)':'rgba(239,68,68,.06)';
+      const borderClr=isPos?'rgba(34,197,94,.22)':'rgba(239,68,68,.2)';
+      const valColor=isPos?'#15803d':'#b91c1c';
+      const dRoi=prevWeekSnap!=null?entry.snap.roi-prevWeekSnap.roi:null;
+      const dPnl=prevWeekSnap!=null?entry.snap.totalPnl-prevWeekSnap.totalPnl:null;
+
+      html+=`<div class="inv-cal-week-row" style="background:${bg};border-color:${borderClr}"
+        data-date="${entry.snap.date}"
+        data-roi="${entry.snap.roi.toFixed(3)}"
+        data-pnl="${entry.snap.totalPnl.toFixed(2)}"
+        data-value="${entry.snap.portfolioValue.toFixed(2)}"
+        data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
+        data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
+        data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+        data-prev-date="${prevWeekSnap?prevWeekSnap.date:''}">
+        <div>
+          <div class="inv-cal-week-label">${wk}</div>
+          <div class="inv-cal-week-date">${entry.snap.date}</div>
+        </div>
+        <div class="inv-cal-week-bar-wrap">
+          <div class="inv-cal-week-bar" style="width:${pct}%;background:${barColor};opacity:.75"></div>
+        </div>
+        <div class="inv-cal-week-val" style="color:${valColor}">${invCalFmtVal(val)}</div>
+      </div>`;
+    }
+    html+='</div>';
+    grid.innerHTML=html;
+    invCalBindCells(grid);
+  }
+
+  function bindInvCalendar(){
+    if(invCalBound) return;
+    invCalBound=true;
+    const updateDeltaModeLabel=()=>{
+      const deltaBtn=document.querySelector('[data-cal-mode="delta"]');
+      if(!deltaBtn) return;
+      deltaBtn.textContent=invCalView==='weekly'?'Zmiana tygodniowa':'Zmiana dzienna';
+    };
+    updateDeltaModeLabel();
+
+    // Mode tabs
+    document.querySelectorAll('[data-cal-mode]').forEach(btn=>{
+      btn.onclick=()=>{
+        invCalMode=btn.dataset.calMode;
+        document.querySelectorAll('[data-cal-mode]').forEach(b=>b.classList.toggle('is-active',b===btn));
+        renderInvCalendar();
+      };
+    });
+    // Metric tabs
+    document.querySelectorAll('[data-cal-metric]').forEach(btn=>{
+      btn.onclick=()=>{
+        invCalMetric=btn.dataset.calMetric;
+        document.querySelectorAll('[data-cal-metric]').forEach(b=>b.classList.toggle('is-active',b===btn));
+        renderInvCalendar();
+      };
+    });
+    // View tabs
+    document.querySelectorAll('[data-cal-view]').forEach(btn=>{
+      btn.onclick=()=>{
+        invCalView=btn.dataset.calView;
+        document.querySelectorAll('[data-cal-view]').forEach(b=>b.classList.toggle('is-active',b===btn));
+        if(invCalView==='monthly'){invCalYear=new Date().getFullYear();invCalMonth=new Date().getMonth();}
+        updateDeltaModeLabel();
+        renderInvCalendar();
+      };
+    });
+    // Prev/next nav
+    document.getElementById('inv-cal-prev')?.addEventListener('click',()=>{
+      if(invCalView==='monthly'){invCalMonth--;if(invCalMonth<0){invCalMonth=11;invCalYear--;}}
+      else invCalYear--;
+      renderInvCalendar();
+    });
+    document.getElementById('inv-cal-next')?.addEventListener('click',()=>{
+      if(invCalView==='monthly'){invCalMonth++;if(invCalMonth>11){invCalMonth=0;invCalYear++;}}
+      else invCalYear++;
+      renderInvCalendar();
+    });
+  }
+  // === /CALENDAR P&L ============================================================
+
   function bindInvHub(){
     if(invHubBound) return;
     invHubBound=true;
@@ -9461,12 +9885,9 @@
     renderInvHoldingsTable(stats.holdings,stats);
     renderInvGroupSummary(stats.holdings,data.trades);
     renderInvTradeHistory();
-    renderInvCapitalChart(data.trades,data.assets);
-    renderInvCumulativeChart(data.trades,data.assets);
-    renderInvAllocations(stats.holdings);
-    renderInvPnlChart(data.trades,data.assets);
     bindInvHub();
     renderInvHub();
+    bindInvCalendar();
     bindMoneyInputs(document.getElementById('tab-investments'));
   }
 
