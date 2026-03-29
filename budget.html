@@ -9191,17 +9191,17 @@
     const tw=tt.offsetWidth||220, th=tt.offsetHeight||140;
     const anchor=cell||invCalTooltipCell;
     let x=margin, y=margin;
-    if(anchor){
-      const rect=anchor.getBoundingClientRect();
-      x=rect.right+12;
-      y=rect.top+8;
-      if(x+tw>window.innerWidth-margin) x=rect.left-tw-12;
-      if(y+th>window.innerHeight-margin) y=rect.bottom-th-8;
-    } else if(event){
+    if(event){
       x=event.clientX+18;
       y=event.clientY-10;
       if(x+tw>window.innerWidth-margin) x=event.clientX-tw-18;
       if(y+th>window.innerHeight-margin) y=event.clientY-th-10;
+    } else if(anchor){
+      const rect=anchor.getBoundingClientRect();
+      x=rect.right+12;
+      y=rect.top+8;
+      if(x+tw>window.innerWidth-margin) x=rect.left-tw-12;
+      if(y+th>window.innerHeight-margin) y=rect.top-th-8;
     }
     x=Math.max(margin,Math.min(x,window.innerWidth-tw-margin));
     y=Math.max(margin,Math.min(y,window.innerHeight-th-margin));
@@ -9213,7 +9213,7 @@
     const tt=document.getElementById('inv-cal-tooltip');
     container.querySelectorAll('[data-date]').forEach(cell=>{
       cell.addEventListener('mouseenter',e=>invCalRenderTooltip(cell,e));
-      cell.addEventListener('mousemove',()=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,{cell});});
+      cell.addEventListener('mousemove',e=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,{cell,event:e});});
       cell.addEventListener('mouseleave',()=>{if(tt) tt.style.display='none'; invCalTooltipCell=null;});
     });
     if(!window.__invCalTooltipBound){
