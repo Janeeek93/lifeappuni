@@ -3400,6 +3400,27 @@ function renderBMMainChart(filtered) {
     } else {
       avgData = rawAvgData;
     }
+
+    if (bmNormalized) {
+      const wowData = rawAvgData.map((value, idx) => {
+        if (idx === 0) return null;
+        const prev = rawAvgData[idx - 1];
+        if (value === null || prev === null) return null;
+        return Math.round((value - prev) * 10) / 10;
+      });
+      datasets.push({
+        type: 'bar',
+        label: def.label + ' (WoW)',
+        data: wowData,
+        backgroundColor: def.color + '24',
+        borderWidth: 0,
+        barThickness: 10,
+        borderRadius: 4,
+        yAxisID: 'y',
+        order: 0
+      });
+    }
+
     datasets.push({
       label: def.label + ' (śr. tyg.)',
       data: avgData,
@@ -3450,7 +3471,8 @@ function renderBMMainChart(filtered) {
               if (val === null) return null;
               const label = context.dataset.label || '';
               const unit = Object.entries(BM_METRIC_DEFS).find(([, def]) => label.startsWith(def.label))?.[1]?.unit || '';
-              return ` ${label}: ${val.toFixed(1)}${unit ? ' ' + unit : ''}`;
+              const wowHint = label.includes('(WoW)') ? ' Δ tydz/tydz' : '';
+              return ` ${label}: ${val.toFixed(1)}${unit ? ' ' + unit : ''}${wowHint}`;
             }
           }
         }
@@ -3516,7 +3538,10 @@ function renderBMMainChart(filtered) {
       .filter(([k]) => bmActiveMetrics[k])
       .map(([, def]) => `<span class="bm-chart-note-item"><span class="bm-chart-note-line" style="background:${def.color};height:3px;display:inline-block;width:16px;border-radius:2px;vertical-align:middle;margin-right:2px;"></span>${def.label}</span>`)
       .join('');
-    noteEl.innerHTML = `<span style="color:var(--muted);font-size:10px;">Oś X = tygodnie ISO · wartości = średnie z dziennych pomiarów</span>&nbsp;&nbsp;${activeColors}`;
+    const modeHint = bmNormalized
+      ? '<span style="color:var(--muted);font-size:10px;">Linia = zmiana od bazy · kolumny = zmiana WoW</span>'
+      : '<span style="color:var(--muted);font-size:10px;">Oś X = tygodnie ISO · wartości = średnie z dziennych pomiarów</span>';
+    noteEl.innerHTML = `${modeHint}&nbsp;&nbsp;${activeColors}`;
   }
 }
 
