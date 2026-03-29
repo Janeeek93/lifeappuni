@@ -5053,6 +5053,7 @@
               <div class="inv-analytics-nav" role="tablist">
                 <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)">Hub analityczny</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="calendar" style="background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,.25)">Kalendarz P&amp;L</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="road100k" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.24)">Road to 100k</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
@@ -5072,6 +5073,7 @@
                     <div class="inv-cal-tabs">
                       <button class="inv-cal-tab is-active" data-cal-metric="roi">ROI %</button>
                       <button class="inv-cal-tab" data-cal-metric="pnl">P&amp;L</button>
+                      <button class="inv-cal-tab" data-cal-metric="value">Portfel</button>
                     </div>
                   </div>
                   <div class="inv-cal-group">
@@ -5089,12 +5091,38 @@
                   </div>
                 </div>
                 <div class="inv-cal-legend" id="inv-cal-legend"></div>
-                <div id="inv-cal-roadto"></div>
-                <div id="inv-cal-r100k"></div>
                 <div id="inv-cal-grid"></div>
                 <div class="inv-cal-tooltip" id="inv-cal-tooltip"></div>
               </div>
               <!-- =============== /KALENDARZ P&L =============== -->
+
+              <div class="inv-analytics-panel" data-panel="road100k">
+                <div id="inv-cal-roadto"></div>
+                <div id="inv-cal-r100k"></div>
+                <hr class="inv-hub-section-divider">
+                <div class="inv-hub-section-header">
+                  <span class="inv-hub-section-title">Symulacja portfela</span>
+                </div>
+                <div class="inv-hub-calc">
+                  <div class="inv-hub-chart-card-header" style="margin-bottom:10px">
+                    <div>
+                      <h4 style="margin:0">Prognoza na bazie Twoich danych</h4>
+                      <p class="muted" style="font-size:11px;margin:3px 0 0">Bazuje na realnych wpłatach z zamkniętych miesięcy. Górny panel pokazuje historyczne P&amp;L na koniec każdego miesiąca.</p>
+                    </div>
+                  </div>
+                  <!-- Historical monthly P&L (from snapshots) -->
+                  <div id="inv-hub-hist-monthly" style="margin-bottom:14px"></div>
+                  <div class="inv-hub-calc-grid">
+                    <label class="inv-hub-calc-field">Roczna stopa zwrotu (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" value="8" /></label>
+                    <label class="inv-hub-calc-field">Horyzont (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" value="5" /></label>
+                    <label class="inv-hub-calc-field">Tempo wpłat (mnożnik trendu)<input type="text" id="inv-hub-calc-multiplier" inputmode="decimal" value="1.5" /></label>
+                    <label class="inv-hub-calc-field">Miesiąc podglądu<input type="month" id="inv-hub-calc-target-month" /></label>
+                    <div><button class="btn" type="button" id="inv-hub-calc-btn">Przelicz scenariusze</button></div>
+                  </div>
+                  <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none"></div>
+                  <div class="inv-hub-calc-chart-box"><canvas id="inv-hub-calc-chart"></canvas></div>
+                </div>
+              </div>
 
               <div class="inv-analytics-panel is-active" data-panel="hub">
 
@@ -5230,31 +5258,6 @@
                 </div>
                 <div class="inv-hub-structure-card">
                   <div class="table-wrapper" id="inv-hub-monthly-perf"></div>
-                </div>
-
-                <!-- ── Section: Symulacja portfela ── -->
-                <hr class="inv-hub-section-divider">
-                <div class="inv-hub-section-header">
-                  <span class="inv-hub-section-title">Symulacja portfela</span>
-                </div>
-                <div class="inv-hub-calc">
-                  <div class="inv-hub-chart-card-header" style="margin-bottom:10px">
-                    <div>
-                      <h4 style="margin:0">Prognoza na bazie Twoich danych</h4>
-                      <p class="muted" style="font-size:11px;margin:3px 0 0">Bazuje na realnych wpłatach z zamkniętych miesięcy. Górny panel pokazuje historyczne P&amp;L na koniec każdego miesiąca.</p>
-                    </div>
-                  </div>
-                  <!-- Historical monthly P&L (from snapshots) -->
-                  <div id="inv-hub-hist-monthly" style="margin-bottom:14px"></div>
-                  <div class="inv-hub-calc-grid">
-                    <label class="inv-hub-calc-field">Roczna stopa zwrotu (%)<input type="text" id="inv-hub-calc-rate" inputmode="decimal" value="8" /></label>
-                    <label class="inv-hub-calc-field">Horyzont (lata)<input type="number" id="inv-hub-calc-years" min="1" max="60" value="5" /></label>
-                    <label class="inv-hub-calc-field">Tempo wpłat (mnożnik trendu)<input type="text" id="inv-hub-calc-multiplier" inputmode="decimal" value="1.5" /></label>
-                    <label class="inv-hub-calc-field">Miesiąc podglądu<input type="month" id="inv-hub-calc-target-month" /></label>
-                    <div><button class="btn" type="button" id="inv-hub-calc-btn">Przelicz scenariusze</button></div>
-                  </div>
-                  <div class="inv-hub-calc-result" id="inv-hub-calc-result" style="display:none"></div>
-                  <div class="inv-hub-calc-chart-box"><canvas id="inv-hub-calc-chart"></canvas></div>
                 </div>
 
                 <!-- ── Section: Historia snapshotów ── -->
@@ -7436,32 +7439,29 @@
       const isA=btn.dataset.invPanelBtn===panel;
       btn.classList.toggle('is-active',isA);
       btn.setAttribute('aria-selected',String(isA));
-      // Preserve hub button gradient when not active, white bg when active
       if(btn.dataset.invPanelBtn==='hub'){
-        if(isA){
-          btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
-          btn.style.color='#fff';
-          btn.style.boxShadow='0 4px 16px rgba(37,99,235,.35)';
-        } else {
-          btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
-          btn.style.color='#fff';
-          btn.style.boxShadow='0 2px 8px rgba(37,99,235,.25)';
-        }
+        btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
+        btn.style.color='#fff';
+        btn.style.boxShadow=isA?'0 4px 16px rgba(37,99,235,.35)':'0 2px 8px rgba(37,99,235,.25)';
+        btn.style.opacity=isA?'1':'0.78';
       }
-    });
-    // Calendar button: also keep gradient but dimmed when inactive
-    document.querySelectorAll('.inv-analytics-btn').forEach(btn=>{
       if(btn.dataset.invPanelBtn==='calendar'){
-        const isA=panel==='calendar';
         btn.style.background='linear-gradient(135deg,#0891b2,#2563eb)';
         btn.style.color='#fff';
         btn.style.boxShadow=isA?'0 4px 16px rgba(8,145,178,.35)':'0 2px 8px rgba(8,145,178,.2)';
         btn.style.opacity=isA?'1':'0.75';
       }
+      if(btn.dataset.invPanelBtn==='road100k'){
+        btn.style.background='linear-gradient(135deg,#7c3aed,#db2777)';
+        btn.style.color='#fff';
+        btn.style.boxShadow=isA?'0 4px 16px rgba(124,58,237,.34)':'0 2px 8px rgba(124,58,237,.22)';
+        btn.style.opacity=isA?'1':'0.76';
+      }
     });
     document.querySelectorAll('.inv-analytics-panel').forEach(p=>p.classList.toggle('is-active',p.dataset.panel===panel));
     if(panel==='hub') renderInvHub();
     if(panel==='calendar') renderInvCalendar();
+    if(panel==='road100k'){ renderInvHub(); renderInvRoadToPanel(); }
   }
 
   function bindInvestmentAnalyticsNav(){
@@ -9153,7 +9153,7 @@
 
   // === CALENDAR P&L =============================================================
   let invCalMode='total';   // 'total'|'delta'
-  let invCalMetric='roi';   // 'roi'|'pnl'
+  let invCalMetric='roi';   // 'roi'|'pnl'|'value'
   let invCalView='monthly'; // 'monthly'|'weekly'
   let invCalYear=new Date().getFullYear();
   let invCalMonth=new Date().getMonth(); // 0-indexed
@@ -9765,14 +9765,17 @@
 
   // Return the display value for a snapshot entry {snap, prevSnap}
   function invCalValue(snap,prevSnap){
+    const metricValue=(sourceSnap)=>(
+      invCalMetric==='roi' ? sourceSnap.roi :
+      invCalMetric==='pnl' ? sourceSnap.totalPnl :
+      sourceSnap.portfolioValue
+    );
     if(invCalMode==='total'){
-      return invCalMetric==='roi'?snap.roi:snap.totalPnl;
+      return metricValue(snap);
     }
     // delta
-    if(!prevSnap) return invCalMetric==='roi'?snap.roi:snap.totalPnl;
-    return invCalMetric==='roi'
-      ?snap.roi-prevSnap.roi
-      :snap.totalPnl-prevSnap.totalPnl;
+    if(!prevSnap) return metricValue(snap);
+    return metricValue(snap)-metricValue(prevSnap);
   }
 
   // Map value to color class using relative scale (maxAbsVal for the current view)
@@ -9852,7 +9855,9 @@
     const cap=parseFloat(cell.dataset.capital)||0;
     const dRoi=cell.dataset.deltaRoi!==''?parseFloat(cell.dataset.deltaRoi):null;
     const dPnl=cell.dataset.deltaPnl!==''?parseFloat(cell.dataset.deltaPnl):null;
+    const dValue=cell.dataset.deltaValue!==''?parseFloat(cell.dataset.deltaValue):null;
     const prevDate=cell.dataset.prevDate||'';
+    const deltaLabel=invCalView==='weekly'?'WoW':(invCalView==='months'?'MoM':'DoD');
 
     const rc=v=>v>=0?'#16a34a':'#dc2626';
     let h=`<div class="inv-cal-tooltip-title">${date}</div>`;
@@ -9861,9 +9866,10 @@
     h+=`<div class="inv-cal-tooltip-row"><span>Wartość portfela</span><span class="val">${fmt(val,cur)}</span></div>`;
     h+=`<div class="inv-cal-tooltip-row"><span>Zainwestowano</span><span class="val">${fmt(cap,cur)}</span></div>`;
     if(dRoi!=null){
-      h+=`<hr class="inv-cal-tooltip-sep"><div class="inv-cal-tooltip-sub">Zmiana vs ${prevDate||'—'}</div>`;
-      h+=`<div class="inv-cal-tooltip-row"><span>Δ ROI</span><span class="val" style="color:${rc(dRoi)}">${dRoi>=0?'+':''}${dRoi.toFixed(2)}%</span></div>`;
-      h+=`<div class="inv-cal-tooltip-row"><span>Δ P&L</span><span class="val" style="color:${rc(dPnl||0)}">${(dPnl||0)>=0?'+':''}${fmt(dPnl||0,cur)}</span></div>`;
+      h+=`<hr class="inv-cal-tooltip-sep"><div class="inv-cal-tooltip-sub">${deltaLabel} vs ${prevDate||'—'}</div>`;
+      h+=`<div class="inv-cal-tooltip-row"><span>${deltaLabel} ROI</span><span class="val" style="color:${rc(dRoi)}">${dRoi>=0?'+':''}${dRoi.toFixed(2)}%</span></div>`;
+      h+=`<div class="inv-cal-tooltip-row"><span>${deltaLabel} P&L</span><span class="val" style="color:${rc(dPnl||0)}">${(dPnl||0)>=0?'+':''}${fmt(dPnl||0,cur)}</span></div>`;
+      h+=`<div class="inv-cal-tooltip-row"><span>${deltaLabel} portfel</span><span class="val" style="color:${rc(dValue||0)}">${(dValue||0)>=0?'+':''}${fmt(dValue||0,cur)}</span></div>`;
     }
     tt.innerHTML=h;
     tt.style.display='block';
@@ -9926,15 +9932,20 @@
       else navTitle.textContent=String(invCalYear);
     }
 
-    renderInvCalRoadTo(arr,cur);
-    renderInvCalR100k(arr,cur);
-
     const grid=document.getElementById('inv-cal-grid');
     if(!grid) return;
 
     if(invCalView==='monthly') invCalRenderMonthly(grid,arr,map,cur);
     else if(invCalView==='months') invCalRenderMonthlyAgg(grid,arr,cur);
     else invCalRenderWeekly(grid,arr,cur);
+  }
+
+  function renderInvRoadToPanel(){
+    const snaps=invHubSnapshots();
+    const cur=state.currency;
+    const {arr}=invCalBuildSnapIndex(snaps);
+    renderInvCalRoadTo(arr,cur);
+    renderInvCalR100k(arr,cur);
   }
 
   function invCalRenderMonthly(grid,arr,map,cur){
@@ -9970,6 +9981,7 @@
         const colorCls=invCalColorClass(val,maxAbsVal);
         const dRoi=entry.prevSnap!=null?entry.snap.roi-entry.prevSnap.roi:null;
         const dPnl=entry.prevSnap!=null?entry.snap.totalPnl-entry.prevSnap.totalPnl:null;
+        const dValue=entry.prevSnap!=null?entry.snap.portfolioValue-entry.prevSnap.portfolioValue:null;
         html+=`<div class="inv-cal-day ${colorCls}${todayCls}"
           data-date="${ds}"
           data-roi="${entry.snap.roi.toFixed(3)}"
@@ -9978,6 +9990,7 @@
           data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
           data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
           data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+          data-delta-value="${dValue!=null?dValue.toFixed(2):''}"
           data-prev-date="${entry.prevSnap?entry.prevSnap.date:''}">
           <span class="inv-cal-day-num">${d}</span>
           <span class="inv-cal-day-val">${invCalFmtShort(val)}</span>
@@ -10029,6 +10042,7 @@
       const valColor=isPos?'#15803d':'#b91c1c';
       const dRoi=prevWeekSnap!=null?entry.snap.roi-prevWeekSnap.roi:null;
       const dPnl=prevWeekSnap!=null?entry.snap.totalPnl-prevWeekSnap.totalPnl:null;
+      const dValue=prevWeekSnap!=null?entry.snap.portfolioValue-prevWeekSnap.portfolioValue:null;
 
       html+=`<div class="inv-cal-week-row" style="background:${bg};border-color:${borderClr}"
         data-date="${entry.snap.date}"
@@ -10038,6 +10052,7 @@
         data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
         data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
         data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+        data-delta-value="${dValue!=null?dValue.toFixed(2):''}"
         data-prev-date="${prevWeekSnap?prevWeekSnap.date:''}">
         <div>
           <div class="inv-cal-week-label">${wk}</div>
@@ -10091,6 +10106,7 @@
       const mIdx=parseInt(mk.slice(5,7))-1;
       const dRoi=prevSnap!=null?entry.snap.roi-prevSnap.roi:null;
       const dPnl=prevSnap!=null?entry.snap.totalPnl-prevSnap.totalPnl:null;
+      const dValue=prevSnap!=null?entry.snap.portfolioValue-prevSnap.portfolioValue:null;
       html+=`<div class="inv-cal-magg-row" style="background:${bg};border-color:${borderClr}"
         data-date="${entry.snap.date}"
         data-roi="${entry.snap.roi.toFixed(3)}"
@@ -10099,6 +10115,7 @@
         data-capital="${entry.snap.capitalFromBudget.toFixed(2)}"
         data-delta-roi="${dRoi!=null?dRoi.toFixed(3):''}"
         data-delta-pnl="${dPnl!=null?dPnl.toFixed(2):''}"
+        data-delta-value="${dValue!=null?dValue.toFixed(2):''}"
         data-prev-date="${prevSnap?prevSnap.date:''}">
         <div>
           <div class="inv-cal-magg-label">${MN[mIdx]} ${year}</div>
