@@ -1634,21 +1634,34 @@ function normalizeForSearch(v) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 }
+function monthKeyToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
 function getSharedSavingsBalance() {
   try {
     const raw = JSON.parse(localStorage.getItem(BUDGET_STORAGE_KEY) || 'null');
     const budget = raw?.modules?.budget;
     const accounts = Array.isArray(budget?.accounts) ? budget.accounts : [];
-    const txs = Array.isArray(budget?.transactions) ? budget.transactions : [];
+    const eom = Array.isArray(budget?.eom) ? budget.eom : [];
     const target = accounts.find(a => {
       const name = normalizeForSearch(a?.name);
       return name.includes('oszcz') && name.includes('wspol');
     });
     if (!target) return null;
-    const balance = txs
-      .filter(t => t?.accountId === target.id)
-      .reduce((sum, t) => sum + (Number(t?.amount) || 0), 0);
-    return { name: target.name, balance };
+    const ym = monthKeyToday();
+    const currentMonthEntry = eom.find(row => row?.accountId === target.id && row?.ym === ym);
+    if (currentMonthEntry && Number.isFinite(Number(currentMonthEntry.balance))) {
+      return { name: target.name, balance: Number(currentMonthEntry.balance), ym, source: 'eom-current' };
+    }
+
+    const historical = eom
+      .filter(row => row?.accountId === target.id && typeof row?.ym === 'string' && Number.isFinite(Number(row?.balance)))
+      .sort((a,b) => String(b.ym).localeCompare(String(a.ym)));
+    if (historical.length) {
+      return { name: target.name, balance: Number(historical[0].balance), ym: historical[0].ym, source: 'eom-latest' };
+    }
+    return { name: target.name, balance: 0, ym, source: 'eom-missing' };
   } catch {
     return null;
   }
@@ -1811,7 +1824,7 @@ function updateKPIs() {
     { label:'Wydatki',         value:fmtCur(total),      sub:`${budgetPct}% z ${fmtCur(project.budget)}`, cls:'kpi-blue', icon:'💰', pct:budgetPct, barColor: budgetPct>90?'var(--bm-red)':'var(--bm-blue)' },
     { label:'Opóźnienia',      value:String(overdue),    sub: overdue===0?'Wszystko na czas':'Wymagają uwagi', cls:'kpi-red', icon:'⚠️', pct:null },
     { label:'Dni do końca',    value: daysLeft!=null?String(daysLeft):'—', sub:project.endDate?`Termin: ${fmtDate(project.endDate)}`:'Brak terminu', cls:'kpi-green', icon:'📅', pct:null },
-    { label:'Wkład własny (extra)', value: fmtCur(ownCash), sub: savings ? `Źródło: ${savings.name}` : 'Brak konta „Oszczędności wspólne”', cls:'kpi-blue', icon:'🏦', pct: project.budget ? Math.max(0, Math.min(100, Math.round((ownCash / project.budget) * 100))) : null, barColor:'var(--bm-teal)' },
+    { label:'Wkład własny (extra)', value: fmtCur(ownCash), sub: savings ? `${savings.name} • Saldo EOM ${savings.ym}${savings.source==='eom-latest'?' (ostatni zapis)':''}` : 'Brak konta „Oszczędności wspólne”', cls:'kpi-blue', icon:'🏦', pct: project.budget ? Math.max(0, Math.min(100, Math.round((ownCash / project.budget) * 100))) : null, barColor:'var(--bm-teal)' },
   ];
 
   document.getElementById('bm-kpi-grid').innerHTML = kpis.map(k => `
@@ -1850,7 +1863,8 @@ function updateAlerts() {
   const savings = getSharedSavingsBalance();
   if (savings) {
     const ownSharePct = project.budget > 0 ? Math.round((savings.balance / project.budget) * 100) : 0;
-    alerts.push({ type:'blue', icon:'🏦', msg:`Wkład własny z konta "${savings.name}": ${fmtCur(savings.balance)} (${ownSharePct}% budżetu).` });
+    const monthInfo = savings.source === 'eom-latest' ? `ostatni zapis EOM: ${savings.ym}` : `EOM: ${savings.ym}`;
+    alerts.push({ type:'blue', icon:'🏦', msg:`Wkład własny z konta "${savings.name}": ${fmtCur(savings.balance)} (${ownSharePct}% budżetu, ${monthInfo}).` });
   }
 
   if (alerts.length === 0) alerts.push({ type:'green', icon:'✅', msg:'Wszystko przebiega zgodnie z planem.' });
@@ -2182,7 +2196,7 @@ bm.renderBudget = () => {
     <div class="bm-kpi kpi-blue"><div class="bm-kpi-icon">💼</div><div class="bm-kpi-label">Całkowity budżet</div><div class="bm-kpi-value">${fmtCur(project.budget)}</div></div>
     <div class="bm-kpi kpi-orange"><div class="bm-kpi-icon">📊</div><div class="bm-kpi-label">Wydano</div><div class="bm-kpi-value">${fmtCur(total)}</div><div class="bm-kpi-sub">${Math.round(total/project.budget*100)||0}% planu</div></div>
     <div class="bm-kpi ${remaining>=0?'kpi-green':'kpi-red'}"><div class="bm-kpi-icon">✨</div><div class="bm-kpi-label">Pozostało</div><div class="bm-kpi-value">${fmtCur(remaining)}</div></div>
-    <div class="bm-kpi kpi-blue"><div class="bm-kpi-icon">🏦</div><div class="bm-kpi-label">Wkład własny (extra)</div><div class="bm-kpi-value">${fmtCur(ownCash)}</div><div class="bm-kpi-sub">${savings ? savings.name : 'Brak konta oszczędności wspólnych'}</div></div>
+    <div class="bm-kpi kpi-blue"><div class="bm-kpi-icon">🏦</div><div class="bm-kpi-label">Wkład własny (extra)</div><div class="bm-kpi-value">${fmtCur(ownCash)}</div><div class="bm-kpi-sub">${savings ? `${savings.name} • EOM ${savings.ym}${savings.source==='eom-latest'?' (ostatni zapis)':''}` : 'Brak konta oszczędności wspólnych'}</div></div>
   `;
 
   // Category bars
