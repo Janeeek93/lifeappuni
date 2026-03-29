@@ -581,7 +581,7 @@
 /* KPI Hero Row */
 .bm-kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   padding: 20px 24px;
 }
@@ -612,6 +612,7 @@
 .bm-kpi-card[data-metric="weight"]::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
 .bm-kpi-card[data-metric="bmi"]::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
 .bm-kpi-card[data-metric="bf"]::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.bm-kpi-card[data-metric="fatMass"]::before { background: linear-gradient(90deg, #ef4444, #f97316); }
 .bm-kpi-card[data-metric="muscle"]::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
 
 .bm-kpi-card:hover {
@@ -1774,8 +1775,8 @@
                   <h4><i data-lucide="trending-up" class="icon"></i>Trend skladu ciala</h4>
                   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                     <div class="bm-chart-toggles" id="bm-chart-toggles"></div>
-                    <button type="button" class="bm-chart-toggle" id="bm-normalize-btn" title="Pokaż zmianę % od wartości bazowej">
-                      <span class="toggle-dot" style="background: #6366f1"></span>% zmiana
+                    <button type="button" class="bm-chart-toggle" id="bm-normalize-btn" title="Pokaż zmianę nominalną od wartości bazowej">
+                      <span class="toggle-dot" style="background: #6366f1"></span>Zmiana nominalna
                     </button>
                   </div>
                 </div>
@@ -1813,6 +1814,7 @@
                         <th>Zakres</th>
                         <th>Waga śr.</th>
                         <th>BF% śr.</th>
+                        <th>Tłuszcz śr.</th>
                         <th>Miesnie śr.</th>
                         <th>Dni</th>
                       </tr>
@@ -3057,6 +3059,11 @@ function parseMetricValue(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function calculateFatMass(weight, bf) {
+  if (!Number.isFinite(weight) || !Number.isFinite(bf)) return null;
+  return (weight * bf) / 100;
+}
+
 function getUniqueCuts() {
   const cuts = new Set();
   bodyMetrics.forEach(entry => {
@@ -3092,8 +3099,15 @@ function getWeeklyAverages(entries) {
     .map(w => {
       const sorted = sortMetricsByDate(w.entries);
       const avg = {};
-      ['weight', 'bmi', 'bf', 'muscle'].forEach(k => {
+      ['weight', 'bmi', 'bf', 'fatMass', 'muscle'].forEach(k => {
         const vals = sorted.map(e => e[k]).filter(v => Number.isFinite(v));
+        if (k === 'fatMass') {
+          const derivedVals = sorted
+            .map(e => calculateFatMass(e.weight, e.bf))
+            .filter(v => Number.isFinite(v));
+          avg[k] = derivedVals.length ? derivedVals.reduce((a, b) => a + b, 0) / derivedVals.length : null;
+          return;
+        }
         avg[k] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
       });
       return {
@@ -3130,12 +3144,13 @@ const BM_METRIC_DEFS = {
   weight: { label: 'Waga', unit: 'kg', color: '#6366f1', direction: 'down', icon: 'scale' },
   bmi:    { label: 'BMI', unit: '', color: '#8b5cf6', direction: 'down', icon: 'gauge' },
   bf:     { label: 'Body Fat', unit: '%', color: '#f59e0b', direction: 'down', icon: 'flame' },
+  fatMass:{ label: 'Masa tluszczu', unit: 'kg', color: '#ef4444', direction: 'down', icon: 'droplets' },
   muscle: { label: 'Masa miesni', unit: 'kg', color: '#22c55e', direction: 'up', icon: 'dumbbell' }
 };
 
 let bmMainChart = null;
 let bmSparklines = {};
-let bmActiveMetrics = { weight: true, bmi: false, bf: true, muscle: true };
+let bmActiveMetrics = { weight: true, bmi: false, bf: true, fatMass: true, muscle: true };
 let bmTableView = 'weekly'; // 'weekly' | 'daily'
 
 function updateMetricsFeedback(message, tone = '') {
@@ -3381,10 +3396,31 @@ function renderBMMainChart(filtered) {
     let avgData;
     if (bmNormalized) {
       const baseline = rawAvgData.find(v => v !== null);
-      avgData = rawAvgData.map(v => v !== null && baseline ? Math.round(((v - baseline) / baseline) * 1000) / 10 : null);
+      avgData = rawAvgData.map(v => v !== null && baseline !== null ? Math.round((v - baseline) * 10) / 10 : null);
     } else {
       avgData = rawAvgData;
     }
+
+    if (bmNormalized) {
+      const wowData = rawAvgData.map((value, idx) => {
+        if (idx === 0) return null;
+        const prev = rawAvgData[idx - 1];
+        if (value === null || prev === null) return null;
+        return Math.round((value - prev) * 10) / 10;
+      });
+      datasets.push({
+        type: 'bar',
+        label: def.label + ' (WoW)',
+        data: wowData,
+        backgroundColor: def.color + '24',
+        borderWidth: 0,
+        barThickness: 10,
+        borderRadius: 4,
+        yAxisID: 'y',
+        order: 0
+      });
+    }
+
     datasets.push({
       label: def.label + ' (śr. tyg.)',
       data: avgData,
@@ -3434,7 +3470,9 @@ function renderBMMainChart(filtered) {
               const val = context.parsed.y;
               if (val === null) return null;
               const label = context.dataset.label || '';
-              return ` ${label}: ${val.toFixed(1)}`;
+              const unit = Object.entries(BM_METRIC_DEFS).find(([, def]) => label.startsWith(def.label))?.[1]?.unit || '';
+              const wowHint = label.includes('(WoW)') ? ' Δ tydz/tydz' : '';
+              return ` ${label}: ${val.toFixed(1)}${unit ? ' ' + unit : ''}${wowHint}`;
             }
           }
         }
@@ -3446,7 +3484,7 @@ function renderBMMainChart(filtered) {
             y: {
               position: 'left',
               grid: { color: '#f1f5f9', borderDash: [4, 4] },
-              ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v.toFixed(1) + '%' }
+              ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => (v > 0 ? '+' : '') + v.toFixed(1) }
             }
           };
         }
@@ -3500,7 +3538,10 @@ function renderBMMainChart(filtered) {
       .filter(([k]) => bmActiveMetrics[k])
       .map(([, def]) => `<span class="bm-chart-note-item"><span class="bm-chart-note-line" style="background:${def.color};height:3px;display:inline-block;width:16px;border-radius:2px;vertical-align:middle;margin-right:2px;"></span>${def.label}</span>`)
       .join('');
-    noteEl.innerHTML = `<span style="color:var(--muted);font-size:10px;">Oś X = tygodnie ISO · wartości = średnie z dziennych pomiarów</span>&nbsp;&nbsp;${activeColors}`;
+    const modeHint = bmNormalized
+      ? '<span style="color:var(--muted);font-size:10px;">Linia = zmiana od bazy · kolumny = zmiana WoW</span>'
+      : '<span style="color:var(--muted);font-size:10px;">Oś X = tygodnie ISO · wartości = średnie z dziennych pomiarów</span>';
+    noteEl.innerHTML = `${modeHint}&nbsp;&nbsp;${activeColors}`;
   }
 }
 
@@ -3662,8 +3703,8 @@ function renderBMTable(filtered) {
   if (!tbody) return;
 
   if (!filtered.length) {
-    if (thead) thead.innerHTML = '<tr><th>Data</th><th>Cykl</th><th>Waga</th><th>BMI</th><th>BF%</th><th>Mięśnie</th><th></th></tr>';
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--muted);">Brak danych. Dodaj pierwszy pomiar.</td></tr>';
+    if (thead) thead.innerHTML = '<tr><th>Data</th><th>Cykl</th><th>Waga</th><th>BMI</th><th>BF%</th><th>Tłuszcz</th><th>Mięśnie</th><th></th></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--muted);">Brak danych. Dodaj pierwszy pomiar.</td></tr>';
     return;
   }
 
@@ -3680,6 +3721,7 @@ function renderBMTableWeekly(filtered, tbody, thead) {
     <th>Zakres dat</th>
     <th>Waga śr.</th>
     <th>BF% śr.</th>
+    <th>Tłuszcz śr.</th>
     <th>Mięśnie śr.</th>
     <th>Dni</th>
   </tr>`;
@@ -3687,7 +3729,7 @@ function renderBMTableWeekly(filtered, tbody, thead) {
   const weeklyAvgs = getWeeklyAverages(filtered).slice().reverse();
 
   if (!weeklyAvgs.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">Brak danych tygodniowych.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">Brak danych tygodniowych.</td></tr>';
     return;
   }
 
@@ -3705,6 +3747,7 @@ function renderBMTableWeekly(filtered, tbody, thead) {
       <td class="bm-table-date" style="font-size:11px;">${w.startDate}<br><span style="color:var(--muted)">${w.endDate}</span></td>
       <td>${Number.isFinite(w.weight) ? w.weight.toFixed(1) + ' kg' : '--'}${wChange}</td>
       <td>${Number.isFinite(w.bf) ? w.bf.toFixed(1) + '%' : '--'}</td>
+      <td>${Number.isFinite(w.fatMass) ? w.fatMass.toFixed(1) + ' kg' : '--'}</td>
       <td>${Number.isFinite(w.muscle) ? w.muscle.toFixed(1) + ' kg' : '--'}</td>
       <td><span class="bm-count-badge ${isFullWeek ? 'full' : ''}">${w.count}/7</span></td>
     </tr>`;
@@ -3718,6 +3761,7 @@ function renderBMTableDaily(filtered, tbody, thead) {
     <th>Waga</th>
     <th>BMI</th>
     <th>BF%</th>
+    <th>Tłuszcz</th>
     <th>Mięśnie</th>
     <th></th>
   </tr>`;
@@ -3727,6 +3771,7 @@ function renderBMTableDaily(filtered, tbody, thead) {
     const prevEntry = i < reversed.length - 1 ? reversed[i + 1] : null;
     const weightChange = prevEntry && Number.isFinite(entry.weight) && Number.isFinite(prevEntry.weight)
       ? entry.weight - prevEntry.weight : null;
+    const fatMass = calculateFatMass(entry.weight, entry.bf);
 
     return `<tr>
       <td class="bm-table-date">${entry.date}</td>
@@ -3734,6 +3779,7 @@ function renderBMTableDaily(filtered, tbody, thead) {
       <td>${Number.isFinite(entry.weight) ? entry.weight.toFixed(1) : '--'}${weightChange !== null ? ` <span class="bm-table-change ${weightChange <= 0 ? 'up' : 'down'}">${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)}</span>` : ''}</td>
       <td>${Number.isFinite(entry.bmi) ? entry.bmi.toFixed(1) : '--'}</td>
       <td>${Number.isFinite(entry.bf) ? entry.bf.toFixed(1) + '%' : '--'}</td>
+      <td>${Number.isFinite(fatMass) ? fatMass.toFixed(1) + ' kg' : '--'}</td>
       <td>${Number.isFinite(entry.muscle) ? entry.muscle.toFixed(1) : '--'}</td>
       <td class="bm-table-actions">
         <button title="Edytuj" data-bm-edit="${entry.id}"><i data-lucide="edit-3" class="icon"></i></button>
