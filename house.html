@@ -1561,6 +1561,7 @@ const defaultState = () => ({
   activities: [],
   weather: null,
   weatherMeta: null,
+  automation: { scheduleAutoAlignedAt: null },
   collapsedPhases: {},
 });
 
@@ -1575,6 +1576,7 @@ const bm = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  maybeAutoAlignDemoSchedule();
   applyTheme();
   initCharts();
   setupTabs();
@@ -1602,6 +1604,9 @@ function fmtCur(n) {
   return new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0}).format(n||0);
 }
 function fmtDate(d) { if(!d) return '—'; return new Date(d+'T12:00:00').toLocaleDateString('pl-PL'); }
+function toIsoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 function parseDateOnly(d) {
   if (!d || typeof d !== 'string') return null;
   const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1616,6 +1621,12 @@ function isPastDate(dateIso) {
   const d = parseDateOnly(dateIso);
   if (!d) return false;
   return d < startOfToday();
+}
+function addDaysIso(iso, days) {
+  const d = parseDateOnly(iso);
+  if (!d) return iso;
+  d.setDate(d.getDate() + days);
+  return toIsoDate(d);
 }
 function normalizeForSearch(v) {
   return String(v || '')
@@ -1641,6 +1652,43 @@ function getSharedSavingsBalance() {
   } catch {
     return null;
   }
+}
+
+function maybeAutoAlignDemoSchedule() {
+  const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+  if (!tasks.length) return;
+  if (state.automation?.scheduleAutoAlignedAt) return;
+
+  const defaultIds = ['t1','t2','t3','t4','t5'];
+  const looksLikeDefaultData = tasks.length === defaultIds.length && defaultIds.every(id => tasks.some(t => t.id === id));
+  if (!looksLikeDefaultData) return;
+
+  const firstActiveTask = tasks
+    .filter(t => t.status !== 'done' && t.startDate)
+    .sort((a,b) => (a.startDate || '').localeCompare(b.startDate || ''))[0];
+  if (!firstActiveTask) return;
+
+  const firstDate = parseDateOnly(firstActiveTask.startDate);
+  if (!firstDate) return;
+  const today = startOfToday();
+  const target = new Date(today);
+  target.setDate(target.getDate() - 14);
+  const deltaDays = Math.round((target - firstDate) / 864e5);
+  if (Math.abs(deltaDays) < 45) return;
+
+  state.tasks = tasks.map(t => ({
+    ...t,
+    startDate: t.startDate ? addDaysIso(t.startDate, deltaDays) : t.startDate,
+    endDate: t.endDate ? addDaysIso(t.endDate, deltaDays) : t.endDate,
+  }));
+  state.project = {
+    ...state.project,
+    startDate: state.project?.startDate ? addDaysIso(state.project.startDate, deltaDays) : state.project?.startDate,
+    endDate: state.project?.endDate ? addDaysIso(state.project.endDate, deltaDays) : state.project?.endDate,
+  };
+  state.automation = { ...(state.automation || {}), scheduleAutoAlignedAt: new Date().toISOString() };
+  addActivity('system', 'Automatycznie dopasowano harmonogram demo do aktualnej daty.');
+  saveState();
 }
 
 function addActivity(type, desc) {
