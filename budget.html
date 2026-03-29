@@ -9154,6 +9154,8 @@
     el.innerHTML=html;
   }
 
+  let invCalTooltipCell=null;
+
   function invCalRenderTooltip(cell,e){
     const tt=document.getElementById('inv-cal-tooltip');
     if(!tt) return;
@@ -9180,15 +9182,27 @@
     }
     tt.innerHTML=h;
     tt.style.display='block';
-    invCalPositionTooltip(tt,e);
+    invCalTooltipCell=cell;
+    invCalPositionTooltip(tt,{cell,event:e});
   }
 
-  function invCalPositionTooltip(tt,e){
+  function invCalPositionTooltip(tt,{cell,event}={}){
     const margin=8;
     const tw=tt.offsetWidth||220, th=tt.offsetHeight||140;
-    let x=e.clientX+18, y=e.clientY-10;
-    if(x+tw>window.innerWidth-margin) x=e.clientX-tw-18;
-    if(y+th>window.innerHeight-margin) y=e.clientY-th-10;
+    const anchor=cell||invCalTooltipCell;
+    let x=margin, y=margin;
+    if(anchor){
+      const rect=anchor.getBoundingClientRect();
+      x=rect.right+12;
+      y=rect.top+8;
+      if(x+tw>window.innerWidth-margin) x=rect.left-tw-12;
+      if(y+th>window.innerHeight-margin) y=rect.bottom-th-8;
+    } else if(event){
+      x=event.clientX+18;
+      y=event.clientY-10;
+      if(x+tw>window.innerWidth-margin) x=event.clientX-tw-18;
+      if(y+th>window.innerHeight-margin) y=event.clientY-th-10;
+    }
     x=Math.max(margin,Math.min(x,window.innerWidth-tw-margin));
     y=Math.max(margin,Math.min(y,window.innerHeight-th-margin));
     tt.style.left=x+'px';
@@ -9199,9 +9213,18 @@
     const tt=document.getElementById('inv-cal-tooltip');
     container.querySelectorAll('[data-date]').forEach(cell=>{
       cell.addEventListener('mouseenter',e=>invCalRenderTooltip(cell,e));
-      cell.addEventListener('mousemove',e=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,e);});
-      cell.addEventListener('mouseleave',()=>{if(tt) tt.style.display='none';});
+      cell.addEventListener('mousemove',()=>{if(tt&&tt.style.display!=='none') invCalPositionTooltip(tt,{cell});});
+      cell.addEventListener('mouseleave',()=>{if(tt) tt.style.display='none'; invCalTooltipCell=null;});
     });
+    if(!window.__invCalTooltipBound){
+      window.__invCalTooltipBound=true;
+      window.addEventListener('scroll',()=>{
+        if(tt&&tt.style.display!=='none'&&invCalTooltipCell) invCalPositionTooltip(tt,{cell:invCalTooltipCell});
+      },{passive:true});
+      window.addEventListener('resize',()=>{
+        if(tt&&tt.style.display!=='none'&&invCalTooltipCell) invCalPositionTooltip(tt,{cell:invCalTooltipCell});
+      });
+    }
   }
 
   function renderInvCalendar(){
