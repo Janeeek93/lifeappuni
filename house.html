@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BuildMaster Pro — Centrum Zarządzania Budową</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     /* ========================================================
@@ -48,8 +45,8 @@
       --bm-ink-3:       #475569;
       --bm-ink-4:       #2D3F55;
 
-      --bm-head:        'Barlow Condensed', sans-serif;
-      --bm-body:        'Barlow', sans-serif;
+      --bm-head:        'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bm-body:        'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
       --bm-r:           8px;
       --bm-r-lg:        12px;
@@ -1451,6 +1448,7 @@
             <div>
               <div class="bm-card-title">🌤️ Prognoza pogody — 7 dni</div>
               <div class="bm-card-subtitle">Planuj prace zewnętrzne zgodnie z pogodą</div>
+              <div class="bm-text-sm bm-text-muted" id="bm-weather-meta" style="margin-top:6px">Źródło: Open-Meteo</div>
             </div>
             <button class="bm-btn bm-btn-sm" onclick="bm.loadWeather()">🔄 Odśwież</button>
           </div>
@@ -1503,6 +1501,10 @@
 //  CONSTANTS & STATE
 // ═══════════════════════════════════════════════════════
 const APP_KEY = 'bm_pro_v1';
+const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
+const WEATHER_API_BASE = 'https://api.open-meteo.com/v1/forecast';
+const WEATHER_GEOCODE_API = 'https://geocoding-api.open-meteo.com/v1/search';
+const WEATHER_COORDS_CACHE_KEY = 'bm_weather_coords_v1';
 
 const PHASE_COLORS = [
   '#8B5CF6','#3B82F6','#64748B','#F59E0B',
@@ -1558,6 +1560,8 @@ const defaultState = () => ({
   projects: [],
   activities: [],
   weather: null,
+  weatherMeta: null,
+  automation: { scheduleAutoAlignedAt: null },
   collapsedPhases: {},
 });
 
@@ -1572,6 +1576,7 @@ const bm = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
+  maybeAutoAlignDemoSchedule();
   applyTheme();
   initCharts();
   setupTabs();
@@ -1599,6 +1604,105 @@ function fmtCur(n) {
   return new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0}).format(n||0);
 }
 function fmtDate(d) { if(!d) return '—'; return new Date(d+'T12:00:00').toLocaleDateString('pl-PL'); }
+function toIsoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseDateOnly(d) {
+  if (!d || typeof d !== 'string') return null;
+  const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+function startOfToday() {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+}
+function isPastDate(dateIso) {
+  const d = parseDateOnly(dateIso);
+  if (!d) return false;
+  return d < startOfToday();
+}
+function addDaysIso(iso, days) {
+  const d = parseDateOnly(iso);
+  if (!d) return iso;
+  d.setDate(d.getDate() + days);
+  return toIsoDate(d);
+}
+function normalizeForSearch(v) {
+  return String(v || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+function monthKeyToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function getSharedSavingsBalance() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(BUDGET_STORAGE_KEY) || 'null');
+    const budget = raw?.modules?.budget;
+    const accounts = Array.isArray(budget?.accounts) ? budget.accounts : [];
+    const eom = Array.isArray(budget?.eom) ? budget.eom : [];
+    const target = accounts.find(a => {
+      const name = normalizeForSearch(a?.name);
+      return name.includes('oszcz') && name.includes('wspol');
+    });
+    if (!target) return null;
+    const ym = monthKeyToday();
+    const currentMonthEntry = eom.find(row => row?.accountId === target.id && row?.ym === ym);
+    if (currentMonthEntry && Number.isFinite(Number(currentMonthEntry.balance))) {
+      return { name: target.name, balance: Number(currentMonthEntry.balance), ym, source: 'eom-current' };
+    }
+
+    const historical = eom
+      .filter(row => row?.accountId === target.id && typeof row?.ym === 'string' && Number.isFinite(Number(row?.balance)))
+      .sort((a,b) => String(b.ym).localeCompare(String(a.ym)));
+    if (historical.length) {
+      return { name: target.name, balance: Number(historical[0].balance), ym: historical[0].ym, source: 'eom-latest' };
+    }
+    return { name: target.name, balance: 0, ym, source: 'eom-missing' };
+  } catch {
+    return null;
+  }
+}
+
+function maybeAutoAlignDemoSchedule() {
+  const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+  if (!tasks.length) return;
+  if (state.automation?.scheduleAutoAlignedAt) return;
+
+  const defaultIds = ['t1','t2','t3','t4','t5'];
+  const looksLikeDefaultData = tasks.length === defaultIds.length && defaultIds.every(id => tasks.some(t => t.id === id));
+  if (!looksLikeDefaultData) return;
+
+  const firstActiveTask = tasks
+    .filter(t => t.status !== 'done' && t.startDate)
+    .sort((a,b) => (a.startDate || '').localeCompare(b.startDate || ''))[0];
+  if (!firstActiveTask) return;
+
+  const firstDate = parseDateOnly(firstActiveTask.startDate);
+  if (!firstDate) return;
+  const today = startOfToday();
+  const target = new Date(today);
+  target.setDate(target.getDate() - 14);
+  const deltaDays = Math.round((target - firstDate) / 864e5);
+  if (Math.abs(deltaDays) < 45) return;
+
+  state.tasks = tasks.map(t => ({
+    ...t,
+    startDate: t.startDate ? addDaysIso(t.startDate, deltaDays) : t.startDate,
+    endDate: t.endDate ? addDaysIso(t.endDate, deltaDays) : t.endDate,
+  }));
+  state.project = {
+    ...state.project,
+    startDate: state.project?.startDate ? addDaysIso(state.project.startDate, deltaDays) : state.project?.startDate,
+    endDate: state.project?.endDate ? addDaysIso(state.project.endDate, deltaDays) : state.project?.endDate,
+  };
+  state.automation = { ...(state.automation || {}), scheduleAutoAlignedAt: new Date().toISOString() };
+  addActivity('system', 'Automatycznie dopasowano harmonogram demo do aktualnej daty.');
+  saveState();
+}
 
 function addActivity(type, desc) {
   state.activities.unshift({ id:genId(), type, desc, date:new Date().toISOString() });
@@ -1707,17 +1811,20 @@ function updateKPIs() {
   const budgetPct = project.budget ? Math.round(total/project.budget*100) : 0;
   const allTasks = tasks.length;
   const doneTasks = tasks.filter(t => t.status==='done').length;
-  const overdue = tasks.filter(t => t.status!=='done' && t.endDate && new Date(t.endDate)<new Date()).length;
+  const overdue = tasks.filter(t => t.status!=='done' && t.endDate && isPastDate(t.endDate)).length;
   const progressPct = allTasks ? Math.round(doneTasks/allTasks*100) : 0;
   const daysLeft = project.endDate ? Math.max(0,Math.ceil((new Date(project.endDate)-new Date())/864e5)) : null;
 
   document.getElementById('bm-project-display-name').textContent = project.name;
 
+  const savings = getSharedSavingsBalance();
+  const ownCash = savings?.balance || 0;
   const kpis = [
     { label:'Postęp projektu', value:`${progressPct}%`, sub:`${doneTasks}/${allTasks} zadań`, cls:'kpi-orange', icon:'📊', pct:progressPct, barColor:'var(--bm-orange)' },
     { label:'Wydatki',         value:fmtCur(total),      sub:`${budgetPct}% z ${fmtCur(project.budget)}`, cls:'kpi-blue', icon:'💰', pct:budgetPct, barColor: budgetPct>90?'var(--bm-red)':'var(--bm-blue)' },
     { label:'Opóźnienia',      value:String(overdue),    sub: overdue===0?'Wszystko na czas':'Wymagają uwagi', cls:'kpi-red', icon:'⚠️', pct:null },
     { label:'Dni do końca',    value: daysLeft!=null?String(daysLeft):'—', sub:project.endDate?`Termin: ${fmtDate(project.endDate)}`:'Brak terminu', cls:'kpi-green', icon:'📅', pct:null },
+    { label:'Wkład własny (extra)', value: fmtCur(ownCash), sub: savings ? `${savings.name} • Saldo EOM ${savings.ym}${savings.source==='eom-latest'?' (ostatni zapis)':''}` : 'Brak konta „Oszczędności wspólne”', cls:'kpi-blue', icon:'🏦', pct: project.budget ? Math.max(0, Math.min(100, Math.round((ownCash / project.budget) * 100))) : null, barColor:'var(--bm-teal)' },
   ];
 
   document.getElementById('bm-kpi-grid').innerHTML = kpis.map(k => `
@@ -1743,7 +1850,7 @@ function updateAlerts() {
   if (budgetPct >= 100) alerts.push({ type:'red', icon:'🚨', msg:'Budżet wyczerpany! Przekroczono plan o '+fmtCur(total-project.budget)+'.' });
   else if (budgetPct >= 85) alerts.push({ type:'yellow', icon:'⚠️', msg:`Uwaga: wykorzystano ${Math.round(budgetPct)}% budżetu.` });
 
-  const overdue = tasks.filter(t=>t.status!=='done'&&t.endDate&&new Date(t.endDate)<new Date());
+  const overdue = tasks.filter(t=>t.status!=='done'&&t.endDate&&isPastDate(t.endDate));
   if (overdue.length > 0) alerts.push({ type:'red', icon:'⏰', msg:`${overdue.length} zadań po terminie: ${overdue.slice(0,2).map(t=>t.name).join(', ')}${overdue.length>2?'...':''}` });
 
   categories.forEach(cat => {
@@ -1753,6 +1860,12 @@ function updateAlerts() {
 
   const inProgress = tasks.filter(t=>t.status==='inprogress').length;
   if (inProgress === 0 && tasks.some(t=>t.status==='todo')) alerts.push({ type:'blue', icon:'💡', msg:'Żadne zadanie nie jest w toku. Zacznij pracę od zakładki Etapy & Zadania.' });
+  const savings = getSharedSavingsBalance();
+  if (savings) {
+    const ownSharePct = project.budget > 0 ? Math.round((savings.balance / project.budget) * 100) : 0;
+    const monthInfo = savings.source === 'eom-latest' ? `ostatni zapis EOM: ${savings.ym}` : `EOM: ${savings.ym}`;
+    alerts.push({ type:'blue', icon:'🏦', msg:`Wkład własny z konta "${savings.name}": ${fmtCur(savings.balance)} (${ownSharePct}% budżetu, ${monthInfo}).` });
+  }
 
   if (alerts.length === 0) alerts.push({ type:'green', icon:'✅', msg:'Wszystko przebiega zgodnie z planem.' });
 
@@ -1763,7 +1876,7 @@ function updateAlerts() {
 }
 
 function updateTasksBadge() {
-  const overdue = state.tasks.filter(t=>t.status!=='done'&&t.endDate&&new Date(t.endDate)<new Date()).length;
+  const overdue = state.tasks.filter(t=>t.status!=='done'&&t.endDate&&isPastDate(t.endDate)).length;
   const badge = document.getElementById('bm-tasks-badge');
   if (badge) {
     badge.textContent = overdue;
@@ -1807,7 +1920,7 @@ function initCharts() {
   const grid = dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
   const text = dark ? '#94A3B8' : '#475569';
   Chart.defaults.color = text;
-  Chart.defaults.font.family = 'Barlow, sans-serif';
+  Chart.defaults.font.family = 'Inter, sans-serif';
 
   const budgetCtx = document.getElementById('bm-chart-budget');
   if (budgetCtx) charts.budget = new Chart(budgetCtx, {
@@ -1938,7 +2051,7 @@ bm.renderTimeline = () => {
       if (!task.startDate || !task.endDate) return;
       const left = pct(task.startDate);
       const width = Math.max(1, pct(task.endDate) - left);
-      const isOverdue = task.status!=='done' && new Date(task.endDate)<today;
+      const isOverdue = task.status!=='done' && isPastDate(task.endDate);
       const barColor = task.status==='done' ? '#34D399' : (isOverdue ? '#F87171' : ph.color);
 
       html += `<div class="bm-gantt-row">
@@ -2074,6 +2187,8 @@ bm.renderBudget = () => {
   const { expenses, categories, project, phases } = state;
   const total = expenses.reduce((s,e)=>s+e.amount,0);
   const remaining = project.budget - total;
+  const savings = getSharedSavingsBalance();
+  const ownCash = savings?.balance || 0;
 
   // Budget KPIs
   const bkEl = document.getElementById('bm-budget-kpis');
@@ -2081,6 +2196,7 @@ bm.renderBudget = () => {
     <div class="bm-kpi kpi-blue"><div class="bm-kpi-icon">💼</div><div class="bm-kpi-label">Całkowity budżet</div><div class="bm-kpi-value">${fmtCur(project.budget)}</div></div>
     <div class="bm-kpi kpi-orange"><div class="bm-kpi-icon">📊</div><div class="bm-kpi-label">Wydano</div><div class="bm-kpi-value">${fmtCur(total)}</div><div class="bm-kpi-sub">${Math.round(total/project.budget*100)||0}% planu</div></div>
     <div class="bm-kpi ${remaining>=0?'kpi-green':'kpi-red'}"><div class="bm-kpi-icon">✨</div><div class="bm-kpi-label">Pozostało</div><div class="bm-kpi-value">${fmtCur(remaining)}</div></div>
+    <div class="bm-kpi kpi-blue"><div class="bm-kpi-icon">🏦</div><div class="bm-kpi-label">Wkład własny (extra)</div><div class="bm-kpi-value">${fmtCur(ownCash)}</div><div class="bm-kpi-sub">${savings ? `${savings.name} • EOM ${savings.ym}${savings.source==='eom-latest'?' (ostatni zapis)':''}` : 'Brak konta oszczędności wspólnych'}</div></div>
   `;
 
   // Category bars
@@ -2306,22 +2422,81 @@ bm.renderDocs = () => {
 // ═══════════════════════════════════════════════════════
 //  WEATHER
 // ═══════════════════════════════════════════════════════
-bm.loadWeather = () => {
+function weatherCodeToUi(code) {
+  if ([0].includes(code)) return { icon:'☀️', desc:'Bezchmurnie' };
+  if ([1,2].includes(code)) return { icon:'⛅', desc:'Częściowe zachmurzenie' };
+  if ([3].includes(code)) return { icon:'☁️', desc:'Pochmurno' };
+  if ([45,48].includes(code)) return { icon:'🌫️', desc:'Mgła' };
+  if ([51,53,55,56,57].includes(code)) return { icon:'🌦️', desc:'Mżawka' };
+  if ([61,63,65,66,67,80,81,82].includes(code)) return { icon:'🌧️', desc:'Deszcz' };
+  if ([71,73,75,77,85,86].includes(code)) return { icon:'🌨️', desc:'Śnieg' };
+  if ([95,96,99].includes(code)) return { icon:'⛈️', desc:'Burze' };
+  return { icon:'🌤️', desc:'Zmienne warunki' };
+}
+
+async function geocodeProjectAddress() {
+  const cacheRaw = localStorage.getItem(WEATHER_COORDS_CACHE_KEY);
+  if (cacheRaw) {
+    try {
+      const cached = JSON.parse(cacheRaw);
+      if (cached?.name && Number.isFinite(cached?.lat) && Number.isFinite(cached?.lon)) return cached;
+    } catch {}
+  }
+  const fallback = { name:'Warszawa', lat:52.2298, lon:21.0118 };
+  const q = (state.project?.address || '').trim();
+  if (!q) return fallback;
+  try {
+    const url = `${WEATHER_GEOCODE_API}?name=${encodeURIComponent(q)}&count=1&language=pl&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    const loc = Array.isArray(data?.results) ? data.results[0] : null;
+    if (!loc) return fallback;
+    const mapped = { name: loc.name || q, lat: Number(loc.latitude), lon: Number(loc.longitude) };
+    if (Number.isFinite(mapped.lat) && Number.isFinite(mapped.lon)) {
+      localStorage.setItem(WEATHER_COORDS_CACHE_KEY, JSON.stringify(mapped));
+      return mapped;
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+bm.loadWeather = async () => {
   const days = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
-  const today = new Date();
-  state.weather = Array.from({ length:7 }, (_,i) => {
-    const d = new Date(today); d.setDate(today.getDate()+i);
-    const rain = Math.round(Math.pow(Math.random(),2)*100);
-    const temp = Math.round(16+Math.sin(i*.7)*6+Math.random()*4-2);
-    const wind = Math.round(5+Math.random()*20);
-    let icon='☀️', desc='Słonecznie';
-    if (rain>70){icon='🌧️';desc='Deszczowo';}
-    else if (rain>30){icon='🌦️';desc='Przelotne opady';}
-    else if (temp<14){icon='☁️';desc='Pochmurno';}
-    else if (temp<18){icon='⛅';desc='Czę. zachmurzenie';}
-    return { day:days[d.getDay()], date:d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}), icon, temp, desc, rain, wind };
-  });
-  saveState();
+  const metaEl = document.getElementById('bm-weather-meta');
+  if (metaEl) metaEl.textContent = 'Ładowanie pogody z Open‑Meteo...';
+  try {
+    const loc = await geocodeProjectAddress();
+    const url = `${WEATHER_API_BASE}?latitude=${loc.lat}&longitude=${loc.lon}&daily=weather_code,temperature_2m_max,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const daily = data?.daily;
+    if (!daily?.time?.length) throw new Error('Brak danych dziennych');
+    state.weather = daily.time.map((iso, i) => {
+      const d = parseDateOnly(iso) || new Date();
+      const ui = weatherCodeToUi(Number(daily.weather_code?.[i]));
+      return {
+        day: days[d.getDay()],
+        date: d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'}),
+        icon: ui.icon,
+        temp: Math.round(Number(daily.temperature_2m_max?.[i]) || 0),
+        desc: ui.desc,
+        rain: Math.round(Number(daily.precipitation_probability_max?.[i]) || 0),
+        wind: Math.round(Number(daily.wind_speed_10m_max?.[i]) || 0),
+      };
+    });
+    state.weatherMeta = {
+      source: 'Open-Meteo',
+      city: loc.name,
+      updatedAt: new Date().toISOString()
+    };
+    saveState();
+  } catch (err) {
+    toast('Nie udało się pobrać pogody z API. Sprawdź połączenie.', 'error');
+  }
   bm.renderWeather();
 };
 
@@ -2342,6 +2517,12 @@ bm.renderWeather = () => {
   `).join('');
 
   const recs = document.getElementById('bm-weather-recs');
+  const metaEl = document.getElementById('bm-weather-meta');
+  const meta = state.weatherMeta;
+  if (metaEl) {
+    const updated = meta?.updatedAt ? new Date(meta.updatedAt).toLocaleString('pl-PL') : '—';
+    metaEl.textContent = `Źródło: ${meta?.source || 'Open-Meteo'} • Lokalizacja: ${meta?.city || 'domyślna'} • Aktualizacja: ${updated}`;
+  }
   if (!recs) return;
   const arr = [];
   const good = w.slice(0,3).filter(d=>d.rain<20&&d.wind<20);
