@@ -1113,12 +1113,11 @@ function renderInvestmentKPI(){
     const color = GROUP_COLORS[i % GROUP_COLORS.length];
     return `<div class="inv-group-row">
       <span class="inv-group-name"><span class="inv-group-dot" style="background:${color};"></span>${group}</span>
-      <span class="inv-group-mv">${fmt(g.mv)}</span>
       <span class="inv-group-bar-wrap">
         <span class="inv-group-bar-line" style="width:${sharePct.toFixed(2)}%;background:${color};"></span>
         <span class="inv-group-bar-pct">${sharePct.toFixed(1)}%</span>
       </span>
-      <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)} <span class="inv-group-pct">(${pnlSign2}${roiPct.toFixed(1)}%)</span></span>
+      <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)}</span>
     </div>`;
   }).join('');
 
@@ -1127,23 +1126,27 @@ function renderInvestmentKPI(){
       <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
       <a href="budget.html" class="inv-link">Szczegóły →</a>
     </div>
-    <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
-    ${s.availableCapital > 0 ? `<div class="inv-available">dostępne do zakupu <strong>${fmt(s.availableCapital)}</strong></div>` : ''}
-    <div class="inv-stats-row">
-      <div class="inv-stat">
-        <span class="inv-stat-label">P&L</span>
-        <span class="inv-stat-value ${pnlClass}">${pnlSign}${fmt(s.totalPnl||0)}</span>
+    <div class="inv-body">
+      <div class="inv-body-left">
+        <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
+        ${s.availableCapital > 0 ? `<div class="inv-available">dostępne <strong>${fmt(s.availableCapital)}</strong></div>` : ''}
+        <div class="inv-stats-row">
+          <div class="inv-stat">
+            <span class="inv-stat-label">P&L</span>
+            <span class="inv-stat-value ${pnlClass}">${pnlSign}${fmt(s.totalPnl||0)}</span>
+          </div>
+          <div class="inv-stat">
+            <span class="inv-stat-label">ROI</span>
+            <span class="inv-stat-value ${pnlClass}">${roiSign}${(s.roi||0).toFixed(1)}%</span>
+          </div>
+          ${s.costBasis ? `<div class="inv-stat">
+            <span class="inv-stat-label">Zainwestowano</span>
+            <span class="inv-stat-value">${fmt(s.costBasis)}</span>
+          </div>` : ''}
+        </div>
       </div>
-      <div class="inv-stat">
-        <span class="inv-stat-label">ROI</span>
-        <span class="inv-stat-value ${pnlClass}">${roiSign}${(s.roi||0).toFixed(1)}%</span>
-      </div>
-      ${s.costBasis ? `<div class="inv-stat">
-        <span class="inv-stat-label">Zainwestowano</span>
-        <span class="inv-stat-value">${fmt(s.costBasis)}</span>
-      </div>` : ''}
+      ${groupRows ? `<div class="inv-group-table">${groupRows}</div>` : ''}
     </div>
-    ${groupRows ? `<div class="inv-group-table">${groupRows}</div>` : ''}
     ${goalSection}`;
 }
 
