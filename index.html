@@ -689,10 +689,11 @@ function renderKPIData(){
         `Plan miesięczny: ${fmt(monthlyBudget)} (wykorzystano ${Math.round(spentPct)}%).`
       ];
 
-      // Month-end savings forecast: extrapolate current variable spend rate
-      const dailySpendRate = currentDay > 0 ? totalSpentMonth / currentDay : 0;
+      // Month-end savings forecast: extrapolate variable-only spend rate (matches budget.html logic)
+      // spentUntilToday already excludes c_fixed so we don't double-count fixed costs
+      const dailySpendRate = currentDay > 0 ? spentUntilToday / currentDay : 0;
       const projectedTotalSpend = dailySpendRate * daysInMonth;
-      const projectedSavings = incSum - fixSum - projectedTotalSpend;
+      const projectedSavings = (incSum - fixSum) - projectedTotalSpend;
       const savingsSign = projectedSavings >= 0 ? '+' : '';
       const savingsClass = projectedSavings >= 0 ? 'value-ok' : 'value-bad';
       const savingsLabel = projectedSavings >= 0 ? 'prognoza oszczędności' : 'prognoza straty';
@@ -1004,7 +1005,36 @@ function getInvestmentStats(){
   const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
   const monthlyGoal = num(settings.invMonthlyGoal) || 0;
 
-  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal };
+  /* ---- Per-group breakdown (avg-cost, grouped by asset.group) ---- */
+  const hMapFull = {};
+  for(const t of trades){
+    const id = t.assetId;
+    if(!hMapFull[id]) hMapFull[id] = { qty:0, cost:0 };
+    const h = hMapFull[id];
+    if((t.side||'').toLowerCase() === 'sell'){
+      const avgC = h.qty > 0 ? h.cost/h.qty : 0;
+      const sQty = num(t.quantity);
+      h.qty  -= sQty;
+      h.cost -= avgC*sQty;
+    } else {
+      h.qty  += num(t.quantity);
+      h.cost += num(t.amount);
+    }
+  }
+  const groupBreakdown = {};
+  for(const [id, h] of Object.entries(hMapFull)){
+    if(h.qty <= 0) continue;
+    const asset = assets.find(a=>a.id===id);
+    const group = (asset?.group || 'Inne');
+    const price = asset?.currentPrice ? num(asset.currentPrice) : 0;
+    const mv = price > 0 ? h.qty * price : h.cost;
+    const cb = h.cost;
+    if(!groupBreakdown[group]) groupBreakdown[group] = { mv:0, cb:0 };
+    groupBreakdown[group].mv += mv;
+    groupBreakdown[group].cb += cb;
+  }
+
+  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal, groupBreakdown };
 }
 
 function renderInvestmentKPI(){
@@ -1046,6 +1076,21 @@ function renderInvestmentKPI(){
       </div>
     </div>` : '');
 
+  // Per-group rows
+  const groupEntries = Object.entries(s.groupBreakdown || {})
+    .sort((a,b) => b[1].mv - a[1].mv);
+  const groupRows = groupEntries.map(([group, g]) => {
+    const pnl = g.mv - g.cb;
+    const pnlSign2 = pnl >= 0 ? '+' : '';
+    const pnlCol = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const pct = g.cb > 0 ? (pnl/g.cb)*100 : 0;
+    return `<div class="inv-group-row">
+      <span class="inv-group-name">${group}</span>
+      <span class="inv-group-mv">${fmt(g.mv)}</span>
+      <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)} <span class="inv-group-pct">(${pnlSign2}${pct.toFixed(1)}%)</span></span>
+    </div>`;
+  }).join('');
+
   el.innerHTML = `
     <div class="inv-header">
       <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
@@ -1066,6 +1111,7 @@ function renderInvestmentKPI(){
         <span class="inv-stat-value">${fmt(s.costBasis)}</span>
       </div>` : ''}
     </div>
+    ${groupRows ? `<div class="inv-group-table">${groupRows}</div>` : ''}
     ${goalSection}`;
 }
 
