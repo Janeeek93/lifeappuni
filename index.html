@@ -197,8 +197,8 @@
             </div>
           </div>
 
-          <!-- ③ Training Goals — full width, 3 gauges (12/12) -->
-          <div class="bento-card bento-span-12 training-card" style="animation-delay:.12s;">
+          <!-- ③ Training Goals — 7/12 -->
+          <div class="bento-card bento-span-7 training-card" style="animation-delay:.12s;">
             <div class="training-card-header">
               <span class="bento-section-title">Cele tygodniowe</span>
               <a href="trainings.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">
@@ -211,15 +211,17 @@
             </div>
           </div>
 
-          <!-- ④ Small tiles — 5 tiles equal width (12/12) -->
+          <!-- ③b Loan Card — 5/12 -->
+          <div class="bento-card bento-span-5" id="kpi-loan-card" style="animation-delay:.14s;">
+            <!-- filled by renderLoanCard() -->
+          </div>
+
+          <!-- ④ Small tiles — 4 tiles equal width (12/12) -->
           <div class="bento-span-12 small-tiles-row" style="animation-delay:.16s;">
             <a href="tasks.html" class="small-tile" id="kpi-tasks">
               <!-- filled by JS -->
             </a>
             <a href="fuel.html" class="small-tile" id="kpi-fuel">
-              <!-- filled by JS -->
-            </a>
-            <a href="loan.html" class="small-tile" id="kpi-loan">
               <!-- filled by JS -->
             </a>
             <a href="inventory.html" class="small-tile" id="kpi-inventory">
@@ -229,6 +231,9 @@
               <!-- filled by JS -->
             </a>
           </div>
+
+          <!-- hidden compat loan tile -->
+          <a style="display:none" href="loan.html" id="kpi-loan"></a>
 
         </div><!-- /bento-grid -->
 
@@ -1052,6 +1057,94 @@ function renderInvestmentKPI(){
     ${goalSection}`;
 }
 
+/* === LOAN CARD === */
+function renderLoanCard(){
+  const el = document.getElementById('kpi-loan-card');
+  if(!el) return;
+
+  const loanRaw = localStorage.getItem(LOAN_STORAGE_KEY);
+  const lState = safeParse(loanRaw, null);
+
+  if(!lState?.loanDetails){
+    el.innerHTML = `
+      <div class="loan-card-header">
+        <span class="bento-section-title">Kredyt</span>
+        <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:12px;">Brak danych kredytu</p>`;
+    return;
+  }
+
+  const ld = lState.loanDetails;
+  const payments = Array.isArray(lState.payments) ? lState.payments : [];
+  const totalCapital = ld.totalCapital || 0;
+  const totalCapitalPaid = payments.reduce((s, p) => s + p.capital + (p.overpayment || 0), 0);
+  const totalInterestPaid = payments.reduce((s, p) => s + p.interest, 0);
+  const capitalRemaining = Math.max(totalCapital - totalCapitalPaid, 0);
+  const progress = totalCapital > 0 ? Math.min((totalCapitalPaid / totalCapital) * 100, 100) : 0;
+
+  // SVG arc (donut)
+  const r = 38, cx = 50, cy = 50, sw = 10;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - progress / 100);
+
+  // Next installment from schedule projection
+  const projPayments = Array.isArray(lState.projectedPayments) ? lState.projectedPayments : [];
+  const now = new Date();
+  const curMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const paidKeys = new Set(payments.map(p => p.date));
+  const nextMonthKey = paidKeys.has(curMonthKey)
+    ? `${now.getFullYear()}-${String(now.getMonth()+2).padStart(2,'0')}`
+    : curMonthKey;
+  const nextProj = projPayments.find(p => p.monthKey === nextMonthKey);
+  const avgCap = payments.length ? payments.reduce((s,p)=>s+p.capital,0)/payments.length : 0;
+  const avgInt = payments.length ? payments.reduce((s,p)=>s+p.interest,0)/payments.length : 0;
+  const nextCapital = nextProj?.capital ?? avgCap;
+  const nextInterest = nextProj?.interest ?? avgInt;
+  const nextTotal = nextCapital + nextInterest;
+
+  el.innerHTML = `
+    <div class="loan-card-header">
+      <span class="bento-section-title">Kredyt</span>
+      <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+    </div>
+    <div class="loan-card-body">
+      <div class="loan-arc-wrap">
+        <svg viewBox="0 0 100 100" class="loan-arc-svg">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${sw}"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#5f2bf2" stroke-width="${sw}"
+            stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
+            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="loan-arc-label">
+          <span class="loan-arc-pct">${progress.toFixed(1)}%</span>
+          <span class="loan-arc-sub">spłacono</span>
+        </div>
+      </div>
+      <div class="loan-stats">
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Kapitał spłacony</span>
+          <span class="loan-stat-value">${fmt(totalCapitalPaid)}</span>
+        </div>
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Odsetki łącznie</span>
+          <span class="loan-stat-value" style="color:var(--orange)">${fmt(totalInterestPaid)}</span>
+        </div>
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Pozostało</span>
+          <span class="loan-stat-value">${fmt(capitalRemaining)}</span>
+        </div>
+        <div style="margin-top:10px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${progress.toFixed(1)}%;background:#5f2bf2;border-radius:4px;transition:width .6s;"></div>
+        </div>
+        ${nextTotal > 0 ? `<div class="loan-next-row">
+          <span class="loan-stat-label">Następna rata <span style="color:var(--muted);font-weight:400;">${nextMonthKey.replace('-','/')}</span></span>
+          <span class="loan-stat-value">${fmt(nextTotal)}</span>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
 /* === TRAINING GOALS VISUAL === */
 function renderTrainingGoals(){
   const container = document.getElementById('training-goals-visual');
@@ -1320,6 +1413,7 @@ function renderAll(){
   renderKPIs();
   renderInvestmentKPI();
   renderTrainingGoals();
+  renderLoanCard();
   renderUpcomingTasks();  /* fills hidden #upcoming-tasks-list — kept for compat */
   renderBackupStatus();
 }
