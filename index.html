@@ -1005,6 +1005,17 @@ function getInvestmentStats(){
   const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
   const monthlyGoal = num(settings.invMonthlyGoal) || 0;
 
+  /* ---- Reinvestment pool (sell proceeds not returned to budget, minus already reinvested) ---- */
+  let reinvestPool = 0;
+  for(const t of trades){
+    if((t.side||'').toLowerCase() === 'sell'){
+      if(t.sellDestination !== 'budget') reinvestPool += num(t.amount);
+    } else {
+      if(t.fundSource === 'reinvest') reinvestPool -= num(t.amount);
+    }
+  }
+  reinvestPool = Math.max(0, reinvestPool);
+
   /* ---- Per-group breakdown — FIFO matching computeHoldingsFIFO in budget.html ---- */
   const fifoMap = {};
   for(const a of assets){
@@ -1039,7 +1050,12 @@ function getInvestmentStats(){
     groupBreakdown[group].cb += cb;
   }
 
-  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal, groupBreakdown };
+  // Available to invest: savings group + reinvest pool
+  const savingsEntry = Object.entries(groupBreakdown).find(([k]) => k.toLowerCase().includes('oszczędn'));
+  const savingsMv = savingsEntry ? savingsEntry[1].mv : 0;
+  const availableCapital = savingsMv + reinvestPool;
+
+  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal, groupBreakdown, availableCapital };
 }
 
 function renderInvestmentKPI(){
@@ -1087,7 +1103,7 @@ function renderInvestmentKPI(){
     .sort((a,b) => b[1].mv - a[1].mv);
   const totalMv = groupEntries.reduce((s,[,g]) => s + g.mv, 0);
 
-  // Group rows — subtle line+dot bar, % in fixed column
+  // Group rows — line ends in dot, % floats right after dot as flex sibling
   const groupRows = groupEntries.map(([group, g], i) => {
     const pnl = g.mv - g.cb;
     const pnlSign2 = pnl >= 0 ? '+' : '';
@@ -1098,8 +1114,10 @@ function renderInvestmentKPI(){
     return `<div class="inv-group-row">
       <span class="inv-group-name"><span class="inv-group-dot" style="background:${color};"></span>${group}</span>
       <span class="inv-group-mv">${fmt(g.mv)}</span>
-      <span class="inv-group-bar-wrap"><span class="inv-group-bar-line" style="width:${sharePct.toFixed(2)}%;background:${color};"></span></span>
-      <span class="inv-group-bar-pct">${sharePct.toFixed(1)}%</span>
+      <span class="inv-group-bar-wrap">
+        <span class="inv-group-bar-line" style="width:${sharePct.toFixed(2)}%;background:${color};"></span>
+        <span class="inv-group-bar-pct">${sharePct.toFixed(1)}%</span>
+      </span>
       <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)} <span class="inv-group-pct">(${pnlSign2}${roiPct.toFixed(1)}%)</span></span>
     </div>`;
   }).join('');
@@ -1110,6 +1128,7 @@ function renderInvestmentKPI(){
       <a href="budget.html" class="inv-link">Szczegóły →</a>
     </div>
     <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
+    ${s.availableCapital > 0 ? `<div class="inv-available">dostępne do zakupu <strong>${fmt(s.availableCapital)}</strong></div>` : ''}
     <div class="inv-stats-row">
       <div class="inv-stat">
         <span class="inv-stat-label">P&L</span>

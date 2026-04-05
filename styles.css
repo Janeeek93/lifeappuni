@@ -2828,31 +2828,30 @@ tbody tr:hover {
 
 .inv-group-row {
   display: grid;
-  grid-template-columns: 120px auto 1fr 38px auto;
+  grid-template-columns: 120px auto 1fr auto;
   align-items: center;
-  gap: 6px 12px;
+  gap: 6px 14px;
   font-size: 12px;
 }
 
-/* bar column: positions the colored line relative to full width */
+/* bar column: flex row — line then % floats right after dot */
 .inv-group-bar-wrap {
-  position: relative;
-  height: 12px; /* enough vertical room for dot */
   display: flex;
   align-items: center;
+  overflow: visible;
 }
 
-/* the line itself: width set inline as % share */
+/* the line: flex-shrink:0 so width:X% is of parent, not the line itself */
 .inv-group-bar-line {
-  position: absolute;
-  left: 0;
+  flex-shrink: 0;
   height: 2px;
   border-radius: 1px;
+  position: relative;
   opacity: 0.85;
   transition: width .45s ease;
 }
 
-/* dot at the end of the line */
+/* dot at right end of line */
 .inv-group-bar-line::after {
   content: '';
   position: absolute;
@@ -2865,13 +2864,24 @@ tbody tr:hover {
   background: inherit;
 }
 
-/* % label column — right-aligned, muted */
+/* % sits right after dot as a flex sibling */
 .inv-group-bar-pct {
   font-size: 11px;
   font-weight: 500;
   color: var(--muted);
-  text-align: right;
   white-space: nowrap;
+  margin-left: 12px; /* gap after dot */
+}
+
+/* available capital line */
+.inv-available {
+  font-size: 12px;
+  color: var(--muted);
+  margin: -4px 0 8px;
+}
+.inv-available strong {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .inv-group-name {
