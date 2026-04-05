@@ -5053,7 +5053,7 @@
               <div class="inv-analytics-nav" role="tablist">
                 <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)">Hub analityczny</button>
                 <button type="button" class="inv-analytics-btn" data-inv-panel-btn="calendar" style="background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,.25)">Kalendarz P&amp;L</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="road100k" style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.24)">Road to 100k</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="road100k" data-roadto-nav-btn style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.24)">Road to 100k</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
@@ -7469,6 +7469,7 @@
       if(btn._bound) return; btn._bound=true;
       btn.onclick=()=>setInvestmentPanel(btn.dataset.invPanelBtn||'capital');
     });
+    refreshInvRoadToNavLabel();
     setInvestmentPanel(invActivePanel);
   }
 
@@ -9163,7 +9164,24 @@
   const INV_CAL_GOAL_KEY='invCalGoal';
   let invCalGoal=(()=>{ const v=parseFloat(localStorage.getItem(INV_CAL_GOAL_KEY)); return v>0?v:100000; })();
 
-  function invCalSaveGoal(v){ invCalGoal=v; localStorage.setItem(INV_CAL_GOAL_KEY,String(v)); }
+  function invCalGoalShortLabel(goal){
+    if(goal>=1000){
+      const k=goal/1000;
+      return Number.isInteger(k)?`${k}k`:`${k.toFixed(1)}k`;
+    }
+    return String(Math.round(goal));
+  }
+
+  function refreshInvRoadToNavLabel(){
+    const btn=document.querySelector('[data-roadto-nav-btn]');
+    if(btn) btn.textContent=`Road to ${invCalGoalShortLabel(invCalGoal)}`;
+  }
+
+  function invCalSaveGoal(v){
+    invCalGoal=v;
+    localStorage.setItem(INV_CAL_GOAL_KEY,String(v));
+    refreshInvRoadToNavLabel();
+  }
 
   function invCalRoadToStats(arr){
     const currentVal=arr[arr.length-1].snap.portfolioValue;
@@ -9484,12 +9502,14 @@
       const targetVal=goal*frac;
       const achieved=currentVal>=targetVal;
       let achievedDate=null,baseEta=null,accEta=null,monthsSaved=null;
-      let baseEtaIdx=null,accEtaIdx=null;
+      let baseEtaIdx=null,accEtaIdx=null,baseEtaPos=null,accEtaPos=null;
       if(achieved){
         achievedDate=invCalFirstCrossDate(arr,targetVal);
       } else {
         const baseM=Math.ceil((targetVal-currentVal)/avgMonthly);
         const accM=Math.ceil((targetVal-currentVal)/accMonthly);
+        baseEtaPos=todayIdx+((targetVal-currentVal)/avgMonthly);
+        accEtaPos=todayIdx+((targetVal-currentVal)/accMonthly);
         const bd=new Date(today.getFullYear(),today.getMonth()+baseM,1);
         const ad=new Date(today.getFullYear(),today.getMonth()+accM,1);
         baseEta=bd.toISOString().slice(0,7);
@@ -9498,7 +9518,7 @@
         accEtaIdx=todayIdx+accM;
         monthsSaved=baseM-accM;
       }
-      return {frac,targetVal,achieved,achievedDate,baseEta,accEta,baseEtaIdx,accEtaIdx,monthsSaved};
+      return {frac,targetVal,achieved,achievedDate,baseEta,accEta,baseEtaIdx,accEtaIdx,baseEtaPos,accEtaPos,monthsSaved};
     });
 
     const finalCp=checkpoints[4];
@@ -9507,7 +9527,7 @@
       :null;
 
     const multLabel=`${invCalR100kMult.toFixed(1)}×`;
-    const goalLabel=goal>=1000?(goal/1000).toFixed(0)+'k':goal;
+    const goalLabel=invCalGoalShortLabel(goal);
     const savingHtml=(daysSaved&&daysSaved>0)
       ?`<span class="inv-r100k-saving-badge">⚡ Oszczędzasz ~${daysSaved} dni (${Math.round(daysSaved/30)} mies.)</span>`
       :'';
@@ -9667,17 +9687,17 @@
           const targetVal=goal*f;
           const lbl=targetVal>=1000?(targetVal/1000).toFixed(0)+'k':String(targetVal);
           // Baseline dot
-          if(cp.baseEtaIdx!=null&&cp.baseEtaIdx<allMonths.length){
-            const x=chart.scales.x.getPixelForValue(cp.baseEtaIdx);
+          if(cp.baseEtaPos!=null&&cp.baseEtaPos>=0&&cp.baseEtaPos<=allMonths.length-1){
+            const x=chart.scales.x.getPixelForValue(cp.baseEtaPos);
             const y=chart.scales.y.getPixelForValue(targetVal);
-            const side=cp.baseEtaIdx<allMonths.length*0.85?'right':'left';
+            const side=cp.baseEtaPos<allMonths.length*0.85?'right':'left';
             drawDot(x,y,'#2563eb',lbl,side);
           }
           // Accelerated dot (offset label slightly to avoid overlap with baseline)
-          if(cp.accEtaIdx!=null&&cp.accEtaIdx<allMonths.length){
-            const x=chart.scales.x.getPixelForValue(cp.accEtaIdx);
+          if(cp.accEtaPos!=null&&cp.accEtaPos>=0&&cp.accEtaPos<=allMonths.length-1){
+            const x=chart.scales.x.getPixelForValue(cp.accEtaPos);
             const y=chart.scales.y.getPixelForValue(targetVal);
-            const side=cp.accEtaIdx<allMonths.length*0.85?'right':'left';
+            const side=cp.accEtaPos<allMonths.length*0.85?'right':'left';
             drawDot(x,y,'#e15759','',side); // label already on baseline dot
           }
         });
@@ -9706,6 +9726,13 @@
         interaction:{mode:'index',intersect:false},
         plugins:{
           legend:{display:false},
+          title:{
+            display:true,
+            text:`Road to ${goalLabel} ${cur}`,
+            color:'#64748b',
+            font:{size:11,weight:'700'},
+            padding:{bottom:8}
+          },
           tooltip:{
             backgroundColor:'rgba(15,23,42,.88)',
             borderColor:'rgba(148,163,184,.2)',

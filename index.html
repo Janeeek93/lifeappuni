@@ -6,309 +6,272 @@
   <title>LifeOS — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
-    :root {
-      --gradient-primary: linear-gradient(110deg, hsl(230 80% 97%) 0%, hsl(280 70% 98%) 100%);
-    }
-
-    .grid { gap: 16px; }
-    .card { animation: fadeInUp .4s ease-out; }
-
-    @keyframes slideInRight { from{opacity:0; transform:translateX(12px)} to{opacity:1; transform:translateX(0)} }
-
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        align-items: start;
-        gap: 16px;
-    }
-    
-    .dashboard-grid .left-column,
-    .dashboard-grid .right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
-   
-    @media(max-width:1024px){ 
-        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-     @media(max-width:768px){ 
-        .dashboard-grid { grid-template-columns: 1fr; }
-        .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    }
-
-
-    /* === Compact KPI Tiles === */
-    .kpi-tile-large {
-        display: flex; flex-direction: column; gap: 6px;
-        background: var(--surface); border: 1px solid var(--line);
-        border-radius: 14px; padding: 16px; text-decoration: none; color: var(--ink);
-        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-        height: 100%;
-    }
-    .kpi-tile-large:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
-        border-color: hsl(var(--accent-h) 30% 70%);
-    }
-    .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
-    .kpi-main-value { font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-    .kpi-sub-value { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: -2px; }
-    .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
-    .kpi-detail-line { position: relative; padding-left: 12px; }
-    .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); }
-    .kpi-progress-container { margin-top: auto; padding-top: 10px; }
-    .value-ok { color: var(--green); }
-    .value-warn { color: var(--orange); }
+    /* === Value colours (used by JS-injected KPI content) === */
+    .value-ok  { color: var(--green); }
+    .value-warn{ color: var(--orange); }
     .value-bad { color: var(--red); }
-
-    /* === Hero === */
-    .app-main > .hero-header {
-      border-radius: 0;
-      padding: 16px 24px;
-      background: var(--gradient-primary);
-    }
-    .hero-header{
-      color: var(--ink); position:relative; overflow:hidden;
-      border-bottom: 1px solid rgba(15,23,42,0.08);
-    }
-    .hero-content{
-        position:relative; z-index:1; width: 100%;
-        display:flex; flex-wrap: wrap; align-items:center; justify-content:space-between; gap:20px;
-    }
-    .hero-copy{ display:flex; flex-direction:column; gap:2px; }
-    .greeting-text{ font-size: clamp(16px, 3vw, 20px); font-weight:700; margin:0; animation: fadeInUp .5s ease-out }
-    .date-text{ opacity:.9; font-size: 11px; margin:0; animation: fadeInUp .5s ease-out .1s both }
-    
-    .header-actions-group {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-    }
-
-    .data-actions {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-    }
-
-    .data-buttons {
-        display: flex;
-        gap: 8px;
-    }
-
-    .quick-actions{ display:flex; gap:8px; align-items:center; animation: slideInRight .5s ease-out .2s both; }
-    .quick-action{
-      width:36px; height:36px; background: hsl(0 0% 100% / .6);
-      border:1px solid hsl(0 0% 100% / .7); border-radius:10px; display:flex; align-items:center; justify-content:center;
-      color:#111; text-decoration:none; font-size:14px; transition: transform .15s ease, background .2s ease; backdrop-filter: blur(8px);
-    }
-    .quick-action:hover{ transform: scale(1.07) }
-
-    /* === Lists & feeds === */
-    .activity-feed{ max-height: 250px; overflow-y:auto; padding-right:6px }
-    .activity-item{ display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); animation:fadeInUp .35s ease-out }
-    .activity-item:last-child{ border-bottom:none }
-
-    /* === Upcoming tasks === */
-    .priorities-card{ display:flex; flex-direction:column; background: var(--card); flex-grow: 1; }
-    .upcoming-header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px }
-    #upcoming-tasks-list{ overflow:auto; padding-right:6px; flex-grow: 1; }
-    .task-group-header {
-      font-size: 9px; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px 4px; font-weight: 600; letter-spacing:0.5px;
-    }
-    .task-group-header:first-of-type { margin-top: 0; }
-    .upcoming-task-item{
-      display:flex; align-items:center; gap:10px; padding:8px 10px; margin:4px 0;
-      background: var(--surface); border-radius:10px; border:1px solid var(--line); transition: background .2s ease, transform .2s ease;
-    }
-    .upcoming-task-item:hover{ transform: translateX(3px); background: hsl(var(--accent-h) 60% 96% / .5) }
-    .task-title{ font-weight: 500; font-size: 13px; color: var(--ink) }
-    .task-due-date{
-      font-size:10px; font-weight:600; text-align:right; margin-left:auto; white-space:nowrap; background: var(--accent-weak);
-      color: hsl(var(--accent-h) 30% 25%); padding:3px 7px; border-radius: 8px; border:1px solid hsl(var(--accent-h) 45% 85% / .8)
-    }
-    .prio-pill{ width:8px; height:8px; border-radius:50%; flex-shrink:0; border:1.5px solid #fff; box-shadow: 0 0 0 1.5px var(--line) }
-    .prio-pill.high{ background:#ff6b6b } .prio-pill.medium{ background:#ffd93d } .prio-pill.low{ background:#6bcf7f }
-
-    /* === Weather === */
-    .weather-main { display: flex; align-items: center; gap: 12px; }
-    .weather-icon { font-size: 36px; line-height: 1; }
-    .weather-temp { font-size: 32px; font-weight: 700; line-height: 1; margin: 0; }
-    .weather-desc { opacity: .95; font-weight: 500; font-size: 13px; }
-    .weather-sub { display:flex; gap:10px; align-items:center; font-size:10px; color:var(--muted); margin-top: 6px; }
-    .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-    .forecast-day { background: var(--surface); padding: 8px; border-radius: 10px; text-align: center; font-size: 10px; border: 1px solid var(--line); }
-    .forecast-day .forecast-icon { font-size: 20px; margin: 2px 0; }
-    .forecast-day .forecast-temp { font-weight: 600; font-size: 13px; }
 
     /* === Notification === */
     .notification{
-      position:fixed; top:16px; right:16px; padding:14px 16px; background: var(--card); border-left:4px solid var(--green);
-      border-radius:12px; box-shadow: var(--shadow-lg); z-index:1000; transform: translateX(400px);
-      transition: transform .25s ease; max-width: 320px; color: var(--ink); border:1px solid var(--line);
+      position:fixed; top:16px; right:16px; padding:14px 16px; background: var(--card);
+      border-left:4px solid var(--green); border-radius:12px; box-shadow: var(--shadow-lg);
+      z-index:1000; transform: translateX(420px); transition: transform .25s ease;
+      max-width: 320px; color: var(--ink); border:1px solid var(--line);
     }
-    .notification.show{ transform: translateX(0) }
-    .notification.error{ border-left-color: var(--red) }
-    .notification.warning{ border-left-color: var(--orange) }
+    .notification.show { transform: translateX(0); }
+    .notification.error   { border-left-color: var(--red); }
+    .notification.warning { border-left-color: var(--orange); }
 
     /* === Modal === */
     .modal-overlay{
-      position:fixed; inset:0; background: rgba(15,23,42,.6); display:flex; justify-content:center; align-items:center; z-index:1000;
+      position:fixed; inset:0; background: rgba(44,47,49,.55); display:flex;
+      justify-content:center; align-items:center; z-index:1000;
       backdrop-filter: blur(8px); opacity:0; pointer-events:none; transition: opacity .2s ease-out;
     }
-    .modal-overlay.visible{ opacity:1; pointer-events: all }
-    .modal-card{ background: var(--card); padding: 26px; border-radius: 16px; box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
-      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line) }
-    .modal-overlay.visible .modal-card{ transform: scale(1) }
-    #modal-text{ font-size: 13px; margin:0 0 18px 0; color: var(--ink); line-height:1.6 }
-    .modal-actions{ margin-top:16px; display:flex; justify-content:center; gap:10px }
+    .modal-overlay.visible{ opacity:1; pointer-events: all; }
+    .modal-card{
+      background: var(--card); padding: 28px; border-radius: 20px;
+      box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
+      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line);
+    }
+    .modal-overlay.visible .modal-card{ transform: scale(1); }
+    #modal-text{ font-size: 13px; margin:0 0 18px 0; color: var(--ink); line-height:1.6; }
+    .modal-actions{ margin-top:16px; display:flex; justify-content:center; gap:10px; }
 
-    /* === Loading === */
+    /* === Loading spinner inside KPI tiles === */
+    .loading { position: relative; overflow: hidden; }
     .loading::after{
-      content:''; position:absolute; inset:0; background: rgba(255,255,255,.75); border-radius: inherit;
+      content:''; position:absolute; inset:0; background: rgba(255,255,255,.7); border-radius: inherit;
     }
     .loading::before{
-      content:''; position:absolute; top:50%; left:50%; width:22px; height:22px; border:3px solid #e2e8f0; border-top-color: var(--accent);
-      border-radius:50%; animation: spin 1s linear infinite; transform: translate(-50%,-50%);
+      content:''; position:absolute; top:50%; left:50%; width:20px; height:20px;
+      border:3px solid var(--line); border-top-color: var(--accent);
+      border-radius:50%; animation: spin 0.9s linear infinite; transform: translate(-50%,-50%);
+      z-index: 1;
     }
-    @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg) } }
+    @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg); } }
 
+    /* === Bento entry animation === */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .bento-card, .bento-mini, .bento-stream {
+      animation: fadeInUp .4s ease-out both;
+    }
+
+    /* Weather widget title override inside bento card */
+    #weather-widget h4.title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
   </style>
 </head>
 <body data-page="dashboard">
   <div class="app-shell">
+
+    <!-- ── Sidebar ── -->
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
         <span class="sidebar__emoji">🧭</span>
         <span class="sidebar__brand">LifeOS</span>
       </div>
+
       <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
         <ul class="sidebar__list">
           <li class="sidebar__item">
             <a class="sidebar__link" href="index.html" data-page="dashboard">
-              <span class="sidebar__icon">📊</span>
+              <span class="material-symbols-outlined">dashboard</span>
               <span class="sidebar__label">Dashboard</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="budget.html" data-page="budget">
-              <span class="sidebar__icon">💰</span>
+              <span class="material-symbols-outlined">payments</span>
               <span class="sidebar__label">Budżet</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="tasks.html" data-page="tasks">
-              <span class="sidebar__icon">✅</span>
+              <span class="material-symbols-outlined">assignment</span>
               <span class="sidebar__label">Zadania</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="trainings.html" data-page="trainings">
-              <span class="sidebar__icon">💪</span>
+              <span class="material-symbols-outlined">trending_up</span>
               <span class="sidebar__label">Progres</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="fuel.html" data-page="fuel">
-              <span class="sidebar__icon">⛽</span>
+              <span class="material-symbols-outlined">local_gas_station</span>
               <span class="sidebar__label">Paliwo</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="loan.html" data-page="loan">
-              <span class="sidebar__icon">🏦</span>
+              <span class="material-symbols-outlined">credit_card</span>
               <span class="sidebar__label">Kredyt</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="inventory.html" data-page="inventory">
-              <span class="sidebar__icon">📦</span>
+              <span class="material-symbols-outlined">inventory_2</span>
               <span class="sidebar__label">Magazyn</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="house.html" data-page="house">
-              <span class="sidebar__icon">🏠</span>
+              <span class="material-symbols-outlined">construction</span>
               <span class="sidebar__label">Budowa</span>
             </a>
           </li>
         </ul>
       </nav>
+
       <div class="sidebar__footer">
         <strong>Twoje centrum dowodzenia życiem.</strong>
       </div>
     </aside>
 
+    <!-- ── Main content ── -->
     <div class="app-main">
-      <header class="hero-header">
-        <div class="hero-content">
-          <div class="hero-copy">
-            <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-            <p id="current-date" class="date-text"></p>
+
+      <!-- Sticky top bar -->
+      <header class="site-header">
+        <div class="site-header__left">
+          <div class="site-header__greeting">
+            <h2 id="greeting" class="site-header__title">Dzień dobry!</h2>
+            <p id="current-date" class="live-badge" style="border:none;background:transparent;padding:0;font-size:12px;color:var(--muted);"></p>
           </div>
-          <div class="header-actions-group">
-            <div class="data-actions">
-              <div class="data-buttons">
-                <button class="btn small" id="export-all-btn">📤 Eksport</button>
-                <button class="btn small" id="import-all-btn">📥 Import</button>
-                <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-              </div>
-              <p id="backup-status" class="tiny" style="margin: 0; text-align: right;"></p>
-            </div>
-            <div class="quick-actions">
-              <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-              <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-            </div>
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            Live Syncing
           </div>
+        </div>
+        <div class="site-header__right">
+          <!-- Compact weather — JS fills this -->
+          <div id="weather-widget" class="header-weather-compact" aria-live="polite"
+               title="Kliknij aby zmienić lokalizację" onclick="openSettingsModal(); return false;" style="cursor:pointer;"></div>
+          <div class="header-btn-group">
+            <button class="btn" id="export-all-btn">Eksport</button>
+            <button class="btn" id="import-all-btn">Import</button>
+            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
+          </div>
+          <p id="backup-status" style="font-size:11px;color:var(--muted);margin:0;white-space:nowrap;"></p>
+          <a href="#" class="header-icon-btn" title="Ustawienia" onclick="openSettingsModal(); return false;">
+            <span class="material-symbols-outlined">settings</span>
+          </a>
+          <a href="#" class="header-icon-btn" title="Odśwież" onclick="refreshDashboard(); return false;">
+            <span class="material-symbols-outlined">refresh</span>
+          </a>
         </div>
       </header>
 
-      <main class="page-content">
-        <div class="wrap" style="max-width: none; padding: 24px;">
-          <div class="dashboard-grid">
-            <div class="left-column">
-                <section class="card kpi-card">
-                    <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
-                    <div class="grid kpi-grid">
-                        <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-                        <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-                        <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
-                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
-                        <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-                    </div>
-                </section>
-                 <section class="card training-card">
-                    <h3 class="title" style="font-size: 16px;">🎯 Cele treningowe na ten tydzień</h3>
-                    <div id="weekly-activities-list" class="activity-feed"></div>
-                </section>
-            </div>
-            <div class="right-column">
-                <section class="card weather-card" id="weather-widget" aria-live="polite">
-                    <!-- Weather content will be dynamically inserted here -->
-                </section>
-                <section class="card priorities-card tasks-card" id="priorities-card">
-                    <div class="upcoming-header">
-                        <h3 class="title" style="margin:0; font-size: 16px;">📅 Najbliższe zadania</h3>
-                        <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
-                    </div>
-                    <div id="upcoming-tasks-list"></div>
-                    <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
-                </section>
+      <!-- Page canvas -->
+      <main class="page-content" style="padding: 24px 32px 48px;">
+
+        <!-- Bento grid -->
+        <div class="bento-grid">
+
+          <!-- ① Budget KPI — wide hero card (7/12) -->
+          <div class="bento-card bento-card--budget bento-span-7" style="animation-delay:.04s; min-height:230px;">
+            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+          </div>
+
+          <!-- ② Investments card (5/12) -->
+          <div class="bento-card bento-span-5 inv-card" style="animation-delay:.08s; min-height:230px;" id="kpi-investments-card">
+            <div id="kpi-investments">
+              <!-- filled by renderInvestmentKPI() -->
+              <div class="kpi-header"><h4>Inwestycje</h4></div>
+              <div class="kpi-main-value muted">—</div>
             </div>
           </div>
-        </div>
+
+          <!-- ③ Training Goals — 7/12 -->
+          <div class="bento-card bento-span-7 training-card" style="animation-delay:.12s;">
+            <div class="training-card-header">
+              <span class="bento-section-title">Cele tygodniowe</span>
+              <a href="trainings.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">
+                Szczegóły
+                <span class="material-symbols-outlined" style="font-size:15px;">arrow_forward</span>
+              </a>
+            </div>
+            <div id="training-goals-visual" class="training-goals-grid">
+              <!-- filled by renderTrainingGoals() -->
+            </div>
+          </div>
+
+          <!-- ③b Loan Card — 5/12 -->
+          <div class="bento-card bento-span-5" id="kpi-loan-card" style="animation-delay:.14s;">
+            <!-- filled by renderLoanCard() -->
+          </div>
+
+          <!-- ④ Small tiles — 4 tiles equal width (12/12) -->
+          <div class="bento-span-12 small-tiles-row" style="animation-delay:.16s;">
+            <a href="tasks.html" class="small-tile" id="kpi-tasks">
+              <!-- filled by JS -->
+            </a>
+            <a href="fuel.html" class="small-tile" id="kpi-fuel">
+              <!-- filled by JS -->
+            </a>
+            <a href="inventory.html" class="small-tile" id="kpi-inventory">
+              <!-- filled by JS -->
+            </a>
+            <a href="house.html" class="small-tile" id="kpi-house">
+              <!-- filled by JS -->
+            </a>
+          </div>
+
+          <!-- hidden compat loan tile -->
+          <a style="display:none" href="loan.html" id="kpi-loan"></a>
+
+        </div><!-- /bento-grid -->
+
+        <!-- Hidden elements for JS compatibility -->
+        <div style="display:none" id="upcoming-tasks-list"></div>
+        <span style="display:none" id="priorities-summary"></span>
+        <div style="display:none" id="weekly-activities-list"></div>
+        <a style="display:none" href="trainings.html" id="kpi-progress"></a>
+        <!-- greeting/date are now in site-header; these hidden fallbacks ensure JS doesn't crash -->
+        <span style="display:none" id="greeting-fallback"></span>
+
       </main>
-    </div>
-  </div>
+    </div><!-- /app-main -->
+  </div><!-- /app-shell -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-bottom-nav" aria-label="Nawigacja mobilna">
+    <a href="index.html" class="mobile-nav-item active">
+      <span class="material-symbols-outlined">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="budget.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">payments</span>
+      <span>Budżet</span>
+    </a>
+    <a href="tasks.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">assignment</span>
+      <span>Zadania</span>
+    </a>
+    <a href="fuel.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">local_gas_station</span>
+      <span>Paliwo</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="openSettingsModal(); return false;">
+      <span class="material-symbols-outlined">settings</span>
+      <span>Więcej</span>
+    </a>
+  </nav>
 
   <!-- Modals -->
   <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-text">
@@ -360,9 +323,9 @@ const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
 
 const TRAINING_GOALS = {
-  gym: { target: 3, unit: 'sesje', name: 'Siłownia', icon: '🏋️' },
-  running: { target: 5, unit: 'km', name: 'Bieganie', icon: '🏃' },
-  reading: { target: 100, unit: 'stron', name: 'Czytanie', icon: '📚' },
+  gym: { target: 3, unit: 'sesje', name: 'Siłownia', icon: '🏋️', msIcon: 'fitness_center' },
+  running: { target: 5, unit: 'km', name: 'Bieganie', icon: '🏃', msIcon: 'directions_run' },
+  reading: { target: 100, unit: 'stron', name: 'Czytanie', icon: '📚', msIcon: 'menu_book' },
 };
 
 /* === UTIL === */
@@ -491,9 +454,11 @@ function showNotification(message, type='success'){
 function renderGreetingAndDate(){
   const now = new Date();
   const hour = now.getHours();
-  document.getElementById('greeting').textContent = `Dzień dobry!`;
-  document.getElementById('current-date').textContent =
-    `Dzisiaj jest ${now.toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+  const greet = hour < 12 ? 'Dzień dobry!' : hour < 18 ? 'Dzień dobry!' : 'Dobry wieczór!';
+  const greetEl = document.getElementById('greeting');
+  const dateEl  = document.getElementById('current-date');
+  if(greetEl) greetEl.textContent = greet;
+  if(dateEl)  dateEl.textContent = now.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
 /* === UPCOMING TASKS === */
@@ -573,65 +538,31 @@ function renderWeeklyActivities(){
 /* === WEATHER (From Settings) === */
 function renderWeatherWidget() {
   const widget = document.getElementById('weather-widget');
+  if(!widget) return;
   const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
   const locationQuery = settings.weatherLocation || 'Warszawa';
 
-  widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; font-size: 13px;">Ładowanie pogody dla: ${locationQuery}...</div>`;
+  widget.innerHTML = `<span style="font-size:12px;color:var(--muted);">⏳ ${locationQuery}</span>`;
+
+  const weatherCodeMap = { '113':'☀️','116':'⛅️','119':'☁️','122':'🌥️','143':'🌫️','176':'🌦️','179':'🌨️','182':'🌨️','185':'🌨️','200':'⛈️','227':'❄️','248':'🌫️','260':'🌫️','263':'🌦️','266':'🌦️','281':'🌧️','284':'🌧️','293':'🌧️','296':'🌧️','299':'🌧️','302':'🌧️','305':'🌧️','308':'🌧️','311':'🌧️','314':'🌧️','317':'🌨️','320':'🌨️','323':'❄️','326':'❄️','329':'❄️','332':'❄️','335':'❄️','338':'❄️','350':'🌨️','353':'🌦️','356':'🌧️','359':'🌧️','362':'🌨️','365':'🌨️','368':'❄️','371':'❄️','374':'🌨️','377':'🌨️','386':'⛈️','389':'⛈️','392':'⛈️','395':'❄️' };
+  const getEmoji = (code) => weatherCodeMap[code] || '🌡️';
 
   fetch(`https://wttr.in/${encodeURIComponent(locationQuery)}?format=j1`)
     .then(r => r.json())
     .then(data => {
-        if (!data || !data.current_condition || !data.weather) {
-          widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Brak danych pogodowych dla: ${locationQuery}.</div>`;
-          return;
-        }
-        const current = data.current_condition[0];
-        const forecastDays = data.weather.slice(1, 3);
-
-        const weatherCodeMap = { '113': '☀️', '116': '⛅️', '119': '☁️', '122': '🌥️', '143': '🌫️', '176': '🌦️', '179': '🌨️', '182': '🌨️', '185': '🌨️', '200': '⛈️', '227': '❄️', '230': ' Blizzard', '248': '🌫️', '260': '🌫️', '263': '🌦️', '266': '🌦️', '281': '🌧️', '284': '🌧️', '293': '🌧️', '296': '🌧️', '299': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️', '311': '🌧️', '314': '🌧️', '317': '🌨️', '320': '🌨️', '323': '❄️', '326': '❄️', '329': '❄️', '332': '❄️', '335': '❄️', '338': '❄️', '350': '🌨️', '353': '🌦️', '356': '🌧️', '359': '🌧️', '362': '🌨️', '365': '🌨️', '368': '❄️', '371': '❄️', '374': '🌨️', '377': '🌨️', '386': '⛈️', '389': '⛈️', '392': '⛈️', '395': '❄️', };
-        const getWeatherEmoji = (code) => weatherCodeMap[code] || ' ';
-
-        const locationName = data.nearest_area[0].areaName[0].value;
-        const feelsLike = current.FeelsLikeC ? `odczuwalna ${current.FeelsLikeC}°` : '';
-        const wind = current.windspeedKmph ? `wiatr ${current.windspeedKmph} km/h` : '';
-
-        const todayHTML = `
-          <div class="weather-main">
-              <div class="weather-icon">${getWeatherEmoji(current.weatherCode)}</div>
-              <div>
-                  <div class="weather-temp">${current.temp_C}°</div>
-                  <div class="weather-desc">${current.weatherDesc[0].value}</div>
-              </div>
-          </div>
-          <div class="weather-sub">
-              <div class="tiny">${locationName}</div>
-              <div class="tiny">${[feelsLike, wind].filter(Boolean).join(' • ')}</div>
-          </div>
-        `;
-
-        const forecastHTML = forecastDays.map((day, index) => {
-          const date = new Date();
-          date.setDate(date.getDate() + index + 1);
-          const dayName = date.toLocaleDateString('pl-PL', { weekday: 'short' });
-          const dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-          return `
-            <div class="forecast-day">
-              <div>${dayNameCapitalized}</div>
-              <div class="forecast-icon">${getWeatherEmoji(day.hourly[4].weatherCode)}</div>
-              <div class="forecast-temp">${day.avgtempC}°C</div>
-              <div class="tiny muted">${day.maxtempC}° / ${day.mintempC}°</div>
-            </div>
-          `;
-        }).join('');
-
-        widget.innerHTML = `
-          <h4 class="title" style="margin-bottom: 12px; font-size: 16px;">🌤️ Pogoda</h4>
-          ${todayHTML}
-          <div class="forecast-grid">${forecastHTML}</div>
-        `;
+      if(!data?.current_condition?.[0]) {
+        widget.innerHTML = `<span style="font-size:12px;color:var(--red);">⚠️ Brak danych</span>`;
+        return;
+      }
+      const c = data.current_condition[0];
+      const city = data.nearest_area?.[0]?.areaName?.[0]?.value || locationQuery;
+      widget.innerHTML = `
+        <span class="hw-emoji">${getEmoji(c.weatherCode)}</span>
+        <span class="hw-temp">${c.temp_C}°C</span>
+        <span class="hw-city">${city}</span>`;
     })
     .catch(() => {
-      widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Błąd pobierania pogody dla: ${locationQuery}.</div>`;
+      widget.innerHTML = `<span style="font-size:12px;color:var(--muted);">🌡️ ${locationQuery}</span>`;
     });
 }
 
@@ -703,15 +634,19 @@ function renderKPIData(){
         ];
 
         kpiElements.inventory.innerHTML = `
-          <div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div>
-          <div class="kpi-main-value">${fmt(stockCost, currency)}</div>
-          <div class="kpi-sub-value">${items.length} szt. w zapasie</div>
-          <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+          <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+          <div class="st-value" style="font-size:17px;">${fmt(stockCost, currency)}</div>
+          <div class="st-label">wartość magazynu</div>
+          <div class="st-note">${items.length} szt. · ROI ${roiText}</div>`;
       } else {
-        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+        kpiElements.inventory.innerHTML = `
+          <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+          <div class="st-value muted">—</div><div class="st-label">wartość magazynu</div><div class="st-note">0 szt.</div>`;
       }
     } else {
-      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+      kpiElements.inventory.innerHTML = `
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+        <div class="st-value muted">—</div><div class="st-label">wartość magazynu</div><div class="st-note">brak danych</div>`;
     }
   }
 
@@ -754,25 +689,102 @@ function renderKPIData(){
         `Plan miesięczny: ${fmt(monthlyBudget)} (wykorzystano ${Math.round(spentPct)}%).`
       ];
 
+      // Month-end savings forecast: extrapolate variable-only spend rate (matches budget.html logic)
+      const dailySpendRate = currentDay > 0 ? spentUntilToday / currentDay : 0;
+      const projectedTotalSpend = dailySpendRate * daysInMonth;
+      const projectedSavings = (incSum - fixSum) - projectedTotalSpend;
+
+      // Already saved this month: find saving-type categories by name pattern
+      const monthTxs = txs.filter(t => String(t.date||'').startsWith(ym));
+      const allCategories = Array.isArray(bState?.categories) ? bState.categories : [];
+      const savingCats = allCategories.filter(c => c.type === 'saving');
+
+      function savingIdsByName(namePart) {
+        return new Set(savingCats.filter(c => (c.name||'').toLowerCase().includes(namePart)).map(c => c.id));
+      }
+      function sumByIds(ids) {
+        return monthTxs.reduce((sum, t) => {
+          if(t.splits?.length) return sum + t.splits.reduce((ss,sp) => ids.has(sp.categoryId) ? ss + Math.abs(num(sp.amount)) : ss, 0);
+          return ids.has(t.categoryId) ? sum + Math.abs(num(t.amount)) : sum;
+        }, 0);
+      }
+
+      const investIds = savingIdsByName('inwestycj');
+      const sharedIds = savingIdsByName('oszczędnoś');
+      // fallback: any saving not matched above
+      const otherSavingIds = new Set(savingCats.filter(c => !investIds.has(c.id) && !sharedIds.has(c.id)).map(c => c.id));
+
+      const investSaved  = sumByIds(investIds);
+      const sharedSaved  = sumByIds(sharedIds);
+      const otherSaved   = sumByIds(otherSavingIds);
+      const totalAlreadySaved = investSaved + sharedSaved + otherSaved;
+      const totalForecast = projectedSavings + totalAlreadySaved;
+      const forecastSign  = totalForecast >= 0 ? '+' : '';
+      const forecastClass = totalForecast >= 0 ? 'value-ok' : 'value-bad';
+      const projSign = projectedSavings >= 0 ? '+' : '';
+
+      // Build invest/shared category name labels from actual categories
+      const investLabel = investIds.size ? [...savingCats].filter(c=>investIds.has(c.id)).map(c=>c.name).join(', ') : 'Inwestycje';
+      const sharedLabel = sharedIds.size ? [...savingCats].filter(c=>sharedIds.has(c.id)).map(c=>c.name).join(', ') : 'Oszczędności wspólne';
+
+      const bufferSign = buffer >= 0 ? '+' : '';
       kpiElements.budget.innerHTML = `
-        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
-        <div class="kpi-main-value ${bufferClass}">${fmt(buffer, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-        <div class="kpi-progress-container">
-          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>Budżet miesięczny</span><span>${Math.round(spentPct)}%</span>
+        <div class="budget-hero-top">
+          <div class="budget-today-col">
+            <p class="budget-col-label">Zapas budżetu dziś</p>
+            <div class="kpi-main-value ${bufferClass}">${bufferSign}${fmt(buffer, '')}<span class="budget-unit">PLN</span></div>
+            <div class="budget-daily-info">dzienny limit: ${fmt(dailyBudget)} · wydano: ${fmt(spentUntilToday)}</div>
+            <div class="budget-mini-stats">
+              <span>${fmt(incSum)} <span class="budget-mini-label">dochód</span></span>
+              <span>${fmt(fixSum)} <span class="budget-mini-label">stałe</span></span>
+              <span>${fmt(totalSpentMonth)} <span class="budget-mini-label">wydano</span></span>
+            </div>
           </div>
-          <div class="progress"><i style="width:${spentPct}%"></i></div>
+          <div class="budget-savings-col">
+            <p class="budget-col-label">Oszczędności tego miesiąca</p>
+            <div class="kpi-main-value ${forecastClass}">${forecastSign}${fmt(totalForecast, '')}<span class="budget-unit">PLN</span></div>
+            <div class="budget-savings-breakdown">
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">Prognoza zmiennych</span>
+                <span class="budget-saving-val ${projectedSavings>=0?'value-ok':'value-bad'}">${projSign}${fmt(projectedSavings,'')}</span>
+              </div>
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">${investLabel}</span>
+                <span class="budget-saving-val">${investSaved > 0 ? fmt(investSaved,'') : '—'}</span>
+              </div>
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">${sharedLabel}</span>
+                <span class="budget-saving-val">${sharedSaved > 0 ? fmt(sharedSaved,'') : '—'}</span>
+              </div>
+              ${otherSaved > 0 ? `<div class="budget-saving-row">
+                <span class="budget-saving-label">Pozostałe oszczędności</span>
+                <span class="budget-saving-val">${fmt(otherSaved,'')}</span>
+              </div>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="kpi-progress-container">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span class="tiny muted">Budżet miesięczny</span>
+            <span class="tiny muted">${Math.round(spentPct)}% wydano</span>
+          </div>
+          <div class="progress"><i style="width:${Math.min(spentPct,100)}%;background:${spentPct>90?'var(--red)':spentPct>70?'var(--orange)':'var(--accent)'};"></i></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span class="tiny muted">0 PLN</span>
+            <span class="tiny muted">Dochód: ${fmt(incSum)}</span>
+          </div>
         </div>`;
     } else {
       kpiElements.budget.innerHTML = `
-        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
-        <div class="kpi-main-value">—</div>
-        <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>
-        <div class="kpi-progress-container"></div>`;
+        <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+        <div class="kpi-main-value muted">—</div>
+        <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>`;
     }
   } else {
-    kpiElements.budget.innerHTML = `<div class="kpi-header"><span>💰</span><h4>Budżet</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.budget.innerHTML = `
+      <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+      <div class="kpi-main-value muted">—</div>
+      <div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
   }
 
   // --- Fuel KPI ---
@@ -810,12 +822,20 @@ function renderKPIData(){
     } else {
       detailLines.push(`${fuelData.invoices.length} faktur • ${fuelData.advances.length} zaliczek`);
     }
+    const lastNote = lastInvoice
+      ? (() => { const d = lastInvoice.date ? Math.floor((new Date()-new Date(lastInvoice.date))/86400000) : null; return d !== null ? `${d} dni temu` : 'ostatnie tankowanie'; })()
+      : 'brak tankowań';
     kpiElements.fuel.innerHTML = `
-      <div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div>
-      <div class="kpi-main-value ${balanceClass}">${fmt(balance, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">local_gas_station</span></div>
+      <div class="st-value ${balanceClass}">${fmt(balance)}</div>
+      <div class="st-label">saldo paliwa</div>
+      <div class="st-note">${lastNote}</div>`;
   } else {
-    kpiElements.fuel.innerHTML = `<div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.fuel.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">local_gas_station</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">saldo paliwa</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Tasks KPI ---
@@ -841,18 +861,21 @@ function renderKPIData(){
       planned > 0 ? `Postęp tygodnia: ${done}/${planned} (${Math.round(progress)}%).` : 'Brak zadań zaplanowanych na ten tydzień.'
     ];
 
+    const overdueHtml = overdue > 0 ? `<span class="st-badge-red">${overdue} zaległych</span>` : '';
     kpiElements.tasks.innerHTML = `
-      <div class="kpi-header"><span>✅</span><h4>Zadania</h4></div>
-      <div class="kpi-main-value ${activeClass}">${activeCount}</div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-      <div class="kpi-progress-container">
-        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Ukończono w tym tyg.</span><span>${done}/${planned}</span>
-        </div>
-        <div class="progress"><i style="width:${progress}%"></i></div>
-      </div>`;
+      <div class="st-icon-row">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
+        ${overdueHtml}
+      </div>
+      <div class="st-value ${activeClass}">${activeCount}</div>
+      <div class="st-label">aktywnych</div>
+      <div class="st-note">${forToday > 0 ? `${forToday} na dziś` : 'brak na dziś'} · ${done}/${planned} tyg.</div>`;
   } else {
-    kpiElements.tasks.innerHTML = `<div class="kpi-header"><span>✅</span><h4>Zadania</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.tasks.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">aktywnych</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Progress KPI ---
@@ -901,17 +924,21 @@ function renderKPIData(){
       `Średni postęp zadań: ${tasks.length ? totalProgress.toFixed(0) : 0}%`
     ];
     kpiElements.house.innerHTML = `
-      <div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div>
-      <div class="kpi-main-value">${fmt(totalExpenses)}</div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-      <div class="kpi-progress-container">
-        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Całkowity postęp prac</span><span>${totalProgress.toFixed(0)}%</span>
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">construction</span></div>
+      <div class="st-value">${fmt(totalExpenses)}</div>
+      <div class="st-label">wydatki</div>
+      <div class="st-note">postęp ${totalProgress.toFixed(0)}%</div>
+      <div class="st-progress-bar" style="margin-top:6px;">
+        <div style="height:3px;background:var(--line);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${totalProgress}%;background:#595c5e;transition:width .5s;"></div>
         </div>
-        <div class="progress"><i style="width:${totalProgress}%"></i></div>
       </div>`;
   } else {
-    kpiElements.house.innerHTML = `<div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.house.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">construction</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">wydatki</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Loan KPI ---
@@ -931,21 +958,435 @@ function renderKPIData(){
         `Nadpłaty: ${fmt(totalOverpayments)}.`
       ];
       kpiElements.loan.innerHTML = `
-        <div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div>
-        <div class="kpi-main-value">${fmt(capitalRemaining, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-        <div class="kpi-progress-container">
-          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>Postęp spłaty</span><span>${progress.toFixed(1)}%</span>
-          </div>
-          <div class="progress"><i style="width:${progress}%"></i></div>
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+        <div class="st-value" style="font-size:17px;">${fmt(capitalRemaining)}</div>
+        <div class="st-label">do spłaty</div>
+        <div class="st-note">spłacono ${progress.toFixed(1)}%</div>
+        <div style="margin-top:6px;height:3px;background:var(--line);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${progress}%;background:#5f2bf2;transition:width .5s;"></div>
         </div>`;
     } else {
-       kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak skonfigurowanego kredytu.'])}</div>`;
+      kpiElements.loan.innerHTML = `
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+        <div class="st-value muted">—</div><div class="st-label">do spłaty</div><div class="st-note">brak konfiguracji</div>`;
     }
   } else {
-    kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.loan.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+      <div class="st-value muted">—</div><div class="st-label">do spłaty</div><div class="st-note">brak danych</div>`;
   }
+}
+
+/* === INVESTMENTS KPI === */
+function getInvestmentStats(){
+  const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
+  const parsed = safeParse(budgetRaw, null);
+  if(!parsed) return null;
+  const bm = parsed?.modules?.budget || parsed?.budget || parsed;
+  const investments = bm?.investments;
+  if(!investments) return null;
+
+  const trades  = Array.isArray(investments.trades)  ? investments.trades  : [];
+  const assets  = Array.isArray(investments.assets)  ? investments.assets  : [];
+  if(!trades.length && !assets.length) return null;
+
+  /* ---- Latest snapshot (has pre-computed stats) ---- */
+  const snapshots = safeParse(localStorage.getItem(INV_HUB_SNAP_KEY), []) || [];
+  const snap = snapshots.length ? snapshots[snapshots.length-1] : null;
+
+  let portfolioValue = null, totalPnl = null, roi = null, costBasis = null;
+  if(snap){
+    portfolioValue = snap.portfolioValue;
+    totalPnl       = snap.totalPnl;
+    roi            = snap.roi;
+    costBasis      = snap.costBasis;
+  } else {
+    /* Fallback: simple avg-cost calculation from trades */
+    const hMap = {};
+    for(const t of trades){
+      const id = t.assetId;
+      if(!hMap[id]) hMap[id] = { qty:0, cost:0, realized:0 };
+      const h = hMap[id];
+      if((t.side||'').toLowerCase() === 'sell'){
+        const avgC = h.qty > 0 ? h.cost/h.qty : 0;
+        const sQty = num(t.quantity);
+        h.realized += num(t.amount) - avgC*sQty;
+        h.qty  -= sQty;
+        h.cost -= avgC*sQty;
+      } else {
+        h.qty  += num(t.quantity);
+        h.cost += num(t.amount);
+      }
+    }
+    let mv=0, cb=0, realized=0;
+    for(const [id, h] of Object.entries(hMap)){
+      if(h.qty <= 0){ realized += h.realized; continue; }
+      const asset = assets.find(a=>a.id===id);
+      const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
+      mv += price > 0 ? h.qty*price : h.cost;
+      cb += h.cost;
+      realized += h.realized;
+    }
+    portfolioValue = mv;
+    costBasis      = cb;
+    totalPnl       = realized + (mv - cb);
+    roi            = cb > 0 ? (totalPnl/cb)*100 : 0;
+  }
+
+  /* ---- Monthly contribution (current month, budget buys) ---- */
+  const ym = monthKey();
+  const monthlyContrib = trades
+    .filter(t => t.date && t.date.startsWith(ym) && (t.side||'').toLowerCase()==='buy' && t.fundSource!=='reinvest')
+    .reduce((s,t) => s + num(t.amount), 0);
+
+  /* ---- Monthly goal from settings ---- */
+  const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
+  const monthlyGoal = num(settings.invMonthlyGoal) || 0;
+
+  /* ---- Reinvestment pool (sell proceeds not returned to budget, minus already reinvested) ---- */
+  let reinvestPool = 0;
+  for(const t of trades){
+    if((t.side||'').toLowerCase() === 'sell'){
+      if(t.sellDestination !== 'budget') reinvestPool += num(t.amount);
+    } else {
+      if(t.fundSource === 'reinvest') reinvestPool -= num(t.amount);
+    }
+  }
+  reinvestPool = Math.max(0, reinvestPool);
+
+  /* ---- Per-group breakdown — FIFO matching computeHoldingsFIFO in budget.html ---- */
+  const fifoMap = {};
+  for(const a of assets){
+    fifoMap[a.id] = { group: a.group||'Inne', currentPrice: a.currentPrice||null, lots: [] };
+  }
+  const sortedTrades = [...trades].sort((a,b) =>
+    String(a.date||'').localeCompare(String(b.date||'')) || (a.side==='buy'?-1:1));
+  for(const t of sortedTrades){
+    const h = fifoMap[t.assetId]; if(!h) continue;
+    if(t.side === 'sell'){
+      let remaining = num(t.quantity);
+      while(remaining > 0.000001 && h.lots.length > 0){
+        const lot = h.lots[0], take = Math.min(remaining, lot.qty);
+        lot.qty -= take; remaining -= take;
+        if(lot.qty < 0.000001) h.lots.shift();
+      }
+    } else {
+      const qty = num(t.quantity), amt = num(t.amount);
+      if(qty > 0) h.lots.push({ qty, costPerUnit: amt/qty });
+    }
+  }
+  const groupBreakdown = {};
+  for(const [id, h] of Object.entries(fifoMap)){
+    const qty = h.lots.reduce((s,l)=>s+l.qty, 0);
+    if(qty <= 0.000001) continue;
+    const cb = h.lots.reduce((s,l)=>s+l.qty*l.costPerUnit, 0);
+    const price = h.currentPrice ? num(h.currentPrice) : 0;
+    const mv = price > 0 ? qty * price : cb;
+    const group = h.group;
+    if(!groupBreakdown[group]) groupBreakdown[group] = { mv:0, cb:0 };
+    groupBreakdown[group].mv += mv;
+    groupBreakdown[group].cb += cb;
+  }
+
+  // Available to invest: savings group + reinvest pool
+  const savingsEntry = Object.entries(groupBreakdown).find(([k]) => k.toLowerCase().includes('oszczędn'));
+  const savingsMv = savingsEntry ? savingsEntry[1].mv : 0;
+  const availableCapital = savingsMv + reinvestPool;
+
+  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal, groupBreakdown, availableCapital };
+}
+
+function renderInvestmentKPI(){
+  const el = document.getElementById('kpi-investments');
+  if(!el) return;
+  const s = getInvestmentStats();
+  if(!s){
+    el.innerHTML = `
+      <div class="inv-header">
+        <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
+        <a href="budget.html" class="inv-link">Szczegóły →</a>
+      </div>
+      <p class="kpi-main-value muted" style="margin:16px 0 0;">—</p>
+      <p class="tiny muted" style="margin-top:6px;">Brak danych. Otwórz moduł inwestycji.</p>`;
+    return;
+  }
+
+  const pnlClass = (s.totalPnl||0) >= 0 ? 'value-ok' : 'value-bad';
+  const roiSign  = (s.roi||0) >= 0 ? '+' : '';
+  const pnlSign  = (s.totalPnl||0) >= 0 ? '+' : '';
+
+  const contribPct   = s.monthlyGoal > 0 ? Math.min(100,(s.monthlyContrib/s.monthlyGoal)*100) : 0;
+  const goalBarColor = contribPct >= 100 ? 'var(--green)' : '#0057c0';
+
+  const goalSection = s.monthlyGoal > 0 ? `
+    <div class="inv-goal-section">
+      <div class="inv-goal-header">
+        <span class="tiny muted">Wpłaty w tym miesiącu</span>
+        <span class="tiny muted">${fmt(s.monthlyContrib)} / ${fmt(s.monthlyGoal)}</span>
+      </div>
+      <div class="progress" style="height:6px;margin-top:4px;">
+        <i style="width:${contribPct}%;background:${goalBarColor};"></i>
+      </div>
+    </div>` : (s.monthlyContrib > 0 ? `
+    <div class="inv-goal-section">
+      <div class="inv-goal-header">
+        <span class="tiny muted">Wpłaty w tym miesiącu</span>
+        <span class="tiny muted">${fmt(s.monthlyContrib)}</span>
+      </div>
+    </div>` : '');
+
+  // Per-group rows + stacked bar
+  const GROUP_COLORS = ['#0057c0','#5f2bf2','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#f97316'];
+  const groupEntries = Object.entries(s.groupBreakdown || {})
+    .sort((a,b) => b[1].mv - a[1].mv);
+  const totalMv = groupEntries.reduce((s,[,g]) => s + g.mv, 0);
+
+  // Group rows — line ends in dot, % floats right after dot as flex sibling
+  const groupRows = groupEntries.map(([group, g], i) => {
+    const pnl = g.mv - g.cb;
+    const pnlSign2 = pnl >= 0 ? '+' : '';
+    const pnlCol = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const roiPct = g.cb > 0 ? (pnl/g.cb)*100 : 0;
+    const sharePct = totalMv > 0 ? (g.mv/totalMv*100) : 0;
+    const color = GROUP_COLORS[i % GROUP_COLORS.length];
+    return `<div class="inv-group-row">
+      <span class="inv-group-name"><span class="inv-group-dot" style="background:${color};"></span>${group}</span>
+      <span class="inv-group-bar-wrap">
+        <span class="inv-group-bar-line" style="width:${sharePct.toFixed(2)}%;background:${color};"></span>
+        <span class="inv-group-bar-pct">${sharePct.toFixed(1)}%</span>
+      </span>
+      <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="inv-header">
+      <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
+      <a href="budget.html" class="inv-link">Szczegóły →</a>
+    </div>
+    <div class="inv-body">
+      <div class="inv-body-left">
+        <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
+        ${s.availableCapital > 0 ? `<div class="inv-available">dostępne <strong>${fmt(s.availableCapital)}</strong></div>` : ''}
+        <div class="inv-stats-row">
+          <div class="inv-stat">
+            <span class="inv-stat-label">P&L</span>
+            <span class="inv-stat-value ${pnlClass}">${pnlSign}${fmt(s.totalPnl||0)}</span>
+          </div>
+          <div class="inv-stat">
+            <span class="inv-stat-label">ROI</span>
+            <span class="inv-stat-value ${pnlClass}">${roiSign}${(s.roi||0).toFixed(1)}%</span>
+          </div>
+          ${s.costBasis ? `<div class="inv-stat">
+            <span class="inv-stat-label">Zainwestowano</span>
+            <span class="inv-stat-value">${fmt(s.costBasis)}</span>
+          </div>` : ''}
+        </div>
+      </div>
+      ${groupRows ? `<div class="inv-group-table">${groupRows}</div>` : ''}
+    </div>
+    ${goalSection}`;
+}
+
+/* === LOAN CARD === */
+function renderLoanCard(){
+  const el = document.getElementById('kpi-loan-card');
+  if(!el) return;
+
+  const loanRaw = localStorage.getItem(LOAN_STORAGE_KEY);
+  const lState = safeParse(loanRaw, null);
+
+  if(!lState?.loanDetails){
+    el.innerHTML = `
+      <div class="loan-card-header">
+        <span class="bento-section-title">Kredyt</span>
+        <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:12px;">Brak danych kredytu</p>`;
+    return;
+  }
+
+  const ld = lState.loanDetails;
+  const payments = Array.isArray(lState.payments) ? lState.payments : [];
+  const totalCapital = ld.totalCapital || 0;
+  const totalCapitalPaid = payments.reduce((s, p) => s + p.capital + (p.overpayment || 0), 0);
+  const totalInterestPaid = payments.reduce((s, p) => s + p.interest, 0);
+  const capitalRemaining = Math.max(totalCapital - totalCapitalPaid, 0);
+  const progress = totalCapital > 0 ? Math.min((totalCapitalPaid / totalCapital) * 100, 100) : 0;
+
+  // SVG arc (donut)
+  const r = 38, cx = 50, cy = 50, sw = 10;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - progress / 100);
+
+  // Next installment from schedule projection
+  const projPayments = Array.isArray(lState.projectedPayments) ? lState.projectedPayments : [];
+  const now = new Date();
+  const curMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const paidKeys = new Set(payments.map(p => p.date));
+  const nextMonthKey = paidKeys.has(curMonthKey)
+    ? `${now.getFullYear()}-${String(now.getMonth()+2).padStart(2,'0')}`
+    : curMonthKey;
+  const nextProj = projPayments.find(p => p.monthKey === nextMonthKey);
+  const avgCap = payments.length ? payments.reduce((s,p)=>s+p.capital,0)/payments.length : 0;
+  const avgInt = payments.length ? payments.reduce((s,p)=>s+p.interest,0)/payments.length : 0;
+  const nextCapital = nextProj?.capital ?? avgCap;
+  const nextInterest = nextProj?.interest ?? avgInt;
+  const nextTotal = nextCapital + nextInterest;
+
+  const totalPaid = totalCapitalPaid + totalInterestPaid;
+
+  el.innerHTML = `
+    <div class="loan-card-header">
+      <span class="bento-section-title">Kredyt</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;font-weight:600;color:#5f2bf2;background:#f3f0ff;padding:3px 8px;border-radius:999px;">${payments.length} rat</span>
+        <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+      </div>
+    </div>
+    <div class="loan-card-body">
+      <div class="loan-arc-wrap">
+        <svg viewBox="0 0 100 100" class="loan-arc-svg">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${sw}"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#5f2bf2" stroke-width="${sw}"
+            stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
+            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="loan-arc-label">
+          <span class="loan-arc-pct">${progress.toFixed(1)}%</span>
+          <span class="loan-arc-sub">spłacono</span>
+        </div>
+      </div>
+      <div class="loan-stats">
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Kapitał spłacony</span>
+          <span class="loan-stat-value">${fmt(totalCapitalPaid)}</span>
+        </div>
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Odsetki łącznie</span>
+          <span class="loan-stat-value" style="color:var(--orange)">${fmt(totalInterestPaid)}</span>
+        </div>
+        <div class="loan-stat-row" style="border-top:1px solid var(--line);padding-top:6px;margin-top:2px;">
+          <span class="loan-stat-label" style="font-weight:600;color:var(--ink);">Total wpłat</span>
+          <span class="loan-stat-value" style="font-weight:700;">${fmt(totalPaid)}</span>
+        </div>
+        <div class="loan-stat-row">
+          <span class="loan-stat-label">Pozostało kapitału</span>
+          <span class="loan-stat-value">${fmt(capitalRemaining)}</span>
+        </div>
+        <div style="margin-top:8px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${progress.toFixed(1)}%;background:#5f2bf2;border-radius:4px;transition:width .6s;"></div>
+        </div>
+        ${nextTotal > 0 ? `<div class="loan-next-row">
+          <span class="loan-stat-label">Następna rata <span style="color:var(--muted);font-weight:400;">${nextMonthKey.replace('-','/')}</span></span>
+          <span class="loan-stat-value">${fmt(nextTotal)}</span>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+/* === TRAINING GOALS VISUAL === */
+function renderTrainingGoals(){
+  const container = document.getElementById('training-goals-visual');
+  if(!container) return;
+
+  const now = new Date();
+  const [isoYear, isoWeek] = getWeekNumber(now);
+  const store = getTrainingStore();
+
+  if(store.type === 'none'){
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px 0;grid-column:1/-1;">Brak danych treningowych. Otwórz moduł Progres.</p>';
+    return;
+  }
+
+  function getStats(year, week){
+    return store.type==='modern'
+      ? computeModernTrainingWeekStats(store.data, year, week)
+      : computeLegacyWeekStatsBasic(store.data, year, week);
+  }
+
+  const currentStats = getStats(isoYear, isoWeek);
+  const goalPercents = currentStats.goalPercents || {};
+
+  /* Total week progress — uncapped per goal (overachieving compensates) */
+  const totalRaw = currentStats.averageRaw || 0; // already uncapped average across goals
+  const isWeekDone = totalRaw >= 100;
+
+  /* Last 10 weeks — store averageRaw for uncapped dot coloring */
+  const historyWeeks = [];
+  for(let w = Math.max(1, isoWeek-9); w < isoWeek; w++){
+    const s = getStats(isoYear, w);
+    historyWeeks.push({ week: w, raw: s.averageRaw||0, completed: isTrainingWeekCompleted(s) });
+  }
+
+  const CIRCUM  = 201.06; // 2*π*32
+  const CIRCUM2 = 282.74; // 2*π*45 for total gauge (larger)
+  const COLORS  = { gym:'#0057c0', running:'#059669', reading:'#5f2bf2' };
+
+  /* Total gauge (large, 100px) */
+  const totalPctCapped = Math.min(100, totalRaw);
+  const totalOffset = (CIRCUM2*(1-totalPctCapped/100)).toFixed(2);
+  const totalColor  = isWeekDone ? 'var(--green)' : totalRaw > 60 ? '#0057c0' : 'var(--orange)';
+  const totalLabel  = isWeekDone ? '✓ Tydzień zamknięty!' : `${Math.round(totalRaw)}% łącznie`;
+
+  const totalGauge = `
+    <div class="tg-total-item">
+      <div class="tg-gauge-wrap tg-gauge-total">
+        <svg viewBox="0 0 100 100" class="tg-gauge-svg" style="width:100px;height:100px;">
+          <circle fill="none" stroke="var(--line)" stroke-width="9" cx="50" cy="50" r="45"/>
+          <circle fill="none" stroke="${totalColor}" stroke-width="9" cx="50" cy="50" r="45"
+            stroke-dasharray="${CIRCUM2}" stroke-dashoffset="${totalOffset}"
+            stroke-linecap="round" transform="rotate(-90 50 50)"
+            style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1);"/>
+        </svg>
+        <div class="tg-gauge-center">
+          <span class="tg-pct" style="font-size:16px;${isWeekDone?'color:var(--green);':''}">${Math.round(totalRaw)}%</span>
+        </div>
+      </div>
+      <div class="tg-total-info">
+        <div class="tg-name" style="font-size:15px;">Tydzień ${isoWeek}</div>
+        <div class="tg-progress-label" style="font-size:13px;font-weight:600;${isWeekDone?'color:var(--green);':'color:var(--muted);'}">${totalLabel}</div>
+        <div class="tg-dots-row" style="margin-top:8px;" title="Ostatnie tygodnie">
+          ${historyWeeks.map(w=>{
+            const cls = w.raw>=100 ? 'tg-dot done' : w.raw>=40 ? 'tg-dot partial' : 'tg-dot empty';
+            return `<span class="${cls}" title="Tydzień ${w.week}: ${Math.round(w.raw)}%"></span>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  /* Individual goal gauges */
+  const goalsHTML = Object.entries(TRAINING_GOALS).map(([type, meta])=>{
+    const info    = goalPercents[type] || { progress:0, percent:0, rawPercent:0, target:meta.target };
+    const rawPct  = Number(info.rawPercent||0); // uncapped for display
+    const pct     = Math.min(100, rawPct);       // capped for SVG arc
+    const current = formatGoalValue(type, info.progress||0);
+    const offset  = (CIRCUM*(1-pct/100)).toFixed(2);
+    const color   = COLORS[type] || '#0057c0';
+    const overcap = rawPct > 100;
+
+    return `
+      <div class="training-goal-item">
+        <div class="tg-gauge-wrap">
+          <svg viewBox="0 0 80 80" class="tg-gauge-svg">
+            <circle class="tg-gauge-bg" cx="40" cy="40" r="32"/>
+            <circle class="tg-gauge-fg" cx="40" cy="40" r="32"
+              stroke="${overcap ? 'var(--green)' : color}"
+              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
+              stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="tg-gauge-center">
+            <span class="tg-pct" style="${overcap?'color:var(--green);font-size:11px;':''}">${Math.round(rawPct)}%</span>
+          </div>
+        </div>
+        <div class="tg-details">
+          <span class="material-symbols-outlined tg-ms-icon" style="color:${overcap?'var(--green)':color};">${meta.msIcon}</span>
+          <div class="tg-progress-label">${current} <span>/ ${meta.target} ${meta.unit}</span></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = totalGauge + goalsHTML;
 }
 
 /* === MISC === */
@@ -986,30 +1427,39 @@ function showModal(html, buttons){
 function openSettingsModal(){
     const settings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
     const weatherLocation = settings.weatherLocation || 'Warszawa';
+    const invMonthlyGoal  = settings.invMonthlyGoal  || '';
     const buttons = [
         { text: 'Anuluj' },
         { text: 'Zapisz', class: 'btn primary', onClick: saveSettings }
     ];
     showModal(`
         <h3 style="margin-top:0; text-align: left;">Ustawienia</h3>
-        <div style="text-align:left; font-size: 13px;">
+        <div style="text-align:left; font-size: 13px; display:flex; flex-direction:column; gap:16px;">
+          <div>
             <label for="weather-location" style="font-weight:600; margin-bottom: 6px; display:block;">Lokalizacja dla pogody</label>
-            <input type="text" id="weather-location" value="${weatherLocation}" style="width:100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px;" placeholder="np. Paryż">
+            <input type="text" id="weather-location" value="${weatherLocation}" placeholder="np. Paryż">
             <p class="tiny muted" style="margin-top: 6px;">Wpisz miasto, dla którego chcesz widzieć prognozę pogody.</p>
+          </div>
+          <div>
+            <label for="inv-monthly-goal" style="font-weight:600; margin-bottom: 6px; display:block;">Cel miesięcznych wpłat na inwestycje (PLN)</label>
+            <input type="number" id="inv-monthly-goal" value="${invMonthlyGoal}" placeholder="np. 2000" min="0" step="100">
+            <p class="tiny muted" style="margin-top: 6px;">Ustaw miesięczny cel wpłat, który będzie śledzony na dashboardzie.</p>
+          </div>
         </div>
     `, buttons);
 }
 
 function saveSettings() {
     const location = document.getElementById('weather-location').value;
-    if (!location) {
-        showNotification('Lokalizacja nie może być pusta.', 'error');
-        return;
-    }
-    const settings = { weatherLocation: location };
+    if (!location) { showNotification('Lokalizacja nie może być pusta.', 'error'); return; }
+    const goalInput = document.getElementById('inv-monthly-goal');
+    const goal = goalInput ? num(goalInput.value) : 0;
+    const prev = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
+    const settings = { ...prev, weatherLocation: location, invMonthlyGoal: goal||'' };
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     showNotification('Ustawienia zapisane!', 'success');
     renderWeatherWidget();
+    renderInvestmentKPI();
 }
 
 /* === BACKUP === */
@@ -1098,10 +1548,11 @@ function renderAll(){
   renderGreetingAndDate();
   renderWeatherWidget();
   renderKPIs();
-  renderUpcomingTasks();
-  renderWeeklyActivities();
+  renderInvestmentKPI();
+  renderTrainingGoals();
+  renderLoanCard();
+  renderUpcomingTasks();  /* fills hidden #upcoming-tasks-list — kept for compat */
   renderBackupStatus();
-  document.querySelectorAll('.card').forEach((c,i)=> c.style.animationDelay = `${i*0.06}s`);
 }
 window.addEventListener('load', renderAll);
 document.addEventListener('keydown', (e)=>{

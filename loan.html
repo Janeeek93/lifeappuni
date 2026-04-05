@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="pl" data-theme="light">
 <head>
@@ -1015,7 +1016,7 @@ const STORAGE_KEY = 'lifeos_loan_v1';
 const defaultState = {
   loanDetails: null, // contains totalCapital, startDate, loanTerm, interestRateHistory
   payments: [], // contains id, date, capital, interest, overpayment
-  projectedPayments: [], // { monthKey, interest } - user overrides for projected interest
+  projectedPayments: [], // { monthKey, capital, interest } - user overrides for projected amounts
 };
 
 let state = {};
@@ -1216,11 +1217,25 @@ function saveSetup() {
 }
 
 /* === Payment Entry === */
-function openPaymentModal(paymentId = null) {
+function openPaymentModal(paymentId = null, monthKey = null) {
     const payment = paymentId ? state.payments.find(p => p.id === paymentId) : null;
     const title = payment ? 'Edytuj spłatę' : 'Dodaj miesięczną spłatę';
     const today = new Date();
-    const defaultDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const defaultDate = monthKey || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+    // Pre-fill from schedule (includes projectedPayments overrides + average fallback)
+    let forecastCapital = '';
+    let forecastInterest = '';
+    let usedForecast = false;
+    if (!payment && monthKey) {
+        const scheduleItem = generateSchedule().find(s => s.monthKey === monthKey);
+        if (scheduleItem) {
+            forecastCapital = scheduleItem.capital ? scheduleItem.capital.toFixed(2) : '';
+            forecastInterest = scheduleItem.interest ? scheduleItem.interest.toFixed(2) : '';
+            // Only show "from forecast" note if there's a projectedPayments override
+            usedForecast = !!(state.projectedPayments || []).find(p => p.monthKey === monthKey);
+        }
+    }
 
     const body = `
         <div class="form-group">
@@ -1229,16 +1244,17 @@ function openPaymentModal(paymentId = null) {
         </div>
         <div class="form-group">
             <label class="form-label">Spłacony kapitał</label>
-            <input type="number" id="capitalPaid" class="form-input" step="0.01" value="${payment ? payment.capital : ''}">
+            <input type="number" id="capitalPaid" class="form-input" step="0.01" value="${payment ? payment.capital : forecastCapital}">
         </div>
         <div class="form-group">
             <label class="form-label">Zapłacone odsetki</label>
-            <input type="number" id="interestPaid" class="form-input" step="0.01" value="${payment ? payment.interest : ''}">
+            <input type="number" id="interestPaid" class="form-input" step="0.01" value="${payment ? payment.interest : forecastInterest}">
         </div>
         <div class="form-group">
             <label class="form-label">Nadpłata kapitału (opcjonalnie)</label>
             <input type="number" id="overpayment" class="form-input" step="0.01" value="${payment ? payment.overpayment || '' : ''}">
         </div>
+        ${(!payment && usedForecast) ? '<p class="tiny muted" style="margin-top:-8px;">Wartości uzupełnione z prognozy — zweryfikuj z aplikacją bankową.</p>' : (!payment && forecastCapital ? '<p class="tiny muted" style="margin-top:-8px;">Wartości obliczone ze średniej historycznych wpłat.</p>' : '')}
     `;
     const footer = `
         <button class="btn" onclick="closeModal()">Anuluj</button>
@@ -2583,13 +2599,14 @@ function openProjectedEditModal(monthKey) {
       <input type="text" class="form-input" value="${dateLabel}" disabled>
     </div>
     <div class="form-group">
-      <label class="form-label">Prognozowany kapitał (obliczony ze średniej)</label>
-      <input type="text" class="form-input" value="${proj.capital.toFixed(2)} zł" disabled>
+      <label class="form-label">Kapitał</label>
+      <input type="number" id="projected-capital" class="form-input" step="0.01" value="${proj.capital.toFixed(2)}">
+      <span class="tiny muted" style="margin-top:4px;display:block;">Domyślnie obliczony ze średniej. Zmień na dokładną kwotę z banku.</span>
     </div>
     <div class="form-group">
       <label class="form-label">Odsetki</label>
       <input type="number" id="projected-interest" class="form-input" step="0.01" value="${proj.interest.toFixed(2)}">
-      <span class="tiny muted" style="margin-top:4px;display:block;">Domyślnie z oprocentowania ${Number(proj.rate || 0).toFixed(2)}%. Zmień kwotę jeśli np. inna liczba dni w miesiącu.</span>
+      <span class="tiny muted" style="margin-top:4px;display:block;">Domyślnie z oprocentowania ${Number(proj.rate || 0).toFixed(2)}%. Zmień na dokładną kwotę z banku.</span>
     </div>
   `;
   const footer = `
@@ -2601,12 +2618,14 @@ function openProjectedEditModal(monthKey) {
 }
 
 function saveProjectedPayment(monthKey) {
+  const capital = parseFloat($('#projected-capital').value);
   const interest = parseFloat($('#projected-interest').value);
+  if (isNaN(capital) || capital < 0) { alert('Podaj prawidłową kwotę kapitału.'); return; }
   if (isNaN(interest) || interest < 0) { alert('Podaj prawidłową kwotę odsetek.'); return; }
   if (!state.projectedPayments) state.projectedPayments = [];
   const idx = state.projectedPayments.findIndex(p => p.monthKey === monthKey);
-  if (idx > -1) { state.projectedPayments[idx].interest = interest; }
-  else { state.projectedPayments.push({ monthKey, interest }); }
+  if (idx > -1) { state.projectedPayments[idx].capital = capital; state.projectedPayments[idx].interest = interest; }
+  else { state.projectedPayments.push({ monthKey, capital, interest }); }
   saveState(); closeModal(); render();
 }
 
@@ -2694,6 +2713,12 @@ function generateSchedule() {
       const monthlyRate = (rate || 0) / 100 / 12;
       interest = avgInterest > 0 ? avgInterest : Math.max(remainingCapital, 0) * monthlyRate;
       overpayment = 0;
+      // Apply projectedPayments overrides if user entered exact values for this month
+      const projOverride = (state.projectedPayments || []).find(p => p.monthKey === monthKey);
+      if (projOverride) {
+        if (projOverride.capital != null) capital = projOverride.capital;
+        if (projOverride.interest != null) interest = projOverride.interest;
+      }
       total = capital + interest;
     }
 
@@ -2812,7 +2837,7 @@ function renderSchedule() {
     if (item.paymentId) {
       actions = `<div class="schedule-actions"><button class="btn tiny" onclick="openPaymentModal('${item.paymentId}')">Edytuj</button></div>`;
     } else if (item.status === 'current' || item.status === 'overdue') {
-      actions = `<div class="schedule-actions"><button class="btn tiny primary" onclick="openPaymentModal(null)">Zarejestruj</button></div>`;
+      actions = `<div class="schedule-actions"><button class="btn tiny primary" onclick="openPaymentModal(null, '${item.monthKey}')">Zarejestruj</button></div>`;
     } else if (item.status === 'planned') {
       actions = `<div class="schedule-actions"><button class="btn tiny" onclick="openProjectedEditModal('${item.monthKey}')">Edytuj prognozę</button></div>`;
     }
