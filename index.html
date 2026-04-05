@@ -135,12 +135,6 @@
               <span class="sidebar__label">Budowa</span>
             </a>
           </li>
-          <li class="sidebar__item">
-            <a class="sidebar__link" href="investments.html" data-page="investments">
-              <span class="material-symbols-outlined">candlestick_chart</span>
-              <span class="sidebar__label">Inwestycje</span>
-            </a>
-          </li>
         </ul>
       </nav>
 
@@ -155,13 +149,19 @@
       <!-- Sticky top bar -->
       <header class="site-header">
         <div class="site-header__left">
-          <h2 class="site-header__title">Overview</h2>
+          <div class="site-header__greeting">
+            <h2 id="greeting" class="site-header__title">Dzień dobry!</h2>
+            <p id="current-date" class="live-badge" style="border:none;background:transparent;padding:0;font-size:12px;color:var(--muted);"></p>
+          </div>
           <div class="live-badge">
             <span class="live-dot"></span>
             Live Syncing
           </div>
         </div>
         <div class="site-header__right">
+          <!-- Compact weather — JS fills this -->
+          <div id="weather-widget" class="header-weather-compact" aria-live="polite"
+               title="Kliknij aby zmienić lokalizację" onclick="openSettingsModal(); return false;" style="cursor:pointer;"></div>
           <div class="header-btn-group">
             <button class="btn" id="export-all-btn">Eksport</button>
             <button class="btn" id="import-all-btn">Import</button>
@@ -178,16 +178,7 @@
       </header>
 
       <!-- Page canvas -->
-      <main class="page-content" style="padding: 28px 32px 48px;">
-
-        <!-- Hero: greeting + weather -->
-        <section class="dashboard-hero">
-          <div class="dashboard-hero__text">
-            <h1 id="greeting">Dzień dobry!</h1>
-            <p id="current-date" class="tiny muted"></p>
-          </div>
-          <div class="hero-weather-card" id="weather-widget" aria-live="polite"></div>
-        </section>
+      <main class="page-content" style="padding: 24px 32px 48px;">
 
         <!-- Bento grid -->
         <div class="bento-grid">
@@ -246,6 +237,8 @@
         <span style="display:none" id="priorities-summary"></span>
         <div style="display:none" id="weekly-activities-list"></div>
         <a style="display:none" href="trainings.html" id="kpi-progress"></a>
+        <!-- greeting/date are now in site-header; these hidden fallbacks ensure JS doesn't crash -->
+        <span style="display:none" id="greeting-fallback"></span>
 
       </main>
     </div><!-- /app-main -->
@@ -456,9 +449,11 @@ function showNotification(message, type='success'){
 function renderGreetingAndDate(){
   const now = new Date();
   const hour = now.getHours();
-  document.getElementById('greeting').textContent = `Dzień dobry!`;
-  document.getElementById('current-date').textContent =
-    `Dzisiaj jest ${now.toLocaleDateString('pl-PL',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+  const greet = hour < 12 ? 'Dzień dobry!' : hour < 18 ? 'Dzień dobry!' : 'Dobry wieczór!';
+  const greetEl = document.getElementById('greeting');
+  const dateEl  = document.getElementById('current-date');
+  if(greetEl) greetEl.textContent = greet;
+  if(dateEl)  dateEl.textContent = now.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
 /* === UPCOMING TASKS === */
@@ -538,65 +533,31 @@ function renderWeeklyActivities(){
 /* === WEATHER (From Settings) === */
 function renderWeatherWidget() {
   const widget = document.getElementById('weather-widget');
+  if(!widget) return;
   const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
   const locationQuery = settings.weatherLocation || 'Warszawa';
 
-  widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; font-size: 13px;">Ładowanie pogody dla: ${locationQuery}...</div>`;
+  widget.innerHTML = `<span style="font-size:12px;color:var(--muted);">⏳ ${locationQuery}</span>`;
+
+  const weatherCodeMap = { '113':'☀️','116':'⛅️','119':'☁️','122':'🌥️','143':'🌫️','176':'🌦️','179':'🌨️','182':'🌨️','185':'🌨️','200':'⛈️','227':'❄️','248':'🌫️','260':'🌫️','263':'🌦️','266':'🌦️','281':'🌧️','284':'🌧️','293':'🌧️','296':'🌧️','299':'🌧️','302':'🌧️','305':'🌧️','308':'🌧️','311':'🌧️','314':'🌧️','317':'🌨️','320':'🌨️','323':'❄️','326':'❄️','329':'❄️','332':'❄️','335':'❄️','338':'❄️','350':'🌨️','353':'🌦️','356':'🌧️','359':'🌧️','362':'🌨️','365':'🌨️','368':'❄️','371':'❄️','374':'🌨️','377':'🌨️','386':'⛈️','389':'⛈️','392':'⛈️','395':'❄️' };
+  const getEmoji = (code) => weatherCodeMap[code] || '🌡️';
 
   fetch(`https://wttr.in/${encodeURIComponent(locationQuery)}?format=j1`)
     .then(r => r.json())
     .then(data => {
-        if (!data || !data.current_condition || !data.weather) {
-          widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Brak danych pogodowych dla: ${locationQuery}.</div>`;
-          return;
-        }
-        const current = data.current_condition[0];
-        const forecastDays = data.weather.slice(1, 3);
-
-        const weatherCodeMap = { '113': '☀️', '116': '⛅️', '119': '☁️', '122': '🌥️', '143': '🌫️', '176': '🌦️', '179': '🌨️', '182': '🌨️', '185': '🌨️', '200': '⛈️', '227': '❄️', '230': ' Blizzard', '248': '🌫️', '260': '🌫️', '263': '🌦️', '266': '🌦️', '281': '🌧️', '284': '🌧️', '293': '🌧️', '296': '🌧️', '299': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️', '311': '🌧️', '314': '🌧️', '317': '🌨️', '320': '🌨️', '323': '❄️', '326': '❄️', '329': '❄️', '332': '❄️', '335': '❄️', '338': '❄️', '350': '🌨️', '353': '🌦️', '356': '🌧️', '359': '🌧️', '362': '🌨️', '365': '🌨️', '368': '❄️', '371': '❄️', '374': '🌨️', '377': '🌨️', '386': '⛈️', '389': '⛈️', '392': '⛈️', '395': '❄️', };
-        const getWeatherEmoji = (code) => weatherCodeMap[code] || ' ';
-
-        const locationName = data.nearest_area[0].areaName[0].value;
-        const feelsLike = current.FeelsLikeC ? `odczuwalna ${current.FeelsLikeC}°` : '';
-        const wind = current.windspeedKmph ? `wiatr ${current.windspeedKmph} km/h` : '';
-
-        const todayHTML = `
-          <div class="weather-main">
-              <div class="weather-icon">${getWeatherEmoji(current.weatherCode)}</div>
-              <div>
-                  <div class="weather-temp">${current.temp_C}°</div>
-                  <div class="weather-desc">${current.weatherDesc[0].value}</div>
-              </div>
-          </div>
-          <div class="weather-sub">
-              <div class="tiny">${locationName}</div>
-              <div class="tiny">${[feelsLike, wind].filter(Boolean).join(' • ')}</div>
-          </div>
-        `;
-
-        const forecastHTML = forecastDays.map((day, index) => {
-          const date = new Date();
-          date.setDate(date.getDate() + index + 1);
-          const dayName = date.toLocaleDateString('pl-PL', { weekday: 'short' });
-          const dayNameCapitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-          return `
-            <div class="forecast-day">
-              <div>${dayNameCapitalized}</div>
-              <div class="forecast-icon">${getWeatherEmoji(day.hourly[4].weatherCode)}</div>
-              <div class="forecast-temp">${day.avgtempC}°C</div>
-              <div class="tiny muted">${day.maxtempC}° / ${day.mintempC}°</div>
-            </div>
-          `;
-        }).join('');
-
-        widget.innerHTML = `
-          <h4 class="title" style="margin-bottom: 12px; font-size: 16px;">🌤️ Pogoda</h4>
-          ${todayHTML}
-          <div class="forecast-grid">${forecastHTML}</div>
-        `;
+      if(!data?.current_condition?.[0]) {
+        widget.innerHTML = `<span style="font-size:12px;color:var(--red);">⚠️ Brak danych</span>`;
+        return;
+      }
+      const c = data.current_condition[0];
+      const city = data.nearest_area?.[0]?.areaName?.[0]?.value || locationQuery;
+      widget.innerHTML = `
+        <span class="hw-emoji">${getEmoji(c.weatherCode)}</span>
+        <span class="hw-temp">${c.temp_C}°C</span>
+        <span class="hw-city">${city}</span>`;
     })
     .catch(() => {
-      widget.innerHTML = `<div class="muted" style="padding: 20px; text-align: center; color: var(--red);">Błąd pobierania pogody dla: ${locationQuery}.</div>`;
+      widget.innerHTML = `<span style="font-size:12px;color:var(--muted);">🌡️ ${locationQuery}</span>`;
     });
 }
 
@@ -1037,7 +998,7 @@ function renderInvestmentKPI(){
     el.innerHTML = `
       <div class="inv-header">
         <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
-        <a href="investments.html" class="inv-link">Szczegóły →</a>
+        <a href="budget.html" class="inv-link">Szczegóły →</a>
       </div>
       <p class="kpi-main-value muted" style="margin:16px 0 0;">—</p>
       <p class="tiny muted" style="margin-top:6px;">Brak danych. Otwórz moduł inwestycji.</p>`;
@@ -1071,7 +1032,7 @@ function renderInvestmentKPI(){
   el.innerHTML = `
     <div class="inv-header">
       <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
-      <a href="investments.html" class="inv-link">Szczegóły →</a>
+      <a href="budget.html" class="inv-link">Szczegóły →</a>
     </div>
     <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
     <div class="inv-stats-row">
@@ -1114,27 +1075,62 @@ function renderTrainingGoals(){
   const currentStats = getStats(isoYear, isoWeek);
   const goalPercents = currentStats.goalPercents || {};
 
-  /* Last 10 weeks completion dots */
+  /* Total week progress — uncapped per goal (overachieving compensates) */
+  const totalRaw = currentStats.averageRaw || 0; // already uncapped average across goals
+  const isWeekDone = totalRaw >= 100;
+
+  /* Last 10 weeks — store averageRaw for uncapped dot coloring */
   const historyWeeks = [];
   for(let w = Math.max(1, isoWeek-9); w < isoWeek; w++){
     const s = getStats(isoYear, w);
-    historyWeeks.push({ week: w, completed: isTrainingWeekCompleted(s), avg: s.average||0 });
+    historyWeeks.push({ week: w, raw: s.averageRaw||0, completed: isTrainingWeekCompleted(s) });
   }
 
-  const CIRCUM = 201.06; // 2*π*32
-  const COLORS = { gym:'#0057c0', running:'#059669', reading:'#5f2bf2' };
+  const CIRCUM  = 201.06; // 2*π*32
+  const CIRCUM2 = 282.74; // 2*π*45 for total gauge (larger)
+  const COLORS  = { gym:'#0057c0', running:'#059669', reading:'#5f2bf2' };
 
+  /* Total gauge (large, 100px) */
+  const totalPctCapped = Math.min(100, totalRaw);
+  const totalOffset = (CIRCUM2*(1-totalPctCapped/100)).toFixed(2);
+  const totalColor  = isWeekDone ? 'var(--green)' : totalRaw > 60 ? '#0057c0' : 'var(--orange)';
+  const totalLabel  = isWeekDone ? '✓ Tydzień zamknięty!' : `${Math.round(totalRaw)}% łącznie`;
+
+  const totalGauge = `
+    <div class="tg-total-item">
+      <div class="tg-gauge-wrap tg-gauge-total">
+        <svg viewBox="0 0 100 100" class="tg-gauge-svg" style="width:100px;height:100px;">
+          <circle fill="none" stroke="var(--line)" stroke-width="9" cx="50" cy="50" r="45"/>
+          <circle fill="none" stroke="${totalColor}" stroke-width="9" cx="50" cy="50" r="45"
+            stroke-dasharray="${CIRCUM2}" stroke-dashoffset="${totalOffset}"
+            stroke-linecap="round" transform="rotate(-90 50 50)"
+            style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1);"/>
+        </svg>
+        <div class="tg-gauge-center">
+          <span class="tg-pct" style="font-size:16px;${isWeekDone?'color:var(--green);':''}">${Math.round(totalRaw)}%</span>
+        </div>
+      </div>
+      <div class="tg-total-info">
+        <div class="tg-name" style="font-size:15px;">Tydzień ${isoWeek}</div>
+        <div class="tg-progress-label" style="font-size:13px;font-weight:600;${isWeekDone?'color:var(--green);':'color:var(--muted);'}">${totalLabel}</div>
+        <div class="tg-dots-row" style="margin-top:8px;" title="Ostatnie tygodnie">
+          ${historyWeeks.map(w=>{
+            const cls = w.raw>=100 ? 'tg-dot done' : w.raw>=40 ? 'tg-dot partial' : 'tg-dot empty';
+            return `<span class="${cls}" title="Tydzień ${w.week}: ${Math.round(w.raw)}%"></span>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  /* Individual goal gauges */
   const goalsHTML = Object.entries(TRAINING_GOALS).map(([type, meta])=>{
-    const info = goalPercents[type] || { progress:0, percent:0, target:meta.target };
-    const pct  = Math.max(0, Math.min(100, Number(info.percent||0)));
+    const info    = goalPercents[type] || { progress:0, percent:0, rawPercent:0, target:meta.target };
+    const rawPct  = Number(info.rawPercent||0); // uncapped for display
+    const pct     = Math.min(100, rawPct);       // capped for SVG arc
     const current = formatGoalValue(type, info.progress||0);
-    const offset = (CIRCUM*(1-pct/100)).toFixed(2);
-    const color  = COLORS[type] || '#0057c0';
-
-    const dotsHTML = historyWeeks.map(w => {
-      const cls = w.completed ? 'tg-dot done' : (w.avg>=40 ? 'tg-dot partial' : 'tg-dot empty');
-      return `<span class="${cls}" title="Tydzień ${w.week}${w.completed?' ✓':w.avg>0?' ~':''}"></span>`;
-    }).join('');
+    const offset  = (CIRCUM*(1-pct/100)).toFixed(2);
+    const color   = COLORS[type] || '#0057c0';
+    const overcap = rawPct > 100;
 
     return `
       <div class="training-goal-item">
@@ -1142,12 +1138,12 @@ function renderTrainingGoals(){
           <svg viewBox="0 0 80 80" class="tg-gauge-svg">
             <circle class="tg-gauge-bg" cx="40" cy="40" r="32"/>
             <circle class="tg-gauge-fg" cx="40" cy="40" r="32"
-              stroke="${color}" stroke-dasharray="${CIRCUM}"
-              stroke-dashoffset="${offset}"
+              stroke="${overcap ? 'var(--green)' : color}"
+              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
               stroke-linecap="round" transform="rotate(-90 40 40)"/>
           </svg>
           <div class="tg-gauge-center">
-            <span class="tg-pct">${Math.round(pct)}%</span>
+            <span class="tg-pct" style="${overcap?'color:var(--green);font-size:11px;':''}">${Math.round(rawPct)}%</span>
           </div>
         </div>
         <div class="tg-details">
@@ -1156,12 +1152,11 @@ function renderTrainingGoals(){
             <span class="tg-name">${meta.name}</span>
           </div>
           <div class="tg-progress-label">${current} <span>/ ${meta.target} ${meta.unit}</span></div>
-          <div class="tg-dots-row" title="Ostatnie tygodnie">${dotsHTML}</div>
         </div>
       </div>`;
   }).join('');
 
-  container.innerHTML = goalsHTML;
+  container.innerHTML = totalGauge + goalsHTML;
 }
 
 /* === MISC === */

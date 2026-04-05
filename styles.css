@@ -2611,3 +2611,110 @@ tbody tr:hover {
     grid-column: span 12;
   }
 }
+
+/* ====================================================
+   FIXES v3 — header weather, greeting, training total
+   ==================================================== */
+
+/* ── Site-header greeting ── */
+.site-header__greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.site-header__greeting .site-header__title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+/* ── Compact weather pill in header ── */
+.header-weather-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+
+.header-weather-compact:hover {
+  background: var(--line);
+}
+
+.hw-emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.hw-temp {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.hw-city {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Training goals grid — now 4 cols: total + 3 individual ── */
+.training-goals-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr;
+  gap: 0 32px;
+  align-items: center;
+}
+
+@media (max-width: 960px) {
+  .training-goals-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 580px) {
+  .training-goals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Total gauge item */
+.tg-total-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: 32px;
+  border-right: 1px solid var(--line);
+}
+
+@media (max-width: 960px) {
+  .tg-total-item {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 16px;
+    grid-column: 1 / -1;
+  }
+}
+
+.tg-gauge-total {
+  width: 100px;
+  height: 100px;
+}
+
+.tg-total-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Separator between total and individual goals */
+.training-goals-grid > .training-goal-item {
+  padding-left: 0;
+}
