@@ -694,21 +694,38 @@ function renderKPIData(){
       const projectedTotalSpend = dailySpendRate * daysInMonth;
       const projectedSavings = (incSum - fixSum) - projectedTotalSpend;
 
-      // Already saved this month: investment contributions (c_invest) + shared savings (c_save)
+      // Already saved this month: find saving-type categories by name pattern
       const monthTxs = txs.filter(t => String(t.date||'').startsWith(ym));
-      function sumByCat(catId) {
+      const allCategories = Array.isArray(bState?.categories) ? bState.categories : [];
+      const savingCats = allCategories.filter(c => c.type === 'saving');
+
+      function savingIdsByName(namePart) {
+        return new Set(savingCats.filter(c => (c.name||'').toLowerCase().includes(namePart)).map(c => c.id));
+      }
+      function sumByIds(ids) {
         return monthTxs.reduce((sum, t) => {
-          if(t.splits?.length) return sum + t.splits.reduce((ss,sp) => catsById[sp.categoryId]?.id === catId ? ss + Math.abs(num(sp.amount)) : ss, 0);
-          return catsById[t.categoryId]?.id === catId ? sum + Math.abs(num(t.amount)) : sum;
+          if(t.splits?.length) return sum + t.splits.reduce((ss,sp) => ids.has(sp.categoryId) ? ss + Math.abs(num(sp.amount)) : ss, 0);
+          return ids.has(t.categoryId) ? sum + Math.abs(num(t.amount)) : sum;
         }, 0);
       }
-      const investSaved  = sumByCat('c_invest');
-      const sharedSaved  = sumByCat('c_save');
-      const totalAlreadySaved = investSaved + sharedSaved;
+
+      const investIds = savingIdsByName('inwestycj');
+      const sharedIds = savingIdsByName('oszczędnoś');
+      // fallback: any saving not matched above
+      const otherSavingIds = new Set(savingCats.filter(c => !investIds.has(c.id) && !sharedIds.has(c.id)).map(c => c.id));
+
+      const investSaved  = sumByIds(investIds);
+      const sharedSaved  = sumByIds(sharedIds);
+      const otherSaved   = sumByIds(otherSavingIds);
+      const totalAlreadySaved = investSaved + sharedSaved + otherSaved;
       const totalForecast = projectedSavings + totalAlreadySaved;
       const forecastSign  = totalForecast >= 0 ? '+' : '';
       const forecastClass = totalForecast >= 0 ? 'value-ok' : 'value-bad';
       const projSign = projectedSavings >= 0 ? '+' : '';
+
+      // Build invest/shared category name labels from actual categories
+      const investLabel = investIds.size ? [...savingCats].filter(c=>investIds.has(c.id)).map(c=>c.name).join(', ') : 'Inwestycje';
+      const sharedLabel = sharedIds.size ? [...savingCats].filter(c=>sharedIds.has(c.id)).map(c=>c.name).join(', ') : 'Oszczędności wspólne';
 
       const bufferSign = buffer >= 0 ? '+' : '';
       kpiElements.budget.innerHTML = `
@@ -731,13 +748,17 @@ function renderKPIData(){
                 <span class="budget-saving-label">Prognoza zmiennych</span>
                 <span class="budget-saving-val ${projectedSavings>=0?'value-ok':'value-bad'}">${projSign}${fmt(projectedSavings,'')}</span>
               </div>
-              ${investSaved > 0 ? `<div class="budget-saving-row">
-                <span class="budget-saving-label">Inwestycje</span>
-                <span class="budget-saving-val">${fmt(investSaved,'')}</span>
-              </div>` : ''}
-              ${sharedSaved > 0 ? `<div class="budget-saving-row">
-                <span class="budget-saving-label">Oszczędności wspólne</span>
-                <span class="budget-saving-val">${fmt(sharedSaved,'')}</span>
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">${investLabel}</span>
+                <span class="budget-saving-val">${investSaved > 0 ? fmt(investSaved,'') : '—'}</span>
+              </div>
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">${sharedLabel}</span>
+                <span class="budget-saving-val">${sharedSaved > 0 ? fmt(sharedSaved,'') : '—'}</span>
+              </div>
+              ${otherSaved > 0 ? `<div class="budget-saving-row">
+                <span class="budget-saving-label">Pozostałe oszczędności</span>
+                <span class="budget-saving-val">${fmt(otherSaved,'')}</span>
               </div>` : ''}
             </div>
           </div>
