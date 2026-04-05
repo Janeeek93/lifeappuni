@@ -1222,14 +1222,17 @@ function openPaymentModal(paymentId = null, monthKey = null) {
     const today = new Date();
     const defaultDate = monthKey || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
-    // Pre-fill from forecast if available and no existing payment being edited
+    // Pre-fill from schedule (includes projectedPayments overrides + average fallback)
     let forecastCapital = '';
     let forecastInterest = '';
-    if (!payment && monthKey && state.projectedPayments) {
-        const proj = state.projectedPayments.find(p => p.monthKey === monthKey);
-        if (proj) {
-            if (proj.capital != null) forecastCapital = proj.capital;
-            if (proj.interest != null) forecastInterest = proj.interest;
+    let usedForecast = false;
+    if (!payment && monthKey) {
+        const scheduleItem = generateSchedule().find(s => s.monthKey === monthKey);
+        if (scheduleItem) {
+            forecastCapital = scheduleItem.capital ? scheduleItem.capital.toFixed(2) : '';
+            forecastInterest = scheduleItem.interest ? scheduleItem.interest.toFixed(2) : '';
+            // Only show "from forecast" note if there's a projectedPayments override
+            usedForecast = !!(state.projectedPayments || []).find(p => p.monthKey === monthKey);
         }
     }
 
@@ -1250,7 +1253,7 @@ function openPaymentModal(paymentId = null, monthKey = null) {
             <label class="form-label">Nadpłata kapitału (opcjonalnie)</label>
             <input type="number" id="overpayment" class="form-input" step="0.01" value="${payment ? payment.overpayment || '' : ''}">
         </div>
-        ${(!payment && (forecastCapital !== '' || forecastInterest !== '')) ? '<p class="tiny muted" style="margin-top:-8px;">Wartości uzupełnione z prognozy — zweryfikuj z aplikacją bankową.</p>' : ''}
+        ${(!payment && usedForecast) ? '<p class="tiny muted" style="margin-top:-8px;">Wartości uzupełnione z prognozy — zweryfikuj z aplikacją bankową.</p>' : (!payment && forecastCapital ? '<p class="tiny muted" style="margin-top:-8px;">Wartości obliczone ze średniej historycznych wpłat.</p>' : '')}
     `;
     const footer = `
         <button class="btn" onclick="closeModal()">Anuluj</button>
@@ -2709,6 +2712,12 @@ function generateSchedule() {
       const monthlyRate = (rate || 0) / 100 / 12;
       interest = avgInterest > 0 ? avgInterest : Math.max(remainingCapital, 0) * monthlyRate;
       overpayment = 0;
+      // Apply projectedPayments overrides if user entered exact values for this month
+      const projOverride = (state.projectedPayments || []).find(p => p.monthKey === monthKey);
+      if (projOverride) {
+        if (projOverride.capital != null) capital = projOverride.capital;
+        if (projOverride.interest != null) interest = projOverride.interest;
+      }
       total = capital + interest;
     }
 
