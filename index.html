@@ -135,6 +135,12 @@
               <span class="sidebar__label">Budowa</span>
             </a>
           </li>
+          <li class="sidebar__item">
+            <a class="sidebar__link" href="investments.html" data-page="investments">
+              <span class="material-symbols-outlined">candlestick_chart</span>
+              <span class="sidebar__label">Inwestycje</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -180,74 +186,67 @@
             <h1 id="greeting">Dzień dobry!</h1>
             <p id="current-date" class="tiny muted"></p>
           </div>
-          <!-- Weather widget fills this card via JS -->
           <div class="hero-weather-card" id="weather-widget" aria-live="polite"></div>
         </section>
 
         <!-- Bento grid -->
         <div class="bento-grid">
 
-          <!-- ① Budget KPI — wide hero card -->
-          <div class="bento-card bento-card--budget bento-span-8" style="animation-delay:.05s">
+          <!-- ① Budget KPI — wide hero card (7/12) -->
+          <div class="bento-card bento-card--budget bento-span-7" style="animation-delay:.04s; min-height:230px;">
             <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
           </div>
 
-          <!-- ② Tasks panel — KPI summary + upcoming list -->
-          <div class="bento-card bento-span-4" style="animation-delay:.1s">
-            <div class="bento-tasks-header">
-              <span class="bento-section-title">Zadania</span>
-              <span class="bento-section-badge" id="priorities-summary"></span>
+          <!-- ② Investments card (5/12) -->
+          <div class="bento-card bento-span-5 inv-card" style="animation-delay:.08s; min-height:230px;" id="kpi-investments-card">
+            <div id="kpi-investments">
+              <!-- filled by renderInvestmentKPI() -->
+              <div class="kpi-header"><h4>Inwestycje</h4></div>
+              <div class="kpi-main-value muted">—</div>
             </div>
-            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large" style="flex:0 0 auto;"></a>
-            <hr class="bento-tasks-divider">
-            <div id="upcoming-tasks-list" style="flex:1;overflow-y:auto;max-height:220px;"></div>
-            <a href="tasks.html" class="btn" style="margin-top:14px;font-size:12px;justify-content:space-between;">
-              Zobacz wszystkie zadania
-              <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
-            </a>
           </div>
 
-          <!-- ③ Training / Progress -->
-          <div class="bento-card bento-span-4" style="animation-delay:.15s">
-            <span class="bento-section-title">Progres tygodniowy</span>
-            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large" style="flex:0 0 auto;margin-bottom:12px;"></a>
-            <hr class="bento-tasks-divider" style="margin:0 0 12px;">
-            <div id="weekly-activities-list" style="overflow-y:auto;max-height:200px;"></div>
+          <!-- ③ Training Goals — full width, 3 gauges (12/12) -->
+          <div class="bento-card bento-span-12 training-card" style="animation-delay:.12s;">
+            <div class="training-card-header">
+              <span class="bento-section-title">Cele tygodniowe</span>
+              <a href="trainings.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">
+                Szczegóły
+                <span class="material-symbols-outlined" style="font-size:15px;">arrow_forward</span>
+              </a>
+            </div>
+            <div id="training-goals-visual" class="training-goals-grid">
+              <!-- filled by renderTrainingGoals() -->
+            </div>
           </div>
 
-          <!-- ④ Fuel + Loan stacked column -->
-          <div class="bento-col" style="animation-delay:.2s">
-            <a href="fuel.html" class="bento-mini" id="kpi-fuel-mini">
-              <div class="bento-mini__icon bento-mini__icon--slate">
-                <span class="material-symbols-outlined">local_gas_station</span>
-              </div>
-              <div class="bento-mini__content" id="kpi-fuel"></div>
+          <!-- ④ Small tiles — 5 tiles equal width (12/12) -->
+          <div class="bento-span-12 small-tiles-row" style="animation-delay:.16s;">
+            <a href="tasks.html" class="small-tile" id="kpi-tasks">
+              <!-- filled by JS -->
             </a>
-            <a href="loan.html" class="bento-mini" id="kpi-loan-mini">
-              <div class="bento-mini__icon bento-mini__icon--purple">
-                <span class="material-symbols-outlined">credit_card</span>
-              </div>
-              <div class="bento-mini__content" id="kpi-loan"></div>
+            <a href="fuel.html" class="small-tile" id="kpi-fuel">
+              <!-- filled by JS -->
             </a>
-          </div>
-
-          <!-- ⑤ Inventory + House stacked column -->
-          <div class="bento-col" style="animation-delay:.25s">
-            <a href="inventory.html" class="bento-mini" id="kpi-inventory-mini">
-              <div class="bento-mini__icon bento-mini__icon--blue">
-                <span class="material-symbols-outlined">inventory_2</span>
-              </div>
-              <div class="bento-mini__content" id="kpi-inventory"></div>
+            <a href="loan.html" class="small-tile" id="kpi-loan">
+              <!-- filled by JS -->
             </a>
-            <a href="house.html" class="bento-mini" id="kpi-house-mini">
-              <div class="bento-mini__icon bento-mini__icon--slate">
-                <span class="material-symbols-outlined">construction</span>
-              </div>
-              <div class="bento-mini__content" id="kpi-house"></div>
+            <a href="inventory.html" class="small-tile" id="kpi-inventory">
+              <!-- filled by JS -->
+            </a>
+            <a href="house.html" class="small-tile" id="kpi-house">
+              <!-- filled by JS -->
             </a>
           </div>
 
         </div><!-- /bento-grid -->
+
+        <!-- Hidden elements for JS compatibility -->
+        <div style="display:none" id="upcoming-tasks-list"></div>
+        <span style="display:none" id="priorities-summary"></span>
+        <div style="display:none" id="weekly-activities-list"></div>
+        <a style="display:none" href="trainings.html" id="kpi-progress"></a>
+
       </main>
     </div><!-- /app-main -->
   </div><!-- /app-shell -->
@@ -669,14 +668,19 @@ function renderKPIData(){
         ];
 
         kpiElements.inventory.innerHTML = `
-          <p class="bento-mini__label">Magazyn</p>
-          <p class="bento-mini__value bento-mini__value--sm">${fmt(stockCost, currency)}</p>
-          <p class="bento-mini__note">${items.length} szt. w zapasie • ROI ${roiText}</p>`;
+          <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+          <div class="st-value" style="font-size:17px;">${fmt(stockCost, currency)}</div>
+          <div class="st-label">wartość magazynu</div>
+          <div class="st-note">${items.length} szt. · ROI ${roiText}</div>`;
       } else {
-        kpiElements.inventory.innerHTML = `<p class="bento-mini__label">Magazyn</p><p class="bento-mini__value">—</p><p class="bento-mini__note">0 szt.</p>`;
+        kpiElements.inventory.innerHTML = `
+          <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+          <div class="st-value muted">—</div><div class="st-label">wartość magazynu</div><div class="st-note">0 szt.</div>`;
       }
     } else {
-      kpiElements.inventory.innerHTML = `<p class="bento-mini__label">Magazyn</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
+      kpiElements.inventory.innerHTML = `
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">inventory_2</span></div>
+        <div class="st-value muted">—</div><div class="st-label">wartość magazynu</div><div class="st-note">brak danych</div>`;
     }
   }
 
@@ -719,25 +723,51 @@ function renderKPIData(){
         `Plan miesięczny: ${fmt(monthlyBudget)} (wykorzystano ${Math.round(spentPct)}%).`
       ];
 
+      const bufferSign = buffer >= 0 ? '+' : '';
       kpiElements.budget.innerHTML = `
-        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
-        <div class="kpi-main-value ${bufferClass}">${fmt(buffer, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-        <div class="kpi-progress-container">
-          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>Budżet miesięczny</span><span>${Math.round(spentPct)}%</span>
+        <div class="budget-hero-top">
+          <div>
+            <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+            <div class="kpi-main-value ${bufferClass}">${bufferSign}${fmt(buffer, '')}<span class="budget-unit">PLN</span></div>
+            <div class="budget-daily-info">dzienny limit: ${fmt(dailyBudget)} · wydano: ${fmt(spentUntilToday)}</div>
           </div>
-          <div class="progress"><i style="width:${spentPct}%"></i></div>
+          <div class="budget-stats-col">
+            <div class="budget-stat-item">
+              <span class="budget-stat-label">Dochód mies.</span>
+              <span class="budget-stat-value">${fmt(incSum)}</span>
+            </div>
+            <div class="budget-stat-item">
+              <span class="budget-stat-label">Koszty stałe</span>
+              <span class="budget-stat-value">${fmt(fixSum)}</span>
+            </div>
+            <div class="budget-stat-item">
+              <span class="budget-stat-label">Wydano ${new Date().getDate()} dni</span>
+              <span class="budget-stat-value">${fmt(totalSpentMonth)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="kpi-progress-container">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <span class="tiny muted">Budżet miesięczny</span>
+            <span class="tiny muted">${Math.round(spentPct)}% wydano</span>
+          </div>
+          <div class="progress"><i style="width:${Math.min(spentPct,100)}%;background:${spentPct>90?'var(--red)':spentPct>70?'var(--orange)':'var(--accent)'};"></i></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span class="tiny muted">0 PLN</span>
+            <span class="tiny muted">Dochód: ${fmt(incSum)}</span>
+          </div>
         </div>`;
     } else {
       kpiElements.budget.innerHTML = `
-        <div class="kpi-header"><span>💰</span><h4>Budżet</h4></div>
-        <div class="kpi-main-value">—</div>
-        <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>
-        <div class="kpi-progress-container"></div>`;
+        <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+        <div class="kpi-main-value muted">—</div>
+        <div class="kpi-details">${renderDetailLines(['Brak danych na ten miesiąc.'])}</div>`;
     }
   } else {
-    kpiElements.budget.innerHTML = `<div class="kpi-header"><span>💰</span><h4>Budżet</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.budget.innerHTML = `
+      <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+      <div class="kpi-main-value muted">—</div>
+      <div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
   }
 
   // --- Fuel KPI ---
@@ -775,12 +805,20 @@ function renderKPIData(){
     } else {
       detailLines.push(`${fuelData.invoices.length} faktur • ${fuelData.advances.length} zaliczek`);
     }
+    const lastNote = lastInvoice
+      ? (() => { const d = lastInvoice.date ? Math.floor((new Date()-new Date(lastInvoice.date))/86400000) : null; return d !== null ? `${d} dni temu` : 'ostatnie tankowanie'; })()
+      : 'brak tankowań';
     kpiElements.fuel.innerHTML = `
-      <p class="bento-mini__label">Paliwo — saldo</p>
-      <p class="bento-mini__value ${balanceClass}">${fmt(balance)}</p>
-      <p class="bento-mini__note">${detailLines[0] || 'Brak danych'}</p>`;
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">local_gas_station</span></div>
+      <div class="st-value ${balanceClass}">${fmt(balance)}</div>
+      <div class="st-label">saldo paliwa</div>
+      <div class="st-note">${lastNote}</div>`;
   } else {
-    kpiElements.fuel.innerHTML = `<p class="bento-mini__label">Paliwo</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
+    kpiElements.fuel.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">local_gas_station</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">saldo paliwa</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Tasks KPI ---
@@ -806,18 +844,21 @@ function renderKPIData(){
       planned > 0 ? `Postęp tygodnia: ${done}/${planned} (${Math.round(progress)}%).` : 'Brak zadań zaplanowanych na ten tydzień.'
     ];
 
+    const overdueHtml = overdue > 0 ? `<span class="st-badge-red">${overdue} zaległych</span>` : '';
     kpiElements.tasks.innerHTML = `
-      <div class="kpi-header"><span>✅</span><h4>Zadania</h4></div>
-      <div class="kpi-main-value ${activeClass}">${activeCount}</div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-      <div class="kpi-progress-container">
-        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Ukończono w tym tyg.</span><span>${done}/${planned}</span>
-        </div>
-        <div class="progress"><i style="width:${progress}%"></i></div>
-      </div>`;
+      <div class="st-icon-row">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
+        ${overdueHtml}
+      </div>
+      <div class="st-value ${activeClass}">${activeCount}</div>
+      <div class="st-label">aktywnych</div>
+      <div class="st-note">${forToday > 0 ? `${forToday} na dziś` : 'brak na dziś'} · ${done}/${planned} tyg.</div>`;
   } else {
-    kpiElements.tasks.innerHTML = `<div class="kpi-header"><span>✅</span><h4>Zadania</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.tasks.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">aktywnych</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Progress KPI ---
@@ -866,14 +907,21 @@ function renderKPIData(){
       `Średni postęp zadań: ${tasks.length ? totalProgress.toFixed(0) : 0}%`
     ];
     kpiElements.house.innerHTML = `
-      <p class="bento-mini__label">Budowa</p>
-      <p class="bento-mini__value bento-mini__value--sm">${fmt(totalExpenses)}</p>
-      <p class="bento-mini__note">Postęp: ${totalProgress.toFixed(0)}%</p>
-      <div style="margin-top:6px;height:4px;background:var(--surface);border-radius:4px;overflow:hidden;">
-        <div style="height:100%;width:${totalProgress}%;background:#595c5e;border-radius:4px;transition:width .5s;"></div>
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">construction</span></div>
+      <div class="st-value">${fmt(totalExpenses)}</div>
+      <div class="st-label">wydatki</div>
+      <div class="st-note">postęp ${totalProgress.toFixed(0)}%</div>
+      <div class="st-progress-bar" style="margin-top:6px;">
+        <div style="height:3px;background:var(--line);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${totalProgress}%;background:#595c5e;transition:width .5s;"></div>
+        </div>
       </div>`;
   } else {
-    kpiElements.house.innerHTML = `<p class="bento-mini__label">Budowa</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
+    kpiElements.house.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#64748b;">construction</span></div>
+      <div class="st-value muted">—</div>
+      <div class="st-label">wydatki</div>
+      <div class="st-note">brak danych</div>`;
   }
 
   // --- Loan KPI ---
@@ -893,18 +941,227 @@ function renderKPIData(){
         `Nadpłaty: ${fmt(totalOverpayments)}.`
       ];
       kpiElements.loan.innerHTML = `
-        <p class="bento-mini__label">Kredyt — pozostało</p>
-        <p class="bento-mini__value bento-mini__value--sm">${fmt(capitalRemaining)}</p>
-        <p class="bento-mini__note">Spłacono ${progress.toFixed(1)}%</p>
-        <div style="margin-top:6px;height:4px;background:var(--surface);border-radius:4px;overflow:hidden;">
-          <div style="height:100%;width:${progress}%;background:#5f2bf2;border-radius:4px;transition:width .5s;"></div>
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+        <div class="st-value" style="font-size:17px;">${fmt(capitalRemaining)}</div>
+        <div class="st-label">do spłaty</div>
+        <div class="st-note">spłacono ${progress.toFixed(1)}%</div>
+        <div style="margin-top:6px;height:3px;background:var(--line);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${progress}%;background:#5f2bf2;transition:width .5s;"></div>
         </div>`;
     } else {
-      kpiElements.loan.innerHTML = `<p class="bento-mini__label">Kredyt</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak konfiguracji</p>`;
+      kpiElements.loan.innerHTML = `
+        <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+        <div class="st-value muted">—</div><div class="st-label">do spłaty</div><div class="st-note">brak konfiguracji</div>`;
     }
   } else {
-    kpiElements.loan.innerHTML = `<p class="bento-mini__label">Kredyt</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
+    kpiElements.loan.innerHTML = `
+      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#5f2bf2;">credit_card</span></div>
+      <div class="st-value muted">—</div><div class="st-label">do spłaty</div><div class="st-note">brak danych</div>`;
   }
+}
+
+/* === INVESTMENTS KPI === */
+function getInvestmentStats(){
+  const budgetRaw = localStorage.getItem(BUDGET_STORAGE_KEY);
+  const parsed = safeParse(budgetRaw, null);
+  if(!parsed) return null;
+  const bm = parsed?.modules?.budget || parsed?.budget || parsed;
+  const investments = bm?.investments;
+  if(!investments) return null;
+
+  const trades  = Array.isArray(investments.trades)  ? investments.trades  : [];
+  const assets  = Array.isArray(investments.assets)  ? investments.assets  : [];
+  if(!trades.length && !assets.length) return null;
+
+  /* ---- Latest snapshot (has pre-computed stats) ---- */
+  const snapshots = safeParse(localStorage.getItem(INV_HUB_SNAP_KEY), []) || [];
+  const snap = snapshots.length ? snapshots[snapshots.length-1] : null;
+
+  let portfolioValue = null, totalPnl = null, roi = null, costBasis = null;
+  if(snap){
+    portfolioValue = snap.portfolioValue;
+    totalPnl       = snap.totalPnl;
+    roi            = snap.roi;
+    costBasis      = snap.costBasis;
+  } else {
+    /* Fallback: simple avg-cost calculation from trades */
+    const hMap = {};
+    for(const t of trades){
+      const id = t.assetId;
+      if(!hMap[id]) hMap[id] = { qty:0, cost:0, realized:0 };
+      const h = hMap[id];
+      if((t.side||'').toLowerCase() === 'sell'){
+        const avgC = h.qty > 0 ? h.cost/h.qty : 0;
+        const sQty = num(t.quantity);
+        h.realized += num(t.amount) - avgC*sQty;
+        h.qty  -= sQty;
+        h.cost -= avgC*sQty;
+      } else {
+        h.qty  += num(t.quantity);
+        h.cost += num(t.amount);
+      }
+    }
+    let mv=0, cb=0, realized=0;
+    for(const [id, h] of Object.entries(hMap)){
+      if(h.qty <= 0){ realized += h.realized; continue; }
+      const asset = assets.find(a=>a.id===id);
+      const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
+      mv += price > 0 ? h.qty*price : h.cost;
+      cb += h.cost;
+      realized += h.realized;
+    }
+    portfolioValue = mv;
+    costBasis      = cb;
+    totalPnl       = realized + (mv - cb);
+    roi            = cb > 0 ? (totalPnl/cb)*100 : 0;
+  }
+
+  /* ---- Monthly contribution (current month, budget buys) ---- */
+  const ym = monthKey();
+  const monthlyContrib = trades
+    .filter(t => t.date && t.date.startsWith(ym) && (t.side||'').toLowerCase()==='buy' && t.fundSource!=='reinvest')
+    .reduce((s,t) => s + num(t.amount), 0);
+
+  /* ---- Monthly goal from settings ---- */
+  const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
+  const monthlyGoal = num(settings.invMonthlyGoal) || 0;
+
+  return { portfolioValue, totalPnl, roi, costBasis, monthlyContrib, monthlyGoal };
+}
+
+function renderInvestmentKPI(){
+  const el = document.getElementById('kpi-investments');
+  if(!el) return;
+  const s = getInvestmentStats();
+  if(!s){
+    el.innerHTML = `
+      <div class="inv-header">
+        <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
+        <a href="investments.html" class="inv-link">Szczegóły →</a>
+      </div>
+      <p class="kpi-main-value muted" style="margin:16px 0 0;">—</p>
+      <p class="tiny muted" style="margin-top:6px;">Brak danych. Otwórz moduł inwestycji.</p>`;
+    return;
+  }
+
+  const pnlClass = (s.totalPnl||0) >= 0 ? 'value-ok' : 'value-bad';
+  const roiSign  = (s.roi||0) >= 0 ? '+' : '';
+  const pnlSign  = (s.totalPnl||0) >= 0 ? '+' : '';
+
+  const contribPct   = s.monthlyGoal > 0 ? Math.min(100,(s.monthlyContrib/s.monthlyGoal)*100) : 0;
+  const goalBarColor = contribPct >= 100 ? 'var(--green)' : '#0057c0';
+
+  const goalSection = s.monthlyGoal > 0 ? `
+    <div class="inv-goal-section">
+      <div class="inv-goal-header">
+        <span class="tiny muted">Wpłaty w tym miesiącu</span>
+        <span class="tiny muted">${fmt(s.monthlyContrib)} / ${fmt(s.monthlyGoal)}</span>
+      </div>
+      <div class="progress" style="height:6px;margin-top:4px;">
+        <i style="width:${contribPct}%;background:${goalBarColor};"></i>
+      </div>
+    </div>` : (s.monthlyContrib > 0 ? `
+    <div class="inv-goal-section">
+      <div class="inv-goal-header">
+        <span class="tiny muted">Wpłaty w tym miesiącu</span>
+        <span class="tiny muted">${fmt(s.monthlyContrib)}</span>
+      </div>
+    </div>` : '');
+
+  el.innerHTML = `
+    <div class="inv-header">
+      <h4 class="bento-section-title" style="margin:0;">Inwestycje</h4>
+      <a href="investments.html" class="inv-link">Szczegóły →</a>
+    </div>
+    <div class="inv-portfolio-value">${fmt(s.portfolioValue||0)}</div>
+    <div class="inv-stats-row">
+      <div class="inv-stat">
+        <span class="inv-stat-label">P&L</span>
+        <span class="inv-stat-value ${pnlClass}">${pnlSign}${fmt(s.totalPnl||0)}</span>
+      </div>
+      <div class="inv-stat">
+        <span class="inv-stat-label">ROI</span>
+        <span class="inv-stat-value ${pnlClass}">${roiSign}${(s.roi||0).toFixed(1)}%</span>
+      </div>
+      ${s.costBasis ? `<div class="inv-stat">
+        <span class="inv-stat-label">Zainwestowano</span>
+        <span class="inv-stat-value">${fmt(s.costBasis)}</span>
+      </div>` : ''}
+    </div>
+    ${goalSection}`;
+}
+
+/* === TRAINING GOALS VISUAL === */
+function renderTrainingGoals(){
+  const container = document.getElementById('training-goals-visual');
+  if(!container) return;
+
+  const now = new Date();
+  const [isoYear, isoWeek] = getWeekNumber(now);
+  const store = getTrainingStore();
+
+  if(store.type === 'none'){
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px 0;grid-column:1/-1;">Brak danych treningowych. Otwórz moduł Progres.</p>';
+    return;
+  }
+
+  function getStats(year, week){
+    return store.type==='modern'
+      ? computeModernTrainingWeekStats(store.data, year, week)
+      : computeLegacyWeekStatsBasic(store.data, year, week);
+  }
+
+  const currentStats = getStats(isoYear, isoWeek);
+  const goalPercents = currentStats.goalPercents || {};
+
+  /* Last 10 weeks completion dots */
+  const historyWeeks = [];
+  for(let w = Math.max(1, isoWeek-9); w < isoWeek; w++){
+    const s = getStats(isoYear, w);
+    historyWeeks.push({ week: w, completed: isTrainingWeekCompleted(s), avg: s.average||0 });
+  }
+
+  const CIRCUM = 201.06; // 2*π*32
+  const COLORS = { gym:'#0057c0', running:'#059669', reading:'#5f2bf2' };
+
+  const goalsHTML = Object.entries(TRAINING_GOALS).map(([type, meta])=>{
+    const info = goalPercents[type] || { progress:0, percent:0, target:meta.target };
+    const pct  = Math.max(0, Math.min(100, Number(info.percent||0)));
+    const current = formatGoalValue(type, info.progress||0);
+    const offset = (CIRCUM*(1-pct/100)).toFixed(2);
+    const color  = COLORS[type] || '#0057c0';
+
+    const dotsHTML = historyWeeks.map(w => {
+      const cls = w.completed ? 'tg-dot done' : (w.avg>=40 ? 'tg-dot partial' : 'tg-dot empty');
+      return `<span class="${cls}" title="Tydzień ${w.week}${w.completed?' ✓':w.avg>0?' ~':''}"></span>`;
+    }).join('');
+
+    return `
+      <div class="training-goal-item">
+        <div class="tg-gauge-wrap">
+          <svg viewBox="0 0 80 80" class="tg-gauge-svg">
+            <circle class="tg-gauge-bg" cx="40" cy="40" r="32"/>
+            <circle class="tg-gauge-fg" cx="40" cy="40" r="32"
+              stroke="${color}" stroke-dasharray="${CIRCUM}"
+              stroke-dashoffset="${offset}"
+              stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          </svg>
+          <div class="tg-gauge-center">
+            <span class="tg-pct">${Math.round(pct)}%</span>
+          </div>
+        </div>
+        <div class="tg-details">
+          <div class="tg-meta">
+            <span class="tg-emoji">${meta.icon}</span>
+            <span class="tg-name">${meta.name}</span>
+          </div>
+          <div class="tg-progress-label">${current} <span>/ ${meta.target} ${meta.unit}</span></div>
+          <div class="tg-dots-row" title="Ostatnie tygodnie">${dotsHTML}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = goalsHTML;
 }
 
 /* === MISC === */
@@ -945,30 +1202,39 @@ function showModal(html, buttons){
 function openSettingsModal(){
     const settings = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
     const weatherLocation = settings.weatherLocation || 'Warszawa';
+    const invMonthlyGoal  = settings.invMonthlyGoal  || '';
     const buttons = [
         { text: 'Anuluj' },
         { text: 'Zapisz', class: 'btn primary', onClick: saveSettings }
     ];
     showModal(`
         <h3 style="margin-top:0; text-align: left;">Ustawienia</h3>
-        <div style="text-align:left; font-size: 13px;">
+        <div style="text-align:left; font-size: 13px; display:flex; flex-direction:column; gap:16px;">
+          <div>
             <label for="weather-location" style="font-weight:600; margin-bottom: 6px; display:block;">Lokalizacja dla pogody</label>
-            <input type="text" id="weather-location" value="${weatherLocation}" style="width:100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px;" placeholder="np. Paryż">
+            <input type="text" id="weather-location" value="${weatherLocation}" placeholder="np. Paryż">
             <p class="tiny muted" style="margin-top: 6px;">Wpisz miasto, dla którego chcesz widzieć prognozę pogody.</p>
+          </div>
+          <div>
+            <label for="inv-monthly-goal" style="font-weight:600; margin-bottom: 6px; display:block;">Cel miesięcznych wpłat na inwestycje (PLN)</label>
+            <input type="number" id="inv-monthly-goal" value="${invMonthlyGoal}" placeholder="np. 2000" min="0" step="100">
+            <p class="tiny muted" style="margin-top: 6px;">Ustaw miesięczny cel wpłat, który będzie śledzony na dashboardzie.</p>
+          </div>
         </div>
     `, buttons);
 }
 
 function saveSettings() {
     const location = document.getElementById('weather-location').value;
-    if (!location) {
-        showNotification('Lokalizacja nie może być pusta.', 'error');
-        return;
-    }
-    const settings = { weatherLocation: location };
+    if (!location) { showNotification('Lokalizacja nie może być pusta.', 'error'); return; }
+    const goalInput = document.getElementById('inv-monthly-goal');
+    const goal = goalInput ? num(goalInput.value) : 0;
+    const prev = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
+    const settings = { ...prev, weatherLocation: location, invMonthlyGoal: goal||'' };
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     showNotification('Ustawienia zapisane!', 'success');
     renderWeatherWidget();
+    renderInvestmentKPI();
 }
 
 /* === BACKUP === */
@@ -1057,12 +1323,10 @@ function renderAll(){
   renderGreetingAndDate();
   renderWeatherWidget();
   renderKPIs();
-  renderUpcomingTasks();
-  renderWeeklyActivities();
+  renderInvestmentKPI();
+  renderTrainingGoals();
+  renderUpcomingTasks();  /* fills hidden #upcoming-tasks-list — kept for compat */
   renderBackupStatus();
-  document.querySelectorAll('.bento-card, .bento-mini, .bento-col').forEach((c,i)=> {
-    if(!c.style.animationDelay) c.style.animationDelay = `${i*0.05}s`;
-  });
 }
 window.addEventListener('load', renderAll);
 document.addEventListener('keydown', (e)=>{
