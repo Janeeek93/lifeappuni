@@ -1005,30 +1005,35 @@ function getInvestmentStats(){
   const settings = safeParse(localStorage.getItem(SETTINGS_STORAGE_KEY), {}) || {};
   const monthlyGoal = num(settings.invMonthlyGoal) || 0;
 
-  /* ---- Per-group breakdown (avg-cost, grouped by asset.group) ---- */
-  const hMapFull = {};
-  for(const t of trades){
-    const id = t.assetId;
-    if(!hMapFull[id]) hMapFull[id] = { qty:0, cost:0 };
-    const h = hMapFull[id];
-    if((t.side||'').toLowerCase() === 'sell'){
-      const avgC = h.qty > 0 ? h.cost/h.qty : 0;
-      const sQty = num(t.quantity);
-      h.qty  -= sQty;
-      h.cost -= avgC*sQty;
+  /* ---- Per-group breakdown — FIFO matching computeHoldingsFIFO in budget.html ---- */
+  const fifoMap = {};
+  for(const a of assets){
+    fifoMap[a.id] = { group: a.group||'Inne', currentPrice: a.currentPrice||null, lots: [] };
+  }
+  const sortedTrades = [...trades].sort((a,b) =>
+    String(a.date||'').localeCompare(String(b.date||'')) || (a.side==='buy'?-1:1));
+  for(const t of sortedTrades){
+    const h = fifoMap[t.assetId]; if(!h) continue;
+    if(t.side === 'sell'){
+      let remaining = num(t.quantity);
+      while(remaining > 0.000001 && h.lots.length > 0){
+        const lot = h.lots[0], take = Math.min(remaining, lot.qty);
+        lot.qty -= take; remaining -= take;
+        if(lot.qty < 0.000001) h.lots.shift();
+      }
     } else {
-      h.qty  += num(t.quantity);
-      h.cost += num(t.amount);
+      const qty = num(t.quantity), amt = num(t.amount);
+      if(qty > 0) h.lots.push({ qty, costPerUnit: amt/qty });
     }
   }
   const groupBreakdown = {};
-  for(const [id, h] of Object.entries(hMapFull)){
-    if(h.qty <= 0) continue;
-    const asset = assets.find(a=>a.id===id);
-    const group = (asset?.group || 'Inne');
-    const price = asset?.currentPrice ? num(asset.currentPrice) : 0;
-    const mv = price > 0 ? h.qty * price : h.cost;
-    const cb = h.cost;
+  for(const [id, h] of Object.entries(fifoMap)){
+    const qty = h.lots.reduce((s,l)=>s+l.qty, 0);
+    if(qty <= 0.000001) continue;
+    const cb = h.lots.reduce((s,l)=>s+l.qty*l.costPerUnit, 0);
+    const price = h.currentPrice ? num(h.currentPrice) : 0;
+    const mv = price > 0 ? qty * price : cb;
+    const group = h.group;
     if(!groupBreakdown[group]) groupBreakdown[group] = { mv:0, cb:0 };
     groupBreakdown[group].mv += mv;
     groupBreakdown[group].cb += cb;
