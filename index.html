@@ -1081,17 +1081,34 @@ function renderInvestmentKPI(){
       </div>
     </div>` : '');
 
-  // Per-group rows
+  // Per-group rows + stacked bar
+  const GROUP_COLORS = ['#0057c0','#5f2bf2','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#f97316'];
   const groupEntries = Object.entries(s.groupBreakdown || {})
     .sort((a,b) => b[1].mv - a[1].mv);
-  const groupRows = groupEntries.map(([group, g]) => {
+  const totalMv = groupEntries.reduce((s,[,g]) => s + g.mv, 0);
+
+  // Stacked bar segments
+  const barSegments = groupEntries.map(([group, g], i) => {
+    const widthPct = totalMv > 0 ? (g.mv / totalMv * 100) : 0;
+    const color = GROUP_COLORS[i % GROUP_COLORS.length];
+    const pnl = g.mv - g.cb;
+    const pnlSign2 = pnl >= 0 ? '+' : '';
+    const shareLabel = `${group}: ${widthPct.toFixed(1)}% · ${fmt(g.mv)} · P&L ${pnlSign2}${fmt(pnl)}`;
+    return `<div class="inv-bar-seg" style="width:${widthPct.toFixed(3)}%;background:${color};"
+      title="${shareLabel}" data-group="${group}" data-color="${color}"></div>`;
+  }).join('');
+
+  // Group rows with matching color dot
+  const groupRows = groupEntries.map(([group, g], i) => {
     const pnl = g.mv - g.cb;
     const pnlSign2 = pnl >= 0 ? '+' : '';
     const pnlCol = pnl >= 0 ? 'var(--green)' : 'var(--red)';
     const pct = g.cb > 0 ? (pnl/g.cb)*100 : 0;
+    const sharePct = totalMv > 0 ? (g.mv/totalMv*100) : 0;
+    const color = GROUP_COLORS[i % GROUP_COLORS.length];
     return `<div class="inv-group-row">
-      <span class="inv-group-name">${group}</span>
-      <span class="inv-group-mv">${fmt(g.mv)}</span>
+      <span class="inv-group-name"><span class="inv-group-dot" style="background:${color};"></span>${group}</span>
+      <span class="inv-group-mv">${fmt(g.mv)} <span class="inv-group-pct">${sharePct.toFixed(1)}%</span></span>
       <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)} <span class="inv-group-pct">(${pnlSign2}${pct.toFixed(1)}%)</span></span>
     </div>`;
   }).join('');
@@ -1116,6 +1133,7 @@ function renderInvestmentKPI(){
         <span class="inv-stat-value">${fmt(s.costBasis)}</span>
       </div>` : ''}
     </div>
+    ${barSegments ? `<div class="inv-bar">${barSegments}</div>` : ''}
     ${groupRows ? `<div class="inv-group-table">${groupRows}</div>` : ''}
     ${goalSection}`;
 }
