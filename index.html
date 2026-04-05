@@ -6,309 +6,275 @@
   <title>LifeOS — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
-    :root {
-      --gradient-primary: linear-gradient(110deg, hsl(230 80% 97%) 0%, hsl(280 70% 98%) 100%);
-    }
-
-    .grid { gap: 16px; }
-    .card { animation: fadeInUp .4s ease-out; }
-
-    @keyframes slideInRight { from{opacity:0; transform:translateX(12px)} to{opacity:1; transform:translateX(0)} }
-
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        align-items: start;
-        gap: 16px;
-    }
-    
-    .dashboard-grid .left-column,
-    .dashboard-grid .right-column {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
-   
-    @media(max-width:1024px){ 
-        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-     @media(max-width:768px){ 
-        .dashboard-grid { grid-template-columns: 1fr; }
-        .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    }
-
-
-    /* === Compact KPI Tiles === */
-    .kpi-tile-large {
-        display: flex; flex-direction: column; gap: 6px;
-        background: var(--surface); border: 1px solid var(--line);
-        border-radius: 14px; padding: 16px; text-decoration: none; color: var(--ink);
-        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-        height: 100%;
-    }
-    .kpi-tile-large:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
-        border-color: hsl(var(--accent-h) 30% 70%);
-    }
-    .kpi-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
-    .kpi-main-value { font-size: 24px; font-weight: 700; line-height: 1.1; margin-top: 2px; }
-    .kpi-sub-value { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: -2px; }
-    .kpi-details { display:flex; flex-direction:column; gap:4px; font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 6px; }
-    .kpi-detail-line { position: relative; padding-left: 12px; }
-    .kpi-detail-line::before { content:'•'; position:absolute; left:0; color: var(--muted); }
-    .kpi-progress-container { margin-top: auto; padding-top: 10px; }
-    .value-ok { color: var(--green); }
-    .value-warn { color: var(--orange); }
+    /* === Value colours (used by JS-injected KPI content) === */
+    .value-ok  { color: var(--green); }
+    .value-warn{ color: var(--orange); }
     .value-bad { color: var(--red); }
-
-    /* === Hero === */
-    .app-main > .hero-header {
-      border-radius: 0;
-      padding: 16px 24px;
-      background: var(--gradient-primary);
-    }
-    .hero-header{
-      color: var(--ink); position:relative; overflow:hidden;
-      border-bottom: 1px solid rgba(15,23,42,0.08);
-    }
-    .hero-content{
-        position:relative; z-index:1; width: 100%;
-        display:flex; flex-wrap: wrap; align-items:center; justify-content:space-between; gap:20px;
-    }
-    .hero-copy{ display:flex; flex-direction:column; gap:2px; }
-    .greeting-text{ font-size: clamp(16px, 3vw, 20px); font-weight:700; margin:0; animation: fadeInUp .5s ease-out }
-    .date-text{ opacity:.9; font-size: 11px; margin:0; animation: fadeInUp .5s ease-out .1s both }
-    
-    .header-actions-group {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-    }
-
-    .data-actions {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-    }
-
-    .data-buttons {
-        display: flex;
-        gap: 8px;
-    }
-
-    .quick-actions{ display:flex; gap:8px; align-items:center; animation: slideInRight .5s ease-out .2s both; }
-    .quick-action{
-      width:36px; height:36px; background: hsl(0 0% 100% / .6);
-      border:1px solid hsl(0 0% 100% / .7); border-radius:10px; display:flex; align-items:center; justify-content:center;
-      color:#111; text-decoration:none; font-size:14px; transition: transform .15s ease, background .2s ease; backdrop-filter: blur(8px);
-    }
-    .quick-action:hover{ transform: scale(1.07) }
-
-    /* === Lists & feeds === */
-    .activity-feed{ max-height: 250px; overflow-y:auto; padding-right:6px }
-    .activity-item{ display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); animation:fadeInUp .35s ease-out }
-    .activity-item:last-child{ border-bottom:none }
-
-    /* === Upcoming tasks === */
-    .priorities-card{ display:flex; flex-direction:column; background: var(--card); flex-grow: 1; }
-    .upcoming-header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px }
-    #upcoming-tasks-list{ overflow:auto; padding-right:6px; flex-grow: 1; }
-    .task-group-header {
-      font-size: 9px; text-transform: uppercase; color: var(--muted); margin: 12px 0 4px 4px; font-weight: 600; letter-spacing:0.5px;
-    }
-    .task-group-header:first-of-type { margin-top: 0; }
-    .upcoming-task-item{
-      display:flex; align-items:center; gap:10px; padding:8px 10px; margin:4px 0;
-      background: var(--surface); border-radius:10px; border:1px solid var(--line); transition: background .2s ease, transform .2s ease;
-    }
-    .upcoming-task-item:hover{ transform: translateX(3px); background: hsl(var(--accent-h) 60% 96% / .5) }
-    .task-title{ font-weight: 500; font-size: 13px; color: var(--ink) }
-    .task-due-date{
-      font-size:10px; font-weight:600; text-align:right; margin-left:auto; white-space:nowrap; background: var(--accent-weak);
-      color: hsl(var(--accent-h) 30% 25%); padding:3px 7px; border-radius: 8px; border:1px solid hsl(var(--accent-h) 45% 85% / .8)
-    }
-    .prio-pill{ width:8px; height:8px; border-radius:50%; flex-shrink:0; border:1.5px solid #fff; box-shadow: 0 0 0 1.5px var(--line) }
-    .prio-pill.high{ background:#ff6b6b } .prio-pill.medium{ background:#ffd93d } .prio-pill.low{ background:#6bcf7f }
-
-    /* === Weather === */
-    .weather-main { display: flex; align-items: center; gap: 12px; }
-    .weather-icon { font-size: 36px; line-height: 1; }
-    .weather-temp { font-size: 32px; font-weight: 700; line-height: 1; margin: 0; }
-    .weather-desc { opacity: .95; font-weight: 500; font-size: 13px; }
-    .weather-sub { display:flex; gap:10px; align-items:center; font-size:10px; color:var(--muted); margin-top: 6px; }
-    .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-    .forecast-day { background: var(--surface); padding: 8px; border-radius: 10px; text-align: center; font-size: 10px; border: 1px solid var(--line); }
-    .forecast-day .forecast-icon { font-size: 20px; margin: 2px 0; }
-    .forecast-day .forecast-temp { font-weight: 600; font-size: 13px; }
 
     /* === Notification === */
     .notification{
-      position:fixed; top:16px; right:16px; padding:14px 16px; background: var(--card); border-left:4px solid var(--green);
-      border-radius:12px; box-shadow: var(--shadow-lg); z-index:1000; transform: translateX(400px);
-      transition: transform .25s ease; max-width: 320px; color: var(--ink); border:1px solid var(--line);
+      position:fixed; top:16px; right:16px; padding:14px 16px; background: var(--card);
+      border-left:4px solid var(--green); border-radius:12px; box-shadow: var(--shadow-lg);
+      z-index:1000; transform: translateX(420px); transition: transform .25s ease;
+      max-width: 320px; color: var(--ink); border:1px solid var(--line);
     }
-    .notification.show{ transform: translateX(0) }
-    .notification.error{ border-left-color: var(--red) }
-    .notification.warning{ border-left-color: var(--orange) }
+    .notification.show { transform: translateX(0); }
+    .notification.error   { border-left-color: var(--red); }
+    .notification.warning { border-left-color: var(--orange); }
 
     /* === Modal === */
     .modal-overlay{
-      position:fixed; inset:0; background: rgba(15,23,42,.6); display:flex; justify-content:center; align-items:center; z-index:1000;
+      position:fixed; inset:0; background: rgba(44,47,49,.55); display:flex;
+      justify-content:center; align-items:center; z-index:1000;
       backdrop-filter: blur(8px); opacity:0; pointer-events:none; transition: opacity .2s ease-out;
     }
-    .modal-overlay.visible{ opacity:1; pointer-events: all }
-    .modal-card{ background: var(--card); padding: 26px; border-radius: 16px; box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
-      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line) }
-    .modal-overlay.visible .modal-card{ transform: scale(1) }
-    #modal-text{ font-size: 13px; margin:0 0 18px 0; color: var(--ink); line-height:1.6 }
-    .modal-actions{ margin-top:16px; display:flex; justify-content:center; gap:10px }
+    .modal-overlay.visible{ opacity:1; pointer-events: all; }
+    .modal-card{
+      background: var(--card); padding: 28px; border-radius: 20px;
+      box-shadow: var(--shadow-lg); max-width: 520px; width: 92%;
+      transform: scale(.96); transition: transform .2s ease; border:1px solid var(--line);
+    }
+    .modal-overlay.visible .modal-card{ transform: scale(1); }
+    #modal-text{ font-size: 13px; margin:0 0 18px 0; color: var(--ink); line-height:1.6; }
+    .modal-actions{ margin-top:16px; display:flex; justify-content:center; gap:10px; }
 
-    /* === Loading === */
+    /* === Loading spinner inside KPI tiles === */
+    .loading { position: relative; overflow: hidden; }
     .loading::after{
-      content:''; position:absolute; inset:0; background: rgba(255,255,255,.75); border-radius: inherit;
+      content:''; position:absolute; inset:0; background: rgba(255,255,255,.7); border-radius: inherit;
     }
     .loading::before{
-      content:''; position:absolute; top:50%; left:50%; width:22px; height:22px; border:3px solid #e2e8f0; border-top-color: var(--accent);
-      border-radius:50%; animation: spin 1s linear infinite; transform: translate(-50%,-50%);
+      content:''; position:absolute; top:50%; left:50%; width:20px; height:20px;
+      border:3px solid var(--line); border-top-color: var(--accent);
+      border-radius:50%; animation: spin 0.9s linear infinite; transform: translate(-50%,-50%);
+      z-index: 1;
     }
-    @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg) } }
+    @keyframes spin{ to{ transform: translate(-50%,-50%) rotate(360deg); } }
 
+    /* === Bento entry animation === */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .bento-card, .bento-mini, .bento-stream {
+      animation: fadeInUp .4s ease-out both;
+    }
+
+    /* Weather widget title override inside bento card */
+    #weather-widget h4.title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 12px;
+    }
   </style>
 </head>
 <body data-page="dashboard">
   <div class="app-shell">
+
+    <!-- ── Sidebar ── -->
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
         <span class="sidebar__emoji">🧭</span>
         <span class="sidebar__brand">LifeOS</span>
       </div>
+
       <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
         <ul class="sidebar__list">
           <li class="sidebar__item">
             <a class="sidebar__link" href="index.html" data-page="dashboard">
-              <span class="sidebar__icon">📊</span>
+              <span class="material-symbols-outlined">dashboard</span>
               <span class="sidebar__label">Dashboard</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="budget.html" data-page="budget">
-              <span class="sidebar__icon">💰</span>
+              <span class="material-symbols-outlined">payments</span>
               <span class="sidebar__label">Budżet</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="tasks.html" data-page="tasks">
-              <span class="sidebar__icon">✅</span>
+              <span class="material-symbols-outlined">assignment</span>
               <span class="sidebar__label">Zadania</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="trainings.html" data-page="trainings">
-              <span class="sidebar__icon">💪</span>
+              <span class="material-symbols-outlined">trending_up</span>
               <span class="sidebar__label">Progres</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="fuel.html" data-page="fuel">
-              <span class="sidebar__icon">⛽</span>
+              <span class="material-symbols-outlined">local_gas_station</span>
               <span class="sidebar__label">Paliwo</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="loan.html" data-page="loan">
-              <span class="sidebar__icon">🏦</span>
+              <span class="material-symbols-outlined">credit_card</span>
               <span class="sidebar__label">Kredyt</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="inventory.html" data-page="inventory">
-              <span class="sidebar__icon">📦</span>
+              <span class="material-symbols-outlined">inventory_2</span>
               <span class="sidebar__label">Magazyn</span>
             </a>
           </li>
           <li class="sidebar__item">
             <a class="sidebar__link" href="house.html" data-page="house">
-              <span class="sidebar__icon">🏠</span>
+              <span class="material-symbols-outlined">construction</span>
               <span class="sidebar__label">Budowa</span>
             </a>
           </li>
         </ul>
       </nav>
+
       <div class="sidebar__footer">
         <strong>Twoje centrum dowodzenia życiem.</strong>
       </div>
     </aside>
 
+    <!-- ── Main content ── -->
     <div class="app-main">
-      <header class="hero-header">
-        <div class="hero-content">
-          <div class="hero-copy">
-            <h1 id="greeting" class="greeting-text">Dzień dobry!</h1>
-            <p id="current-date" class="date-text"></p>
+
+      <!-- Sticky top bar -->
+      <header class="site-header">
+        <div class="site-header__left">
+          <h2 class="site-header__title">Overview</h2>
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            Live Syncing
           </div>
-          <div class="header-actions-group">
-            <div class="data-actions">
-              <div class="data-buttons">
-                <button class="btn small" id="export-all-btn">📤 Eksport</button>
-                <button class="btn small" id="import-all-btn">📥 Import</button>
-                <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
-              </div>
-              <p id="backup-status" class="tiny" style="margin: 0; text-align: right;"></p>
-            </div>
-            <div class="quick-actions">
-              <a href="#" class="quick-action" title="Ustawienia" onclick="openSettingsModal()">⚙️</a>
-              <a href="#" class="quick-action" title="Odśwież" onclick="refreshDashboard()">↻</a>
-            </div>
+        </div>
+        <div class="site-header__right">
+          <div class="header-btn-group">
+            <button class="btn" id="export-all-btn">Eksport</button>
+            <button class="btn" id="import-all-btn">Import</button>
+            <input type="file" id="import-file-input" style="display:none" accept="application/json"/>
           </div>
+          <p id="backup-status" style="font-size:11px;color:var(--muted);margin:0;white-space:nowrap;"></p>
+          <a href="#" class="header-icon-btn" title="Ustawienia" onclick="openSettingsModal(); return false;">
+            <span class="material-symbols-outlined">settings</span>
+          </a>
+          <a href="#" class="header-icon-btn" title="Odśwież" onclick="refreshDashboard(); return false;">
+            <span class="material-symbols-outlined">refresh</span>
+          </a>
         </div>
       </header>
 
-      <main class="page-content">
-        <div class="wrap" style="max-width: none; padding: 24px;">
-          <div class="dashboard-grid">
-            <div class="left-column">
-                <section class="card kpi-card">
-                    <h3 class="title" style="font-size: 16px;">📊 Kluczowe wskaźniki</h3>
-                    <div class="grid kpi-grid">
-                        <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
-                        <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large"></a>
-                        <a href="trainings.html" id="kpi-progress" class="kpi-tile-large"></a>
-                        <a href="fuel.html" id="kpi-fuel" class="kpi-tile-large"></a>
-                        <a href="loan.html" id="kpi-loan" class="kpi-tile-large"></a>
-                        <a href="inventory.html" id="kpi-inventory" class="kpi-tile-large"></a>
-                        <a href="house.html" id="kpi-house" class="kpi-tile-large"></a>
-                    </div>
-                </section>
-                 <section class="card training-card">
-                    <h3 class="title" style="font-size: 16px;">🎯 Cele treningowe na ten tydzień</h3>
-                    <div id="weekly-activities-list" class="activity-feed"></div>
-                </section>
-            </div>
-            <div class="right-column">
-                <section class="card weather-card" id="weather-widget" aria-live="polite">
-                    <!-- Weather content will be dynamically inserted here -->
-                </section>
-                <section class="card priorities-card tasks-card" id="priorities-card">
-                    <div class="upcoming-header">
-                        <h3 class="title" style="margin:0; font-size: 16px;">📅 Najbliższe zadania</h3>
-                        <p id="priorities-summary" class="tiny muted" style="margin:0;"></p>
-                    </div>
-                    <div id="upcoming-tasks-list"></div>
-                    <a href="tasks.html" class="btn" style="margin-top: 14px;">Zobacz wszystkie</a>
-                </section>
-            </div>
+      <!-- Page canvas -->
+      <main class="page-content" style="padding: 28px 32px 48px;">
+
+        <!-- Hero: greeting + weather -->
+        <section class="dashboard-hero">
+          <div class="dashboard-hero__text">
+            <h1 id="greeting">Dzień dobry!</h1>
+            <p id="current-date" class="tiny muted"></p>
           </div>
-        </div>
+          <!-- Weather widget fills this card via JS -->
+          <div class="hero-weather-card" id="weather-widget" aria-live="polite"></div>
+        </section>
+
+        <!-- Bento grid -->
+        <div class="bento-grid">
+
+          <!-- ① Budget KPI — wide hero card -->
+          <div class="bento-card bento-card--budget bento-span-8" style="animation-delay:.05s">
+            <a href="budget.html" id="kpi-budget" class="kpi-tile-large"></a>
+          </div>
+
+          <!-- ② Tasks panel — KPI summary + upcoming list -->
+          <div class="bento-card bento-span-4" style="animation-delay:.1s">
+            <div class="bento-tasks-header">
+              <span class="bento-section-title">Zadania</span>
+              <span class="bento-section-badge" id="priorities-summary"></span>
+            </div>
+            <a href="tasks.html" id="kpi-tasks" class="kpi-tile-large" style="flex:0 0 auto;"></a>
+            <hr class="bento-tasks-divider">
+            <div id="upcoming-tasks-list" style="flex:1;overflow-y:auto;max-height:220px;"></div>
+            <a href="tasks.html" class="btn" style="margin-top:14px;font-size:12px;justify-content:space-between;">
+              Zobacz wszystkie zadania
+              <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
+            </a>
+          </div>
+
+          <!-- ③ Training / Progress -->
+          <div class="bento-card bento-span-4" style="animation-delay:.15s">
+            <span class="bento-section-title">Progres tygodniowy</span>
+            <a href="trainings.html" id="kpi-progress" class="kpi-tile-large" style="flex:0 0 auto;margin-bottom:12px;"></a>
+            <hr class="bento-tasks-divider" style="margin:0 0 12px;">
+            <div id="weekly-activities-list" style="overflow-y:auto;max-height:200px;"></div>
+          </div>
+
+          <!-- ④ Fuel + Loan stacked column -->
+          <div class="bento-col" style="animation-delay:.2s">
+            <a href="fuel.html" class="bento-mini" id="kpi-fuel-mini">
+              <div class="bento-mini__icon bento-mini__icon--slate">
+                <span class="material-symbols-outlined">local_gas_station</span>
+              </div>
+              <div class="bento-mini__content" id="kpi-fuel"></div>
+            </a>
+            <a href="loan.html" class="bento-mini" id="kpi-loan-mini">
+              <div class="bento-mini__icon bento-mini__icon--purple">
+                <span class="material-symbols-outlined">credit_card</span>
+              </div>
+              <div class="bento-mini__content" id="kpi-loan"></div>
+            </a>
+          </div>
+
+          <!-- ⑤ Inventory + House stacked column -->
+          <div class="bento-col" style="animation-delay:.25s">
+            <a href="inventory.html" class="bento-mini" id="kpi-inventory-mini">
+              <div class="bento-mini__icon bento-mini__icon--blue">
+                <span class="material-symbols-outlined">inventory_2</span>
+              </div>
+              <div class="bento-mini__content" id="kpi-inventory"></div>
+            </a>
+            <a href="house.html" class="bento-mini" id="kpi-house-mini">
+              <div class="bento-mini__icon bento-mini__icon--slate">
+                <span class="material-symbols-outlined">construction</span>
+              </div>
+              <div class="bento-mini__content" id="kpi-house"></div>
+            </a>
+          </div>
+
+        </div><!-- /bento-grid -->
       </main>
-    </div>
-  </div>
+    </div><!-- /app-main -->
+  </div><!-- /app-shell -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-bottom-nav" aria-label="Nawigacja mobilna">
+    <a href="index.html" class="mobile-nav-item active">
+      <span class="material-symbols-outlined">dashboard</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="budget.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">payments</span>
+      <span>Budżet</span>
+    </a>
+    <a href="tasks.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">assignment</span>
+      <span>Zadania</span>
+    </a>
+    <a href="fuel.html" class="mobile-nav-item">
+      <span class="material-symbols-outlined">local_gas_station</span>
+      <span>Paliwo</span>
+    </a>
+    <a href="#" class="mobile-nav-item" onclick="openSettingsModal(); return false;">
+      <span class="material-symbols-outlined">settings</span>
+      <span>Więcej</span>
+    </a>
+  </nav>
 
   <!-- Modals -->
   <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-text">
@@ -703,15 +669,14 @@ function renderKPIData(){
         ];
 
         kpiElements.inventory.innerHTML = `
-          <div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div>
-          <div class="kpi-main-value">${fmt(stockCost, currency)}</div>
-          <div class="kpi-sub-value">${items.length} szt. w zapasie</div>
-          <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+          <p class="bento-mini__label">Magazyn</p>
+          <p class="bento-mini__value bento-mini__value--sm">${fmt(stockCost, currency)}</p>
+          <p class="bento-mini__note">${items.length} szt. w zapasie • ROI ${roiText}</p>`;
       } else {
-        kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+        kpiElements.inventory.innerHTML = `<p class="bento-mini__label">Magazyn</p><p class="bento-mini__value">—</p><p class="bento-mini__note">0 szt.</p>`;
       }
     } else {
-      kpiElements.inventory.innerHTML = `<div class="kpi-header"><span>📦</span><h4>Magazyn</h4></div><div class="kpi-main-value">—</div><div class="kpi-sub-value">0 szt.</div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+      kpiElements.inventory.innerHTML = `<p class="bento-mini__label">Magazyn</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
     }
   }
 
@@ -811,11 +776,11 @@ function renderKPIData(){
       detailLines.push(`${fuelData.invoices.length} faktur • ${fuelData.advances.length} zaliczek`);
     }
     kpiElements.fuel.innerHTML = `
-      <div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div>
-      <div class="kpi-main-value ${balanceClass}">${fmt(balance, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>`;
+      <p class="bento-mini__label">Paliwo — saldo</p>
+      <p class="bento-mini__value ${balanceClass}">${fmt(balance)}</p>
+      <p class="bento-mini__note">${detailLines[0] || 'Brak danych'}</p>`;
   } else {
-    kpiElements.fuel.innerHTML = `<div class="kpi-header"><span>⛽</span><h4>Paliwo</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.fuel.innerHTML = `<p class="bento-mini__label">Paliwo</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
   }
 
   // --- Tasks KPI ---
@@ -901,17 +866,14 @@ function renderKPIData(){
       `Średni postęp zadań: ${tasks.length ? totalProgress.toFixed(0) : 0}%`
     ];
     kpiElements.house.innerHTML = `
-      <div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div>
-      <div class="kpi-main-value">${fmt(totalExpenses)}</div>
-      <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-      <div class="kpi-progress-container">
-        <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>Całkowity postęp prac</span><span>${totalProgress.toFixed(0)}%</span>
-        </div>
-        <div class="progress"><i style="width:${totalProgress}%"></i></div>
+      <p class="bento-mini__label">Budowa</p>
+      <p class="bento-mini__value bento-mini__value--sm">${fmt(totalExpenses)}</p>
+      <p class="bento-mini__note">Postęp: ${totalProgress.toFixed(0)}%</p>
+      <div style="margin-top:6px;height:4px;background:var(--surface);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${totalProgress}%;background:#595c5e;border-radius:4px;transition:width .5s;"></div>
       </div>`;
   } else {
-    kpiElements.house.innerHTML = `<div class="kpi-header"><span>🏗️</span><h4>Budowa</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.house.innerHTML = `<p class="bento-mini__label">Budowa</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
   }
 
   // --- Loan KPI ---
@@ -931,20 +893,17 @@ function renderKPIData(){
         `Nadpłaty: ${fmt(totalOverpayments)}.`
       ];
       kpiElements.loan.innerHTML = `
-        <div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div>
-        <div class="kpi-main-value">${fmt(capitalRemaining, '')}<span class="tiny muted" style="margin-left: 4px;">PLN</span></div>
-        <div class="kpi-details">${renderDetailLines(detailLines)}</div>
-        <div class="kpi-progress-container">
-          <div class="tiny muted" style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span>Postęp spłaty</span><span>${progress.toFixed(1)}%</span>
-          </div>
-          <div class="progress"><i style="width:${progress}%"></i></div>
+        <p class="bento-mini__label">Kredyt — pozostało</p>
+        <p class="bento-mini__value bento-mini__value--sm">${fmt(capitalRemaining)}</p>
+        <p class="bento-mini__note">Spłacono ${progress.toFixed(1)}%</p>
+        <div style="margin-top:6px;height:4px;background:var(--surface);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${progress}%;background:#5f2bf2;border-radius:4px;transition:width .5s;"></div>
         </div>`;
     } else {
-       kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak skonfigurowanego kredytu.'])}</div>`;
+      kpiElements.loan.innerHTML = `<p class="bento-mini__label">Kredyt</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak konfiguracji</p>`;
     }
   } else {
-    kpiElements.loan.innerHTML = `<div class="kpi-header"><span>🏦</span><h4>Kredyt</h4></div><div class="kpi-details">${renderDetailLines(['Brak danych.'])}</div>`;
+    kpiElements.loan.innerHTML = `<p class="bento-mini__label">Kredyt</p><p class="bento-mini__value">—</p><p class="bento-mini__note">Brak danych</p>`;
   }
 }
 
@@ -1101,7 +1060,9 @@ function renderAll(){
   renderUpcomingTasks();
   renderWeeklyActivities();
   renderBackupStatus();
-  document.querySelectorAll('.card').forEach((c,i)=> c.style.animationDelay = `${i*0.06}s`);
+  document.querySelectorAll('.bento-card, .bento-mini, .bento-col').forEach((c,i)=> {
+    if(!c.style.animationDelay) c.style.animationDelay = `${i*0.05}s`;
+  });
 }
 window.addEventListener('load', renderAll);
 document.addEventListener('keydown', (e)=>{
