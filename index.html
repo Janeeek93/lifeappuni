@@ -689,6 +689,14 @@ function renderKPIData(){
         `Plan miesięczny: ${fmt(monthlyBudget)} (wykorzystano ${Math.round(spentPct)}%).`
       ];
 
+      // Month-end savings forecast: extrapolate current variable spend rate
+      const dailySpendRate = currentDay > 0 ? totalSpentMonth / currentDay : 0;
+      const projectedTotalSpend = dailySpendRate * daysInMonth;
+      const projectedSavings = incSum - fixSum - projectedTotalSpend;
+      const savingsSign = projectedSavings >= 0 ? '+' : '';
+      const savingsClass = projectedSavings >= 0 ? 'value-ok' : 'value-bad';
+      const savingsLabel = projectedSavings >= 0 ? 'prognoza oszczędności' : 'prognoza straty';
+
       const bufferSign = buffer >= 0 ? '+' : '';
       kpiElements.budget.innerHTML = `
         <div class="budget-hero-top">
@@ -709,6 +717,10 @@ function renderKPIData(){
             <div class="budget-stat-item">
               <span class="budget-stat-label">Wydano ${new Date().getDate()} dni</span>
               <span class="budget-stat-value">${fmt(totalSpentMonth)}</span>
+            </div>
+            <div class="budget-stat-item" style="border-top:1px solid var(--line);padding-top:6px;margin-top:2px;">
+              <span class="budget-stat-label" style="font-weight:600;">${savingsLabel}</span>
+              <span class="budget-stat-value ${savingsClass}" style="font-weight:700;">${savingsSign}${fmt(projectedSavings, '')}<span style="font-size:10px;font-weight:400;"> PLN</span></span>
             </div>
           </div>
         </div>
@@ -1103,10 +1115,15 @@ function renderLoanCard(){
   const nextInterest = nextProj?.interest ?? avgInt;
   const nextTotal = nextCapital + nextInterest;
 
+  const totalPaid = totalCapitalPaid + totalInterestPaid;
+
   el.innerHTML = `
     <div class="loan-card-header">
       <span class="bento-section-title">Kredyt</span>
-      <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;font-weight:600;color:#5f2bf2;background:#f3f0ff;padding:3px 8px;border-radius:999px;">${payments.length} rat</span>
+        <a href="loan.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">Szczegóły <span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;">arrow_forward</span></a>
+      </div>
     </div>
     <div class="loan-card-body">
       <div class="loan-arc-wrap">
@@ -1130,11 +1147,15 @@ function renderLoanCard(){
           <span class="loan-stat-label">Odsetki łącznie</span>
           <span class="loan-stat-value" style="color:var(--orange)">${fmt(totalInterestPaid)}</span>
         </div>
+        <div class="loan-stat-row" style="border-top:1px solid var(--line);padding-top:6px;margin-top:2px;">
+          <span class="loan-stat-label" style="font-weight:600;color:var(--ink);">Total wpłat</span>
+          <span class="loan-stat-value" style="font-weight:700;">${fmt(totalPaid)}</span>
+        </div>
         <div class="loan-stat-row">
-          <span class="loan-stat-label">Pozostało</span>
+          <span class="loan-stat-label">Pozostało kapitału</span>
           <span class="loan-stat-value">${fmt(capitalRemaining)}</span>
         </div>
-        <div style="margin-top:10px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;">
+        <div style="margin-top:8px;height:4px;background:var(--line);border-radius:4px;overflow:hidden;">
           <div style="height:100%;width:${progress.toFixed(1)}%;background:#5f2bf2;border-radius:4px;transition:width .6s;"></div>
         </div>
         ${nextTotal > 0 ? `<div class="loan-next-row">
