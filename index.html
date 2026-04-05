@@ -1098,7 +1098,7 @@ function renderInvestmentKPI(){
       title="${shareLabel}" data-group="${group}" data-color="${color}"></div>`;
   }).join('');
 
-  // Group rows with matching color dot
+  // Group rows with matching color dot + inline allocation bar
   const groupRows = groupEntries.map(([group, g], i) => {
     const pnl = g.mv - g.cb;
     const pnlSign2 = pnl >= 0 ? '+' : '';
@@ -1109,6 +1109,7 @@ function renderInvestmentKPI(){
     return `<div class="inv-group-row">
       <span class="inv-group-name"><span class="inv-group-dot" style="background:${color};"></span>${group}</span>
       <span class="inv-group-mv">${fmt(g.mv)} <span class="inv-group-pct">${sharePct.toFixed(1)}%</span></span>
+      <span class="inv-group-bar-wrap"><span class="inv-group-bar-fill" style="width:${sharePct.toFixed(2)}%;background:${color};"></span></span>
       <span class="inv-group-pnl" style="color:${pnlCol}">${pnlSign2}${fmt(pnl)} <span class="inv-group-pct">(${pnlSign2}${pct.toFixed(1)}%)</span></span>
     </div>`;
   }).join('');
