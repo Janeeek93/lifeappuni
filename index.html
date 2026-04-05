@@ -690,38 +690,55 @@ function renderKPIData(){
       ];
 
       // Month-end savings forecast: extrapolate variable-only spend rate (matches budget.html logic)
-      // spentUntilToday already excludes c_fixed so we don't double-count fixed costs
       const dailySpendRate = currentDay > 0 ? spentUntilToday / currentDay : 0;
       const projectedTotalSpend = dailySpendRate * daysInMonth;
       const projectedSavings = (incSum - fixSum) - projectedTotalSpend;
-      const savingsSign = projectedSavings >= 0 ? '+' : '';
-      const savingsClass = projectedSavings >= 0 ? 'value-ok' : 'value-bad';
-      const savingsLabel = projectedSavings >= 0 ? 'prognoza oszczędności' : 'prognoza straty';
+
+      // Already saved this month: investment contributions (c_invest) + shared savings (c_save)
+      const monthTxs = txs.filter(t => String(t.date||'').startsWith(ym));
+      function sumByCat(catId) {
+        return monthTxs.reduce((sum, t) => {
+          if(t.splits?.length) return sum + t.splits.reduce((ss,sp) => catsById[sp.categoryId]?.id === catId ? ss + Math.abs(num(sp.amount)) : ss, 0);
+          return catsById[t.categoryId]?.id === catId ? sum + Math.abs(num(t.amount)) : sum;
+        }, 0);
+      }
+      const investSaved  = sumByCat('c_invest');
+      const sharedSaved  = sumByCat('c_save');
+      const totalAlreadySaved = investSaved + sharedSaved;
+      const totalForecast = projectedSavings + totalAlreadySaved;
+      const forecastSign  = totalForecast >= 0 ? '+' : '';
+      const forecastClass = totalForecast >= 0 ? 'value-ok' : 'value-bad';
+      const projSign = projectedSavings >= 0 ? '+' : '';
 
       const bufferSign = buffer >= 0 ? '+' : '';
       kpiElements.budget.innerHTML = `
         <div class="budget-hero-top">
-          <div>
-            <p class="kpi-header"><h4>Zapas budżetu dziś</h4></p>
+          <div class="budget-today-col">
+            <p class="budget-col-label">Zapas budżetu dziś</p>
             <div class="kpi-main-value ${bufferClass}">${bufferSign}${fmt(buffer, '')}<span class="budget-unit">PLN</span></div>
             <div class="budget-daily-info">dzienny limit: ${fmt(dailyBudget)} · wydano: ${fmt(spentUntilToday)}</div>
+            <div class="budget-mini-stats">
+              <span>${fmt(incSum)} <span class="budget-mini-label">dochód</span></span>
+              <span>${fmt(fixSum)} <span class="budget-mini-label">stałe</span></span>
+              <span>${fmt(totalSpentMonth)} <span class="budget-mini-label">wydano</span></span>
+            </div>
           </div>
-          <div class="budget-stats-col">
-            <div class="budget-stat-item">
-              <span class="budget-stat-label">Dochód mies.</span>
-              <span class="budget-stat-value">${fmt(incSum)}</span>
-            </div>
-            <div class="budget-stat-item">
-              <span class="budget-stat-label">Koszty stałe</span>
-              <span class="budget-stat-value">${fmt(fixSum)}</span>
-            </div>
-            <div class="budget-stat-item">
-              <span class="budget-stat-label">Wydano ${new Date().getDate()} dni</span>
-              <span class="budget-stat-value">${fmt(totalSpentMonth)}</span>
-            </div>
-            <div class="budget-stat-item" style="border-top:1px solid var(--line);padding-top:6px;margin-top:2px;">
-              <span class="budget-stat-label" style="font-weight:600;">${savingsLabel}</span>
-              <span class="budget-stat-value ${savingsClass}" style="font-weight:700;">${savingsSign}${fmt(projectedSavings, '')}<span style="font-size:10px;font-weight:400;"> PLN</span></span>
+          <div class="budget-savings-col">
+            <p class="budget-col-label">Oszczędności tego miesiąca</p>
+            <div class="kpi-main-value ${forecastClass}">${forecastSign}${fmt(totalForecast, '')}<span class="budget-unit">PLN</span></div>
+            <div class="budget-savings-breakdown">
+              <div class="budget-saving-row">
+                <span class="budget-saving-label">Prognoza zmiennych</span>
+                <span class="budget-saving-val ${projectedSavings>=0?'value-ok':'value-bad'}">${projSign}${fmt(projectedSavings,'')}</span>
+              </div>
+              ${investSaved > 0 ? `<div class="budget-saving-row">
+                <span class="budget-saving-label">Inwestycje</span>
+                <span class="budget-saving-val">${fmt(investSaved,'')}</span>
+              </div>` : ''}
+              ${sharedSaved > 0 ? `<div class="budget-saving-row">
+                <span class="budget-saving-label">Oszczędności wspólne</span>
+                <span class="budget-saving-val">${fmt(sharedSaved,'')}</span>
+              </div>` : ''}
             </div>
           </div>
         </div>
