@@ -1631,6 +1631,20 @@ function genId() { return Date.now().toString(36) + Math.random().toString(36).s
 function fmtCur(n) {
   return new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0}).format(n||0);
 }
+function fmtMoneyInput(n) {
+  const v = Math.max(0, Number(n) || 0);
+  return `${new Intl.NumberFormat('pl-PL',{maximumFractionDigits:0}).format(v)} zł`;
+}
+function parseMoneyInput(raw) {
+  const normalized = String(raw || '')
+    .toLowerCase()
+    .replace(/zł/g, '')
+    .replace(/\s+/g, '')
+    .replace(/,/g, '.')
+    .replace(/[^\d.]/g, '');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+}
 function fmtDate(d) { if(!d) return '—'; return new Date(d+'T12:00:00').toLocaleDateString('pl-PL'); }
 function toIsoDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -2557,21 +2571,21 @@ bm.renderSimulation = () => {
         <div class="bm-form-row">
           <div class="bm-form-group">
             <label class="bm-label">Cena zakupu działki (zł)</label>
-            <input type="number" class="bm-input" value="${s.plotPurchasePrice}" min="0" onchange="bm.updateSimulationField('plotPurchasePrice', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotPurchasePrice)}" onchange="bm.updateSimulationField('plotPurchasePrice', this.value)">
           </div>
           <div class="bm-form-group">
             <label class="bm-label">Wpłacony wkład własny na działkę (zł)</label>
-            <input type="number" class="bm-input" value="${s.plotOwnContributionPaid}" min="0" onchange="bm.updateSimulationField('plotOwnContributionPaid', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotOwnContributionPaid)}" onchange="bm.updateSimulationField('plotOwnContributionPaid', this.value)">
           </div>
         </div>
         <div class="bm-form-row">
           <div class="bm-form-group">
             <label class="bm-label">Spłacony kapitał kredytu działki (zł)</label>
-            <input type="number" class="bm-input" value="${s.plotCapitalRepaid}" min="0" onchange="bm.updateSimulationField('plotCapitalRepaid', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid', this.value)">
           </div>
           <div class="bm-form-group">
             <label class="bm-label">Obecna wartość działki (operat, zł)</label>
-            <input type="number" class="bm-input" value="${s.plotCurrentValuation}" min="0" onchange="bm.updateSimulationField('plotCurrentValuation', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotCurrentValuation)}" onchange="bm.updateSimulationField('plotCurrentValuation', this.value)">
           </div>
         </div>
 
@@ -2593,11 +2607,11 @@ bm.renderSimulation = () => {
         <div class="bm-form-row">
           <div class="bm-form-group">
             <label class="bm-label">Koszt domu wg wyceny (zł)</label>
-            <input type="number" class="bm-input" value="${s.houseCost}" min="0" onchange="bm.updateSimulationField('houseCost', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.houseCost)}" onchange="bm.updateSimulationField('houseCost', this.value)">
           </div>
           <div class="bm-form-group">
             <label class="bm-label">Twoja zaliczka / gotówka na dom (zł)</label>
-            <input type="number" class="bm-input" value="${s.houseOwnCash}" min="0" onchange="bm.updateSimulationField('houseOwnCash', this.value)">
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.houseOwnCash)}" onchange="bm.updateSimulationField('houseOwnCash', this.value)">
           </div>
         </div>
         <div class="bm-form-group" style="margin-top:8px">
@@ -2644,7 +2658,7 @@ bm.renderSimulation = () => {
             ${s.prepCosts.length ? s.prepCosts.map(row => `
               <tr>
                 <td><input class="bm-input" value="${row.name || ''}" placeholder="np. Badania geodezyjne" onchange="bm.updatePrepCost('${row.id}', 'name', this.value)"></td>
-                <td style="min-width:180px"><input type="number" class="bm-input" value="${Number(row.amount)||0}" min="0" onchange="bm.updatePrepCost('${row.id}', 'amount', this.value)"></td>
+                <td style="min-width:180px"><input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(Number(row.amount)||0)}" onchange="bm.updatePrepCost('${row.id}', 'amount', this.value)"></td>
                 <td style="text-align:center">
                   <label style="display:inline-flex;align-items:center;gap:8px;justify-content:center">
                     <input type="checkbox" ${row.countsAsOwnContribution ? 'checked' : ''} onchange="bm.updatePrepCost('${row.id}', 'countsAsOwnContribution', this.checked)">
@@ -2682,7 +2696,7 @@ bm.renderSimulation = () => {
 bm.updateSimulationField = (field, rawValue) => {
   if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
   if (field === 'houseOwnCashIncurred') state.houseSimulation[field] = Boolean(rawValue);
-  else state.houseSimulation[field] = Math.max(0, Number(rawValue) || 0);
+  else state.houseSimulation[field] = parseMoneyInput(rawValue);
   saveState();
   bm.renderSimulation();
 };
@@ -2705,7 +2719,7 @@ bm.updatePrepCost = (id, field, value) => {
   if (!state.houseSimulation || !Array.isArray(state.houseSimulation.prepCosts)) return;
   state.houseSimulation.prepCosts = state.houseSimulation.prepCosts.map(row => {
     if (row.id !== id) return row;
-    if (field === 'amount') return { ...row, amount: Math.max(0, Number(value) || 0) };
+    if (field === 'amount') return { ...row, amount: parseMoneyInput(value) };
     if (field === 'countsAsOwnContribution') return { ...row, countsAsOwnContribution: Boolean(value) };
     if (field === 'isIncurred') return { ...row, isIncurred: Boolean(value) };
     return { ...row, [field]: value };
