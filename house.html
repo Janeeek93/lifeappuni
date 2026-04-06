@@ -1632,8 +1632,9 @@ function fmtCur(n) {
   return new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0}).format(n||0);
 }
 function fmtMoneyInput(n) {
-  const v = Math.max(0, Number(n) || 0);
-  return `${new Intl.NumberFormat('pl-PL',{maximumFractionDigits:0}).format(v)} zł`;
+  const v = Math.max(0, Math.round(Number(n) || 0));
+  const grouped = String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${grouped} zł`;
 }
 function parseMoneyInput(raw) {
   const normalized = String(raw || '')
