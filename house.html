@@ -1230,6 +1230,7 @@
       <button class="bm-tab" data-tab="timeline">📅 Harmonogram</button>
       <button class="bm-tab" data-tab="phases">✅ Etapy &amp; Zadania <span class="bm-tab-badge bm-hidden" id="bm-tasks-badge">0</span></button>
       <button class="bm-tab" data-tab="budget">💰 Budżet</button>
+      <button class="bm-tab" data-tab="simulation">🧮 Symulacja</button>
       <button class="bm-tab" data-tab="contractors">👷 Wykonawcy</button>
       <button class="bm-tab" data-tab="materials">🧱 Materiały</button>
       <button class="bm-tab" data-tab="projects">🏡 Projekty</button>
@@ -1355,6 +1356,13 @@
             </table>
           </div>
         </div>
+      </div>
+
+
+
+      <!-- ── SIMULATION ────────────────────────────────── -->
+      <div id="tab-simulation" class="bm-panel bm-hidden">
+        <div id="bm-simulation-root"></div>
       </div>
 
       <!-- ── CONTRACTORS ───────────────────────────────── -->
@@ -1561,6 +1569,19 @@ const defaultState = () => ({
   activities: [],
   weather: null,
   weatherMeta: null,
+  houseSimulation: {
+    plotPurchasePrice: 225000,
+    plotOwnContributionPaid: 22500,
+    plotCapitalRepaid: 8000,
+    plotCurrentValuation: 225000,
+    prepCosts: [
+      { id:'sc1', name:'Badania geodezyjne', amount:0, countsAsOwnContribution:true },
+      { id:'sc2', name:'Karczowanie', amount:0, countsAsOwnContribution:true },
+      { id:'sc3', name:'Ogrodzenie tymczasowe', amount:0, countsAsOwnContribution:false },
+    ],
+    houseCost: 750000,
+    houseOwnCash: 20000,
+  },
   automation: { scheduleAutoAlignedAt: null },
   collapsedPhases: {},
 });
@@ -1593,6 +1614,12 @@ function loadState() {
     if (saved && typeof saved === 'object') {
       Object.keys(saved).forEach(k => { if (k in def) state[k] = saved[k]; });
     }
+    const simDef = def.houseSimulation;
+    state.houseSimulation = {
+      ...simDef,
+      ...(state.houseSimulation || {}),
+      prepCosts: Array.isArray(state.houseSimulation?.prepCosts) ? state.houseSimulation.prepCosts : simDef.prepCosts,
+    };
   } catch { state = defaultState(); }
 }
 
@@ -1742,6 +1769,7 @@ function renderTab(tab) {
     case 'timeline':     bm.renderTimeline(); break;
     case 'phases':       renderPhases(); break;
     case 'budget':       bm.renderBudget(); break;
+    case 'simulation':   bm.renderSimulation(); break;
     case 'contractors':  bm.renderContractors(); break;
     case 'materials':    renderMaterials(); break;
     case 'projects':     bm.renderProjects(); break;
@@ -2417,6 +2445,210 @@ bm.renderDocs = () => {
       </div>
     `).join('') : `<div class="bm-empty"><div class="bm-empty-icon">📝</div><div class="bm-empty-title">Brak notatek</div><button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.openNoteModal(null)">Dodaj notatkę</button></div>`;
   }
+};
+
+
+// ═══════════════════════════════════════════════════════
+//  SYMULACJA FINANSOWANIA BUDOWY
+// ═══════════════════════════════════════════════════════
+function getSimulationSummary() {
+  const sim = state.houseSimulation || {};
+  const plotPurchasePrice = Number(sim.plotPurchasePrice) || 0;
+  const plotOwnContributionPaid = Number(sim.plotOwnContributionPaid) || 0;
+  const plotCapitalRepaid = Number(sim.plotCapitalRepaid) || 0;
+  const plotCurrentValuation = Number(sim.plotCurrentValuation) || 0;
+  const houseCost = Number(sim.houseCost) || 0;
+  const houseOwnCash = Number(sim.houseOwnCash) || 0;
+  const prepCosts = Array.isArray(sim.prepCosts) ? sim.prepCosts : [];
+
+  const prepTotal = prepCosts.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const prepOwnEligible = prepCosts
+    .filter(row => row.countsAsOwnContribution)
+    .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+
+  const plotLoanRemaining = Math.max(0, plotPurchasePrice - plotOwnContributionPaid - plotCapitalRepaid);
+  const plotEquityFromValuation = Math.max(0, plotCurrentValuation - plotLoanRemaining);
+  const ownContributionRecognized = plotEquityFromValuation + prepOwnEligible + houseOwnCash;
+
+  const totalProjectNeed = plotLoanRemaining + houseCost;
+  const consolidatedLoan = Math.max(0, totalProjectNeed - ownContributionRecognized);
+  const ownContributionPct = totalProjectNeed > 0 ? (ownContributionRecognized / totalProjectNeed) * 100 : 0;
+  const cashAlreadyCommitted = plotOwnContributionPaid + prepTotal + houseOwnCash;
+
+  return {
+    plotPurchasePrice,
+    plotOwnContributionPaid,
+    plotCapitalRepaid,
+    plotCurrentValuation,
+    prepCosts,
+    prepTotal,
+    prepOwnEligible,
+    houseCost,
+    houseOwnCash,
+    plotLoanRemaining,
+    plotEquityFromValuation,
+    ownContributionRecognized,
+    totalProjectNeed,
+    consolidatedLoan,
+    ownContributionPct,
+    cashAlreadyCommitted,
+  };
+}
+
+bm.renderSimulation = () => {
+  const el = document.getElementById('bm-simulation-root');
+  if (!el) return;
+  const s = getSimulationSummary();
+
+  el.innerHTML = `
+    <div class="bm-grid-2">
+      <div class="bm-card">
+        <div class="bm-card-header">
+          <div>
+            <div class="bm-card-title">📐 Działka i obecny kredyt</div>
+            <div class="bm-card-subtitle">Wartość z operatu vs kapitał do spłaty</div>
+          </div>
+        </div>
+        <div class="bm-form-row">
+          <div class="bm-form-group">
+            <label class="bm-label">Cena zakupu działki (zł)</label>
+            <input type="number" class="bm-input" value="${s.plotPurchasePrice}" min="0" oninput="bm.updateSimulationField('plotPurchasePrice', this.value)">
+          </div>
+          <div class="bm-form-group">
+            <label class="bm-label">Wpłacony wkład własny na działkę (zł)</label>
+            <input type="number" class="bm-input" value="${s.plotOwnContributionPaid}" min="0" oninput="bm.updateSimulationField('plotOwnContributionPaid', this.value)">
+          </div>
+        </div>
+        <div class="bm-form-row">
+          <div class="bm-form-group">
+            <label class="bm-label">Spłacony kapitał kredytu działki (zł)</label>
+            <input type="number" class="bm-input" value="${s.plotCapitalRepaid}" min="0" oninput="bm.updateSimulationField('plotCapitalRepaid', this.value)">
+          </div>
+          <div class="bm-form-group">
+            <label class="bm-label">Obecna wartość działki (operat, zł)</label>
+            <input type="number" class="bm-input" value="${s.plotCurrentValuation}" min="0" oninput="bm.updateSimulationField('plotCurrentValuation', this.value)">
+          </div>
+        </div>
+
+        <div class="bm-alert bm-alert-blue" style="margin-top:8px">
+          <span>🏦</span><span>Pozostały kapitał działki: <strong>${fmtCur(s.plotLoanRemaining)}</strong></span>
+        </div>
+        <div class="bm-alert bm-alert-green" style="margin-top:8px">
+          <span>📈</span><span>Wkład z wartości działki (operat - kapitał): <strong>${fmtCur(s.plotEquityFromValuation)}</strong></span>
+        </div>
+      </div>
+
+      <div class="bm-card">
+        <div class="bm-card-header">
+          <div>
+            <div class="bm-card-title">🏠 Dom modułowy</div>
+            <div class="bm-card-subtitle">Koszt wyceny i środki własne do zapłaty</div>
+          </div>
+        </div>
+        <div class="bm-form-row">
+          <div class="bm-form-group">
+            <label class="bm-label">Koszt domu wg wyceny (zł)</label>
+            <input type="number" class="bm-input" value="${s.houseCost}" min="0" oninput="bm.updateSimulationField('houseCost', this.value)">
+          </div>
+          <div class="bm-form-group">
+            <label class="bm-label">Twoja zaliczka / gotówka na dom (zł)</label>
+            <input type="number" class="bm-input" value="${s.houseOwnCash}" min="0" oninput="bm.updateSimulationField('houseOwnCash', this.value)">
+          </div>
+        </div>
+
+        <div class="bm-kpi-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px">
+          <div class="bm-kpi kpi-orange">
+            <div class="bm-kpi-icon">💳</div>
+            <div class="bm-kpi-label">Szacowany kredyt skonsolidowany</div>
+            <div class="bm-kpi-value">${fmtCur(s.consolidatedLoan)}</div>
+          </div>
+          <div class="bm-kpi kpi-green">
+            <div class="bm-kpi-icon">🧱</div>
+            <div class="bm-kpi-label">Rozpoznany wkład własny</div>
+            <div class="bm-kpi-value">${s.ownContributionPct.toFixed(1)}%</div>
+            <div class="bm-kpi-sub">${fmtCur(s.ownContributionRecognized)} z ${fmtCur(s.totalProjectNeed)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bm-card">
+      <div class="bm-card-header">
+        <div>
+          <div class="bm-card-title">🧾 Koszty przygotowania działki</div>
+          <div class="bm-card-subtitle">Dodawaj koszty (geodeta, karczowanie, ogrodzenie) i oznaczaj czy liczą się do wkładu własnego</div>
+        </div>
+        <button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.addPrepCost()">➕ Dodaj koszt</button>
+      </div>
+      <div class="bm-table-wrap">
+        <table class="bm-table">
+          <thead>
+            <tr><th>Pozycja</th><th>Kwota</th><th>Wkład własny?</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${s.prepCosts.length ? s.prepCosts.map(row => `
+              <tr>
+                <td><input class="bm-input" value="${row.name || ''}" placeholder="np. Badania geodezyjne" oninput="bm.updatePrepCost('${row.id}', 'name', this.value)"></td>
+                <td style="min-width:180px"><input type="number" class="bm-input" value="${Number(row.amount)||0}" min="0" oninput="bm.updatePrepCost('${row.id}', 'amount', this.value)"></td>
+                <td style="text-align:center">
+                  <label style="display:inline-flex;align-items:center;gap:8px;justify-content:center">
+                    <input type="checkbox" ${row.countsAsOwnContribution ? 'checked' : ''} onchange="bm.updatePrepCost('${row.id}', 'countsAsOwnContribution', this.checked)">
+                    <span>${row.countsAsOwnContribution ? 'Tak' : 'Nie'}</span>
+                  </label>
+                </td>
+                <td style="width:60px"><button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.removePrepCost('${row.id}')">🗑️</button></td>
+              </tr>
+            `).join('') : `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--bm-ink-3)">Brak kosztów przygotowania</td></tr>`}
+          </tbody>
+          <tfoot>
+            <tr><td><strong>Suma kosztów przygotowania</strong></td><td><strong>${fmtCur(s.prepTotal)}</strong></td><td colspan="2"><strong>Wkład własny z tych kosztów: ${fmtCur(s.prepOwnEligible)}</strong></td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="bm-alert bm-alert-blue" style="margin-top:12px">
+        <span>💵</span><span>Gotówka już wniesiona / do pokrycia wg wpisanych pozycji: <strong>${fmtCur(s.cashAlreadyCommitted)}</strong></span>
+      </div>
+    </div>
+  `;
+};
+
+bm.updateSimulationField = (field, rawValue) => {
+  if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
+  state.houseSimulation[field] = Math.max(0, Number(rawValue) || 0);
+  saveState();
+  bm.renderSimulation();
+};
+
+bm.addPrepCost = () => {
+  if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
+  state.houseSimulation.prepCosts = Array.isArray(state.houseSimulation.prepCosts) ? state.houseSimulation.prepCosts : [];
+  state.houseSimulation.prepCosts.push({
+    id: genId(),
+    name: '',
+    amount: 0,
+    countsAsOwnContribution: true,
+  });
+  saveState();
+  bm.renderSimulation();
+};
+
+bm.updatePrepCost = (id, field, value) => {
+  if (!state.houseSimulation || !Array.isArray(state.houseSimulation.prepCosts)) return;
+  state.houseSimulation.prepCosts = state.houseSimulation.prepCosts.map(row => {
+    if (row.id !== id) return row;
+    if (field === 'amount') return { ...row, amount: Math.max(0, Number(value) || 0) };
+    if (field === 'countsAsOwnContribution') return { ...row, countsAsOwnContribution: Boolean(value) };
+    return { ...row, [field]: value };
+  });
+  saveState();
+  bm.renderSimulation();
+};
+
+bm.removePrepCost = (id) => {
+  if (!state.houseSimulation || !Array.isArray(state.houseSimulation.prepCosts)) return;
+  state.houseSimulation.prepCosts = state.houseSimulation.prepCosts.filter(row => row.id !== id);
+  saveState();
+  bm.renderSimulation();
 };
 
 // ═══════════════════════════════════════════════════════
