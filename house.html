@@ -1575,12 +1575,13 @@ const defaultState = () => ({
     plotCapitalRepaid: 8000,
     plotCurrentValuation: 225000,
     prepCosts: [
-      { id:'sc1', name:'Badania geodezyjne', amount:0, countsAsOwnContribution:true },
-      { id:'sc2', name:'Karczowanie', amount:0, countsAsOwnContribution:true },
-      { id:'sc3', name:'Ogrodzenie tymczasowe', amount:0, countsAsOwnContribution:false },
+      { id:'sc1', name:'Badania geodezyjne', amount:0, countsAsOwnContribution:true, isIncurred:false },
+      { id:'sc2', name:'Karczowanie', amount:0, countsAsOwnContribution:true, isIncurred:false },
+      { id:'sc3', name:'Ogrodzenie tymczasowe', amount:0, countsAsOwnContribution:false, isIncurred:false },
     ],
     houseCost: 750000,
     houseOwnCash: 20000,
+    houseOwnCashIncurred: false,
   },
   automation: { scheduleAutoAlignedAt: null },
   collapsedPhases: {},
@@ -1815,6 +1816,9 @@ function updateStepper() {
         <div class="bm-step-info">
           <div class="bm-step-label">${ph.name}</div>
           <div class="bm-step-pct">${tasks.length?pct+'%':'brak zadań'}</div>
+        </div>
+        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
+          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
         </div>
       </div>
     </div>`;
@@ -2320,6 +2324,9 @@ bm.renderContractors = () => {
           <button class="bm-btn bm-btn-sm" onclick="bm.openContractorModal('${c.id}')">✏️ Edytuj</button>
           <button class="bm-btn bm-btn-danger bm-btn-sm" onclick="bm.deleteContractor('${c.id}')">🗑️</button>
         </div>
+        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
+          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2390,6 +2397,9 @@ bm.renderProjects = () => {
             <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openProjectModal('${p.id}')">✏️</button>
             <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteProject('${p.id}')">🗑️</button>
           </div>
+        </div>
+        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
+          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
         </div>
       </div>
     </div>
@@ -2465,15 +2475,36 @@ function getSimulationSummary() {
   const prepOwnEligible = prepCosts
     .filter(row => row.countsAsOwnContribution)
     .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const prepIncurredTotal = prepCosts
+    .filter(row => row.isIncurred)
+    .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const prepPlannedTotal = Math.max(0, prepTotal - prepIncurredTotal);
+
+  const prepOwnEligibleIncurred = prepCosts
+    .filter(row => row.countsAsOwnContribution && row.isIncurred)
+    .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const prepOwnEligiblePlanned = Math.max(0, prepOwnEligible - prepOwnEligibleIncurred);
 
   const plotLoanRemaining = Math.max(0, plotPurchasePrice - plotOwnContributionPaid - plotCapitalRepaid);
   const plotEquityFromValuation = Math.max(0, plotCurrentValuation - plotLoanRemaining);
+  const houseOwnCashIncurred = Boolean(sim.houseOwnCashIncurred);
+  const houseOwnCashPaid = houseOwnCashIncurred ? houseOwnCash : 0;
+  const houseOwnCashPlanned = houseOwnCashIncurred ? 0 : houseOwnCash;
+
   const ownContributionRecognized = plotEquityFromValuation + prepOwnEligible + houseOwnCash;
+  const ownContributionRecognizedIncurred = plotEquityFromValuation + prepOwnEligibleIncurred + houseOwnCashPaid;
+  const ownContributionRecognizedPlanned = Math.max(0, ownContributionRecognized - ownContributionRecognizedIncurred);
 
   const totalProjectNeed = plotLoanRemaining + houseCost;
   const consolidatedLoan = Math.max(0, totalProjectNeed - ownContributionRecognized);
   const ownContributionPct = totalProjectNeed > 0 ? (ownContributionRecognized / totalProjectNeed) * 100 : 0;
-  const cashAlreadyCommitted = plotOwnContributionPaid + prepTotal + houseOwnCash;
+  const cashAlreadyCommitted = plotOwnContributionPaid + prepIncurredTotal + houseOwnCashPaid;
+
+  const targetPlotOwnContribution = plotPurchasePrice * 0.10;
+  const ownContributionForPlotIncurred = plotOwnContributionPaid + prepOwnEligibleIncurred;
+  const ownContributionForPlotPlanned = prepOwnEligiblePlanned;
+  const remainingToPlotTargetNow = Math.max(0, targetPlotOwnContribution - ownContributionForPlotIncurred);
+  const remainingToPlotTargetAfterPlan = Math.max(0, targetPlotOwnContribution - (ownContributionForPlotIncurred + ownContributionForPlotPlanned));
 
   return {
     plotPurchasePrice,
@@ -2483,15 +2514,29 @@ function getSimulationSummary() {
     prepCosts,
     prepTotal,
     prepOwnEligible,
+    prepIncurredTotal,
+    prepPlannedTotal,
+    prepOwnEligibleIncurred,
+    prepOwnEligiblePlanned,
     houseCost,
     houseOwnCash,
+    houseOwnCashIncurred,
+    houseOwnCashPaid,
+    houseOwnCashPlanned,
     plotLoanRemaining,
     plotEquityFromValuation,
     ownContributionRecognized,
+    ownContributionRecognizedIncurred,
+    ownContributionRecognizedPlanned,
     totalProjectNeed,
     consolidatedLoan,
     ownContributionPct,
     cashAlreadyCommitted,
+    targetPlotOwnContribution,
+    ownContributionForPlotIncurred,
+    ownContributionForPlotPlanned,
+    remainingToPlotTargetNow,
+    remainingToPlotTargetAfterPlan,
   };
 }
 
@@ -2555,6 +2600,13 @@ bm.renderSimulation = () => {
             <input type="number" class="bm-input" value="${s.houseOwnCash}" min="0" onchange="bm.updateSimulationField('houseOwnCash', this.value)">
           </div>
         </div>
+        <div class="bm-form-group" style="margin-top:8px">
+          <label class="bm-label">Czy zaliczka na dom jest już poniesiona?</label>
+          <label style="display:inline-flex;align-items:center;gap:8px">
+            <input type="checkbox" ${s.houseOwnCashIncurred ? 'checked' : ''} onchange="bm.updateSimulationField('houseOwnCashIncurred', this.checked)">
+            <span>${s.houseOwnCashIncurred ? 'Tak, koszt poniesiony' : 'Nie, koszt planowany'}</span>
+          </label>
+        </div>
 
         <div class="bm-kpi-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:8px">
           <div class="bm-kpi kpi-orange">
@@ -2568,6 +2620,9 @@ bm.renderSimulation = () => {
             <div class="bm-kpi-value">${s.ownContributionPct.toFixed(1)}%</div>
             <div class="bm-kpi-sub">${fmtCur(s.ownContributionRecognized)} z ${fmtCur(s.totalProjectNeed)}</div>
           </div>
+        </div>
+        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
+          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
         </div>
       </div>
     </div>
@@ -2583,7 +2638,7 @@ bm.renderSimulation = () => {
       <div class="bm-table-wrap">
         <table class="bm-table">
           <thead>
-            <tr><th>Pozycja</th><th>Kwota</th><th>Wkład własny?</th><th></th></tr>
+            <tr><th>Pozycja</th><th>Kwota</th><th>Wkład własny?</th><th>Poniesiony?</th><th></th></tr>
           </thead>
           <tbody>
             ${s.prepCosts.length ? s.prepCosts.map(row => `
@@ -2596,17 +2651,29 @@ bm.renderSimulation = () => {
                     <span>${row.countsAsOwnContribution ? 'Tak' : 'Nie'}</span>
                   </label>
                 </td>
+                <td style="text-align:center">
+                  <label style="display:inline-flex;align-items:center;gap:8px;justify-content:center">
+                    <input type="checkbox" ${row.isIncurred ? 'checked' : ''} onchange="bm.updatePrepCost('${row.id}', 'isIncurred', this.checked)">
+                    <span>${row.isIncurred ? 'Tak' : 'Nie'}</span>
+                  </label>
+                </td>
                 <td style="width:60px"><button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.removePrepCost('${row.id}')">🗑️</button></td>
               </tr>
-            `).join('') : `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--bm-ink-3)">Brak kosztów przygotowania</td></tr>`}
+            `).join('') : `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--bm-ink-3)">Brak kosztów przygotowania</td></tr>`}
           </tbody>
           <tfoot>
-            <tr><td><strong>Suma kosztów przygotowania</strong></td><td><strong>${fmtCur(s.prepTotal)}</strong></td><td colspan="2"><strong>Wkład własny z tych kosztów: ${fmtCur(s.prepOwnEligible)}</strong></td></tr>
+            <tr><td><strong>Suma kosztów przygotowania</strong></td><td><strong>${fmtCur(s.prepTotal)}</strong></td><td colspan="3"><strong>Poniesione: ${fmtCur(s.prepIncurredTotal)} • Planowane: ${fmtCur(s.prepPlannedTotal)} • Wkład własny z tych kosztów: ${fmtCur(s.prepOwnEligible)}</strong></td></tr>
           </tfoot>
         </table>
       </div>
       <div class="bm-alert bm-alert-blue" style="margin-top:12px">
-        <span>💵</span><span>Gotówka już wniesiona / do pokrycia wg wpisanych pozycji: <strong>${fmtCur(s.cashAlreadyCommitted)}</strong></span>
+        <span>💵</span><span>Gotówka już poniesiona: <strong>${fmtCur(s.cashAlreadyCommitted)}</strong> • planowana: <strong>${fmtCur(s.prepPlannedTotal + s.houseOwnCashPlanned)}</strong></span>
+      </div>
+      <div class="bm-alert bm-alert-yellow" style="margin-top:8px">
+        <span>🎯</span><span>Cel 10% wkładu dla działki: <strong>${fmtCur(s.targetPlotOwnContribution)}</strong>. Poniesione: <strong>${fmtCur(s.ownContributionForPlotIncurred)}</strong>, planowane: <strong>${fmtCur(s.ownContributionForPlotPlanned)}</strong>, do domknięcia teraz: <strong>${fmtCur(s.remainingToPlotTargetNow)}</strong>, po planowanych kosztach: <strong>${fmtCur(s.remainingToPlotTargetAfterPlan)}</strong>.</span>
+      </div>
+      <div class="bm-alert bm-alert-green" style="margin-top:8px">
+        <span>🧮</span><span>Łączny wkład własny po wszystkich pozycjach: <strong>${s.ownContributionPct.toFixed(1)}%</strong> (poniesione: ${fmtCur(s.ownContributionRecognizedIncurred)}, planowane: ${fmtCur(s.ownContributionRecognizedPlanned)}, łącznie: ${fmtCur(s.ownContributionRecognized)}).</span>
       </div>
     </div>
   `;
@@ -2614,7 +2681,8 @@ bm.renderSimulation = () => {
 
 bm.updateSimulationField = (field, rawValue) => {
   if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
-  state.houseSimulation[field] = Math.max(0, Number(rawValue) || 0);
+  if (field === 'houseOwnCashIncurred') state.houseSimulation[field] = Boolean(rawValue);
+  else state.houseSimulation[field] = Math.max(0, Number(rawValue) || 0);
   saveState();
   bm.renderSimulation();
 };
@@ -2627,6 +2695,7 @@ bm.addPrepCost = () => {
     name: '',
     amount: 0,
     countsAsOwnContribution: true,
+    isIncurred: false,
   });
   saveState();
   bm.renderSimulation();
@@ -2638,6 +2707,7 @@ bm.updatePrepCost = (id, field, value) => {
     if (row.id !== id) return row;
     if (field === 'amount') return { ...row, amount: Math.max(0, Number(value) || 0) };
     if (field === 'countsAsOwnContribution') return { ...row, countsAsOwnContribution: Boolean(value) };
+    if (field === 'isIncurred') return { ...row, isIncurred: Boolean(value) };
     return { ...row, [field]: value };
   });
   saveState();
