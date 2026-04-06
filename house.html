@@ -1573,6 +1573,7 @@ const defaultState = () => ({
     plotPurchasePrice: 225000,
     plotOwnContributionPaid: 22500,
     plotCapitalRepaid: 8000,
+    plotInterestPaid: 0,
     plotCurrentValuation: 225000,
     prepCosts: [
       { id:'sc1', name:'Badania geodezyjne', amount:0, countsAsOwnContribution:true, isIncurred:false },
@@ -2481,6 +2482,7 @@ function getSimulationSummary() {
   const plotPurchasePrice = Number(sim.plotPurchasePrice) || 0;
   const plotOwnContributionPaid = Number(sim.plotOwnContributionPaid) || 0;
   const plotCapitalRepaid = Number(sim.plotCapitalRepaid) || 0;
+  const plotInterestPaid = Number(sim.plotInterestPaid) || 0;
   const plotCurrentValuation = Number(sim.plotCurrentValuation) || 0;
   const houseCost = Number(sim.houseCost) || 0;
   const houseOwnCash = Number(sim.houseOwnCash) || 0;
@@ -2506,6 +2508,9 @@ function getSimulationSummary() {
   const houseOwnCashPaid = houseOwnCashIncurred ? houseOwnCash : 0;
   const houseOwnCashPlanned = houseOwnCashIncurred ? 0 : houseOwnCash;
 
+  const plotValueIncrease = Math.max(0, plotCurrentValuation - plotPurchasePrice);
+  const plotOwnContributionFromPlot = plotValueIncrease + plotOwnContributionPaid + plotInterestPaid;
+
   const ownContributionRecognized = plotEquityFromValuation + prepOwnEligible + houseOwnCash;
   const ownContributionRecognizedIncurred = plotEquityFromValuation + prepOwnEligibleIncurred + houseOwnCashPaid;
   const ownContributionRecognizedPlanned = Math.max(0, ownContributionRecognized - ownContributionRecognizedIncurred);
@@ -2513,6 +2518,13 @@ function getSimulationSummary() {
   const totalProjectNeed = plotLoanRemaining + houseCost;
   const consolidatedLoan = Math.max(0, totalProjectNeed - ownContributionRecognized);
   const ownContributionPct = totalProjectNeed > 0 ? (ownContributionRecognized / totalProjectNeed) * 100 : 0;
+  const ownContributionAsIs = plotOwnContributionFromPlot + prepOwnEligibleIncurred + houseOwnCashPaid;
+  const ownContributionWithPlan = plotOwnContributionFromPlot + prepOwnEligible + houseOwnCash;
+  const ownContributionAsIsPct = totalProjectNeed > 0 ? (ownContributionAsIs / totalProjectNeed) * 100 : 0;
+  const ownContributionWithPlanPct = totalProjectNeed > 0 ? (ownContributionWithPlan / totalProjectNeed) * 100 : 0;
+  const loanAsIs = Math.max(0, totalProjectNeed - ownContributionAsIs);
+  const loanWithPlan = Math.max(0, totalProjectNeed - ownContributionWithPlan);
+
   const cashAlreadyCommitted = plotOwnContributionPaid + prepIncurredTotal + houseOwnCashPaid;
 
   const targetPlotOwnContribution = plotPurchasePrice * 0.10;
@@ -2529,6 +2541,7 @@ function getSimulationSummary() {
     plotPurchasePrice,
     plotOwnContributionPaid,
     plotCapitalRepaid,
+    plotInterestPaid,
     plotCurrentValuation,
     prepCosts,
     prepTotal,
@@ -2542,6 +2555,8 @@ function getSimulationSummary() {
     houseOwnCashIncurred,
     houseOwnCashPaid,
     houseOwnCashPlanned,
+    plotValueIncrease,
+    plotOwnContributionFromPlot,
     plotLoanRemaining,
     plotEquityFromValuation,
     ownContributionRecognized,
@@ -2550,6 +2565,12 @@ function getSimulationSummary() {
     totalProjectNeed,
     consolidatedLoan,
     ownContributionPct,
+    ownContributionAsIs,
+    ownContributionWithPlan,
+    ownContributionAsIsPct,
+    ownContributionWithPlanPct,
+    loanAsIs,
+    loanWithPlan,
     cashAlreadyCommitted,
     targetPlotOwnContribution,
     ownContributionForPlotIncurred,
@@ -2591,6 +2612,12 @@ bm.renderSimulation = () => {
             <label class="bm-label">Spłacony kapitał kredytu działki (zł)</label>
             <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid', this.value)">
           </div>
+          <div class="bm-form-group">
+            <label class="bm-label">Zapłacone odsetki kredytu działki (zł)</label>
+            <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotInterestPaid)}" onchange="bm.updateSimulationField('plotInterestPaid', this.value)">
+          </div>
+        </div>
+        <div class="bm-form-row">
           <div class="bm-form-group">
             <label class="bm-label">Obecna wartość działki (operat, zł)</label>
             <input type="text" inputmode="decimal" class="bm-input" value="${fmtMoneyInput(s.plotCurrentValuation)}" onchange="bm.updateSimulationField('plotCurrentValuation', this.value)">
@@ -2688,17 +2715,33 @@ bm.renderSimulation = () => {
           </tfoot>
         </table>
       </div>
-      <div class="bm-alert bm-alert-blue" style="margin-top:12px">
-        <span>💵</span><span>Gotówka już poniesiona: <strong>${fmtCur(s.cashAlreadyCommitted)}</strong> • planowana: <strong>${fmtCur(s.prepPlannedTotal + s.houseOwnCashPlanned)}</strong></span>
-      </div>
-      <div class="bm-alert bm-alert-yellow" style="margin-top:8px">
-        <span>🎯</span><span>Cel 10% wkładu dla działki: <strong>${fmtCur(s.targetPlotOwnContribution)}</strong>. Poniesione: <strong>${fmtCur(s.ownContributionForPlotIncurred)}</strong>, planowane: <strong>${fmtCur(s.ownContributionForPlotPlanned)}</strong>, do domknięcia teraz: <strong>${fmtCur(s.remainingToPlotTargetNow)}</strong>, po planowanych kosztach: <strong>${fmtCur(s.remainingToPlotTargetAfterPlan)}</strong>.</span>
-      </div>
-      <div class="bm-alert bm-alert-yellow" style="margin-top:8px">
-        <span>💰</span><span>Aby dojść do 20% wkładu własnego (cel: <strong>${fmtCur(s.targetOwnContribution20)}</strong>) licząc bazę: operat działki + poniesione koszty przygotowania (<strong>${fmtCur(s.ownContributionBase20)}</strong>), warto mieć dodatkowo gotówki: <strong>${fmtCur(s.additionalCashTo20)}</strong>.</span>
-      </div>
-      <div class="bm-alert bm-alert-green" style="margin-top:8px">
-        <span>🧮</span><span>Łączny wkład własny po wszystkich pozycjach: <strong>${s.ownContributionPct.toFixed(1)}%</strong> (poniesione: ${fmtCur(s.ownContributionRecognizedIncurred)}, planowane: ${fmtCur(s.ownContributionRecognizedPlanned)}, łącznie: ${fmtCur(s.ownContributionRecognized)}).</span>
+      <div class="bm-card" style="margin-top:14px">
+        <div class="bm-card-header">
+          <div>
+            <div class="bm-card-title">🧭 Lejek finansowania — proste podsumowanie</div>
+            <div class="bm-card-subtitle">Krok po kroku: AS-IS (dziś) oraz po zrealizowaniu pozycji planowanych</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="bm-alert bm-alert-blue">
+            <span>1️⃣</span><span><strong>Całkowita wartość skonsolidowanego kredytu (AS-IS): ${fmtCur(s.loanAsIs)}</strong></span>
+          </div>
+          <div class="bm-alert bm-alert-green">
+            <span>2️⃣</span><span><strong>Wkład własny z działki: ${fmtCur(s.plotOwnContributionFromPlot)}</strong><br><small style="opacity:.8">• Różnica wartości działki (operat - cena zakupu): ${fmtCur(s.plotValueIncrease)}<br>• Wkład własny zapłacony na działkę: ${fmtCur(s.plotOwnContributionPaid)}<br>• Zapłacone odsetki: ${fmtCur(s.plotInterestPaid)}</small></span>
+          </div>
+          <div class="bm-alert bm-alert-yellow">
+            <span>3️⃣</span><span><strong>Koszty przygotowania działki — poniesione (liczone do wkładu): ${fmtCur(s.prepOwnEligibleIncurred)}</strong><br><small style="opacity:.8">${s.prepCosts.filter(row => row.countsAsOwnContribution && row.isIncurred).length ? s.prepCosts.filter(row => row.countsAsOwnContribution && row.isIncurred).map(row => `• ${row.name || 'Pozycja'}: ${fmtCur(row.amount)}`).join('<br>') : 'Brak poniesionych pozycji liczących się do wkładu własnego.'}</small></span>
+          </div>
+          <div class="bm-alert bm-alert-blue">
+            <span>4️⃣</span><span><strong>AS-IS: kredyt ${fmtCur(s.loanAsIs)} • wkład ${s.ownContributionAsIsPct.toFixed(1)}%</strong></span>
+          </div>
+          <div class="bm-alert bm-alert-yellow">
+            <span>5️⃣</span><span><strong>Planowane do poniesienia:</strong><br><small style="opacity:.8">Koszty przygotowania (planowane i liczone do wkładu): ${fmtCur(s.prepOwnEligiblePlanned)}<br>Zaliczka domu planowana: ${fmtCur(s.houseOwnCashPlanned)}<br>Jeśli nie poniesiesz planowanych: wkład zostaje ${s.ownContributionAsIsPct.toFixed(1)}%<br>Po poniesieniu planowanych: wkład rośnie do ${s.ownContributionWithPlanPct.toFixed(1)}% i kredyt spada do ${fmtCur(s.loanWithPlan)}.</small></span>
+          </div>
+          <div class="bm-alert bm-alert-green">
+            <span>6️⃣</span><span><strong>Dopłata do 20% wkładu:</strong> cel ${fmtCur(s.targetOwnContribution20)}, baza (operat + poniesione przygotowanie) ${fmtCur(s.ownContributionBase20)}, brakująca gotówka ${fmtCur(s.additionalCashTo20)}.</span>
+          </div>
+        </div>
       </div>
     </div>
   `;
