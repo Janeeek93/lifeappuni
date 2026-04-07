@@ -307,7 +307,8 @@ const TASKS_STORAGE_KEY = 'lifeos_tasks_pro_v2';
 const TRAININGS_STORAGE_KEY_MODERN = 'lifeos_trainings_month_v1';
 const TRAININGS_STORAGE_KEY_LEGACY = 'lifeos_trainings_v1';
 const TRAININGS_STORAGE_KEYS = [TRAININGS_STORAGE_KEY_MODERN, TRAININGS_STORAGE_KEY_LEGACY];
-const HOUSE_STORAGE_KEY = 'buildmaster_pro_v11';
+const HOUSE_STORAGE_KEY = 'bm_pro_v1';
+const HOUSE_STORAGE_KEY_LEGACY = 'buildmaster_pro_v11';
 const LOAN_STORAGE_KEY = 'lifeos_loan_v1';
 const SETTINGS_STORAGE_KEY = 'lifeos_settings_v1';
 const BACKUP_TIMESTAMP_KEY = 'lifeos_last_backup';
@@ -321,6 +322,21 @@ const BUDGET_EOM_UI_KEY = 'lifeos_budget_eom_ui_v1';
 const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
 const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
+
+function getHouseStorageRaw(){
+  return localStorage.getItem(HOUSE_STORAGE_KEY) || localStorage.getItem(HOUSE_STORAGE_KEY_LEGACY);
+}
+function setHouseStorageData(data){
+  const serialized = JSON.stringify(data);
+  localStorage.setItem(HOUSE_STORAGE_KEY, serialized);
+  localStorage.setItem(HOUSE_STORAGE_KEY_LEGACY, serialized);
+}
+function syncLegacyHouseStorageKey(){
+  const primary = localStorage.getItem(HOUSE_STORAGE_KEY);
+  const legacy = localStorage.getItem(HOUSE_STORAGE_KEY_LEGACY);
+  if(!primary && legacy) localStorage.setItem(HOUSE_STORAGE_KEY, legacy);
+}
+syncLegacyHouseStorageKey();
 
 const TRAINING_GOALS = {
   gym: { target: 3, unit: 'sesje', name: 'Siłownia', icon: '🏋️', msIcon: 'fitness_center' },
@@ -910,7 +926,7 @@ function renderKPIData(){
   }
 
   // --- House KPI ---
-  const houseRaw = localStorage.getItem(HOUSE_STORAGE_KEY);
+  const houseRaw = getHouseStorageRaw();
   if(houseRaw){
     const hState = safeParse(houseRaw, {});
     const tasks = Array.isArray(hState?.tasks) ? hState.tasks : [];
@@ -1487,7 +1503,7 @@ exportBtn.onclick = ()=>{
     fuel: JSON.parse(localStorage.getItem(FUEL_STORAGE_KEY) || 'null'),
     tasks_pro: JSON.parse(localStorage.getItem(TASKS_STORAGE_KEY) || 'null'),
     trainings: trainingData,
-    house: JSON.parse(localStorage.getItem(HOUSE_STORAGE_KEY) || 'null'),
+    house: JSON.parse(getHouseStorageRaw() || 'null'),
     loan: JSON.parse(localStorage.getItem(LOAN_STORAGE_KEY) || 'null'),
     settings: JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || 'null'),
     body_metrics: JSON.parse(localStorage.getItem(BODY_METRICS_KEY) || 'null'),
@@ -1522,7 +1538,7 @@ importInput.onchange = (e)=>{
         localStorage.setItem(TRAININGS_STORAGE_KEY_MODERN, JSON.stringify(data.trainings));
         localStorage.removeItem(TRAININGS_STORAGE_KEY_LEGACY);
       }
-      if(data.house) localStorage.setItem(HOUSE_STORAGE_KEY, JSON.stringify(data.house));
+      if(data.house) setHouseStorageData(data.house);
       if(data.loan) localStorage.setItem(LOAN_STORAGE_KEY, JSON.stringify(data.loan));
       if(data.settings) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data.settings));
       if(data.body_metrics) localStorage.setItem(BODY_METRICS_KEY, JSON.stringify(data.body_metrics));
