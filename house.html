@@ -2410,9 +2410,6 @@ bm.renderContractors = () => {
           <button class="bm-btn bm-btn-sm" onclick="bm.openContractorModal('${c.id}')">✏️ Edytuj</button>
           <button class="bm-btn bm-btn-danger bm-btn-sm" onclick="bm.deleteContractor('${c.id}')">🗑️</button>
         </div>
-        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
-          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
-        </div>
       </div>
     </div>
   `).join('');
@@ -2483,9 +2480,6 @@ bm.renderProjects = () => {
             <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openProjectModal('${p.id}')">✏️</button>
             <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteProject('${p.id}')">🗑️</button>
           </div>
-        </div>
-        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
-          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
         </div>
       </div>
     </div>
@@ -3457,7 +3451,7 @@ bm.openContractorModal = (cId) => {
     if (c) state.contractors=state.contractors.map(x=>x.id===obj.id?obj:x);
     else state.contractors.push(obj);
     addActivity('contractor',`${c?'Zaktualizowano':'Dodano'} wykonawcę: ${obj.name}`);
-    saveState(); closeModal(); bm.renderContractors();
+    saveState(); closeModal(); refreshAll();
     toast(c?'Wykonawca zaktualizowany':'Wykonawca dodany','success');
   });
 };
@@ -3466,7 +3460,7 @@ bm.deleteContractor = (id) => {
   const c = state.contractors.find(x=>x.id===id);
   showConfirm(`Usunąć wykonawcę "${c?.name}"?`,()=>{
     state.contractors=state.contractors.filter(x=>x.id!==id);
-    saveState(); bm.renderContractors(); toast('Wykonawca usunięty');
+    saveState(); refreshAll(); toast('Wykonawca usunięty');
   });
 };
 
