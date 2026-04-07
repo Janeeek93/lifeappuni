@@ -3788,9 +3788,22 @@ bm.closeModal = closeModal;
 
 document.getElementById('bm-modal').addEventListener('click', e => { if (e.target === document.getElementById('bm-modal')) closeModal(); });
 
+let confirmAction = null;
+bm.confirmOk = () => {
+  const cb = confirmAction;
+  confirmAction = null;
+  closeModal();
+  if (typeof cb === 'function') cb();
+};
+bm.confirmCancel = () => {
+  confirmAction = null;
+  closeModal();
+};
+
 function showConfirm(msg, onOk) {
+  confirmAction = onOk;
   openModal('Potwierdzenie', `<p style="font-size:14px;color:var(--bm-ink)">${msg}</p>`, null,
-    `<button class="bm-btn" onclick="closeModal()">Anuluj</button><button class="bm-btn bm-btn-danger" onclick="(function(){closeModal();(${onOk})()})()">Potwierdź</button>`);
+    `<button class="bm-btn" onclick="bm.confirmCancel()">Anuluj</button><button class="bm-btn bm-btn-danger" onclick="bm.confirmOk()">Potwierdź</button>`);
 }
 
 // ═══════════════════════════════════════════════════════
