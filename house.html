@@ -1586,35 +1586,24 @@ const defaultState = () => ({
     plotArea: 800,
   },
   phases: [
-    { id:'ph0', name:'Zakup działki',      icon:'📐', color:'#8B5CF6', order:0 },
-    { id:'ph1', name:'Projekt & Pozwolenia',icon:'📋', color:'#3B82F6', order:1 },
-    { id:'ph2', name:'Fundamenty',          icon:'⬛', color:'#64748B', order:2 },
-    { id:'ph3', name:'Stan surowy',         icon:'🧱', color:'#F59E0B', order:3 },
-    { id:'ph4', name:'Dach',               icon:'🏠', color:'#EF4444', order:4 },
-    { id:'ph5', name:'Instalacje',         icon:'⚡', color:'#10B981', order:5 },
-    { id:'ph6', name:'Tynki & wylewki',    icon:'🪣', color:'#F97316', order:6 },
-    { id:'ph7', name:'Wykończenia',        icon:'🎨', color:'#EC4899', order:7 },
-    { id:'ph8', name:'Zagospodarowanie',   icon:'🌳', color:'#22C55E', order:8 },
+    { id:'ph0', name:'Wybór projektu i podpisanie umowy wstępnej', icon:'📝', color:'#8B5CF6', order:0 },
+    { id:'ph1', name:'Przygotowanie działki pod budowę',           icon:'🌲', color:'#3B82F6', order:1 },
+    { id:'ph2', name:'Wnioski kredytowe',                          icon:'🏦', color:'#64748B', order:2 },
   ],
   tasks: [
-    { id:'t1', phaseId:'ph0', name:'Znalezienie działki',       status:'done',       startDate:'2025-01-01', endDate:'2025-02-28', subtasks:[], contractorId:'', cost:0, notes:'' },
-    { id:'t2', phaseId:'ph0', name:'Zakup działki — akt notarialny', status:'done',  startDate:'2025-03-01', endDate:'2025-03-31', subtasks:[], contractorId:'', cost:0, notes:'' },
-    { id:'t3', phaseId:'ph1', name:'Wybór architekta',           status:'inprogress', startDate:'2025-04-01', endDate:'2025-05-31', subtasks:[], contractorId:'', cost:0, notes:'' },
-    { id:'t4', phaseId:'ph1', name:'Projekt architektoniczny',   status:'todo',       startDate:'2025-05-01', endDate:'2025-08-31', subtasks:[], contractorId:'', cost:0, notes:'' },
-    { id:'t5', phaseId:'ph1', name:'Pozwolenie na budowę',       status:'todo',       startDate:'2025-09-01', endDate:'2025-11-30', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t1', phaseId:'ph0', name:'Zebranie i porównanie projektów domów modułowych', status:'todo', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t2', phaseId:'ph0', name:'Negocjacja i podpisanie umowy wstępnej',            status:'todo', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t3', phaseId:'ph1', name:'Wizyty architekta i plan przygotowania działki',     status:'todo', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t4', phaseId:'ph1', name:'Karczowanie i ogrodzenie terenu',                    status:'todo', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t5', phaseId:'ph2', name:'Rozpoznanie finansowania domu modułowego i konsolidacji', status:'inprogress', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
+    { id:'t6', phaseId:'ph2', name:'Przygotowanie operatu działki i dokumentów do banku',      status:'todo', startDate:'', endDate:'', subtasks:[], contractorId:'', cost:0, notes:'' },
   ],
   expenses: [],
   categories: [
-    { id:'c0',  name:'Działka',          icon:'📐', budget:0,      phaseId:'ph0' },
-    { id:'c1',  name:'Projekt & Pozwolenia', icon:'📋', budget:30000, phaseId:'ph1' },
-    { id:'c2',  name:'Fundamenty',       icon:'⬛', budget:50000, phaseId:'ph2' },
-    { id:'c3',  name:'Stan surowy',      icon:'🧱', budget:150000,phaseId:'ph3' },
-    { id:'c4',  name:'Dach',             icon:'🏠', budget:80000, phaseId:'ph4' },
-    { id:'c5',  name:'Instalacje',       icon:'⚡', budget:70000, phaseId:'ph5' },
-    { id:'c6',  name:'Tynki & wylewki',  icon:'🪣', budget:40000, phaseId:'ph6' },
-    { id:'c7',  name:'Wykończenia',      icon:'🎨', budget:100000,phaseId:'ph7' },
-    { id:'c8',  name:'Zagospodarowanie', icon:'🌳', budget:30000, phaseId:'ph8' },
-    { id:'c9',  name:'Inne',             icon:'📦', budget:20000, phaseId:null  },
+    { id:'c0',  name:'Projekt i umowa',     icon:'📝', budget:30000, phaseId:'ph0' },
+    { id:'c1',  name:'Przygotowanie działki', icon:'🌲', budget:60000, phaseId:'ph1' },
+    { id:'c2',  name:'Kredyt i formalności', icon:'🏦', budget:15000, phaseId:'ph2' },
+    { id:'c9',  name:'Inne',                 icon:'📦', budget:20000, phaseId:null  },
   ],
   contractors: [],
   materials: [],
@@ -1679,7 +1668,33 @@ function loadState() {
       ...(state.houseSimulation || {}),
       prepCosts: Array.isArray(state.houseSimulation?.prepCosts) ? state.houseSimulation.prepCosts : simDef.prepCosts,
     };
+    migrateLegacyDefaultPlan();
   } catch { state = defaultState(); }
+}
+
+function migrateLegacyDefaultPlan() {
+  const phaseNames = (state.phases || []).map(p => p?.name);
+  const legacyPhaseNames = [
+    'Zakup działki',
+    'Projekt & Pozwolenia',
+    'Fundamenty',
+    'Stan surowy',
+    'Dach',
+    'Instalacje',
+    'Tynki & wylewki',
+    'Wykończenia',
+    'Zagospodarowanie',
+  ];
+  const isLegacyDefault = legacyPhaseNames.every(name => phaseNames.includes(name));
+  if (!isLegacyDefault) return;
+
+  const def = defaultState();
+  state.phases = def.phases;
+  state.tasks = def.tasks;
+  state.categories = def.categories;
+  state.collapsedPhases = {};
+  addActivity('system', 'Zastosowano nowy, 3-etapowy szablon dla domu modułowego.');
+  saveState();
 }
 
 function saveState() { localStorage.setItem(APP_KEY, JSON.stringify(state)); }
@@ -1889,9 +1904,6 @@ function updateStepper() {
         <div class="bm-step-info">
           <div class="bm-step-label">${ph.name}</div>
           <div class="bm-step-pct">${tasks.length?pct+'%':'brak zadań'}</div>
-        </div>
-        <div class="bm-alert bm-alert-blue" style="margin-top:10px">
-          <span>📌</span><span>Wkład własny (poniesione): <strong>${fmtCur(s.ownContributionRecognizedIncurred)}</strong> • planowane: <strong>${fmtCur(s.ownContributionRecognizedPlanned)}</strong></span>
         </div>
       </div>
     </div>`;
@@ -2242,6 +2254,7 @@ function renderPhases() {
         ${svgRing(pct)}
         <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openPhaseModal('${ph.id}');event.stopPropagation()">✏️</button>
         <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openTaskModal(null,'${ph.id}');event.stopPropagation()">➕</button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.deletePhase('${ph.id}',event)">🗑️</button>
         <span class="bm-phase-chevron">▼</span>
       </div>
       ${!collapsed?`<div class="bm-phase-body">
@@ -3259,6 +3272,30 @@ bm.openPhaseModal = (phaseId) => {
     saveState(); closeModal(); refreshAll();
     toast(ph?'Etap zaktualizowany':'Etap dodany','success');
   });
+};
+
+bm.deletePhase = (phaseId, e) => {
+  if (e) e.stopPropagation();
+  const ph = state.phases.find(p => p.id === phaseId);
+  if (!ph) return;
+  const linkedTasks = state.tasks.filter(t => t.phaseId === phaseId).length;
+  const linkedExpenses = state.expenses.filter(x => x.phaseId === phaseId).length;
+  const linkedCategories = state.categories.filter(c => c.phaseId === phaseId).length;
+
+  showConfirm(
+    `Usunąć etap "${ph.name}"? Powiązane elementy: zadania ${linkedTasks}, wydatki ${linkedExpenses}, kategorie ${linkedCategories}.`,
+    () => {
+      state.phases = state.phases.filter(p => p.id !== phaseId);
+      state.tasks = state.tasks.filter(t => t.phaseId !== phaseId);
+      state.expenses = state.expenses.map(x => x.phaseId === phaseId ? { ...x, phaseId: '' } : x);
+      state.categories = state.categories.map(c => c.phaseId === phaseId ? { ...c, phaseId: null } : c);
+      if (state.collapsedPhases && state.collapsedPhases[phaseId] != null) delete state.collapsedPhases[phaseId];
+      addActivity('phase', `Usunięto etap: ${ph.name}`);
+      saveState();
+      refreshAll();
+      toast('Etap usunięty', 'success');
+    }
+  );
 };
 
 // ═══════════════════════════════════════════════════════
