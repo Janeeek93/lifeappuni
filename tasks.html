@@ -58,17 +58,17 @@
     .pf-chip[data-cid="me"].active{border-color:var(--accent);color:var(--accent);background:var(--accent-weak)}
     .pf-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
     .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.cal-nav-title{font-size:15px;font-weight:800}
-    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--card)}
+    .cal-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--card)}
     .cal-hdr{text-align:center;padding:9px 4px;background:var(--surface);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--line)}
     .cal-day{border-right:1px solid var(--line);border-top:1px solid var(--line);padding:7px 6px;min-height:155px;cursor:pointer;transition:background .12s;display:flex;flex-direction:column}
-    .cal-day:nth-child(7n){border-right:none}
+    .cal-day:nth-child(5n){border-right:none}
     .cal-day:hover{background:hsl(var(--accent-h) 60% 97%)}.cal-day.is-today{background:hsl(var(--accent-h) 68% 95%)}
     .cal-day.is-today .cal-dn{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
     .cal-day.is-sel{outline:2px solid var(--accent);outline-offset:-2px;background:hsl(var(--accent-h) 80% 96%)}
     .cal-day.other-m{opacity:.35;pointer-events:none}.cal-dn{font-weight:700;font-size:12px;margin-bottom:4px;line-height:1}
     .cal-pills{display:flex;flex-direction:column;gap:4px;flex:1}
     .cal-pill{display:flex;align-items:center;gap:3px;padding:2px 5px;border-radius:5px;font-size:9px;font-weight:700;overflow:hidden;border-left:3px solid transparent;line-height:1.4}
-    .cal-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .cal-pill span{overflow:visible;text-overflow:clip;white-space:normal;word-break:break-word;flex:1;line-height:1.3}
     .cal-pill.prio-high{background:var(--prio-high-bg);color:var(--prio-high-c)}.cal-pill.prio-medium{background:var(--prio-med-bg);color:var(--prio-med-c)}.cal-pill.prio-low{background:var(--prio-low-bg);color:var(--prio-low-c)}
     .cal-pill.is-done{background:var(--surface);color:var(--muted);border-left-color:var(--green)}.cal-pill.is-done span{text-decoration:line-through}
     .cal-dot{width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0}.cal-more{font-size:9px;color:var(--accent);font-weight:700}
@@ -296,7 +296,7 @@
             <div class="day-panel" id="day-panel">
               <div class="day-panel-head"><div class="dp-date" id="dp-date">—</div><div class="muted small" id="dp-dow">Kliknij dzień w kalendarzu</div></div>
               <div class="dp-body" id="dp-body"><div class="dp-empty">Kliknij dzień, żeby zobaczyć zadania.</div></div>
-              <div class="dp-foot" id="dp-foot" style="display:none"><input type="text" id="dp-inp" placeholder="Szybkie zadanie..."><button class="btn primary sm" id="dp-add">+</button></div>
+              <div class="dp-foot" id="dp-foot" style="display:none"><input type="text" id="dp-inp" placeholder="Szybkie zadanie..."><select id="dp-owner" style="max-width:150px"></select><button class="btn primary sm" id="dp-add">+</button></div>
             </div>
           </div>
         </div>
@@ -469,13 +469,14 @@ function getCalTasks(){
 function renderCalendar(){
   const el=document.getElementById('cal-grid'),titleEl=document.getElementById('cal-title');if(!el)return;
   const weekStart=startOfWeekUTC(calDate),prevWeek=new Date(weekStart),nextWeek=new Date(weekStart);prevWeek.setUTCDate(prevWeek.getUTCDate()-7);nextWeek.setUTCDate(nextWeek.getUTCDate()+7);
-  if(titleEl)titleEl.textContent=`Tydzień ${fmtShort(weekStart)} – ${fmtShort(new Date(Date.UTC(weekStart.getUTCFullYear(),weekStart.getUTCMonth(),weekStart.getUTCDate()+6)))} (${weekStart.toLocaleDateString('pl-PL',{month:'long',year:'numeric'})})`;
+  if(titleEl)titleEl.textContent=`Tydzień ${fmtShort(weekStart)} – ${fmtShort(new Date(Date.UTC(weekStart.getUTCFullYear(),weekStart.getUTCMonth(),weekStart.getUTCDate()+4)))} (${weekStart.toLocaleDateString('pl-PL',{month:'long',year:'numeric'})})`;
   const todStr=toYMD(todayUTC());
   const byDate={};getCalTasks().forEach(t=>{if(!t.dueDate)return;if(!byDate[t.dueDate])byDate[t.dueDate]=[];byDate[t.dueDate].push(t);});
-  let html=['Pon','Wt','Śr','Czw','Pt','Sob','Nie'].map(d=>`<div class="cal-hdr">${d}</div>`).join('');
+  let html=['Pon','Wt','Śr','Czw','Pt'].map(d=>`<div class="cal-hdr">${d}</div>`).join('');
   const rangeStart=new Date(prevWeek);
-  for(let i=0;i<21;i++){
-    const d=new Date(Date.UTC(rangeStart.getUTCFullYear(),rangeStart.getUTCMonth(),rangeStart.getUTCDate()+i));
+  for(let i=0;i<15;i++){
+    const dayOffset=Math.floor(i/5)*7+(i%5);
+    const d=new Date(Date.UTC(rangeStart.getUTCFullYear(),rangeStart.getUTCMonth(),rangeStart.getUTCDate()+dayOffset));
     const ds=toYMD(d),cls=[ds===todStr?'is-today':'',ds===calSel?'is-sel':''].filter(Boolean).join(' ');
     const dt=(byDate[ds]||[]).sort((a,b)=>priW(a.priority)-priW(b.priority));
     const owners={};
@@ -500,8 +501,15 @@ function updateDayPanel(ds){
   }
   if(dpFoot){
     dpFoot.style.display='flex';
-    const inp=document.getElementById('dp-inp'),addBtn=document.getElementById('dp-add');
-    const doAdd=()=>{const v=document.getElementById('dp-inp')?.value.trim();if(!v)return;S.tasks.push(normTask({title:v,dueDate:ds,priority:'medium',category:'work',status:'todo',createdAt:new Date().toISOString()}));save();renderCalendar();updateDayPanel(ds);renderKpis();document.getElementById('dp-inp').value='';};
+    const inp=document.getElementById('dp-inp'),addBtn=document.getElementById('dp-add'),ownSel=document.getElementById('dp-owner');
+    if(ownSel)ownSel.innerHTML=`<option value="me">Ja</option>${S.members.map(m=>`<option value="${m.id}">${escH(m.name)}</option>`).join('')}`;
+    const doAdd=()=>{
+      const v=document.getElementById('dp-inp')?.value.trim();if(!v)return;
+      const owner=document.getElementById('dp-owner')?.value||'me';
+      if(owner==='me')S.tasks.push(normTask({title:v,dueDate:ds,priority:'medium',category:'work',status:'todo',createdAt:new Date().toISOString()}));
+      else S.teamTasks.push(normTT({id:`tt_${Date.now()}`,title:v,assigneeId:owner,priority:'medium',dueDate:ds,status:'todo',createdAt:new Date().toISOString()}));
+      save();renderCalendar();updateDayPanel(ds);renderKpis();document.getElementById('dp-inp').value='';
+    };
     const nb=addBtn?.cloneNode(true);if(addBtn&&nb){addBtn.parentNode.replaceChild(nb,addBtn);nb.addEventListener('click',doAdd);}
     const ni=inp?.cloneNode(true);if(inp&&ni){inp.parentNode.replaceChild(ni,inp);ni.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doAdd();}});}
   }
