@@ -359,7 +359,7 @@
           <div class="card" style="padding:0;overflow:hidden">
             <div class="bulk-row">
               <label style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" id="bulk-select-all" style="width:14px;height:14px"> Zaznacz widoczne</label>
-              <button class="btn danger sm" id="bulk-delete-btn">🗑 Usuń zaznaczone</button>
+              <button class="btn danger sm" id="bulk-delete-btn">Usuń zaznaczone</button>
               <span class="small muted sp" id="bulk-count">0 zaznaczonych</span>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);align-items:center">
@@ -370,7 +370,7 @@
               <select id="f-sort" style="width:auto"><option value="due">Termin</option><option value="prio">Priorytet</option></select>
               <button id="f-sort-dir" class="btn sm">↑</button>
               <label style="display:flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap"><input type="checkbox" id="f-hide-done" checked style="width:14px;height:14px"> Ukryj wykonane</label>
-              <button class="btn danger sm" id="btn-clear-all">🗑</button>
+              <button class="btn danger sm" id="btn-clear-all"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
             </div>
             <div style="overflow-x:auto">
               <table class="t-table">
@@ -380,10 +380,10 @@
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:12px">
-            <div class="kpi-c"><span class="kpi-e">📌</span><div><div class="small muted">Wszystkie</div><div class="kpi-v" id="kpi-total">0</div><div class="small muted" id="kpi-total-note">—</div></div></div>
-            <div class="kpi-c"><span class="kpi-e">✅</span><div><div class="small muted">Ukończone</div><div class="kpi-v" id="kpi-done">0</div><div class="small muted" id="kpi-done-note">—</div></div></div>
-            <div class="kpi-c"><span class="kpi-e">⏱</span><div><div class="small muted">Zaległe</div><div class="kpi-v" id="kpi-over">0</div><div class="small muted" id="kpi-over-note">Brak</div></div></div>
-            <div class="kpi-c"><span class="kpi-e">📅</span><div><div class="small muted">Ten tydzień</div><div class="kpi-v" id="kpi-soon">0</div><div class="small muted" id="kpi-soon-note">—</div></div></div>
+            <div class="kpi-c"><span class="kpi-e material-symbols-outlined">task</span><div><div class="small muted">Wszystkie</div><div class="kpi-v" id="kpi-total">0</div><div class="small muted" id="kpi-total-note">—</div></div></div>
+            <div class="kpi-c"><span class="kpi-e material-symbols-outlined">task_alt</span><div><div class="small muted">Ukończone</div><div class="kpi-v" id="kpi-done">0</div><div class="small muted" id="kpi-done-note">—</div></div></div>
+            <div class="kpi-c"><span class="kpi-e material-symbols-outlined">schedule</span><div><div class="small muted">Zaległe</div><div class="kpi-v" id="kpi-over">0</div><div class="small muted" id="kpi-over-note">Brak</div></div></div>
+            <div class="kpi-c"><span class="kpi-e material-symbols-outlined">calendar_today</span><div><div class="small muted">Ten tydzień</div><div class="kpi-v" id="kpi-soon">0</div><div class="small muted" id="kpi-soon-note">—</div></div></div>
             <div class="i-bub" id="bub-prog">Postęp tygodnia: —</div>
             <div class="i-bub" id="bub-focus">Najbliższe kroki: —</div>
           </div>
@@ -721,15 +721,15 @@ function renderInsights(){
   const t=todayUTC(),w=new Date(t);w.setUTCDate(w.getUTCDate()+7);
   const pending=S.tasks.filter(x=>x.status!=='done'),ins=[];
   const over=pending.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;}).sort((a,b)=>parseDate(a.dueDate)-parseDate(b.dueDate));
-  if(over.length)ins.push({tone:'alert',icon:'⚠️',title:'Zaległości',body:`${over.length} zaległych. Najstarsze: „${over[0].title}" (${fmtShort(parseDate(over[0].dueDate))}, ${fmtRel(parseDate(over[0].dueDate),t)}).`});
-  else{const dc=S.tasks.filter(x=>x.status==='done').length;ins.push({tone:'success',icon:'🌟',title:'Brak zaległości',body:dc?`Brawo! ${dc} zadań ukończonych.`:'Żadnych zaległości.'});}
+  if(over.length)ins.push({tone:'alert',icon:'warning',title:'Zaległości',body:`${over.length} zaległych. Najstarsze: „${over[0].title}" (${fmtShort(parseDate(over[0].dueDate))}, ${fmtRel(parseDate(over[0].dueDate),t)}).`});
+  else{const dc=S.tasks.filter(x=>x.status==='done').length;ins.push({tone:'success',icon:'task_alt',title:'Brak zaległości',body:dc?`Brawo! ${dc} zadań ukończonych.`:'Żadnych zaległości.'});}
   const up=pending.filter(x=>{const d=parseDate(x.dueDate);return d&&d>=t;}).sort((a,b)=>priW(a.priority)-priW(b.priority)||parseDate(a.dueDate)-parseDate(b.dueDate));
-  if(up.length){const{title,dueDate,priority}=up[0];ins.push({tone:'focus',icon:'🎯',title:'Kolejny priorytet',body:`„${title}" (${{high:'wysoki',medium:'średni',low:'niski'}[priority]}) — ${fmtRel(parseDate(dueDate),t)}.`});}
+  if(up.length){const{title,dueDate,priority}=up[0];ins.push({tone:'focus',icon:'flag',title:'Kolejny priorytet',body:`„${title}" (${{high:'wysoki',medium:'średni',low:'niski'}[priority]}) — ${fmtRel(parseDate(dueDate),t)}.`});}
   const last7=new Date(t);last7.setUTCDate(last7.getUTCDate()-6);
   const c7=S.tasks.filter(x=>x.status==='done'&&x.dueDate&&parseDate(x.dueDate)>=last7&&parseDate(x.dueDate)<=t).length;
   const p7=pending.filter(x=>{const d=parseDate(x.dueDate);return d&&d>=t&&d<=w;}).length;
-  ins.push({tone:c7?'success':'focus',icon:c7?'✅':'🧭',title:'Bilans tygodnia',body:c7?`${c7} ukończonych w 7 dniach. ${p7} w planie.`:`0 ukończonych. ${p7} w planie.`});
-  el.innerHTML=ins.map(({tone,icon,title,body})=>`<div class="ins" data-tone="${tone}"><div class="ins-ico">${icon}</div><div><div class="ins-title">${title}</div><div class="ins-body">${body}</div></div></div>`).join('');
+  ins.push({tone:c7?'success':'focus',icon:c7?'check_circle':'explore',title:'Bilans tygodnia',body:c7?`${c7} ukończonych w 7 dniach. ${p7} w planie.`:`0 ukończonych. ${p7} w planie.`});
+  el.innerHTML=ins.map(({tone,icon,title,body})=>`<div class="ins" data-tone="${tone}"><div class="ins-ico"><span class="material-symbols-outlined" style="font-size:18px">${icon}</span></div><div><div class="ins-title">${title}</div><div class="ins-body">${body}</div></div></div>`).join('');
 }
 function renderTaskTable(){
   const tbody=document.getElementById('task-tbody');if(!tbody)return;
