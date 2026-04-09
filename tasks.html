@@ -201,6 +201,9 @@
     .ov-item-main{min-width:0}
     .ov-item-title{font-size:12px;font-weight:700;line-height:1.35}
     .ov-item-meta{font-size:10px;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:7px}
+    .ov-note-jump{width:100%;text-align:left;cursor:pointer}
+    .ov-note-jump:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .jump-focus{box-shadow:0 0 0 2px hsl(var(--accent-h) 75% 78% / .7) inset;transition:box-shadow .2s}
     .ov-empty{font-size:11px;color:var(--muted);padding:10px;border:1px dashed var(--line);border-radius:var(--r-sm);text-align:center}
     .ov-load{display:flex;align-items:center;gap:9px}
     .ov-load .bar{height:7px;flex:1;background:var(--line);border-radius:999px;overflow:hidden}
@@ -725,10 +728,11 @@ function renderOverview(){
     ].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,3);
     notesEl.innerHTML=mergedNotes.length?mergedNotes.map(({source,note})=>{
       const m=source==='person'?S.members.find(x=>x.id===note.personId):null;
-      const ownerLabel=source==='self'?'🧑 Ja':(m?`👤 ${escH(m.name)}`:'👥 Ogólna');
+      const ownerLabel=source==='self'?`<span class="material-symbols-outlined" style="font-size:13px">face</span> Ja`:(m?`<span class="material-symbols-outlined" style="font-size:13px">person</span> ${escH(m.name)}`:`<span class="material-symbols-outlined" style="font-size:13px">group</span> Ogólna`);
       const sourceLabel=source==='self'?'Notatka własna':'Notatka osoby';
-      return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span>${ownerLabel}</span><span>${sourceLabel}</span><span>🕒 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45">${escH((note.content||'').slice(0,100))}${(note.content||'').length>100?'…':''}</div></div></div>`;
+      return `<button type="button" class="ov-item ov-note-jump" data-ov-source="${source}" data-ov-note-id="${note.id}" data-ov-person-id="${note.personId||''}" title="Przejdź do tej notatki"><div class="ov-item-main"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span style="display:inline-flex;align-items:center;gap:4px">${ownerLabel}</span><span>${sourceLabel}</span><span style="display:inline-flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">schedule</span> ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45">${escH((note.content||'').slice(0,100))}${(note.content||'').length>100?'…':''}</div></div></button>`;
     }).join(''):'<div class="ov-empty">Brak notatek. Dodawaj 1on1, blokery i notatki własne.</div>';
+    notesEl.querySelectorAll('.ov-note-jump').forEach(btn=>btn.addEventListener('click',()=>jumpToOverviewNote(btn.dataset.ovSource,btn.dataset.ovNoteId,btn.dataset.ovPersonId||null)));
   }
 }
 function renderKpis(){
@@ -848,6 +852,38 @@ function showModal(title,wide,bodyHtml,buttons){
 }
 function showAlert(msg){showModal(msg,false,'',[{label:'OK',cls:'btn primary'}]);}
 function showConfirm(msg,onYes){showModal(msg,false,'',[{label:'Anuluj',cls:'btn'},{label:'Potwierdź',cls:'btn danger',fn:onYes}]);}
+function switchModule(id){
+  document.querySelectorAll('.mod-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelector(`.mod-tab[data-mod="${id}"]`)?.classList.add('active');
+  document.getElementById(`mod-${id}`)?.classList.add('active');
+  if(id==='overview')renderOverview();
+  if(id==='stats')renderStats();
+  if(id==='team'){renderMemberList();renderPersonDetail();}
+  if(id==='calendar'){buildCalFilter();renderCalendar();}
+  if(id==='mytasks')renderMyTasks();
+  if(id==='selfnotes')renderSelfNotes();
+}
+function focusJumpTarget(selector){
+  const el=document.querySelector(selector);
+  if(!el)return false;
+  el.classList.add('jump-focus');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>el.classList.remove('jump-focus'),1700);
+  return true;
+}
+function jumpToOverviewNote(source,noteId,personId){
+  if(source==='self'){
+    switchModule('selfnotes');
+    requestAnimationFrame(()=>{if(!focusJumpTarget(`.note-entry[data-snid="${noteId}"]`))showAlert('Nie udało się odnaleźć notatki własnej.');});
+    return;
+  }
+  if(!personId){showAlert('Ta notatka nie ma przypisanej osoby.');return;}
+  selMember=personId;
+  activePTab='notes';
+  switchModule('team');
+  requestAnimationFrame(()=>{if(!focusJumpTarget(`#notes-list-area .note-entry[data-nid="${noteId}"]`))showAlert('Nie udało się odnaleźć notatki osoby.');});
+}
 
 // ── INIT ──
 function init(){
@@ -855,12 +891,8 @@ function init(){
   // sidebar
   const cp=document.body.dataset.page;document.querySelectorAll('.sidebar__link[data-page]').forEach(l=>{l.classList.toggle('sidebar__link--active',l.dataset.page===cp);if(l.dataset.page===cp)l.setAttribute('aria-current','page');});
   // module switching
-  document.querySelectorAll('.mod-tab').forEach(tab=>tab.addEventListener('click',()=>{
-    document.querySelectorAll('.mod-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
-    tab.classList.add('active');const id=tab.dataset.mod;document.getElementById(`mod-${id}`)?.classList.add('active');
-    if(id==='overview')renderOverview();if(id==='stats')renderStats();if(id==='team'){renderMemberList();}if(id==='calendar'){buildCalFilter();renderCalendar();}if(id==='mytasks')renderMyTasks();if(id==='selfnotes')renderSelfNotes();
-  }));
-  document.querySelectorAll('[data-mod-jump]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelector(`.mod-tab[data-mod="${btn.dataset.modJump}"]`)?.click();}));
+  document.querySelectorAll('.mod-tab').forEach(tab=>tab.addEventListener('click',()=>switchModule(tab.dataset.mod)));
+  document.querySelectorAll('[data-mod-jump]').forEach(btn=>btn.addEventListener('click',()=>switchModule(btn.dataset.modJump)));
   // calendar nav
   document.getElementById('cal-prev')?.addEventListener('click',()=>{calDate.setUTCDate(calDate.getUTCDate()-7);renderCalendar();});
   document.getElementById('cal-today')?.addEventListener('click',()=>{calDate=todayUTC();calSel=toYMD(todayUTC());renderCalendar();updateDayPanel(calSel);});
