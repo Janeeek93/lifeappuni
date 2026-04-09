@@ -171,6 +171,28 @@
     .tt-toggle{cursor:pointer;user-select:none}
     .tt-toggle:hover{color:var(--accent)}
     .due-opt{font-size:9px;font-weight:400;color:var(--muted);font-style:italic}
+    /* OVERVIEW */
+    .overview-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+    .ov-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+    .ov-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .ov-title{font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .ov-sub{font-size:11px;color:var(--muted)}
+    .ov-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .ov-kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px}
+    .ov-kpi-val{font-size:22px;font-weight:800;line-height:1}
+    .ov-kpi-lbl{font-size:10px;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.4px}
+    .ov-list{display:flex;flex-direction:column;gap:8px}
+    .ov-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px}
+    .ov-item-main{min-width:0}
+    .ov-item-title{font-size:12px;font-weight:700;line-height:1.35}
+    .ov-item-meta{font-size:10px;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:7px}
+    .ov-empty{font-size:11px;color:var(--muted);padding:10px;border:1px dashed var(--line);border-radius:var(--r-sm);text-align:center}
+    .ov-load{display:flex;align-items:center;gap:9px}
+    .ov-load .bar{height:7px;flex:1;background:var(--line);border-radius:999px;overflow:hidden}
+    .ov-load .bar > span{display:block;height:100%;background:var(--accent)}
+    .ov-link-row{display:flex;flex-wrap:wrap;gap:8px}
+    @media(max-width:1100px){.ov-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:900px){.overview-grid{grid-template-columns:1fr}.ov-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 </head>
 <body data-page="tasks">
@@ -208,13 +230,48 @@
     </header>
     <div class="content"><main class="page-content stack">
       <div class="module-nav">
-        <button class="mod-tab active" data-mod="calendar">📅 Kalendarz</button>
+        <button class="mod-tab active" data-mod="overview">🪷 Dashboard</button>
+        <button class="mod-tab" data-mod="calendar">📅 Kalendarz</button>
         <button class="mod-tab" data-mod="team">👥 Zespół</button>
         <button class="mod-tab" data-mod="mytasks">✅ Moje Zadania</button>
         <button class="mod-tab" data-mod="stats">📊 Statystyki</button>
       </div>
+      <!-- OVERVIEW -->
+      <div id="mod-overview" class="module active">
+        <div class="overview-grid">
+          <section class="ov-card" style="grid-column:span 12">
+            <div class="ov-head"><div><div class="ov-title">✨ Fokus dnia</div><div class="ov-sub">Najważniejsze informacje z zespołu i Twojej agendy.</div></div></div>
+            <div class="ov-kpis">
+              <div class="ov-kpi"><div class="ov-kpi-val" id="ov-total-open">0</div><div class="ov-kpi-lbl">Otwarte taski</div></div>
+              <div class="ov-kpi"><div class="ov-kpi-val" id="ov-overdue">0</div><div class="ov-kpi-lbl">Po terminie</div></div>
+              <div class="ov-kpi"><div class="ov-kpi-val" id="ov-week">0</div><div class="ov-kpi-lbl">Deadline 7 dni</div></div>
+              <div class="ov-kpi"><div class="ov-kpi-val" id="ov-notes">0</div><div class="ov-kpi-lbl">Notatki (14 dni)</div></div>
+            </div>
+          </section>
+          <section class="ov-card" style="grid-column:span 7">
+            <div class="ov-head"><div><div class="ov-title">🧑‍🤝‍🧑 Workload zespołu</div><div class="ov-sub">Podział zadań na osoby i poziom obciążenia.</div></div></div>
+            <div class="ov-list" id="ov-workload-list"></div>
+          </section>
+          <section class="ov-card" style="grid-column:span 5">
+            <div class="ov-head"><div><div class="ov-title">🗓️ Twoja agenda</div><div class="ov-sub">Co trzeba dowieźć najbliżej.</div></div></div>
+            <div class="ov-list" id="ov-agenda-list"></div>
+          </section>
+          <section class="ov-card" style="grid-column:span 7">
+            <div class="ov-head"><div><div class="ov-title">🚨 Ryzyka i blokery</div><div class="ov-sub">Zadania z wysokim priorytetem lub opóźnione.</div></div></div>
+            <div class="ov-list" id="ov-risks-list"></div>
+          </section>
+          <section class="ov-card" style="grid-column:span 5">
+            <div class="ov-head"><div><div class="ov-title">📝 Ostatnie notatki 1on1 / task</div><div class="ov-sub">Najświeższe ustalenia i next steps.</div></div></div>
+            <div class="ov-list" id="ov-notes-list"></div>
+            <div class="ov-link-row" style="margin-top:12px">
+              <button class="btn sm" data-mod-jump="team">Przejdź do zespołu</button>
+              <button class="btn sm" data-mod-jump="mytasks">Przejdź do moich tasków</button>
+            </div>
+          </section>
+        </div>
+      </div>
       <!-- CALENDAR -->
-      <div id="mod-calendar" class="module active">
+      <div id="mod-calendar" class="module">
         <div class="person-filter" id="cal-filter"></div>
         <div class="cal-layout">
           <div>
@@ -345,7 +402,7 @@ let statsR=7,statsC='all';
 // storage
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
 function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
-const save=()=>localStorage.setItem(STORE,JSON.stringify(S));
+const save=()=>{localStorage.setItem(STORE,JSON.stringify(S));if(document.getElementById('mod-overview'))renderOverview();};
 // normalizers
 const PRIOS=new Set(['low','medium','high']),CATS=new Set(['work','private']),RECURS=new Set(['none','daily','weekly','monthly']);
 function normTask(r,i=0){if(!r||typeof r!=='object')return null;const id=(typeof r.id==='string'&&r.id.trim())?r.id:`t_${r.createdAt||i}`;return{id,title:(r.title||'').trim()||'Bez nazwy',notes:(r.notes||''),dueDate:(r.dueDate||''),priority:PRIOS.has(r.priority)?r.priority:'medium',category:CATS.has(r.category)?r.category:'work',recurrence:RECURS.has(r.recurrence)?r.recurrence:'none',status:r.status==='done'?'done':'todo',tags:Array.isArray(r.tags)?r.tags.filter(t=>t&&t.trim()).map(t=>t.trim()):[],createdAt:r.createdAt||new Date().toISOString(),subtasks:Array.isArray(r.subtasks)?r.subtasks.map((s,si)=>{const tx=(s?.text||'').trim();if(!tx)return null;return{id:s.id||`s_${id}_${si}`,text:tx,done:!!s.done};}).filter(Boolean):[]};}
@@ -495,6 +552,40 @@ function openTTModal(tid,ownerId){
 
 // ── MY TASKS ──
 function renderMyTasks(){renderKpis();renderInsights();renderTaskTable();}
+function renderOverview(){
+  const t=todayUTC(),h7=new Date(t);h7.setUTCDate(h7.getUTCDate()+7);
+  const allOpen=[...S.tasks.filter(x=>x.status!=='done').map(task=>({...task,_owner:'Ja',_color:'var(--accent)'})),...S.teamTasks.filter(x=>x.status!=='done').map(task=>{const m=S.members.find(mm=>mm.id===task.assigneeId);return {...task,_owner:m?.name||'Bez osoby',_color:m?.color||'#64748b'};})];
+  const overdue=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;});
+  const week=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d>=t&&d<=h7;});
+  const notes14=S.notes.filter(n=>{const d=new Date(n.createdAt);return d>=new Date(Date.now()-13*DAY);});
+  const setTxt=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setTxt('ov-total-open',String(allOpen.length));setTxt('ov-overdue',String(overdue.length));setTxt('ov-week',String(week.length));setTxt('ov-notes',String(notes14.length));
+
+  const loadEl=document.getElementById('ov-workload-list');
+  if(loadEl){
+    const per=S.members.map(m=>{const open=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done');const over=open.filter(tt=>{const d=parseDate(tt.dueDate);return d&&d<t;}).length;return {m,open:open.length,over};});
+    const max=Math.max(1,...per.map(x=>x.open));
+    loadEl.innerHTML=per.length?per.sort((a,b)=>b.open-a.open).map(({m,open,over})=>`<div class="ov-item"><div class="ov-item-main" style="flex:1"><div class="ov-item-title">${escH(m.name)}</div><div class="ov-item-meta"><span>${open} aktywnych</span>${over?`<span style="color:var(--red)">⚠️ ${over} po terminie</span>`:'<span>bez zaległości</span>'}</div><div class="ov-load"><div class="bar"><span style="width:${Math.round(open/max*100)}%;background:${m.color}"></span></div><strong style="font-size:11px">${Math.round(open/max*100)}%</strong></div></div></div>`).join(''):'<div class="ov-empty">Dodaj członków zespołu i zadania, aby zobaczyć workload.</div>';
+  }
+
+  const agendaEl=document.getElementById('ov-agenda-list');
+  if(agendaEl){
+    const mine=S.tasks.filter(x=>x.status!=='done').map(task=>({task,d:parseDate(task.dueDate)})).sort((a,b)=>{if(a.d&&b.d)return a.d-b.d;if(a.d)return -1;if(b.d)return 1;return priW(a.task.priority)-priW(b.task.priority);}).slice(0,5);
+    agendaEl.innerHTML=mine.length?mine.map(({task,d})=>`<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span>${{high:'🔴 Wysoki',medium:'🟠 Średni',low:'🟢 Niski'}[task.priority]}</span><span>${d?`📅 ${fmtShort(d)} (${fmtRel(d,t)})`:'bez terminu'}</span></div></div></div>`).join(''):'<div class="ov-empty">Brak aktywnych zadań. Czas zaplanować tydzień ✨</div>';
+  }
+
+  const riskEl=document.getElementById('ov-risks-list');
+  if(riskEl){
+    const risky=[...allOpen].filter(task=>task.priority==='high'||(task.dueDate&&parseDate(task.dueDate)<t)).sort((a,b)=>{const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);if(ad&&bd)return ad-bd;return priW(a.priority)-priW(b.priority);}).slice(0,6);
+    riskEl.innerHTML=risky.length?risky.map(task=>{const d=parseDate(task.dueDate);const late=d&&d<t;return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span style="color:${task._color}">👤 ${escH(task._owner)}</span><span>${d?`📅 ${fmtShort(d)} ${late?`<strong style="color:var(--red)">(po terminie)</strong>`:''}`:'bez terminu'}</span></div></div><span class="pill prio-${task.priority}">${{high:'Wysoki',medium:'Średni',low:'Niski'}[task.priority]}</span></div>`;}).join(''):'<div class="ov-empty">Brak zadań ryzykownych 🔥</div>';
+  }
+
+  const notesEl=document.getElementById('ov-notes-list');
+  if(notesEl){
+    const latest=[...S.notes].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,4);
+    notesEl.innerHTML=latest.length?latest.map(note=>{const m=S.members.find(x=>x.id===note.personId);return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span>${m?`👤 ${escH(m.name)}`:'👤 Ogólna'}</span><span>🕒 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45">${escH((note.content||'').slice(0,100))}${(note.content||'').length>100?'…':''}</div></div></div>`;}).join(''):'<div class="ov-empty">Brak notatek. Dodawaj 1on1, blokery i next steps.</div>';
+  }
+}
 function renderKpis(){
   const t=todayUTC(),tasks=S.tasks,total=tasks.length,done=tasks.filter(x=>x.status==='done').length,active=tasks.filter(x=>x.status!=='done');
   const rate=total?Math.round(done/total*100):0;
@@ -613,8 +704,9 @@ function init(){
   document.querySelectorAll('.mod-tab').forEach(tab=>tab.addEventListener('click',()=>{
     document.querySelectorAll('.mod-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
     tab.classList.add('active');const id=tab.dataset.mod;document.getElementById(`mod-${id}`)?.classList.add('active');
-    if(id==='stats')renderStats();if(id==='team'){renderMemberList();}if(id==='calendar'){buildCalFilter();renderCalendar();}if(id==='mytasks')renderMyTasks();
+    if(id==='overview')renderOverview();if(id==='stats')renderStats();if(id==='team'){renderMemberList();}if(id==='calendar'){buildCalFilter();renderCalendar();}if(id==='mytasks')renderMyTasks();
   }));
+  document.querySelectorAll('[data-mod-jump]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelector(`.mod-tab[data-mod="${btn.dataset.modJump}"]`)?.click();}));
   // calendar nav
   document.getElementById('cal-prev')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()-1);renderCalendar();});
   document.getElementById('cal-next')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()+1);renderCalendar();});
@@ -656,7 +748,7 @@ function init(){
   document.getElementById('btn-export')?.addEventListener('click',()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`lifeos-workhub-${new Date().toISOString().slice(0,10)}.json`;a.click();});
   document.getElementById('btn-import')?.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const p=sp(ev.target.result,null);if(p&&Array.isArray(p.tasks)){S.tasks=p.tasks.map(normTask).filter(Boolean);if(Array.isArray(p.members))S.members=p.members.map(normMember);if(Array.isArray(p.teamTasks))S.teamTasks=p.teamTasks.map(normTT).filter(Boolean);if(Array.isArray(p.notes))S.notes=p.notes.map(normNote).filter(Boolean);save();renderMyTasks();renderCalendar();renderMemberList();showAlert('Zaimportowano pomyślnie!');}else showAlert('Nieprawidłowy plik JSON.');};r.readAsText(f);};inp.click();});
   // initial render
-  buildCalFilter();renderCalendar();renderMyTasks();
+  renderOverview();buildCalFilter();renderCalendar();renderMyTasks();
 }
 init();
 
