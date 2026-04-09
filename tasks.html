@@ -681,7 +681,12 @@ function renderOverview(){
   const riskEl=document.getElementById('ov-risks-list');
   if(riskEl){
     const risky=[...allOpen].filter(task=>task.priority==='high'||(task.dueDate&&parseDate(task.dueDate)<t)).sort((a,b)=>{const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);if(ad&&bd)return ad-bd;return priW(a.priority)-priW(b.priority);}).slice(0,6);
-    riskEl.innerHTML=risky.length?risky.map(task=>{const d=parseDate(task.dueDate);const late=d&&d<t;return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span style="color:${task._color}">👤 ${escH(task._owner)}</span><span>${d?`📅 ${fmtShort(d)} ${late?`<strong style="color:var(--red)">(po terminie)</strong>`:''}`:'bez terminu'}</span></div></div><span class="pill prio-${task.priority}">${{high:'Wysoki',medium:'Średni',low:'Niski'}[task.priority]}</span></div>`;}).join(''):'<div class="ov-empty">Brak zadań ryzykownych 🔥</div>';
+    if(!risky.length){riskEl.innerHTML='<div class="ov-empty">Brak zadań ryzykownych 🔥</div>';}
+    else{
+      const byOwner={};
+      risky.forEach(task=>{const owner=task._owner||'Bez osoby';if(!byOwner[owner])byOwner[owner]={color:task._color||'#64748b',tasks:[]};byOwner[owner].tasks.push(task);});
+      riskEl.innerHTML=Object.entries(byOwner).sort((a,b)=>b[1].tasks.length-a[1].tasks.length).map(([owner,val])=>`<div class="ov-item" style="display:block"><div class="ov-item-title" style="margin-bottom:6px"><span style="display:inline-flex;align-items:center;gap:6px"><span class="dot" style="width:8px;height:8px;border-radius:50%;background:${val.color}"></span> ${escH(owner)}</span> <span class="small muted">(${val.tasks.length})</span></div><div class="ov-list">${val.tasks.map(task=>{const d=parseDate(task.dueDate);const late=d&&d<t;return `<div class="ov-item" style="padding:8px"><div class="ov-item-main"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span>${d?`📅 ${fmtShort(d)} ${late?`<strong style="color:var(--red)">(po terminie)</strong>`:''}`:'bez terminu'}</span></div></div><span class="pill prio-${task.priority}">${{high:'Wysoki',medium:'Średni',low:'Niski'}[task.priority]}</span></div>`;}).join('')}</div></div>`).join('');
+    }
   }
 
   const notesEl=document.getElementById('ov-notes-list');
