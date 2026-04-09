@@ -60,18 +60,21 @@
     .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.cal-nav-title{font-size:15px;font-weight:800}
     .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--card)}
     .cal-hdr{text-align:center;padding:9px 4px;background:var(--surface);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--line)}
-    .cal-day{border-right:1px solid var(--line);border-top:1px solid var(--line);padding:6px 5px;min-height:88px;cursor:pointer;transition:background .12s;display:flex;flex-direction:column}
-    .cal-day:nth-child(-n+7){border-top:none}.cal-day:nth-child(7n){border-right:none}
+    .cal-day{border-right:1px solid var(--line);border-top:1px solid var(--line);padding:7px 6px;min-height:155px;cursor:pointer;transition:background .12s;display:flex;flex-direction:column}
+    .cal-day:nth-child(7n){border-right:none}
     .cal-day:hover{background:hsl(var(--accent-h) 60% 97%)}.cal-day.is-today{background:hsl(var(--accent-h) 68% 95%)}
     .cal-day.is-today .cal-dn{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
     .cal-day.is-sel{outline:2px solid var(--accent);outline-offset:-2px;background:hsl(var(--accent-h) 80% 96%)}
     .cal-day.other-m{opacity:.35;pointer-events:none}.cal-dn{font-weight:700;font-size:12px;margin-bottom:4px;line-height:1}
-    .cal-pills{display:flex;flex-direction:column;gap:2px;flex:1}
+    .cal-pills{display:flex;flex-direction:column;gap:4px;flex:1}
     .cal-pill{display:flex;align-items:center;gap:3px;padding:2px 5px;border-radius:5px;font-size:9px;font-weight:700;overflow:hidden;border-left:3px solid transparent;line-height:1.4}
     .cal-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
     .cal-pill.prio-high{background:var(--prio-high-bg);color:var(--prio-high-c)}.cal-pill.prio-medium{background:var(--prio-med-bg);color:var(--prio-med-c)}.cal-pill.prio-low{background:var(--prio-low-bg);color:var(--prio-low-c)}
     .cal-pill.is-done{background:var(--surface);color:var(--muted);border-left-color:var(--green)}.cal-pill.is-done span{text-decoration:line-through}
     .cal-dot{width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0}.cal-more{font-size:9px;color:var(--accent);font-weight:700}
+    .cal-own{border:1px dashed var(--line);border-radius:6px;padding:3px 4px;background:rgb(255 255 255 / .55)}
+    .cal-own-h{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;margin-bottom:2px}
+    .cal-own-h .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
     .day-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);position:sticky;top:80px;overflow:hidden}
     .day-panel-head{padding:18px 18px 14px;border-bottom:1px solid var(--line)}.dp-date{font-size:18px;font-weight:800;line-height:1.1}
     .dp-body{padding:14px;display:flex;flex-direction:column;gap:8px;min-height:200px}
@@ -443,6 +446,7 @@ const pad=n=>String(n).padStart(2,'0');
 function toYMD(d){return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;}
 function parseDate(s){if(!s)return null;const[y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d));}
 function todayUTC(){const d=new Date();return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));}
+function startOfWeekUTC(d){const x=new Date(d);const dow=x.getUTCDay()===0?6:x.getUTCDay()-1;x.setUTCDate(x.getUTCDate()-dow);return x;}
 function fmtShort(d){return d.toLocaleDateString('pl-PL',{day:'2-digit',month:'short'});}
 function fmtRel(target,base){const diff=Math.round((target-base)/DAY);if(diff===0)return'dzisiaj';if(diff===1)return'jutro';if(diff===-1)return'wczoraj';const n=Math.abs(diff);return diff>0?`za ${n}d`:`${n}d temu`;}
 const priW=p=>({high:0,medium:1,low:2}[p]??3);
@@ -464,21 +468,21 @@ function getCalTasks(){
 }
 function renderCalendar(){
   const el=document.getElementById('cal-grid'),titleEl=document.getElementById('cal-title');if(!el)return;
-  const y=calDate.getUTCFullYear(),mo=calDate.getUTCMonth();
-  if(titleEl)titleEl.textContent=new Date(Date.UTC(y,mo,1)).toLocaleDateString('pl-PL',{month:'long',year:'numeric'});
-  const first=new Date(Date.UTC(y,mo,1)),last=new Date(Date.UTC(y,mo+1,0)),dow0=first.getUTCDay()===0?6:first.getUTCDay()-1,todStr=toYMD(todayUTC());
+  const weekStart=startOfWeekUTC(calDate),prevWeek=new Date(weekStart),nextWeek=new Date(weekStart);prevWeek.setUTCDate(prevWeek.getUTCDate()-7);nextWeek.setUTCDate(nextWeek.getUTCDate()+7);
+  if(titleEl)titleEl.textContent=`Tydzień ${fmtShort(weekStart)} – ${fmtShort(new Date(Date.UTC(weekStart.getUTCFullYear(),weekStart.getUTCMonth(),weekStart.getUTCDate()+6)))} (${weekStart.toLocaleDateString('pl-PL',{month:'long',year:'numeric'})})`;
+  const todStr=toYMD(todayUTC());
   const byDate={};getCalTasks().forEach(t=>{if(!t.dueDate)return;if(!byDate[t.dueDate])byDate[t.dueDate]=[];byDate[t.dueDate].push(t);});
   let html=['Pon','Wt','Śr','Czw','Pt','Sob','Nie'].map(d=>`<div class="cal-hdr">${d}</div>`).join('');
-  for(let i=0;i<dow0;i++){const pd=new Date(Date.UTC(y,mo,-(dow0-i-1)));html+=`<div class="cal-day other-m"><span class="cal-dn">${pd.getUTCDate()}</span></div>`;}
-  for(let d=1;d<=last.getUTCDate();d++){
-    const ds=`${y}-${pad(mo+1)}-${pad(d)}`;
-    const cls=[ds===todStr?'is-today':'',ds===calSel?'is-sel':''].filter(Boolean).join(' ');
-    const dt=byDate[ds]||[],shown=dt.slice(0,3),more=dt.length-3;
-    const pills=shown.map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${t._color}"><div class="cal-dot" style="background:${t._color}"></div><span>${t.title}</span></div>`).join('');
-    html+=`<div class="cal-day ${cls}" data-ds="${ds}"><span class="cal-dn">${d}</span><div class="cal-pills">${pills}${more>0?`<div class="cal-more">+${more}</div>`:''}</div></div>`;
+  const rangeStart=new Date(prevWeek);
+  for(let i=0;i<21;i++){
+    const d=new Date(Date.UTC(rangeStart.getUTCFullYear(),rangeStart.getUTCMonth(),rangeStart.getUTCDate()+i));
+    const ds=toYMD(d),cls=[ds===todStr?'is-today':'',ds===calSel?'is-sel':''].filter(Boolean).join(' ');
+    const dt=(byDate[ds]||[]).sort((a,b)=>priW(a.priority)-priW(b.priority));
+    const owners={};
+    dt.forEach(task=>{const key=task._owner||'me';if(!owners[key])owners[key]={name:key==='me'?'Ja':(task._ownerName||S.members.find(m=>m.id===key)?.name||'Członek'),color:task._color||'#64748b',tasks:[]};owners[key].tasks.push(task);});
+    const ownerBlocks=Object.values(owners).map(o=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span class="muted" style="font-size:8px">(${o.tasks.length})</span></div>${o.tasks.slice(0,2).map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}"><span>${escH(t.title)}</span></div>`).join('')}${o.tasks.length>2?`<div class="cal-more">+${o.tasks.length-2}</div>`:''}</div>`).join('');
+    html+=`<div class="cal-day ${cls}" data-ds="${ds}"><span class="cal-dn">${d.getUTCDate()}</span><div class="cal-pills">${ownerBlocks||'<div class="muted small">—</div>'}</div></div>`;
   }
-  const rem=(7-(dow0+last.getUTCDate())%7)%7;
-  for(let i=1;i<=rem;i++)html+=`<div class="cal-day other-m"><span class="cal-dn">${i}</span></div>`;
   el.innerHTML=`<div class="cal-grid">${html}</div>`;
   el.querySelectorAll('.cal-day[data-ds]').forEach(c=>c.addEventListener('click',()=>{calSel=c.dataset.ds;renderCalendar();updateDayPanel(calSel);}));
 }
@@ -769,8 +773,8 @@ function init(){
   }));
   document.querySelectorAll('[data-mod-jump]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelector(`.mod-tab[data-mod="${btn.dataset.modJump}"]`)?.click();}));
   // calendar nav
-  document.getElementById('cal-prev')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()-1);renderCalendar();});
-  document.getElementById('cal-next')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()+1);renderCalendar();});
+  document.getElementById('cal-prev')?.addEventListener('click',()=>{calDate.setUTCDate(calDate.getUTCDate()-7);renderCalendar();});
+  document.getElementById('cal-next')?.addEventListener('click',()=>{calDate.setUTCDate(calDate.getUTCDate()+7);renderCalendar();});
   // task form
   document.getElementById('qa-toggle')?.addEventListener('click',()=>{const b=document.getElementById('qa-body');if(!b)return;b.classList.toggle('open');document.getElementById('qa-toggle').textContent=b.classList.contains('open')?'Zwiń panel':'Rozwiń panel';});
   document.getElementById('f-cat-sel')?.addEventListener('click',e=>{const s=e.target.closest('.seg-item');if(!s)return;document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(x=>x.classList.toggle('active',x===s));});
