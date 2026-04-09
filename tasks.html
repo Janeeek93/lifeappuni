@@ -63,11 +63,13 @@
     .cal-day{border-right:1px solid var(--line);border-top:1px solid var(--line);padding:7px 6px;min-height:155px;cursor:pointer;transition:background .12s;display:flex;flex-direction:column}
     .cal-day:nth-child(5n){border-right:none}
     .cal-day:hover{background:hsl(var(--accent-h) 60% 97%)}.cal-day.is-today{background:hsl(var(--accent-h) 68% 95%)}
+    .cal-day.drop-target{outline:2px dashed var(--accent);outline-offset:-3px}
     .cal-day.is-today .cal-dn{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
     .cal-day.is-sel{outline:2px solid var(--accent);outline-offset:-2px;background:hsl(var(--accent-h) 80% 96%)}
     .cal-day.other-m{opacity:.35;pointer-events:none}.cal-dn{font-weight:700;font-size:14px;margin-bottom:4px;line-height:1}
     .cal-pills{display:flex;flex-direction:column;gap:4px;flex:1}
     .cal-pill{display:flex;align-items:center;gap:3px;padding:3px 6px;border-radius:5px;font-size:11px;font-weight:700;overflow:hidden;border-left:3px solid transparent;line-height:1.45}
+    .cal-own .cal-pill + .cal-pill{margin-top:3px}
     .cal-pill span{overflow:visible;text-overflow:clip;white-space:normal;word-break:break-word;flex:1;line-height:1.4}
     .cal-pill.prio-high{background:var(--prio-high-bg);color:var(--prio-high-c)}.cal-pill.prio-medium{background:var(--prio-med-bg);color:var(--prio-med-c)}.cal-pill.prio-low{background:var(--prio-low-bg);color:var(--prio-low-c)}
     .cal-pill.is-done{background:var(--surface);color:var(--muted);border-left-color:var(--green)}.cal-pill.is-done span{text-decoration:line-through}
@@ -485,11 +487,24 @@ function renderCalendar(){
     const dt=(byDate[ds]||[]).sort((a,b)=>priW(a.priority)-priW(b.priority));
     const owners={};
     dt.forEach(task=>{const key=task._owner||'me';if(!owners[key])owners[key]={name:key==='me'?'Ja':(task._ownerName||S.members.find(m=>m.id===key)?.name||'Członek'),color:task._color||'#64748b',tasks:[]};owners[key].tasks.push(task);});
-    const ownerBlocks=Object.values(owners).map(o=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span class="muted" style="font-size:8px">(${o.tasks.length})</span></div>${o.tasks.slice(0,2).map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}"><span>${escH(t.title)}</span></div>`).join('')}${o.tasks.length>2?`<div class="cal-more">+${o.tasks.length-2}</div>`:''}</div>`).join('');
+    const ownerBlocks=Object.entries(owners).map(([ownerKey,o])=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span class="muted" style="font-size:8px">(${o.tasks.length})</span></div>${o.tasks.slice(0,2).map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}" draggable="true" data-move-id="${t.id}" data-move-own="${ownerKey}"><span>${escH(t.title)}</span></div>`).join('')}${o.tasks.length>2?`<div class="cal-more">+${o.tasks.length-2}</div>`:''}</div>`).join('');
     html+=`<div class="cal-day ${cls}" data-ds="${ds}"><span class="cal-dn">${d.getUTCDate()}</span><div class="cal-pills">${ownerBlocks||'<div class="muted small">—</div>'}</div></div>`;
   }
   el.innerHTML=`<div class="cal-grid">${html}</div>`;
   el.querySelectorAll('.cal-day[data-ds]').forEach(c=>c.addEventListener('click',()=>{calSel=c.dataset.ds;renderCalendar();updateDayPanel(calSel);}));
+  el.querySelectorAll('[data-move-id]').forEach(p=>p.addEventListener('dragstart',e=>{const payload={id:e.currentTarget.dataset.moveId,owner:e.currentTarget.dataset.moveOwn};e.dataTransfer.setData('text/plain',JSON.stringify(payload));e.dataTransfer.effectAllowed='move';}));
+  el.querySelectorAll('.cal-day[data-ds]').forEach(day=>{
+    day.addEventListener('dragover',e=>{e.preventDefault();day.classList.add('drop-target');});
+    day.addEventListener('dragleave',()=>day.classList.remove('drop-target'));
+    day.addEventListener('drop',e=>{
+      e.preventDefault();day.classList.remove('drop-target');
+      let payload=null;try{payload=JSON.parse(e.dataTransfer.getData('text/plain'));}catch{return;}
+      if(!payload?.id)return;
+      const arr=payload.owner==='me'?S.tasks:S.teamTasks;
+      const task=arr.find(t=>t.id===payload.id);if(!task)return;
+      task.dueDate=day.dataset.ds;save();renderCalendar();if(calSel)updateDayPanel(calSel);
+    });
+  });
 }
 function updateDayPanel(ds){
   const dpDate=document.getElementById('dp-date'),dpDow=document.getElementById('dp-dow'),dpBody=document.getElementById('dp-body'),dpFoot=document.getElementById('dp-foot');if(!dpDate)return;
