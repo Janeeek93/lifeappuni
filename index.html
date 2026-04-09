@@ -885,11 +885,27 @@ function renderKPIData(){
   const t = getTasksStateForDashboard();
   if(Array.isArray(t?.tasks) && t.tasks.length){
     const today = new Date(); today.setUTCHours(0,0,0,0);
+    const todayTs = today.getTime();
+    const workhub = getWorkhubStateForBackup();
+    const teamMembers = Array.isArray(workhub?.members) ? workhub.members : [];
+    const teamTasks = Array.isArray(workhub?.teamTasks) ? workhub.teamTasks : [];
     const activeTasks = Array.isArray(t?.tasks) ? t.tasks.filter(x=> x.status!=='done') : [];
     const overdue = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate) < today).length;
     const forToday = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate).getTime() === today.getTime()).length;
     const activeCount = activeTasks.length;
     const activeClass = activeCount > 15 ? 'value-bad' : activeCount > 5 ? 'value-warn' : 'value-ok';
+    const teamToday = teamMembers.map(member=>{
+      const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)?.getTime()===todayTs).length;
+      const shortName = (member.name||'Bez nazwy').split(' ')[0];
+      return { id: member.id, name: shortName, count };
+    });
+    const teamOverdue = teamMembers.map(member=>{
+      const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)<today).length;
+      return { id: member.id, count };
+    });
+    const totalTeamToday = teamToday.reduce((sum,item)=>sum+item.count,0);
+    const overdueTeamCount = teamOverdue.reduce((sum,item)=>sum+item.count,0);
+    const totalTodayAll = forToday + totalTeamToday;
 
     const now = new Date();
     const start = new Date(now); start.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1)); start.setHours(0,0,0,0);
@@ -897,21 +913,23 @@ function renderKPIData(){
     const weekly = t.tasks.filter(x=> x.dueDate && new Date(x.dueDate)>=start && new Date(x.dueDate)<=end);
     const done = weekly.filter(x=> x.status==='done').length;
     const planned = weekly.length;
-    const progress = planned>0 ? (done/planned)*100 : 0;
-    const detailLines = [
-      `Zaległe: ${overdue} • Na dziś: ${forToday}.`,
-      planned > 0 ? `Postęp tygodnia: ${done}/${planned} (${Math.round(progress)}%).` : 'Brak zadań zaplanowanych na ten tydzień.'
-    ];
 
-    const overdueHtml = overdue > 0 ? `<span class="st-badge-red">${overdue} zaległych</span>` : '';
+    const overdueTotal = overdue + overdueTeamCount;
+    const overdueHtml = overdueTotal > 0 ? `<span class="st-badge-red">${overdueTotal} zaległych</span>` : '';
+    const memberRowsHtml = [
+      `<div class="st-team-row"><span class="st-team-name">Ja</span><strong class="st-team-count">${forToday}</strong></div>`,
+      ...teamToday.map(item=>`<div class="st-team-row"><span class="st-team-name">${item.name}</span><strong class="st-team-count">${item.count}</strong></div>`)
+    ].join('');
     kpiElements.tasks.innerHTML = `
       <div class="st-icon-row">
         <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
         ${overdueHtml}
       </div>
-      <div class="st-value ${activeClass}">${activeCount}</div>
-      <div class="st-label">aktywnych</div>
-      <div class="st-note">${forToday > 0 ? `${forToday} na dziś` : 'brak na dziś'} · ${done}/${planned} tyg.</div>`;
+      <div class="st-value ${activeClass}">${totalTodayAll}</div>
+      <div class="st-label">na dziś (ja + zespół)</div>
+      <div class="st-team-breakdown">${memberRowsHtml}</div>
+      <div class="st-overdue">Zaległe: Ja ${overdue} • Zespół ${overdueTeamCount}</div>
+      <div class="st-note">${done}/${planned} zadań tygodniowych ukończonych</div>`;
   } else {
     kpiElements.tasks.innerHTML = `
       <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span></div>
