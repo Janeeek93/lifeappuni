@@ -897,7 +897,7 @@ function renderKPIData(){
     const teamToday = teamMembers.map(member=>{
       const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)?.getTime()===todayTs).length;
       const shortName = (member.name||'Bez nazwy').split(' ')[0];
-      return { id: member.id, name: shortName, count };
+      return { id: member.id, name: shortName, count, color: member.color || '#64748b' };
     });
     const teamOverdue = teamMembers.map(member=>{
       const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)<today).length;
@@ -907,8 +907,8 @@ function renderKPIData(){
     const overdueTeamCount = teamOverdue.reduce((sum,item)=>sum+item.count,0);
     const totalTodayAll = forToday + totalTeamToday;
     const memberStats = [
-      { name:'Ja', today:forToday, overdue },
-      ...teamToday.map(item=>({ name:item.name, today:item.count, overdue: teamOverdue.find(x=>x.id===item.id)?.count || 0 })),
+      { name:'Ja', today:forToday, overdue, color:'#1a1d1f' },
+      ...teamToday.map(item=>({ name:item.name, today:item.count, overdue: teamOverdue.find(x=>x.id===item.id)?.count || 0, color:item.color })),
     ];
 
     const now = new Date();
@@ -922,7 +922,7 @@ function renderKPIData(){
     const overdueHtml = overdueTotal > 0 ? `<span class="st-badge-red">${overdueTotal} zaległych</span>` : '';
     const memberCardsHtml = memberStats.map(item=>`
       <div class="st-person-col">
-        <div class="st-person-today">${item.today}</div>
+        <div class="st-person-today" style="color:${item.color}">${item.today}</div>
         <div class="st-person-name">${item.name}</div>
         <div class="st-person-overdue">zaległe ${item.overdue}</div>
       </div>
