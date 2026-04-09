@@ -96,6 +96,10 @@
     .ml-head{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between}
     .spec-card{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
     .spec-head{font-size:12px;font-weight:700;margin-bottom:8px}
+    .spec-search{display:flex;align-items:center;gap:6px;padding:7px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:8px}
+    .spec-search input{border:none;background:transparent;outline:none;font-size:11px;width:100%;padding:0}
+    .spec-group{margin-top:9px}
+    .spec-group-title{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
     .spec-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
     .spec-row:last-child{border-bottom:none}
     .spec-topic{font-size:11px;font-weight:600;line-height:1.35}
@@ -458,6 +462,7 @@ let calDate=new Date(),calSel=null,calFilter=new Set(['me','m1','m2','m3','m4'])
 let selMember=null,activePTab='tasks',collGroups=new Set(),expandedRows=new Set(),formSubs=[],modalSteps=[],goalExpandedIds=new Set();
 let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
+let specQuery='';
 // storage
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
 function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);S.selfNotes=(p.selfNotes||[]).map(normSelfNote).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
@@ -580,14 +585,24 @@ function renderMemberList(){
 function renderSpecializationMap(){
   const box=document.getElementById('spec-map-body');
   if(!box)return;
-  const map={};
-  S.members.forEach(m=>(m.specialties||[]).forEach(topic=>{
+  const q=(specQuery||'').trim().toLowerCase();
+  const topicsMap={};
+  S.members.forEach(m=>(m.specialties||[]).forEach(rawTopic=>{
+    const topic=(rawTopic||'').trim();
+    if(!topic)return;
     const key=topic.toLowerCase();
-    if(!map[key])map[key]={label:topic,owners:[]};
-    map[key].owners.push({id:m.id,name:m.name,color:m.color});
+    if(!topicsMap[key])topicsMap[key]={label:topic,owners:[]};
+    if(!topicsMap[key].owners.some(o=>o.id===m.id))topicsMap[key].owners.push({id:m.id,name:m.name,color:m.color});
   }));
-  const rows=Object.values(map).sort((a,b)=>a.label.localeCompare(b.label,'pl'));
-  box.innerHTML=rows.length?rows.map(r=>`<div class="spec-row"><div class="spec-topic">${escH(r.label)}</div><div class="spec-owners">${r.owners.map(o=>`<button type="button" class="spec-owner-btn" data-spec-mid="${o.id}" style="border-color:${o.color}66">${escH(o.name.split(' ')[0])}</button>`).join('')}</div></div>`).join(''):'<div class="small muted" style="font-size:11px">Brak zdefiniowanych specjalizacji. Uzupełnij je w profilu osoby.</div>';
+  const allTopics=Object.values(topicsMap).sort((a,b)=>a.label.localeCompare(b.label,'pl'));
+  const topicMatches=t=>!q||t.label.toLowerCase().includes(q)||t.owners.some(o=>o.name.toLowerCase().includes(q));
+  const sharedTopics=allTopics.filter(t=>t.owners.length>1&&topicMatches(t));
+  const byMember=S.members.map(m=>{
+    const own=allTopics.filter(t=>t.owners.length===1&&t.owners[0].id===m.id&&topicMatches(t));
+    return {m,topics:own};
+  }).filter(x=>x.topics.length||(!q&&(x.m.specialties||[]).length));
+  box.innerHTML=`<div class="spec-search"><span class="material-symbols-outlined" style="font-size:14px;color:var(--muted)">search</span><input id="spec-search" type="text" placeholder="Szukaj projektu / tematu / osoby..." value="${escA(specQuery)}"></div>${(!allTopics.length)?'<div class="small muted" style="font-size:11px">Brak zdefiniowanych specjalizacji. Uzupełnij je w profilu osoby.</div>':`${byMember.map(({m,topics})=>`<div class="spec-group"><div class="spec-group-title">${escH(m.name)}</div>${topics.length?topics.map(t=>`<div class="spec-row"><button type="button" class="spec-topic spec-owner-btn" data-spec-mid="${m.id}" style="text-align:left;border-color:${m.color}55">${escH(t.label)}</button><div class="spec-owners"><button type="button" class="spec-owner-btn" data-spec-mid="${m.id}" style="border-color:${m.color}66">${escH(m.name.split(' ')[0])}</button></div></div>`).join(''):'<div class="small muted" style="font-size:10px;padding:2px 0 6px">Brak tematów dla aktualnego filtra.</div>'}</div>`).join('')}${sharedTopics.length?`<div class="spec-group"><div class="spec-group-title">Wspólne</div>${sharedTopics.map(t=>`<div class="spec-row"><div class="spec-topic">${escH(t.label)}</div><div class="spec-owners">${t.owners.map(o=>`<button type="button" class="spec-owner-btn" data-spec-mid="${o.id}" style="border-color:${o.color}66">${escH(o.name.split(' ')[0])}</button>`).join('')}</div></div>`).join('')}</div>`:''}${q&&!byMember.some(x=>x.topics.length)&&!sharedTopics.length?'<div class="small muted" style="font-size:11px;padding-top:6px">Brak wyników dla podanej frazy.</div>':''}`}`;
+  box.querySelector('#spec-search')?.addEventListener('input',e=>{specQuery=e.target.value||'';renderSpecializationMap();});
   box.querySelectorAll('.spec-owner-btn').forEach(btn=>btn.addEventListener('click',()=>{selMember=btn.dataset.specMid;activePTab='profile';renderMemberList();renderPersonDetail();}));
 }
 function renderPersonDetail(){
