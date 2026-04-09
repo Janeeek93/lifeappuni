@@ -906,6 +906,10 @@ function renderKPIData(){
     const totalTeamToday = teamToday.reduce((sum,item)=>sum+item.count,0);
     const overdueTeamCount = teamOverdue.reduce((sum,item)=>sum+item.count,0);
     const totalTodayAll = forToday + totalTeamToday;
+    const memberStats = [
+      { name:'Ja', today:forToday, overdue },
+      ...teamToday.map(item=>({ name:item.name, today:item.count, overdue: teamOverdue.find(x=>x.id===item.id)?.count || 0 })),
+    ];
 
     const now = new Date();
     const start = new Date(now); start.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1)); start.setHours(0,0,0,0);
@@ -916,10 +920,13 @@ function renderKPIData(){
 
     const overdueTotal = overdue + overdueTeamCount;
     const overdueHtml = overdueTotal > 0 ? `<span class="st-badge-red">${overdueTotal} zaległych</span>` : '';
-    const memberRowsHtml = [
-      `<div class="st-team-row"><span class="st-team-name">Ja</span><strong class="st-team-count">${forToday}</strong></div>`,
-      ...teamToday.map(item=>`<div class="st-team-row"><span class="st-team-name">${item.name}</span><strong class="st-team-count">${item.count}</strong></div>`)
-    ].join('');
+    const memberCardsHtml = memberStats.map(item=>`
+      <div class="st-person-col">
+        <div class="st-person-today">${item.today}</div>
+        <div class="st-person-name">${item.name}</div>
+        <div class="st-person-overdue">zaległe ${item.overdue}</div>
+      </div>
+    `).join('');
     kpiElements.tasks.innerHTML = `
       <div class="st-icon-row">
         <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
@@ -927,7 +934,7 @@ function renderKPIData(){
       </div>
       <div class="st-value ${activeClass}">${totalTodayAll}</div>
       <div class="st-label">na dziś (ja + zespół)</div>
-      <div class="st-team-breakdown">${memberRowsHtml}</div>
+      <div class="st-team-grid">${memberCardsHtml}</div>
       <div class="st-overdue">Zaległe: Ja ${overdue} • Zespół ${overdueTeamCount}</div>
       <div class="st-note">${done}/${planned} zadań tygodniowych ukończonych</div>`;
   } else {
