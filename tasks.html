@@ -516,7 +516,7 @@ function updateDayPanel(ds){
   else{
     dpBody.innerHTML=tasks.map(t=>{const m=t._owner!=='me'?S.members.find(x=>x.id===t._owner):null;return `<div class="dp-task"><input type="checkbox" data-dpid="${t.id}" data-dpown="${t._owner}" ${t.status==='done'?'checked':''}><div class="dp-task-body"><div class="dp-task-title ${t.status==='done'?'done':''}">${t.title}</div><div class="dp-task-who">${m?`<div style="width:13px;height:13px;border-radius:50%;background:${m.color};display:inline-block"></div> ${m.name}`:'<span style="color:var(--accent)">Ja</span>'} <span class="pill prio-${t.priority}" style="font-size:9px;padding:1px 6px">${{high:'W',medium:'Ś',low:'N'}[t.priority]}</span></div></div><button class="btn ghost sm" data-dpedit="${t.id}" data-dpown="${t._owner}" style="padding:4px 5px">✏️</button></div>`;}).join('');
     dpBody.querySelectorAll('[data-dpid]').forEach(cb=>cb.addEventListener('change',e=>{const id=e.target.dataset.dpid,own=e.target.dataset.dpown,arr=own==='me'?S.tasks:S.teamTasks,t=arr.find(x=>x.id===id);if(t){t.status=e.target.checked?'done':'todo';save();renderCalendar();updateDayPanel(ds);if(own==='me')renderKpis();}}));
-    dpBody.querySelectorAll('[data-dpedit]').forEach(btn=>btn.addEventListener('click',e=>{const id=e.currentTarget.dataset.dpedit,own=e.currentTarget.dataset.dpown;if(own==='me')startEdit(id);else openTTModal(id,own);}));
+    dpBody.querySelectorAll('[data-dpedit]').forEach(btn=>btn.addEventListener('click',e=>{const id=e.currentTarget.dataset.dpedit,own=e.currentTarget.dataset.dpown;openCalTaskModal(id,own);}));
   }
   if(dpFoot){
     dpFoot.style.display='flex';
@@ -631,6 +631,27 @@ function openTTModal(tid,ownerId){
   const doAddStep=()=>{const v=document.getElementById('etm-step-inp')?.value.trim();if(!v)return;modalSteps.push({id:`st_${Date.now()}`,text:v,done:false});document.getElementById('etm-step-inp').value='';renderModalSteps();};
   document.getElementById('etm-step-add')?.addEventListener('click',doAddStep);
   document.getElementById('etm-step-inp')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doAddStep();}});
+}
+function openCalTaskModal(taskId,owner){
+  const isMe=owner==='me',srcArr=isMe?S.tasks:S.teamTasks,task=srcArr.find(t=>t.id===taskId);
+  if(!task)return;
+  const ownerOptions=`<option value="me" ${isMe?'selected':''}>Ja</option>${S.members.map(m=>`<option value="${m.id}" ${!isMe&&task.assigneeId===m.id?'selected':''}>${escH(m.name)}</option>`).join('')}`;
+  showModal('Edycja taska z kalendarza',false,`<div class="form-grid" style="gap:12px"><div class="form-group"><label class="form-label">Tytuł</label><input id="ctm-title" type="text" value="${escA(task.title)}"></div><div class="form-grid g2"><div class="form-group"><label class="form-label">Przypisanie</label><select id="ctm-owner">${ownerOptions}</select></div><div class="form-group"><label class="form-label">Priorytet</label><select id="ctm-prio"><option value="low" ${task.priority==='low'?'selected':''}>Niski</option><option value="medium" ${task.priority==='medium'?'selected':''}>Średni</option><option value="high" ${task.priority==='high'?'selected':''}>Wysoki</option></select></div></div><div class="form-grid g2"><div class="form-group"><label class="form-label">Termin</label><input id="ctm-due" type="date" value="${task.dueDate||''}"></div><div class="form-group"><label class="form-label">Notatki</label><input id="ctm-notes" type="text" value="${escA(task.notes||'')}" placeholder="Skrót notatki..."></div></div></div>`,
+  [{label:'Anuluj',cls:'btn'},{label:'Zapisz',cls:'btn primary',fn:()=>{
+    const newOwner=document.getElementById('ctm-owner')?.value||'me';
+    const base={title:(document.getElementById('ctm-title')?.value||'').trim()||task.title,priority:document.getElementById('ctm-prio')?.value||task.priority,dueDate:document.getElementById('ctm-due')?.value||'',notes:document.getElementById('ctm-notes')?.value||''};
+    if(newOwner===owner){
+      Object.assign(task,base);
+      if(!isMe)task.assigneeId=newOwner;
+    }else if(newOwner==='me'){
+      S.teamTasks=S.teamTasks.filter(t=>t.id!==taskId);
+      S.tasks.push(normTask({...task,...base,id:`t_${Date.now()}`,category:'work',status:task.status||'todo',createdAt:task.createdAt||new Date().toISOString()}));
+    }else{
+      S.tasks=S.tasks.filter(t=>t.id!==taskId);
+      S.teamTasks.push(normTT({...task,...base,id:`tt_${Date.now()}`,assigneeId:newOwner,status:task.status||'todo',createdAt:task.createdAt||new Date().toISOString()}));
+    }
+    save();renderCalendar();if(calSel)updateDayPanel(calSel);renderMemberList();renderPersonDetail();
+  }}]);
 }
 
 // ── MY TASKS ──
