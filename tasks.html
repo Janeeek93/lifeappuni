@@ -249,6 +249,7 @@
         <button class="mod-tab" data-mod="calendar"><span class="material-symbols-outlined">calendar_month</span>Kalendarz</button>
         <button class="mod-tab" data-mod="team"><span class="material-symbols-outlined">groups</span>Zespół</button>
         <button class="mod-tab" data-mod="mytasks"><span class="material-symbols-outlined">check_circle</span>Moje zadania</button>
+        <button class="mod-tab" data-mod="selfnotes"><span class="material-symbols-outlined">sticky_note_2</span>Moje notatki</button>
         <button class="mod-tab" data-mod="stats"><span class="material-symbols-outlined">analytics</span>Statystyki</button>
       </div>
       <!-- OVERVIEW -->
@@ -389,6 +390,21 @@
           </div>
         </div>
       </div>
+      <!-- SELF NOTES -->
+      <div id="mod-selfnotes" class="module">
+        <div class="card">
+          <div class="ov-head" style="margin-bottom:14px"><div><div class="ov-title"><span class="material-symbols-outlined">edit_note</span>Notatki własne</div><div class="ov-sub">Szybkie notatki do 1on1 i spotkań, które później możesz zamienić na akcje.</div></div></div>
+          <div class="add-note-area" style="margin-bottom:14px">
+            <div class="form-grid g2" style="margin-bottom:10px">
+              <div class="form-group"><label class="form-label">Tytuł</label><input type="text" id="sn-title" placeholder="Np. 1on1 z przełożonym"></div>
+              <div class="form-group"><label class="form-label">Kategoria</label><select id="sn-cat"><option value="general">Ogólna</option><option value="1on1">1on1</option><option value="meeting">Spotkanie</option><option value="idea">Pomysł</option></select></div>
+            </div>
+            <textarea id="sn-content" placeholder="Wpisz ustalenia, ryzyka, follow-upy..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn primary sm" id="sn-add">Dodaj notatkę</button></div>
+          </div>
+          <div id="sn-list"></div>
+        </div>
+      </div>
       <!-- STATS -->
       <div id="mod-stats" class="module">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap">
@@ -420,7 +436,7 @@
 
 const STORE='lifeos_workhub_v1',OLD='lifeos_tasks_pro_v2',DAY=86400000;
 const DEF_MEMBERS=[{id:'m1',name:'Pracownik 1',role:'',color:'#6366f1',profileNote:''},{id:'m2',name:'Pracownik 2',role:'',color:'#f59e0b',profileNote:''},{id:'m3',name:'Pracownik 3',role:'',color:'#10b981',profileNote:''},{id:'m4',name:'Pracownik 4',role:'',color:'#f43f5e',profileNote:''}];
-let S={tasks:[],members:[...DEF_MEMBERS],teamTasks:[],notes:[]};
+let S={tasks:[],members:[...DEF_MEMBERS],teamTasks:[],notes:[],selfNotes:[]};
 let charts={};
 let calDate=new Date(),calSel=null,calFilter=new Set(['me','m1','m2','m3','m4']);
 let selMember=null,activePTab='tasks',collGroups=new Set(),expandedRows=new Set(),formSubs=[],modalSteps=[],goalExpandedIds=new Set();
@@ -428,7 +444,7 @@ let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
 // storage
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
-function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
+function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);S.selfNotes=(p.selfNotes||[]).map(normSelfNote).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
 const save=()=>{localStorage.setItem(STORE,JSON.stringify(S));if(document.getElementById('mod-overview'))renderOverview();};
 // normalizers
 const PRIOS=new Set(['low','medium','high']),CATS=new Set(['work','private']),RECURS=new Set(['none','daily','weekly','monthly']);
@@ -449,6 +465,7 @@ function normGoal(r,i=0){
 function normMember(r){return{id:r.id||`m_${Date.now()}`,name:(r.name||'Bez nazwy').trim(),role:(r.role||'').trim(),color:r.color||'#6366f1',profileNote:(r.profileNote||''),goals:Array.isArray(r.goals)?r.goals.map(normGoal).filter(Boolean):[]};}
 function normTT(r){if(!r||typeof r!=='object')return null;const id=r.id||`tt_${Date.now()}_${Math.random().toString(36).slice(2)}`;return{id,title:(r.title||'').trim()||'Bez nazwy',assigneeId:(r.assigneeId||''),priority:PRIOS.has(r.priority)?r.priority:'medium',dueDate:(r.dueDate||''),status:r.status==='done'?'done':'todo',notes:(r.notes||''),steps:Array.isArray(r.steps)?r.steps.map((s,si)=>{const tx=(s?.text||'').trim();if(!tx)return null;return{id:s.id||`st_${id}_${si}`,text:tx,done:!!s.done};}).filter(Boolean):[],createdAt:r.createdAt||new Date().toISOString()};}
 function normNote(r){if(!r||typeof r!=='object')return null;return{id:r.id||`n_${Date.now()}`,personId:(r.personId||null),category:(r.category||'general'),title:(r.title||'').trim(),content:(r.content||'').trim(),createdAt:r.createdAt||new Date().toISOString(),updatedAt:r.updatedAt||r.createdAt||new Date().toISOString()};}
+function normSelfNote(r){if(!r||typeof r!=='object')return null;return{id:r.id||`sn_${Date.now()}`,category:(r.category||'general'),title:(r.title||'').trim(),content:(r.content||'').trim(),createdAt:r.createdAt||new Date().toISOString(),updatedAt:r.updatedAt||r.createdAt||new Date().toISOString()};}
 // date utils
 const pad=n=>String(n).padStart(2,'0');
 function toYMD(d){return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;}
@@ -612,6 +629,14 @@ function openGoalModal(m){
 }
 function wireProfileTab(pd,m){
   pd.querySelector('#prof-save')?.addEventListener('click',()=>{const s=pd.querySelector('#prof-s')?.value||'',g=pd.querySelector('#prof-g')?.value||'',n=pd.querySelector('#prof-n')?.value||'';const mem=S.members.find(x=>x.id===m.id);if(mem){mem.profileNote=`[strengths]${s}\n[growth]${g}\n[general]${n}`;save();}const hint=pd.querySelector('#prof-hint');if(hint){hint.textContent=`Zapisano ${new Date().toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})}`;setTimeout(()=>{hint.textContent='';},3000);}});
+}
+function renderSelfNotes(){
+  const list=document.getElementById('sn-list');if(!list)return;
+  const notes=[...(S.selfNotes||[])].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  list.innerHTML=notes.length?notes.map(n=>`<div class="note-entry" data-snid="${n.id}"><div class="ne-head"><span class="ne-date">${new Date(n.createdAt).toLocaleDateString('pl-PL',{day:'2-digit',month:'short',year:'numeric'})}</span><span class="ne-cat nc-gen">${n.category}</span><strong style="font-size:12px">${escH(n.title||'Bez tytułu')}</strong><button class="btn ghost sm sn-del" data-snid="${n.id}" style="margin-left:auto">Usuń</button></div><div class="ne-body">${escH(n.content)}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn sm sn-to-task" data-snid="${n.id}">Utwórz moje zadanie</button><button class="btn sm sn-to-person" data-snid="${n.id}">Przenieś do notatki osoby</button></div></div>`).join(''):'<div class="ov-empty">Brak notatek własnych.</div>';
+  list.querySelectorAll('.sn-del').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.snid;showConfirm('Usunąć notatkę własną?',()=>{S.selfNotes=S.selfNotes.filter(n=>n.id!==id);save();renderSelfNotes();});}));
+  list.querySelectorAll('.sn-to-task').forEach(btn=>btn.addEventListener('click',()=>{const note=S.selfNotes.find(n=>n.id===btn.dataset.snid);if(!note)return;S.tasks.push(normTask({title:note.title||'Akcja z notatki',notes:note.content,priority:'medium',category:'work',status:'todo',createdAt:new Date().toISOString()}));save();renderSelfNotes();renderMyTasks();showAlert('Utworzono zadanie z notatki.');}));
+  list.querySelectorAll('.sn-to-person').forEach(btn=>btn.addEventListener('click',()=>{const note=S.selfNotes.find(n=>n.id===btn.dataset.snid);if(!note)return;showModal('Przenieś do notatki osoby',false,`<div class="form-group"><label class="form-label">Osoba</label><select id="sn-person">${S.members.map(m=>`<option value="${m.id}">${escH(m.name)}</option>`).join('')}</select></div><div class="form-group" style="margin-top:10px"><label class="form-label">Kategoria</label><select id="sn-person-cat"><option value="general">Ogólna</option><option value="1on1">1on1</option><option value="issue">Problem</option><option value="feedback">Feedback</option><option value="meeting">Spotkanie</option></select></div>`,[{label:'Anuluj',cls:'btn'},{label:'Przenieś',cls:'btn primary',fn:()=>{S.notes.unshift(normNote({id:`n_${Date.now()}`,personId:document.getElementById('sn-person')?.value||null,category:document.getElementById('sn-person-cat')?.value||'general',title:note.title,content:note.content,createdAt:new Date().toISOString()}));save();renderSelfNotes();if(selMember)renderPersonDetail();}}]);}));
 }
 function openEditMemberModal(mid){
   const m=S.members.find(x=>x.id===mid);if(!m)return;
@@ -824,7 +849,7 @@ function init(){
   document.querySelectorAll('.mod-tab').forEach(tab=>tab.addEventListener('click',()=>{
     document.querySelectorAll('.mod-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
     tab.classList.add('active');const id=tab.dataset.mod;document.getElementById(`mod-${id}`)?.classList.add('active');
-    if(id==='overview')renderOverview();if(id==='stats')renderStats();if(id==='team'){renderMemberList();}if(id==='calendar'){buildCalFilter();renderCalendar();}if(id==='mytasks')renderMyTasks();
+    if(id==='overview')renderOverview();if(id==='stats')renderStats();if(id==='team'){renderMemberList();}if(id==='calendar'){buildCalFilter();renderCalendar();}if(id==='mytasks')renderMyTasks();if(id==='selfnotes')renderSelfNotes();
   }));
   document.querySelectorAll('[data-mod-jump]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelector(`.mod-tab[data-mod="${btn.dataset.modJump}"]`)?.click();}));
   // calendar nav
@@ -847,6 +872,7 @@ function init(){
   });
   document.getElementById('bulk-select-all')?.addEventListener('change',e=>{if(e.target.checked)currentVisibleTaskIds.forEach(id=>selectedTaskIds.add(id));else currentVisibleTaskIds.forEach(id=>selectedTaskIds.delete(id));updateBulkUi();renderTaskTable();});
   document.getElementById('bulk-delete-btn')?.addEventListener('click',()=>{if(!selectedTaskIds.size){showAlert('Zaznacz zadania do usunięcia.');return;}showConfirm(`Usunąć ${selectedTaskIds.size} zaznaczonych zadań?`,()=>{S.tasks=S.tasks.filter(t=>!selectedTaskIds.has(t.id));selectedTaskIds.clear();save();renderMyTasks();renderCalendar();});});
+  document.getElementById('sn-add')?.addEventListener('click',()=>{const title=(document.getElementById('sn-title')?.value||'').trim(),content=(document.getElementById('sn-content')?.value||'').trim();if(!content){showAlert('Treść notatki jest wymagana.');return;}S.selfNotes.unshift(normSelfNote({id:`sn_${Date.now()}`,title,category:document.getElementById('sn-cat')?.value||'general',content,createdAt:new Date().toISOString()}));document.getElementById('sn-title').value='';document.getElementById('sn-content').value='';save();renderSelfNotes();});
   // filters
   ['f-cat','f-prio','f-date','f-hide-done','f-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderTaskTable));
   document.getElementById('f-tag')?.addEventListener('input',renderTaskTable);
@@ -870,9 +896,9 @@ function init(){
   document.getElementById('overlay')?.addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))document.getElementById('overlay').style.display='none';});
   // export/import
   document.getElementById('btn-export')?.addEventListener('click',()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`lifeos-workhub-${new Date().toISOString().slice(0,10)}.json`;a.click();});
-  document.getElementById('btn-import')?.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const p=sp(ev.target.result,null);if(p&&Array.isArray(p.tasks)){S.tasks=p.tasks.map(normTask).filter(Boolean);if(Array.isArray(p.members))S.members=p.members.map(normMember);if(Array.isArray(p.teamTasks))S.teamTasks=p.teamTasks.map(normTT).filter(Boolean);if(Array.isArray(p.notes))S.notes=p.notes.map(normNote).filter(Boolean);save();renderMyTasks();renderCalendar();renderMemberList();showAlert('Zaimportowano pomyślnie!');}else showAlert('Nieprawidłowy plik JSON.');};r.readAsText(f);};inp.click();});
+  document.getElementById('btn-import')?.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const p=sp(ev.target.result,null);if(p&&Array.isArray(p.tasks)){S.tasks=p.tasks.map(normTask).filter(Boolean);if(Array.isArray(p.members))S.members=p.members.map(normMember);if(Array.isArray(p.teamTasks))S.teamTasks=p.teamTasks.map(normTT).filter(Boolean);if(Array.isArray(p.notes))S.notes=p.notes.map(normNote).filter(Boolean);if(Array.isArray(p.selfNotes))S.selfNotes=p.selfNotes.map(normSelfNote).filter(Boolean);save();renderMyTasks();renderCalendar();renderMemberList();renderSelfNotes();showAlert('Zaimportowano pomyślnie!');}else showAlert('Nieprawidłowy plik JSON.');};r.readAsText(f);};inp.click();});
   // initial render
-  renderOverview();buildCalFilter();renderCalendar();renderMyTasks();
+  renderOverview();buildCalFilter();renderCalendar();renderMyTasks();renderSelfNotes();
 }
 init();
 
