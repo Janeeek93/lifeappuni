@@ -38,6 +38,7 @@
     /* MODULE NAV */
     .module-nav{display:flex;gap:6px;padding:8px;margin-bottom:20px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm)}
     .mod-tab{display:flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:700;font-size:12px;color:var(--muted);background:transparent;border:1px solid transparent;transition:all .15s}
+    .mod-tab .material-symbols-outlined{font-size:16px;line-height:1}
     .mod-tab:hover{background:var(--surface);color:var(--ink)}.mod-tab.active{background:hsl(var(--accent-h) 80% 96%);color:var(--accent);border-color:hsl(var(--accent-h) 65% 85%);box-shadow:none}
     .module{display:none}.module.active{display:block;animation:fadeUp .2s ease-out}
     /* MODAL */
@@ -189,6 +190,7 @@
     .ov-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
     .ov-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
     .ov-title{font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .ov-title .material-symbols-outlined{font-size:17px;color:var(--muted)}
     .ov-sub{font-size:11px;color:var(--muted)}
     .ov-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .ov-kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px}
@@ -243,17 +245,17 @@
     </header>
     <div class="content"><main class="page-content stack">
       <div class="module-nav">
-        <button class="mod-tab active" data-mod="overview">Dashboard</button>
-        <button class="mod-tab" data-mod="calendar">Kalendarz</button>
-        <button class="mod-tab" data-mod="team">Zespół</button>
-        <button class="mod-tab" data-mod="mytasks">Moje zadania</button>
-        <button class="mod-tab" data-mod="stats">Statystyki</button>
+        <button class="mod-tab active" data-mod="overview"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
+        <button class="mod-tab" data-mod="calendar"><span class="material-symbols-outlined">calendar_month</span>Kalendarz</button>
+        <button class="mod-tab" data-mod="team"><span class="material-symbols-outlined">groups</span>Zespół</button>
+        <button class="mod-tab" data-mod="mytasks"><span class="material-symbols-outlined">check_circle</span>Moje zadania</button>
+        <button class="mod-tab" data-mod="stats"><span class="material-symbols-outlined">analytics</span>Statystyki</button>
       </div>
       <!-- OVERVIEW -->
       <div id="mod-overview" class="module active">
         <div class="overview-grid">
           <section class="ov-card" style="grid-column:span 12">
-            <div class="ov-head"><div><div class="ov-title">Fokus dnia</div><div class="ov-sub">Najważniejsze informacje z zespołu i Twojej agendy.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">target</span>Fokus dnia</div><div class="ov-sub">Najważniejsze informacje z zespołu i Twojej agendy.</div></div></div>
             <div class="ov-kpis">
               <div class="ov-kpi"><div class="ov-kpi-val" id="ov-total-open">0</div><div class="ov-kpi-lbl">Otwarte taski</div></div>
               <div class="ov-kpi"><div class="ov-kpi-val" id="ov-overdue">0</div><div class="ov-kpi-lbl">Po terminie</div></div>
@@ -262,19 +264,19 @@
             </div>
           </section>
           <section class="ov-card" style="grid-column:span 7">
-            <div class="ov-head"><div><div class="ov-title">Workload zespołu</div><div class="ov-sub">Podział zadań na osoby i poziom obciążenia.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">group</span>Workload zespołu</div><div class="ov-sub">Podział zadań na osoby i poziom obciążenia.</div></div></div>
             <div class="ov-list" id="ov-workload-list"></div>
           </section>
           <section class="ov-card" style="grid-column:span 5">
-            <div class="ov-head"><div><div class="ov-title">Twoja agenda</div><div class="ov-sub">Co trzeba dowieźć najbliżej.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">event_note</span>Twoja agenda</div><div class="ov-sub">Co trzeba dowieźć najbliżej.</div></div></div>
             <div class="ov-list" id="ov-agenda-list"></div>
           </section>
           <section class="ov-card" style="grid-column:span 7">
-            <div class="ov-head"><div><div class="ov-title">Ryzyka i blokery</div><div class="ov-sub">Zadania z wysokim priorytetem lub opóźnione.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">warning</span>Ryzyka i blokery</div><div class="ov-sub">Zadania z wysokim priorytetem lub opóźnione.</div></div></div>
             <div class="ov-list" id="ov-risks-list"></div>
           </section>
           <section class="ov-card" style="grid-column:span 5">
-            <div class="ov-head"><div><div class="ov-title">Ostatnie notatki 1on1 / task</div><div class="ov-sub">Najświeższe ustalenia i next steps.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">note_alt</span>Ostatnie notatki 1on1 / task</div><div class="ov-sub">Najświeższe ustalenia i next steps.</div></div></div>
             <div class="ov-list" id="ov-notes-list"></div>
             <div class="ov-link-row" style="margin-top:12px">
               <button class="btn sm" data-mod-jump="team">Przejdź do zespołu</button>
@@ -327,7 +329,7 @@
         <div class="ins-row" id="ins-row"></div>
         <div class="quick-add">
           <div class="qa-head">
-            <strong>➕ Dodawanie zadań</strong>
+            <strong><span class="material-symbols-outlined" style="font-size:15px;vertical-align:-3px;margin-right:4px">add_task</span>Dodawanie zadań</strong>
             <button class="btn sm" id="qa-toggle">Rozwiń panel</button>
           </div>
           <div class="qa-body" id="qa-body">
