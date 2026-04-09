@@ -277,7 +277,7 @@
             <div class="ov-list" id="ov-risks-list"></div>
           </section>
           <section class="ov-card" style="grid-column:span 5">
-            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">note_alt</span>Ostatnie notatki 1on1 / task</div><div class="ov-sub">Najświeższe ustalenia i next steps.</div></div></div>
+            <div class="ov-head"><div><div class="ov-title"><span class="material-symbols-outlined">note_alt</span>Ostatnie notatki zespołowe i własne</div><div class="ov-sub">3 najnowsze notatki z całej aplikacji.</div></div></div>
             <div class="ov-list" id="ov-notes-list"></div>
             <div class="ov-link-row" style="margin-top:12px">
               <button class="btn sm" data-mod-jump="team">Przejdź do zespołu</button>
@@ -689,7 +689,7 @@ function renderOverview(){
   const allOpen=[...S.tasks.filter(x=>x.status!=='done').map(task=>({...task,_owner:'Ja',_color:'var(--accent)'})),...S.teamTasks.filter(x=>x.status!=='done').map(task=>{const m=S.members.find(mm=>mm.id===task.assigneeId);return {...task,_owner:m?.name||'Bez osoby',_color:m?.color||'#64748b'};})];
   const overdue=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;});
   const week=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d>=t&&d<=h7;});
-  const notes14=S.notes.filter(n=>{const d=new Date(n.createdAt);return d>=new Date(Date.now()-13*DAY);});
+  const notes14=[...S.notes,...S.selfNotes].filter(n=>{const d=new Date(n.createdAt);return d>=new Date(Date.now()-13*DAY);});
   const setTxt=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   setTxt('ov-total-open',String(allOpen.length));setTxt('ov-overdue',String(overdue.length));setTxt('ov-week',String(week.length));setTxt('ov-notes',String(notes14.length));
 
@@ -719,8 +719,16 @@ function renderOverview(){
 
   const notesEl=document.getElementById('ov-notes-list');
   if(notesEl){
-    const latest=[...S.notes].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,4);
-    notesEl.innerHTML=latest.length?latest.map(note=>{const m=S.members.find(x=>x.id===note.personId);return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span>${m?`👤 ${escH(m.name)}`:'👤 Ogólna'}</span><span>🕒 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45">${escH((note.content||'').slice(0,100))}${(note.content||'').length>100?'…':''}</div></div></div>`;}).join(''):'<div class="ov-empty">Brak notatek. Dodawaj 1on1, blokery i next steps.</div>';
+    const mergedNotes=[
+      ...S.notes.map(note=>({source:'person',note})),
+      ...S.selfNotes.map(note=>({source:'self',note}))
+    ].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,3);
+    notesEl.innerHTML=mergedNotes.length?mergedNotes.map(({source,note})=>{
+      const m=source==='person'?S.members.find(x=>x.id===note.personId):null;
+      const ownerLabel=source==='self'?'🧑 Ja':(m?`👤 ${escH(m.name)}`:'👥 Ogólna');
+      const sourceLabel=source==='self'?'Notatka własna':'Notatka osoby';
+      return `<div class="ov-item"><div class="ov-item-main"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span>${ownerLabel}</span><span>${sourceLabel}</span><span>🕒 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45">${escH((note.content||'').slice(0,100))}${(note.content||'').length>100?'…':''}</div></div></div>`;
+    }).join(''):'<div class="ov-empty">Brak notatek. Dodawaj 1on1, blokery i notatki własne.</div>';
   }
 }
 function renderKpis(){
