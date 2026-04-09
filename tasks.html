@@ -527,7 +527,7 @@ function renderCalendar(){
     const dt=(byDate[ds]||[]).sort((a,b)=>priW(a.priority)-priW(b.priority));
     const owners={};
     dt.forEach(task=>{const key=task._owner||'me';if(!owners[key])owners[key]={name:key==='me'?'Ja':(task._ownerName||S.members.find(m=>m.id===key)?.name||'Członek'),color:task._color||'#64748b',tasks:[]};owners[key].tasks.push(task);});
-    const ownerBlocks=Object.entries(owners).map(([ownerKey,o])=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span class="muted" style="font-size:8px">(${o.tasks.length})</span></div>${o.tasks.slice(0,2).map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}" draggable="true" data-move-id="${t.id}" data-move-own="${ownerKey}"><span>${escH(t.title)}</span></div>`).join('')}${o.tasks.length>2?`<div class="cal-more">+${o.tasks.length-2}</div>`:''}</div>`).join('');
+    const ownerBlocks=Object.entries(owners).map(([ownerKey,o])=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span class="muted" style="font-size:8px">(${o.tasks.length})</span></div>${o.tasks.map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}" draggable="true" data-move-id="${t.id}" data-move-own="${ownerKey}"><span>${escH(t.title)}</span></div>`).join('')}</div>`).join('');
     html+=`<div class="cal-day ${cls}" data-ds="${ds}"><span class="cal-dn">${d.getUTCDate()}</span><div class="cal-pills">${ownerBlocks||'<div class="muted small">—</div>'}</div></div>`;
   }
   el.innerHTML=`<div class="cal-grid">${html}</div>`;
