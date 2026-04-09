@@ -582,7 +582,7 @@ function renderMemberList(){
   el.querySelectorAll('.member-row').forEach(r=>r.addEventListener('click',()=>{selMember=r.dataset.mid;activePTab='tasks';renderMemberList();renderPersonDetail();}));
   renderSpecializationMap();
 }
-function renderSpecializationMap(){
+function renderSpecializationMap(keepSearchFocus=false){
   const box=document.getElementById('spec-map-body');
   if(!box)return;
   const q=(specQuery||'').trim().toLowerCase();
@@ -602,7 +602,13 @@ function renderSpecializationMap(){
     return {m,topics:own};
   }).filter(x=>x.topics.length||(!q&&(x.m.specialties||[]).length));
   box.innerHTML=`<div class="spec-search"><span class="material-symbols-outlined" style="font-size:14px;color:var(--muted)">search</span><input id="spec-search" type="text" placeholder="Szukaj projektu / tematu / osoby..." value="${escA(specQuery)}"></div>${(!allTopics.length)?'<div class="small muted" style="font-size:11px">Brak zdefiniowanych specjalizacji. Uzupełnij je w profilu osoby.</div>':`${byMember.map(({m,topics})=>`<div class="spec-group"><div class="spec-group-title">${escH(m.name)}</div>${topics.length?topics.map(t=>`<div class="spec-row"><button type="button" class="spec-topic spec-owner-btn" data-spec-mid="${m.id}" style="text-align:left;border-color:${m.color}55">${escH(t.label)}</button><div class="spec-owners"><button type="button" class="spec-owner-btn" data-spec-mid="${m.id}" style="border-color:${m.color}66">${escH(m.name.split(' ')[0])}</button></div></div>`).join(''):'<div class="small muted" style="font-size:10px;padding:2px 0 6px">Brak tematów dla aktualnego filtra.</div>'}</div>`).join('')}${sharedTopics.length?`<div class="spec-group"><div class="spec-group-title">Wspólne</div>${sharedTopics.map(t=>`<div class="spec-row"><div class="spec-topic">${escH(t.label)}</div><div class="spec-owners">${t.owners.map(o=>`<button type="button" class="spec-owner-btn" data-spec-mid="${o.id}" style="border-color:${o.color}66">${escH(o.name.split(' ')[0])}</button>`).join('')}</div></div>`).join('')}</div>`:''}${q&&!byMember.some(x=>x.topics.length)&&!sharedTopics.length?'<div class="small muted" style="font-size:11px;padding-top:6px">Brak wyników dla podanej frazy.</div>':''}`}`;
-  box.querySelector('#spec-search')?.addEventListener('input',e=>{specQuery=e.target.value||'';renderSpecializationMap();});
+  const searchEl=box.querySelector('#spec-search');
+  searchEl?.addEventListener('input',e=>{specQuery=e.target.value||'';renderSpecializationMap(true);});
+  if(keepSearchFocus&&searchEl){
+    const pos=(specQuery||'').length;
+    searchEl.focus();
+    try{searchEl.setSelectionRange(pos,pos);}catch{}
+  }
   box.querySelectorAll('.spec-owner-btn').forEach(btn=>btn.addEventListener('click',()=>{selMember=btn.dataset.specMid;activePTab='profile';renderMemberList();renderPersonDetail();}));
 }
 function renderPersonDetail(){
