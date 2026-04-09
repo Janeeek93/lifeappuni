@@ -124,6 +124,13 @@
     /* MY TASKS */
     .mytasks-layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
     @media(max-width:1000px){.mytasks-layout{grid-template-columns:1fr}}
+    .quick-add{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+    .qa-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--line)}
+    .qa-head strong{font-size:12px}
+    .qa-body{padding:14px;display:none}
+    .qa-body.open{display:block;animation:fadeUp .2s ease-out}
+    .bulk-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
+    .bulk-row .sp{margin-left:auto}
     .t-table{width:100%;border-collapse:collapse}
     .t-table th,.t-table td{padding:11px 8px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
     .t-table th{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600}
@@ -309,8 +316,41 @@
       <!-- MY TASKS -->
       <div id="mod-mytasks" class="module">
         <div class="ins-row" id="ins-row"></div>
+        <div class="quick-add">
+          <div class="qa-head">
+            <strong>➕ Dodawanie zadań</strong>
+            <button class="btn sm" id="qa-toggle">Rozwiń panel</button>
+          </div>
+          <div class="qa-body" id="qa-body">
+            <input type="hidden" id="f-edit-id">
+            <div class="form-grid g3" style="margin-bottom:10px">
+              <div class="form-group"><label class="form-label">Tytuł</label><input type="text" id="f-title" placeholder="Np. Przygotuj prezentację"></div>
+              <div class="form-group"><label class="form-label">Priorytet</label><select id="f-prio-sel"><option value="low">Niski</option><option value="medium" selected>Średni</option><option value="high">Wysoki</option></select></div>
+              <div class="form-group"><label class="form-label">Termin</label><input type="date" id="f-due"></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:10px">
+              <div class="form-group"><label class="form-label">Notatki</label><textarea id="f-notes" style="height:48px" placeholder="Szczegóły..."></textarea></div>
+              <div class="form-group"><label class="form-label">Tagi</label><input type="text" id="f-tags" placeholder="projekt-x, pilne"></div>
+            </div>
+            <div class="form-grid g3" style="margin-bottom:10px">
+              <div class="form-group"><label class="form-label">Kategoria</label><div class="seg" id="f-cat-sel"><div class="seg-item active" data-v="work">Praca</div><div class="seg-item" data-v="private">Prywatne</div></div></div>
+              <div class="form-group"><label class="form-label">Powtarzalność</label><select id="f-recur"><option value="none">Brak</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
+              <div class="form-group"><label class="form-label">Podzadania</label><div style="display:flex;gap:6px"><input type="text" id="f-sub-in" placeholder="Dodaj krok..."><button class="btn sm" id="f-sub-add">+</button></div></div>
+            </div>
+            <ul id="f-sub-list" style="list-style:none;margin:0 0 10px;display:flex;flex-direction:column;gap:4px"></ul>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button class="btn sm" id="f-cancel" style="display:none">Anuluj</button>
+              <button class="btn primary" id="f-submit"><span id="f-submit-txt">Dodaj zadanie</span></button>
+            </div>
+          </div>
+        </div>
         <div class="mytasks-layout">
           <div class="card" style="padding:0;overflow:hidden">
+            <div class="bulk-row">
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" id="bulk-select-all" style="width:14px;height:14px"> Zaznacz widoczne</label>
+              <button class="btn danger sm" id="bulk-delete-btn">🗑 Usuń zaznaczone</button>
+              <span class="small muted sp" id="bulk-count">0 zaznaczonych</span>
+            </div>
             <div style="display:flex;flex-wrap:wrap;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);align-items:center">
               <select id="f-cat" style="width:auto"><option value="all">Wszystkie</option><option value="work">Praca</option><option value="private">Prywatne</option></select>
               <select id="f-prio" style="width:auto"><option value="all">Priorytety</option><option value="high">Wysoki</option><option value="medium">Średni</option><option value="low">Niski</option></select>
@@ -323,37 +363,12 @@
             </div>
             <div style="overflow-x:auto">
               <table class="t-table">
-                <thead><tr><th style="width:28px"></th><th>Zadanie</th><th>Kat.</th><th>Prio.</th><th>Tagi</th><th>Termin</th><th style="width:80px">Post.</th><th style="width:82px"></th></tr></thead>
+                <thead><tr><th style="width:28px"></th><th>Zadanie</th><th>Kat.</th><th>Prio.</th><th>Tagi</th><th>Termin</th><th style="width:80px">Post.</th><th style="width:102px"></th></tr></thead>
                 <tbody id="task-tbody"></tbody>
               </table>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:12px">
-            <div class="tfc">
-              <div style="font-size:13px;font-weight:800;margin-bottom:14px" id="form-title">Nowe zadanie</div>
-              <input type="hidden" id="f-edit-id">
-              <div class="form-grid" style="gap:11px;margin-bottom:12px">
-                <div class="form-group"><label class="form-label">Tytuł</label><input type="text" id="f-title" placeholder="Np. Przygotuj prezentację"></div>
-                <div class="form-group"><label class="form-label">Notatki</label><textarea id="f-notes" style="height:52px" placeholder="Szczegóły..."></textarea></div>
-              </div>
-              <div class="form-grid g2" style="margin-bottom:10px">
-                <div class="form-group"><label class="form-label">Priorytet</label><select id="f-prio-sel"><option value="low">Niski</option><option value="medium" selected>Średni</option><option value="high">Wysoki</option></select></div>
-                <div class="form-group"><label class="form-label">Termin</label><input type="date" id="f-due"></div>
-              </div>
-              <div class="form-group" style="margin-bottom:10px"><label class="form-label">Kategoria</label>
-                <div class="seg" id="f-cat-sel"><div class="seg-item active" data-v="work">Praca</div><div class="seg-item" data-v="private">Prywatne</div></div></div>
-              <div class="form-group" style="margin-bottom:10px"><label class="form-label">Tagi</label><input type="text" id="f-tags" placeholder="projekt-x, pilne"></div>
-              <div class="form-group" style="margin-bottom:10px"><label class="form-label">Powtarzalność</label><select id="f-recur"><option value="none">Brak</option><option value="daily">Codziennie</option><option value="weekly">Co tydzień</option><option value="monthly">Co miesiąc</option></select></div>
-              <div class="form-group" style="margin-bottom:14px">
-                <label class="form-label">Podzadania</label>
-                <div style="display:flex;gap:6px"><input type="text" id="f-sub-in" placeholder="Dodaj krok..."><button class="btn sm" id="f-sub-add">+</button></div>
-                <ul id="f-sub-list" style="list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:4px"></ul>
-              </div>
-              <div style="display:flex;justify-content:flex-end;gap:8px">
-                <button class="btn sm" id="f-cancel" style="display:none">Anuluj</button>
-                <button class="btn primary" id="f-submit"><span id="f-submit-txt">Dodaj zadanie</span></button>
-              </div>
-            </div>
             <div class="kpi-c"><span class="kpi-e">📌</span><div><div class="small muted">Wszystkie</div><div class="kpi-v" id="kpi-total">0</div><div class="small muted" id="kpi-total-note">—</div></div></div>
             <div class="kpi-c"><span class="kpi-e">✅</span><div><div class="small muted">Ukończone</div><div class="kpi-v" id="kpi-done">0</div><div class="small muted" id="kpi-done-note">—</div></div></div>
             <div class="kpi-c"><span class="kpi-e">⏱</span><div><div class="small muted">Zaległe</div><div class="kpi-v" id="kpi-over">0</div><div class="small muted" id="kpi-over-note">Brak</div></div></div>
@@ -398,6 +413,7 @@ let S={tasks:[],members:[...DEF_MEMBERS],teamTasks:[],notes:[]};
 let charts={};
 let calDate=new Date(),calSel=null,calFilter=new Set(['me','m1','m2','m3','m4']);
 let selMember=null,activePTab='tasks',collGroups=new Set(),expandedRows=new Set(),formSubs=[],modalSteps=[];
+let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
 // storage
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
@@ -634,6 +650,9 @@ function renderTaskTable(){
   const dl=(a,b)=>(a.status==='done'?1:-1)-(b.status==='done'?1:-1);
   ['over','today','tomorrow','upcoming'].forEach(k=>groups[k].sort(sf).sort(dl));groups.done_over.sort((a,b)=>(parseDate(b.dueDate)||0)-(parseDate(a.dueDate)||0));
   const defs=[{k:'over',l:'Zaległe',c:'over-g'},{k:'today',l:'Dzisiaj',c:''},{k:'tomorrow',l:'Jutro',c:''},{k:'upcoming',l:'Nadchodzące',c:''},{k:'done_over',l:'Ukończone zaległe',c:'done-g'}];
+  currentVisibleTaskIds=defs.flatMap(g=>groups[g.k].map(t=>t.id));
+  selectedTaskIds=new Set([...selectedTaskIds].filter(id=>currentVisibleTaskIds.includes(id)));
+  updateBulkUi();
   if(defs.every(g=>groups[g.k].length===0)){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Brak zadań pasujących do filtrów.</td></tr>`;return;}
   const frag=document.createDocumentFragment();
   defs.forEach(g=>{if(!groups[g.k].length)return;
@@ -645,13 +664,18 @@ function renderTaskTable(){
   });
   tbody.innerHTML='';tbody.appendChild(frag);wireTableRows();
 }
+function updateBulkUi(){
+  const countEl=document.getElementById('bulk-count'),allEl=document.getElementById('bulk-select-all');
+  if(countEl)countEl.textContent=`${selectedTaskIds.size} zaznaczonych`;
+  if(allEl)allEl.checked=!!currentVisibleTaskIds.length&&currentVisibleTaskIds.every(id=>selectedTaskIds.has(id));
+}
 function appendTaskRow(task,container){
   const t=todayUTC(),due=parseDate(task.dueDate),diff=due?Math.ceil((due-t)/DAY):null;
   let dueTxt='—';if(diff!==null){if(diff<0)dueTxt=`<span style="color:var(--red);font-weight:700">Po terminie ${Math.abs(diff)}d</span>`;else if(diff===0)dueTxt=`<span style="color:var(--orange);font-weight:700">Dzisiaj</span>`;else dueTxt=`${task.dueDate}<br><span class="small muted">za ${diff}d</span>`;}
   const sd=task.subtasks.filter(s=>s.done).length,prog=task.subtasks.length?sd/task.subtasks.length*100:0;
   const tagsH=task.tags.length?task.tags.map(g=>`<span class="tag-chip">${g}</span>`).join(''):'—';
   const row=document.createElement('tr');
-  row.innerHTML=`<td><input type="checkbox" data-tid="${task.id}" ${task.status==='done'?'checked':''}></td><td class="t-ttl-cell"><span class="t-ttl ${task.status==='done'?'done':''}">${task.title}</span></td><td><span class="pill cat-${task.category}">${task.category==='work'?'Praca':'Pryw.'}</span></td><td><span class="pill prio-${task.priority}">${{high:'W',medium:'Ś',low:'N'}[task.priority]}</span></td><td><div style="display:flex;flex-wrap:wrap;gap:3px">${tagsH}</div></td><td>${dueTxt}</td><td><div class="pw"><div class="pb" style="width:${prog}%"></div></div></td><td style="display:flex;gap:3px;padding:8px 6px"><button class="btn ghost sm" data-eid="${task.id}" style="padding:4px 5px">✏️</button><button class="btn danger sm" data-did="${task.id}" style="padding:4px 5px">×</button></td>`;
+  row.innerHTML=`<td><input type="checkbox" data-tid="${task.id}" ${task.status==='done'?'checked':''}></td><td class="t-ttl-cell"><span class="t-ttl ${task.status==='done'?'done':''}">${task.title}</span></td><td><span class="pill cat-${task.category}">${task.category==='work'?'Praca':'Pryw.'}</span></td><td><span class="pill prio-${task.priority}">${{high:'W',medium:'Ś',low:'N'}[task.priority]}</span></td><td><div style="display:flex;flex-wrap:wrap;gap:3px">${tagsH}</div></td><td>${dueTxt}</td><td><div class="pw"><div class="pb" style="width:${prog}%"></div></div></td><td style="display:flex;gap:3px;padding:8px 6px"><input type="checkbox" data-selid="${task.id}" ${selectedTaskIds.has(task.id)?'checked':''} title="Zaznacz do masowego usuwania" style="width:14px;height:14px"><button class="btn ghost sm" data-eid="${task.id}" style="padding:4px 5px">✏️</button><button class="btn danger sm" data-did="${task.id}" style="padding:4px 5px">×</button></td>`;
   const subRow=document.createElement('tr');subRow.className='sub-row';if(expandedRows.has(task.id))subRow.style.display='table-row';
   subRow.innerHTML=`<td colspan="8" class="sub-cell"><ul class="sub-list">${task.subtasks.length?task.subtasks.map(st=>`<li class="sub-item ${st.done?'done':''}"><input type="checkbox" class="sub-cb" data-sub="${task.id}:${st.id}" ${st.done?'checked':''}><span>${st.text}</span></li>`).join(''):'<li style="color:var(--muted);font-size:11px;padding:4px">Brak podzadań.</li>'}</ul></td>`;
   container.appendChild(row);container.appendChild(subRow);
@@ -659,13 +683,14 @@ function appendTaskRow(task,container){
 function wireTableRows(){
   const tbody=document.getElementById('task-tbody');if(!tbody)return;
   tbody.querySelectorAll('[data-tid]').forEach(cb=>cb.addEventListener('change',e=>{const task=S.tasks.find(x=>x.id===e.target.dataset.tid);if(!task)return;if(e.target.checked&&task.recurrence!=='none'&&task.dueDate){const nd=new Date(parseDate(task.dueDate));if(task.recurrence==='daily')nd.setUTCDate(nd.getUTCDate()+1);else if(task.recurrence==='weekly')nd.setUTCDate(nd.getUTCDate()+7);else if(task.recurrence==='monthly')nd.setUTCMonth(nd.getUTCMonth()+1);S.tasks.push({...task,id:`t_${Date.now()}`,status:'todo',dueDate:toYMD(nd),createdAt:new Date().toISOString()});}task.status=e.target.checked?'done':'todo';save();renderMyTasks();renderCalendar();}));
-  tbody.querySelectorAll('[data-did]').forEach(btn=>btn.addEventListener('click',e=>{showConfirm('Usunąć zadanie?',()=>{S.tasks=S.tasks.filter(x=>x.id!==e.currentTarget.dataset.did);save();renderMyTasks();renderCalendar();});}));
+  tbody.querySelectorAll('[data-selid]').forEach(cb=>cb.addEventListener('change',e=>{if(e.target.checked)selectedTaskIds.add(e.target.dataset.selid);else selectedTaskIds.delete(e.target.dataset.selid);updateBulkUi();}));
+  tbody.querySelectorAll('[data-did]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();showConfirm('Usunąć zadanie?',()=>{S.tasks=S.tasks.filter(x=>x.id!==e.currentTarget.dataset.did);selectedTaskIds.delete(e.currentTarget.dataset.did);save();renderMyTasks();renderCalendar();});}));
   tbody.querySelectorAll('[data-eid]').forEach(btn=>btn.addEventListener('click',e=>startEdit(e.currentTarget.dataset.eid)));
   tbody.querySelectorAll('.t-ttl-cell').forEach(cell=>cell.addEventListener('click',e=>{const cb=e.currentTarget.closest('tr')?.querySelector('[data-tid]');if(!cb)return;const next=e.currentTarget.closest('tr')?.nextElementSibling;if(!next)return;const v=next.style.display==='table-row';next.style.display=v?'none':'table-row';v?expandedRows.delete(cb.dataset.tid):expandedRows.add(cb.dataset.tid);}));
   tbody.querySelectorAll('.sub-cb').forEach(cb=>cb.addEventListener('change',e=>{const[tid,sid]=e.target.dataset.sub.split(':');const task=S.tasks.find(x=>x.id===tid);if(!task)return;const st=task.subtasks.find(s=>s.id===sid);if(st)st.done=e.target.checked;if(task.subtasks.every(s=>s.done))task.status='done';save();renderMyTasks();}));
 }
-function resetForm(){document.getElementById('f-edit-id').value='';document.getElementById('f-title').value='';document.getElementById('f-notes').value='';document.getElementById('f-due').value='';document.getElementById('f-tags').value='';document.getElementById('f-prio-sel').value='medium';document.getElementById('f-recur').value='none';document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(s=>s.classList.toggle('active',s.dataset.v==='work'));formSubs=[];renderFormSubs();document.getElementById('form-title').textContent='Nowe zadanie';document.getElementById('f-submit-txt').textContent='Dodaj zadanie';document.getElementById('f-cancel').style.display='none';}
-function startEdit(id){const task=S.tasks.find(x=>x.id===id);if(!task)return;document.getElementById('f-edit-id').value=task.id;document.getElementById('f-title').value=task.title;document.getElementById('f-notes').value=task.notes;document.getElementById('f-due').value=task.dueDate||'';document.getElementById('f-tags').value=task.tags.join(', ');document.getElementById('f-prio-sel').value=task.priority;document.getElementById('f-recur').value=task.recurrence;document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(s=>s.classList.toggle('active',s.dataset.v===task.category));formSubs=[...task.subtasks];renderFormSubs();document.getElementById('form-title').textContent='Edytuj zadanie';document.getElementById('f-submit-txt').textContent='Zapisz zmiany';document.getElementById('f-cancel').style.display='';document.getElementById('f-title').focus();}
+function resetForm(){document.getElementById('f-edit-id').value='';document.getElementById('f-title').value='';document.getElementById('f-notes').value='';document.getElementById('f-due').value='';document.getElementById('f-tags').value='';document.getElementById('f-prio-sel').value='medium';document.getElementById('f-recur').value='none';document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(s=>s.classList.toggle('active',s.dataset.v==='work'));formSubs=[];renderFormSubs();document.getElementById('f-submit-txt').textContent='Dodaj zadanie';document.getElementById('f-cancel').style.display='none';}
+function startEdit(id){const task=S.tasks.find(x=>x.id===id);if(!task)return;document.getElementById('f-edit-id').value=task.id;document.getElementById('f-title').value=task.title;document.getElementById('f-notes').value=task.notes;document.getElementById('f-due').value=task.dueDate||'';document.getElementById('f-tags').value=task.tags.join(', ');document.getElementById('f-prio-sel').value=task.priority;document.getElementById('f-recur').value=task.recurrence;document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(s=>s.classList.toggle('active',s.dataset.v===task.category));formSubs=[...task.subtasks];renderFormSubs();document.getElementById('f-submit-txt').textContent='Zapisz zmiany';document.getElementById('f-cancel').style.display='';document.getElementById('qa-body')?.classList.add('open');document.getElementById('qa-toggle').textContent='Zwiń panel';document.getElementById('f-title').focus();}
 function renderFormSubs(){const ul=document.getElementById('f-sub-list');if(!ul)return;ul.innerHTML=formSubs.map((st,i)=>`<li class="sub-item ${st.done?'done':''}"><input type="checkbox" class="fsc" data-i="${i}" ${st.done?'checked':''}><span style="flex:1">${st.text}</span><button class="btn ghost sm fsd" data-i="${i}" style="padding:2px 5px">×</button></li>`).join('');ul.querySelectorAll('.fsc').forEach(cb=>cb.addEventListener('change',e=>{formSubs[+e.target.dataset.i].done=e.target.checked;renderFormSubs();}));ul.querySelectorAll('.fsd').forEach(b=>b.addEventListener('click',e=>{formSubs.splice(+e.target.dataset.i,1);renderFormSubs();}));}
 
 // ── STATS ──
@@ -689,7 +714,7 @@ function showModal(title,wide,bodyHtml,buttons){
   const ov=document.getElementById('overlay'),box=document.getElementById('modal-box');
   document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').innerHTML=bodyHtml;box.className=`modal${wide?' wide':''}`;
   const fEl=document.getElementById('modal-footer');fEl.innerHTML='';
-  buttons.forEach(({label,cls,fn})=>{const btn=document.createElement('button');btn.textContent=label;btn.className=cls;btn.addEventListener('click',()=>{if(fn){const r=fn();if(r===false)return;}ov.style.display='none';});fEl.appendChild(btn);});
+  buttons.forEach(({label,cls,fn})=>{const btn=document.createElement('button');btn.type='button';btn.textContent=label;btn.className=cls;btn.addEventListener('click',()=>{if(fn){const r=fn();if(r===false)return;}ov.style.display='none';});fEl.appendChild(btn);});
   ov.style.display='flex';
 }
 function showAlert(msg){showModal(msg,false,'',[{label:'OK',cls:'btn primary'}]);}
@@ -711,6 +736,7 @@ function init(){
   document.getElementById('cal-prev')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()-1);renderCalendar();});
   document.getElementById('cal-next')?.addEventListener('click',()=>{calDate.setMonth(calDate.getMonth()+1);renderCalendar();});
   // task form
+  document.getElementById('qa-toggle')?.addEventListener('click',()=>{const b=document.getElementById('qa-body');if(!b)return;b.classList.toggle('open');document.getElementById('qa-toggle').textContent=b.classList.contains('open')?'Zwiń panel':'Rozwiń panel';});
   document.getElementById('f-cat-sel')?.addEventListener('click',e=>{const s=e.target.closest('.seg-item');if(!s)return;document.getElementById('f-cat-sel').querySelectorAll('.seg-item').forEach(x=>x.classList.toggle('active',x===s));});
   const doAddSub=()=>{const v=document.getElementById('f-sub-in')?.value.trim();if(!v)return;formSubs.push({id:`s_${Date.now()}`,text:v,done:false});document.getElementById('f-sub-in').value='';renderFormSubs();};
   document.getElementById('f-sub-add')?.addEventListener('click',doAddSub);document.getElementById('f-sub-in')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doAddSub();}});
@@ -723,6 +749,8 @@ function init(){
     else S.tasks.push({...taskData,id:`t_${Date.now()}`,status:'todo',createdAt:new Date().toISOString()});
     save();resetForm();renderMyTasks();renderCalendar();
   });
+  document.getElementById('bulk-select-all')?.addEventListener('change',e=>{if(e.target.checked)currentVisibleTaskIds.forEach(id=>selectedTaskIds.add(id));else currentVisibleTaskIds.forEach(id=>selectedTaskIds.delete(id));updateBulkUi();renderTaskTable();});
+  document.getElementById('bulk-delete-btn')?.addEventListener('click',()=>{if(!selectedTaskIds.size){showAlert('Zaznacz zadania do usunięcia.');return;}showConfirm(`Usunąć ${selectedTaskIds.size} zaznaczonych zadań?`,()=>{S.tasks=S.tasks.filter(t=>!selectedTaskIds.has(t.id));selectedTaskIds.clear();save();renderMyTasks();renderCalendar();});});
   // filters
   ['f-cat','f-prio','f-date','f-hide-done','f-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderTaskTable));
   document.getElementById('f-tag')?.addEventListener('input',renderTaskTable);
