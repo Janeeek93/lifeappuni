@@ -527,7 +527,7 @@ function buildProfileTab(m){
 }
 function wireTasksTab(pd,m){
   pd.querySelectorAll('.tt-cb').forEach(cb=>cb.addEventListener('change',e=>{const t=S.teamTasks.find(x=>x.id===e.target.dataset.ttid);if(t){t.status=e.target.checked?'done':'todo';save();renderMemberList();renderPersonDetail();}}));
-  pd.querySelectorAll('.tt-del').forEach(btn=>btn.addEventListener('click',e=>{showConfirm('Usunąć task?',()=>{S.teamTasks=S.teamTasks.filter(x=>x.id!==e.currentTarget.dataset.ttid);save();renderMemberList();renderPersonDetail();});}));
+  pd.querySelectorAll('.tt-del').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();showConfirm('Usunąć task?',()=>{S.teamTasks=S.teamTasks.filter(x=>x.id!==e.currentTarget.dataset.ttid);save();renderMemberList();renderPersonDetail();renderCalendar();});}));
   pd.querySelectorAll('[data-toggle-steps]').forEach(el=>el.addEventListener('click',()=>{const sec=pd.querySelector(`[data-steps-for="${el.dataset.toggleSteps}"]`);if(sec)sec.style.display=sec.style.display==='none'?'block':'none';}));
   pd.querySelectorAll('.tt-step-cb').forEach(cb=>cb.addEventListener('change',e=>{const[tid,sid]=e.target.dataset.stepkey.split(':');const task=S.teamTasks.find(x=>x.id===tid);if(!task)return;const step=(task.steps||[]).find(s=>s.id===sid);if(step)step.done=e.target.checked;if(task.steps.length&&task.steps.every(s=>s.done))task.status='done';save();renderMemberList();renderPersonDetail();}));
   pd.querySelectorAll('.tt-step-del').forEach(btn=>btn.addEventListener('click',e=>{const[tid,sid]=e.currentTarget.dataset.stepkey.split(':');const task=S.teamTasks.find(x=>x.id===tid);if(!task)return;task.steps=task.steps.filter(s=>s.id!==sid);save();renderMemberList();renderPersonDetail();}));
