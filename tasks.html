@@ -546,6 +546,20 @@
     .kanban-card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:11px 12px; cursor:pointer; transition:box-shadow .15s,transform .15s; border-left:3px solid transparent; }
     .kanban-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.09); transform:translateY(-2px); }
     .kanban-card-title { font-size:12px; font-weight:700; line-height:1.4; color:var(--ink); margin-bottom:8px; }
+    .kanban-card-comment {
+      margin:0 0 8px;
+      padding:6px 8px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:var(--surf-lo);
+      font-size:10px;
+      color:var(--muted);
+      line-height:1.45;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
     .kanban-card-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px; }
     .kc-assignees { display:flex; align-items:center; }
     .kc-av { width:20px; height:20px; border-radius:50%; color:#fff; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--card); margin-left:-5px; }
@@ -1620,9 +1634,11 @@ function renderKanbanBoard(){
       const isOverdue=card.dueDate&&card.stage!=='done'&&parseDate(card.dueDate)<todayUTC();
       const dueLbl=card.dueDate?`<span style="color:${isOverdue?'var(--red)':'var(--muted2)'}">${fmtShort(parseDate(card.dueDate))}</span>`:'';
       const cmtLbl=card.comments.length?`<span>💬 ${card.comments.length}</span>`:'';
+      const lastComment=card.comments.length?card.comments[card.comments.length-1].text:'';
       return `<div class="kanban-card" data-cid="${card.id}" data-pid="${proj.id}" style="border-left-color:${prioBorder}">
         <div class="kanban-card-title">${escH(card.title)}</div>
         ${card.description?`<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;line-height:1.4">${escH(card.description.substring(0,80))}${card.description.length>80?'…':''}</div>`:''}
+        ${lastComment?`<div class="kanban-card-comment">💬 ${escH(lastComment)}</div>`:''}
         <div class="kanban-card-footer">
           <div class="kc-assignees">${avPills||'<span style="font-size:10px;color:var(--muted2)">—</span>'}</div>
           <div class="kc-meta">${cmtLbl}${dueLbl}</div>
