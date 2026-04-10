@@ -218,6 +218,14 @@
     .bento-val { font-size:34px; font-weight:900; line-height:1; letter-spacing:-2px; font-variant-numeric:tabular-nums; }
     .bento-lbl { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted2); margin-top:7px; }
     .bento-sub { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; margin-top:10px; color:var(--muted2); }
+    .bento.compact { padding:12px 14px; border-radius:18px; }
+    .bento.compact .bento-top { margin-bottom:8px; }
+    .bento.compact .ib { width:28px; height:28px; border-radius:8px; }
+    .bento.compact .ib .material-symbols-outlined { font-size:15px; }
+    .bento.compact .pill { font-size:8px!important; padding:1px 6px!important; }
+    .bento.compact .bento-val { font-size:22px; letter-spacing:-1px; }
+    .bento.compact .bento-lbl { margin-top:3px; font-size:9px; letter-spacing:.6px; }
+    .bento.compact .bento-sub { margin-top:4px; font-size:10px; }
 
     /* Section card */
     .sec {
@@ -644,7 +652,7 @@
 
         <!-- BENTO KPI ROW — Editorial CRM style -->
         <div class="bento-row">
-          <div class="bento">
+          <div class="bento compact">
             <div class="bento-top">
               <div class="ib blue"><span class="material-symbols-outlined">task_alt</span></div>
               <span class="pill blue" style="font-size:9px;padding:2px 7px">Aktywne</span>
@@ -655,7 +663,7 @@
               <span class="material-symbols-outlined" style="font-size:13px">group</span>Cały zespół
             </div>
           </div>
-          <div class="bento">
+          <div class="bento compact">
             <div class="bento-top">
               <div class="ib red"><span class="material-symbols-outlined">timer_off</span></div>
               <span class="pill red" style="font-size:9px;padding:2px 7px">Pilne</span>
@@ -666,7 +674,7 @@
               <span class="material-symbols-outlined" style="font-size:13px">warning</span>Wymaga uwagi
             </div>
           </div>
-          <div class="bento">
+          <div class="bento compact">
             <div class="bento-top">
               <div class="ib amber"><span class="material-symbols-outlined">event_upcoming</span></div>
               <span class="pill amber" style="font-size:9px;padding:2px 7px">7 dni</span>
@@ -677,7 +685,7 @@
               <span class="material-symbols-outlined" style="font-size:13px">calendar_today</span>Nadchodzące
             </div>
           </div>
-          <div class="bento">
+          <div class="bento compact">
             <div class="bento-top">
               <div class="ib green"><span class="material-symbols-outlined">note_alt</span></div>
               <span class="pill green" style="font-size:9px;padding:2px 7px">14 dni</span>
@@ -693,8 +701,8 @@
         <!-- MAIN GRID — 12 columns -->
         <div class="ov-grid">
 
-          <!-- WORKLOAD — 4 cols, compact view -->
-          <section class="sec" style="grid-column:span 4">
+          <!-- WORKLOAD — 3 cols, compact view -->
+          <section class="sec" style="grid-column:span 3">
             <div class="sec-head">
               <div>
                 <div class="sec-title">
@@ -708,8 +716,8 @@
             <div class="ov-list" id="ov-workload-list"></div>
           </section>
 
-          <!-- PROJECTS SNAPSHOT — 3 cols -->
-          <section class="sec" style="grid-column:span 3">
+          <!-- PROJECTS SNAPSHOT — 4 cols -->
+          <section class="sec" style="grid-column:span 4">
             <div class="sec-head">
               <div>
                 <div class="sec-title">
@@ -1394,7 +1402,11 @@ function renderOverview(){
         return {project:p,inProgressCount:inProgress.length,topCard,assignees};
       })
       .sort((a,b)=>b.inProgressCount-a.inProgressCount||a.project.title.localeCompare(b.project.title,'pl'));
-    projEl.innerHTML=activeProjects.length?activeProjects.slice(0,4).map(({project,inProgressCount,topCard,assignees})=>`<div class="ov-item" style="border-left:3px solid ${project.color};padding-left:11px"><div class="ov-item-body"><div class="ov-proj-head"><div class="ov-proj-title-wrap"><div class="ov-item-title">${escH(project.title)}</div><div class="ov-item-meta"><span>🟣 ${inProgressCount} w toku</span><span>📌 ${project.cards.filter(c=>c.stage!=='done').length} otwartych</span></div></div><span class="pill purple">${inProgressCount?'aktywny':'spokojny'}</span></div><div class="ov-item-meta" style="margin-top:7px;color:var(--ink)">${topCard?`▶️ Teraz: <strong>${escH(topCard.title)}</strong>`:'✅ Brak taska w realizacji'}</div><div class="ov-proj-team">${assignees.slice(0,4).map(m=>`<div class="ov-proj-av" style="background:${m.color}" title="${escH(m.name)}">${escH(m.name.charAt(0).toUpperCase())}</div>`).join('')}${assignees.length>4?`<span class="ov-proj-more">+${assignees.length-4}</span>`:''}</div></div></div>`).join(''):'<div class="ov-empty">Brak otwartych projektów.<br>Dodaj projekt, żeby monitorować postęp.</div>';
+    projEl.innerHTML=activeProjects.length?activeProjects.slice(0,4).map(({project,inProgressCount,topCard,assignees})=>`<button type="button" class="ov-item ov-note-jump" data-ov-proj-id="${project.id}" style="border-left:3px solid ${project.color};padding-left:11px"><div class="ov-item-body"><div class="ov-proj-head"><div class="ov-proj-title-wrap"><div class="ov-item-title">${escH(project.title)}</div><div class="ov-item-meta"><span>🟣 ${inProgressCount} w toku</span><span>📌 ${project.cards.filter(c=>c.stage!=='done').length} otwartych</span></div></div><span class="pill purple">${inProgressCount?'aktywny':'spokojny'}</span></div><div class="ov-item-meta" style="margin-top:7px;color:var(--ink)">${topCard?`▶️ Teraz: <strong>${escH(topCard.title)}</strong>`:'✅ Brak taska w realizacji'}</div><div class="ov-proj-team">${assignees.slice(0,4).map(m=>`<div class="ov-proj-av" style="background:${m.color}" title="${escH(m.name)}">${escH(m.name.charAt(0).toUpperCase())}</div>`).join('')}${assignees.length>4?`<span class="ov-proj-more">+${assignees.length-4}</span>`:''}</div></div></button>`).join(''):'<div class="ov-empty">Brak otwartych projektów.<br>Dodaj projekt, żeby monitorować postęp.</div>';
+    projEl.querySelectorAll('[data-ov-proj-id]').forEach(btn=>btn.addEventListener('click',()=>{
+      selProject=btn.dataset.ovProjId;
+      switchModule('projects');
+    }));
   }
 
   const agendaEl=document.getElementById('ov-agenda-list');
