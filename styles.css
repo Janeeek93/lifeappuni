@@ -2594,16 +2594,40 @@ tbody tr:hover {
 /* ── Small tiles row ── */
 .small-tiles-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
   gap: 16px;
 }
 
+.small-tiles-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.small-tiles-stack .small-tile {
+  flex: 1;
+  min-height: 0;
+}
+
+.small-tile--compact {
+  padding: 14px 16px 12px;
+  min-height: 0;
+}
+
+.small-tile--compact .st-value {
+  font-size: 18px;
+}
+
 @media (max-width: 1100px) {
-  .small-tiles-row { grid-template-columns: repeat(2, 1fr); }
+  .small-tiles-row { grid-template-columns: 1fr 1fr; }
+  .small-tiles-stack { flex-direction: row; }
+  .small-tiles-stack .small-tile { flex: 1; }
 }
 
 @media (max-width: 600px) {
-  .small-tiles-row { grid-template-columns: repeat(2, 1fr); }
+  .small-tiles-row { grid-template-columns: 1fr; }
+  .small-tiles-stack { flex-direction: row; }
 }
 
 .small-tile {
@@ -2705,6 +2729,137 @@ tbody tr:hover {
   color: var(--red);
   font-size: 11px;
   font-weight: 700;
+}
+
+/* ── Team Tasks modern card (tm-*) ── */
+.small-tile--team {
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.tm-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.tm-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tm-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  flex: 1;
+}
+
+.tm-total-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.tm-total-value {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.tm-total-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tm-members-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.tm-member {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  min-width: 44px;
+}
+
+.tm-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.tm-member-today {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.tm-member-overdue {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  background: var(--red-soft);
+  padding: 1px 5px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.tm-member-ok {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.tm-member-name {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tm-footer {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  margin-top: 10px;
+  width: 100%;
+  line-height: 1.4;
 }
 
 /* Loading state for small tiles */

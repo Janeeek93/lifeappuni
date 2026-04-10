@@ -216,20 +216,22 @@
             <!-- filled by renderLoanCard() -->
           </div>
 
-          <!-- ④ Small tiles — 4 tiles equal width (12/12) -->
+          <!-- ④ Small tiles — tasks(1/3) | house(1/3) | fuel+inventory stack(1/3) -->
           <div class="bento-span-12 small-tiles-row" style="animation-delay:.16s;">
-            <a href="tasks.html" class="small-tile" id="kpi-tasks">
-              <!-- filled by JS -->
-            </a>
-            <a href="fuel.html" class="small-tile" id="kpi-fuel">
-              <!-- filled by JS -->
-            </a>
-            <a href="inventory.html" class="small-tile" id="kpi-inventory">
+            <a href="tasks.html" class="small-tile small-tile--team" id="kpi-tasks">
               <!-- filled by JS -->
             </a>
             <a href="house.html" class="small-tile" id="kpi-house">
               <!-- filled by JS -->
             </a>
+            <div class="small-tiles-stack">
+              <a href="fuel.html" class="small-tile small-tile--compact" id="kpi-fuel">
+                <!-- filled by JS -->
+              </a>
+              <a href="inventory.html" class="small-tile small-tile--compact" id="kpi-inventory">
+                <!-- filled by JS -->
+              </a>
+            </div>
           </div>
 
           <!-- hidden compat loan tile -->
@@ -916,26 +918,31 @@ function renderKPIData(){
 
     const overdueTotal = overdue + overdueTeamCount;
     const overdueHtml = overdueTotal > 0 ? `<span class="st-badge-red">${overdueTotal} zaległych</span>` : '';
-    const memberRowsHtml = [
-      `<div class="st-team-row"><span class="st-team-name">Ja</span><strong class="st-team-count">${forToday}</strong></div>`,
-      ...teamToday.map(item=>`<div class="st-team-row"><span class="st-team-name">${item.name}</span><strong class="st-team-count">${item.count}</strong></div>`)
+    const AVATAR_COLORS = ['#0057c0','#7c3aed','#0891b2','#ea580c','#db2777','#16a34a','#d97706'];
+    const getInitials = name => { const p = name.trim().split(/\s+/); return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : name.substring(0,2).toUpperCase(); };
+    const memberColumnsHtml = [
+      (() => { const od = overdue; return `<div class="tm-member"><div class="tm-avatar" style="background:${AVATAR_COLORS[0]}">JA</div><div class="tm-member-today">${forToday}</div>${od>0?`<div class="tm-member-overdue">${od}</div>`:`<div class="tm-member-ok">✓</div>`}<div class="tm-member-name">Ja</div></div>`; })(),
+      ...teamToday.map((item,i)=>{ const od=(teamOverdue.find(o=>o.id===item.id)||{count:0}).count; const color=AVATAR_COLORS[(i+1)%AVATAR_COLORS.length]; return `<div class="tm-member"><div class="tm-avatar" style="background:${color}">${getInitials(item.name)}</div><div class="tm-member-today">${item.count}</div>${od>0?`<div class="tm-member-overdue">${od}</div>`:`<div class="tm-member-ok">✓</div>`}<div class="tm-member-name">${item.name}</div></div>`; })
     ].join('');
     kpiElements.tasks.innerHTML = `
-      <div class="st-icon-row">
-        <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
+      <div class="tm-header">
+        <span class="tm-emoji">📋</span>
+        <span class="tm-title">Zadania zespołu</span>
         ${overdueHtml}
       </div>
-      <div class="st-value ${activeClass}">${totalTodayAll}</div>
-      <div class="st-label">na dziś (ja + zespół)</div>
-      <div class="st-team-breakdown">${memberRowsHtml}</div>
-      <div class="st-overdue">Zaległe: Ja ${overdue} • Zespół ${overdueTeamCount}</div>
-      <div class="st-note">${done}/${planned} zadań tygodniowych ukończonych</div>`;
+      <div class="tm-total-row">
+        <span class="tm-total-value ${activeClass}">${totalTodayAll}</span>
+        <span class="tm-total-label">na dziś łącznie</span>
+      </div>
+      <div class="tm-members-grid">${memberColumnsHtml}</div>
+      <div class="tm-footer">
+        <span class="material-symbols-outlined" style="font-size:13px;vertical-align:-3px;color:var(--muted);">task_alt</span>
+        ${done}/${planned} zadań tygodniowych ukończonych
+      </div>`;
   } else {
     kpiElements.tasks.innerHTML = `
-      <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span></div>
-      <div class="st-value muted">—</div>
-      <div class="st-label">aktywnych</div>
-      <div class="st-note">brak danych</div>`;
+      <div class="tm-header"><span class="tm-emoji">📋</span><span class="tm-title">Zadania zespołu</span></div>
+      <div class="tm-total-row"><span class="tm-total-value muted">—</span><span class="tm-total-label">brak danych</span></div>`;
   }
 
   // --- Progress KPI ---
