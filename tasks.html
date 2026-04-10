@@ -1132,8 +1132,8 @@ function normNote(r){if(!r||typeof r!=='object')return null;return{id:r.id||`n_$
 function normSelfNote(r){if(!r||typeof r!=='object')return null;return{id:r.id||`sn_${Date.now()}`,category:(r.category||'general'),title:(r.title||'').trim(),content:(r.content||'').trim(),createdAt:r.createdAt||new Date().toISOString(),updatedAt:r.updatedAt||r.createdAt||new Date().toISOString()};}
 
 const PC_STAGES=new Set(['backlog','inprogress','done']);
-function normProjectCard(r,i=0){if(!r||typeof r!=='object')return null;return{id:r.id||`pc_${Date.now()}_${i}`,title:(r.title||'').trim()||'Zadanie',description:(r.description||'').trim(),stage:PC_STAGES.has(r.stage)?r.stage:'backlog',priority:PRIOS.has(r.priority)?r.priority:'medium',dueDate:r.dueDate||'',assignees:Array.isArray(r.assignees)?r.assignees:[],comments:Array.isArray(r.comments)?r.comments.map((c,ci)=>({id:c.id||`cmt_${Date.now()}_${ci}`,text:(c.text||'').trim(),createdAt:c.createdAt||new Date().toISOString()})).filter(c=>c.text):[],createdAt:r.createdAt||new Date().toISOString()};}
-function normProject(r,i=0){if(!r||typeof r!=='object')return null;return{id:r.id||`p_${Date.now()}_${i}`,title:(r.title||'').trim()||'Projekt',description:(r.description||'').trim(),color:r.color||'#0057c0',assignees:Array.isArray(r.assignees)?r.assignees:[],status:r.status==='archived'?'archived':'active',createdAt:r.createdAt||new Date().toISOString(),cards:Array.isArray(r.cards)?r.cards.map((c,i)=>normProjectCard(c,i)).filter(Boolean):[]};}
+function normProjectCard(r,i=0){if(!r||typeof r!=='object')return null;return{id:r.id||`pc_${Date.now()}_${i}`,title:(r.title||'').trim()||'Zadanie',description:(r.description||'').trim(),stage:PC_STAGES.has(r.stage)?r.stage:'backlog',priority:PRIOS.has(r.priority)?r.priority:'medium',dueDate:r.dueDate||'',assignees:uniqIds(r.assignees),comments:Array.isArray(r.comments)?r.comments.map((c,ci)=>({id:c.id||`cmt_${Date.now()}_${ci}`,text:(c.text||'').trim(),createdAt:c.createdAt||new Date().toISOString()})).filter(c=>c.text):[],createdAt:r.createdAt||new Date().toISOString()};}
+function normProject(r,i=0){if(!r||typeof r!=='object')return null;return{id:r.id||`p_${Date.now()}_${i}`,title:(r.title||'').trim()||'Projekt',description:(r.description||'').trim(),color:r.color||'#0057c0',assignees:uniqIds(r.assignees),status:r.status==='archived'?'archived':'active',createdAt:r.createdAt||new Date().toISOString(),cards:Array.isArray(r.cards)?r.cards.map((c,i)=>normProjectCard(c,i)).filter(Boolean):[]};}
 const PRJ_COLORS=['#0057c0','#7c3aed','#0891b2','#ea580c','#db2777','#16a34a','#d97706','#dc2626'];
 
 const pad=n=>String(n).padStart(2,'0');
@@ -1148,6 +1148,7 @@ const escH=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,
 const escA=s=>String(s).replace(/"/g,'&quot;');
 const priLabel=p=>({high:'🔴 Wysoki',medium:'🟠 Średni',low:'🟢 Niski'}[p]||p);
 const priShort=p=>({high:'W',medium:'Ś',low:'N'}[p]||p);
+const uniqIds=arr=>[...new Set((Array.isArray(arr)?arr:[]).map(x=>(x||'').toString().trim()).filter(Boolean))];
 
 // ── CALENDAR ──
 function buildCalFilter(){
@@ -1163,7 +1164,7 @@ function getCalTasks(){
   // Project cards — one entry per matching assignee (so card shows in each person's row)
   S.projects.filter(p=>p.status==='active').forEach(proj=>{
     proj.cards.filter(c=>c.dueDate&&c.stage!=='done').forEach(card=>{
-      card.assignees.filter(a=>calFilter.has(a)).forEach(owner=>{
+      uniqIds(card.assignees).filter(a=>calFilter.has(a)).forEach(owner=>{
         const m=owner==='me'?null:S.members.find(x=>x.id===owner);
         tasks.push({id:card.id,title:`◈ ${card.title}`,dueDate:card.dueDate,priority:card.priority,status:'todo',_owner:owner,_ownerName:m?.name,_color:proj.color,_isProject:true,_projectId:proj.id,category:'work'});
       });
@@ -1615,7 +1616,7 @@ function renderKanbanBoard(){
     const cards=proj.cards.filter(c=>c.stage===col.stage);
     const cardsHtml=cards.map(card=>{
       const prioBorder=card.priority==='high'?'var(--red)':card.priority==='medium'?'var(--amber)':'var(--green)';
-      const avPills=card.assignees.map(id=>`<div class="kc-av" title="${prjNameFor(id)}" style="background:${prjColorFor(id)}">${prjInitialsFor(id)}</div>`).join('');
+      const avPills=uniqIds(card.assignees).map(id=>`<div class="kc-av" title="${prjNameFor(id)}" style="background:${prjColorFor(id)}">${prjInitialsFor(id)}</div>`).join('');
       const isOverdue=card.dueDate&&card.stage!=='done'&&parseDate(card.dueDate)<todayUTC();
       const dueLbl=card.dueDate?`<span style="color:${isOverdue?'var(--red)':'var(--muted2)'}">${fmtShort(parseDate(card.dueDate))}</span>`:'';
       const cmtLbl=card.comments.length?`<span>💬 ${card.comments.length}</span>`:'';
@@ -1700,7 +1701,7 @@ function saveCardModal(){
   const title=document.getElementById('cm-title').value.trim();
   if(!title){showAlert('Tytuł zadania jest wymagany.');return false;}
   const stage=document.querySelector('.card-stage-btn.active')?.dataset.s||'backlog';
-  const assignees=[...document.querySelectorAll('.card-assignee-chip.selected')].map(c=>c.dataset.aid);
+  const assignees=uniqIds([...document.querySelectorAll('.card-assignee-chip.selected')].map(c=>c.dataset.aid));
   const existingComments=cmCardId?(proj.cards.find(c=>c.id===cmCardId)?.comments||[]):[];
   const cardData={title,description:document.getElementById('cm-desc').value.trim(),stage,priority:document.getElementById('cm-prio').value,dueDate:document.getElementById('cm-due').value,assignees,comments:existingComments};
   if(cmCardId){const i=proj.cards.findIndex(c=>c.id===cmCardId);if(i>-1){cmCardId=proj.cards[i].id;proj.cards[i]={...proj.cards[i],...cardData};}}
@@ -1725,7 +1726,7 @@ function openProjectModal(editId=null){
     {label:proj?'💾 Zapisz':'✅ Utwórz projekt',cls:'btn primary',fn:()=>{
       const title=(document.getElementById('pm-title')?.value||'').trim();if(!title){showAlert('Nazwa projektu jest wymagana.');return false;}
       const color=document.querySelector('.prj-color-pick.active')?.dataset.c||initColor;
-      const assignees=[...document.querySelectorAll('.pm-asgn.selected')].map(c=>c.dataset.aid);
+      const assignees=uniqIds([...document.querySelectorAll('.pm-asgn.selected')].map(c=>c.dataset.aid));
       const desc=(document.getElementById('pm-desc')?.value||'').trim();
       if(proj){proj.title=title;proj.description=desc;proj.color=color;proj.assignees=assignees;}
       else{const np=normProject({id:`p_${Date.now()}`,title,description:desc,color,assignees,status:'active',createdAt:new Date().toISOString(),cards:[]});S.projects.push(np);selProject=np.id;}
