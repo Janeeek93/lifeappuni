@@ -1127,13 +1127,13 @@ function getCalTasks(){
   const tasks=[];
   if(calFilter.has('me'))S.tasks.forEach(t=>tasks.push({...t,_owner:'me',_color:'var(--blue)'}));
   S.members.forEach(m=>{if(!calFilter.has(m.id))return;S.teamTasks.filter(t=>t.assigneeId===m.id).forEach(t=>tasks.push({...t,_owner:m.id,_ownerName:m.name,_color:m.color,category:'work'}));});
-  // Project cards with dueDate appear in calendar
+  // Project cards — one entry per matching assignee (so card shows in each person's row)
   S.projects.filter(p=>p.status==='active').forEach(proj=>{
     proj.cards.filter(c=>c.dueDate&&c.stage!=='done').forEach(card=>{
-      const owner=card.assignees.find(a=>calFilter.has(a))||null;
-      if(!owner)return;
-      const m=owner==='me'?null:S.members.find(x=>x.id===owner);
-      tasks.push({id:card.id,title:`◈ ${card.title}`,dueDate:card.dueDate,priority:card.priority,status:'todo',_owner:owner,_ownerName:m?.name,_color:proj.color,_isProject:true,_projectId:proj.id,category:'work'});
+      card.assignees.filter(a=>calFilter.has(a)).forEach(owner=>{
+        const m=owner==='me'?null:S.members.find(x=>x.id===owner);
+        tasks.push({id:card.id,title:`◈ ${card.title}`,dueDate:card.dueDate,priority:card.priority,status:'todo',_owner:owner,_ownerName:m?.name,_color:proj.color,_isProject:true,_projectId:proj.id,category:'work'});
+      });
     });
   });
   return tasks;
@@ -1170,7 +1170,9 @@ function updateDayPanel(ds){
   const d=parseDate(ds);
   dpDate.textContent=d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'});
   dpDow.textContent=d.toLocaleDateString('pl-PL',{weekday:'long'});
-  const tasks=getCalTasks().filter(t=>t.dueDate===ds);
+  const _raw=getCalTasks().filter(t=>t.dueDate===ds);
+  const _seen=new Set();
+  const tasks=_raw.filter(t=>{if(!t._isProject)return true;if(_seen.has(t.id))return false;_seen.add(t.id);return true;});
   if(!tasks.length){dpBody.innerHTML=`<div class="dp-empty">📭<br>Brak zadań — dodaj poniżej.</div>`;}
   else{
     dpBody.innerHTML=tasks.map(t=>{const m=t._owner!=='me'?S.members.find(x=>x.id===t._owner):null;const bdrColor=t.priority==='high'?'var(--red)':t.priority==='medium'?'var(--amber)':'var(--green)';return `<div class="dp-task" style="border-left-color:${bdrColor}"><input type="checkbox" data-dpid="${t.id}" data-dpown="${t._owner}" ${t.status==='done'?'checked':''}><div class="dp-task-body"><div class="dp-task-title ${t.status==='done'?'done':''}">${escH(t.title)}</div><div class="dp-task-who">${m?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${m.color}"></span> ${escH(m.name)}`:'<span style="color:var(--blue);font-weight:800">Ja</span>'} <span class="pill prio-${t.priority}" style="font-size:9px;padding:1px 5px">${priShort(t.priority)}</span></div></div><button class="btn ghost sm" data-dpedit="${t.id}" data-dpown="${t._owner}" style="padding:3px 5px"><span class="material-symbols-outlined" style="font-size:13px">edit</span></button></div>`;}).join('');
@@ -1191,7 +1193,12 @@ function updateDayPanel(ds){
 function renderMemberList(){
   const el=document.getElementById('member-list-body');if(!el)return;
   const t=todayUTC();
-  el.innerHTML=S.members.map(m=>{const active=S.teamTasks.filter(x=>x.assigneeId===m.id&&x.status!=='done'),overdue=active.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;}).length;return `<div class="member-row ${selMember===m.id?'active':''}" data-mid="${m.id}"><div class="m-av" style="background:${m.color}">${m.name.charAt(0).toUpperCase()}</div><div style="flex:1;min-width:0"><div class="m-name">${escH(m.name)}</div><div class="m-role">${escH(m.role)||'Bez roli'}</div></div>${active.length?`<div class="m-badge ${overdue?'overdue':''}">${overdue?`⚠️ ${active.length}`:active.length}</div>`:''}</div>`;}).join('');
+  el.innerHTML=S.members.map(m=>{
+    const active=S.teamTasks.filter(x=>x.assigneeId===m.id&&x.status!=='done');
+    const projActive=S.projects.filter(p=>p.status==='active').reduce((n,p)=>n+p.cards.filter(c=>c.stage!=='done'&&c.assignees.includes(m.id)).length,0);
+    const total=active.length+projActive;
+    const overdue=active.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;}).length;
+    return `<div class="member-row ${selMember===m.id?'active':''}" data-mid="${m.id}"><div class="m-av" style="background:${m.color}">${m.name.charAt(0).toUpperCase()}</div><div style="flex:1;min-width:0"><div class="m-name">${escH(m.name)}</div><div class="m-role">${escH(m.role)||'Bez roli'}</div></div>${total?`<div class="m-badge ${overdue?'overdue':''}">${overdue?`⚠️ ${total}`:total}</div>`:''}</div>`;}).join('');
   el.querySelectorAll('.member-row').forEach(r=>r.addEventListener('click',()=>{selMember=r.dataset.mid;activePTab='tasks';renderMemberList();renderPersonDetail();}));
   renderSpecializationMap();
 }
@@ -1253,7 +1260,11 @@ function buildTasksTab(m,active,done){
   const tRow=(task,isDone)=>{const due=parseDate(task.dueDate),isO=due&&due<t&&!isDone,ds=due?fmtShort(due):'';const steps=task.steps||[];const sd=steps.filter(s=>s.done).length;const stepsTotal=steps.length;const progPct=stepsTotal?Math.round(sd/stepsTotal*100):0;
   const stepsHtml=`<div class="tt-steps" data-steps-for="${task.id}" style="display:none"><div class="tt-steps-list">${steps.map(s=>`<div class="tt-step ${s.done?'done':''}"><input type="checkbox" class="tt-step-cb" data-stepkey="${task.id}:${s.id}" ${s.done?'checked':''}><span>${escH(s.text)}</span><button class="btn ghost sm tt-step-del" data-stepkey="${task.id}:${s.id}" style="padding:2px 5px">×</button></div>`).join('')}</div><div class="tt-step-add"><input type="text" class="tt-step-inp" data-ttid="${task.id}" placeholder="Nowy etap..."><button class="btn sm tt-step-add-btn" data-ttid="${task.id}">+</button></div></div>`;
   return `<div class="task-item" data-prio="${task.priority}"><input type="checkbox" class="tt-cb" data-ttid="${task.id}" ${isDone?'checked':''}><div class="ti-body"><div class="ti-title tt-toggle ${isDone?'done':''}" data-toggle-steps="${task.id}">${escH(task.title)}${stepsTotal?` <span class="step-prog-lbl">(${sd}/${stepsTotal})</span>`:''}</div><div class="ti-meta"><span class="pill prio-${task.priority}">${priLabel(task.priority)}</span>${ds?`<span class="due-lbl ${isO?'over':''}"><span class="material-symbols-outlined" style="font-size:11px">schedule</span>${ds}${isO?' · ⚠️ Po terminie':''}</span>`:'<span class="due-lbl" style="font-style:italic">Bez terminu</span>'}${stepsTotal?`<div class="pw"><div class="pb" style="width:${progPct}%"></div></div>`:''}</div>${stepsHtml}</div><button class="btn ghost sm tt-del" data-ttid="${task.id}" style="padding:3px 5px;flex-shrink:0">×</button></div>`;};
-  return `<div style="display:flex;flex-direction:column;gap:7px">${sorted.map(t=>tRow(t,false)).join('')||'<div class="ov-empty">Brak aktywnych tasków 🎉</div>'}${done.length?`<div class="label-xs" style="margin-top:10px;margin-bottom:4px">Ukończone (${done.length})</div>${done.slice(0,5).map(t=>tRow(t,true)).join('')}`:''}</div><div class="atb"><input type="text" id="tt-inp" placeholder="Nowy task dla ${escH(m.name.split(' ')[0])}..."><select id="tt-prio" style="width:auto"><option value="medium">🟠 Śr.</option><option value="high">🔴 Wys.</option><option value="low">🟢 Nis.</option></select><input type="date" id="tt-due" style="width:auto;min-width:130px"><button class="btn primary sm" id="tt-add-btn">+ Dodaj task</button></div>`;
+  // Project cards assigned to this member
+  const projCards=[];
+  S.projects.filter(p=>p.status==='active').forEach(proj=>{proj.cards.filter(c=>c.stage!=='done'&&c.assignees.includes(m.id)).forEach(card=>{projCards.push({...card,_projId:proj.id,_projTitle:proj.title,_projColor:proj.color});});});
+  const projSection=projCards.length?`<div class="label-xs" style="margin:10px 0 5px">📁 Taski projektowe (${projCards.length})</div><div style="display:flex;flex-direction:column;gap:6px">${projCards.map(card=>{const due=parseDate(card.dueDate),isO=due&&due<t&&card.stage!=='done';const stageLbl={'backlog':'Backlog','inprogress':'W trakcie','done':'Gotowe'}[card.stage]||card.stage;return `<div class="task-item" data-prio="${card.priority}" style="border-left:3px solid ${card._projColor};cursor:pointer" data-open-card="${card.id}" data-open-proj="${card._projId}"><div class="ti-body"><div class="ti-title" style="color:var(--ink)">${escH(card.title)}</div><div class="ti-meta"><span class="pill" style="background:${card._projColor}22;color:${card._projColor};border:1px solid ${card._projColor}44">${escH(card._projTitle)}</span><span class="pill prio-${card.priority}">${priLabel(card.priority)}</span><span class="due-lbl" style="opacity:.7">${stageLbl}</span>${card.dueDate?`<span class="due-lbl ${isO?'over':''}">${fmtShort(parseDate(card.dueDate))}${isO?' ⚠️':''}</span>`:''}</div></div></div>`;}).join('')}</div>`:'';
+  return `<div style="display:flex;flex-direction:column;gap:7px">${sorted.map(t=>tRow(t,false)).join('')||'<div class="ov-empty">Brak aktywnych tasków 🎉</div>'}${done.length?`<div class="label-xs" style="margin-top:10px;margin-bottom:4px">Ukończone (${done.length})</div>${done.slice(0,5).map(t=>tRow(t,true)).join('')}`:''}</div>${projSection}<div class="atb"><input type="text" id="tt-inp" placeholder="Nowy task dla ${escH(m.name.split(' ')[0])}..."><select id="tt-prio" style="width:auto"><option value="medium">🟠 Śr.</option><option value="high">🔴 Wys.</option><option value="low">🟢 Nis.</option></select><input type="date" id="tt-due" style="width:auto;min-width:130px"><button class="btn primary sm" id="tt-add-btn">+ Dodaj task</button></div>`;
 }
 function buildNotesTab(m){
   const notes=S.notes.filter(n=>n.personId===m.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
@@ -1281,6 +1292,8 @@ function wireTasksTab(pd,m){
   const addFn=()=>{const v=pd.querySelector('#tt-inp')?.value.trim();if(!v)return;const prio=pd.querySelector('#tt-prio')?.value||'medium',due=pd.querySelector('#tt-due')?.value||'';S.teamTasks.push(normTT({id:`tt_${Date.now()}`,title:v,assigneeId:m.id,priority:prio,dueDate:due,status:'todo',createdAt:new Date().toISOString()}));save();renderMemberList();renderPersonDetail();renderCalendar();};
   pd.querySelector('#tt-add-btn')?.addEventListener('click',addFn);
   pd.querySelector('#tt-inp')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addFn();}});
+  // Click on project task item → open card modal
+  pd.querySelectorAll('[data-open-card]').forEach(el=>el.addEventListener('click',()=>openCardModal(el.dataset.openProj,el.dataset.openCard)));
 }
 function wireNotesTab(pd,m){
   pd.querySelector('#nn-save')?.addEventListener('click',()=>{const c=pd.querySelector('#nn-content')?.value.trim();if(!c)return;const now=new Date().toISOString();S.notes.unshift(normNote({id:`n_${Date.now()}`,personId:m.id,category:pd.querySelector('#nn-cat')?.value||'general',title:pd.querySelector('#nn-title')?.value.trim()||'',content:c,createdAt:now,updatedAt:now}));save();renderPersonDetail();});

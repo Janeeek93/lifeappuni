@@ -216,6 +216,11 @@
             <!-- filled by renderLoanCard() -->
           </div>
 
+          <!-- ③c Projects overview — hidden until data -->
+          <div class="bento-card bento-span-12" id="kpi-projects-card" style="animation-delay:.15s; display:none; padding:20px 22px;">
+            <!-- filled by renderProjectsKPI() -->
+          </div>
+
           <!-- ④ Small tiles — tasks(1/3) | house(1/3) | fuel+inventory stack(1/3) -->
           <div class="bento-span-12 small-tiles-row" style="animation-delay:.16s;">
             <a href="tasks.html" class="small-tile small-tile--team" id="kpi-tasks">
@@ -390,6 +395,7 @@ function getWorkhubStateForBackup(){
       teamTasks: Array.isArray(workhub.teamTasks) ? workhub.teamTasks : [],
       notes: Array.isArray(workhub.notes) ? workhub.notes : [],
       selfNotes: Array.isArray(workhub.selfNotes) ? workhub.selfNotes : [],
+      projects: Array.isArray(workhub.projects) ? workhub.projects : [],
     };
   }
   const legacyTasks = safeParse(localStorage.getItem(TASKS_STORAGE_KEY), null);
@@ -1633,6 +1639,45 @@ importInput.onchange = (e)=>{
 };
 
 /* === BOOT === */
+function renderProjectsKPI(){
+  const el=document.getElementById('kpi-projects-card');if(!el)return;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const wb=getWorkhubStateForBackup();
+  const members=wb?.members||[];
+  const projects=(wb?.projects||[]).filter(p=>p.status==='active'&&Array.isArray(p.cards));
+  if(!projects.length){el.style.display='none';return;}
+  el.style.display='';
+  const initials=(id)=>{if(id==='me')return'JA';const m=members.find(x=>x.id===id);if(!m)return'?';const p=m.name.trim().split(/\s+/);return(p.length>=2?p[0][0]+p[1][0]:m.name.substring(0,2)).toUpperCase();};
+  const color=(id)=>{if(id==='me')return'#0057c0';return members.find(x=>x.id===id)?.color||'#888';};
+  const items=projects.map(proj=>{
+    const total=proj.cards.length;
+    const backlog=proj.cards.filter(c=>c.stage==='backlog').length;
+    const inprog=proj.cards.filter(c=>c.stage==='inprogress').length;
+    const done=proj.cards.filter(c=>c.stage==='done').length;
+    const pct=total?Math.round(done/total*100):0;
+    const avs=(proj.assignees||[]).slice(0,5).map(id=>`<div class="prj-kpi-av" style="background:${color(id)}">${initials(id)}</div>`).join('');
+    return `<a href="tasks.html" class="prj-kpi-item" style="border-left-color:${proj.color};text-decoration:none;color:inherit">
+      <div class="prj-kpi-title">${esc(proj.title)}</div>
+      <div class="prj-kpi-stages">
+        <span class="prj-kpi-stage">📋 ${backlog}</span>
+        <span class="prj-kpi-stage ${inprog?'wip':''}">⚡ ${inprog}</span>
+        <span class="prj-kpi-stage done-s">✅ ${done}<span style="opacity:.5">/${total}</span></span>
+      </div>
+      <div class="prj-kpi-bar"><div class="prj-kpi-bar-fill" style="width:${pct}%;background:${proj.color}"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <div class="prj-kpi-avatars">${avs||'<span style="font-size:10px;color:var(--muted)">Brak osób</span>'}</div>
+        <span style="font-size:11px;font-weight:800;color:var(--muted)">${pct}%</span>
+      </div>
+    </a>`;
+  }).join('');
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <span class="bento-section-title">📁 Projekty w trakcie</span>
+      <a href="tasks.html" class="btn ghost" style="font-size:12px;padding:5px 12px">Zarządzaj <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px">arrow_forward</span></a>
+    </div>
+    <div class="prj-kpi-grid">${items}</div>`;
+}
+
 function renderAll(){
   renderGreetingAndDate();
   renderWeatherWidget();
@@ -1640,6 +1685,7 @@ function renderAll(){
   renderInvestmentKPI();
   renderTrainingGoals();
   renderLoanCard();
+  renderProjectsKPI();
   renderUpcomingTasks();  /* fills hidden #upcoming-tasks-list — kept for compat */
   renderBackupStatus();
 }
