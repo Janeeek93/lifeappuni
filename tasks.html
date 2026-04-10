@@ -310,79 +310,81 @@
     @media(max-width:1100px){ .ov2-triptych{grid-template-columns:1fr 1fr} }
     @media(max-width:700px)  { .ov2-triptych{grid-template-columns:1fr} }
 
-    /* Workload compact rows */
+    /* Workload compact rows — inline status badge, tight spacing */
     .ov2-wl-row {
       display:flex; align-items:center; gap:9px;
-      padding:7px 0; border-bottom:1px solid var(--line);
+      padding:5px 0; border-bottom:1px solid var(--line);
     }
     .ov2-wl-row:last-child { border-bottom:none; padding-bottom:0; }
     .ov2-wl-av {
-      width:28px; height:28px; border-radius:8px;
+      width:26px; height:26px; border-radius:7px;
       display:flex; align-items:center; justify-content:center;
-      font-size:12px; font-weight:900; color:#fff; flex-shrink:0;
+      font-size:11px; font-weight:900; color:#fff; flex-shrink:0;
     }
     .ov2-wl-body { flex:1; min-width:0; }
     .ov2-wl-name {
       font-size:11px; font-weight:800; display:flex;
-      align-items:center; justify-content:space-between;
+      align-items:center; justify-content:space-between; gap:6px;
     }
-    .ov2-wl-count { font-size:11px; font-weight:900; color:var(--ink); }
-    .ov2-wl-overdue { font-size:9px; color:var(--red); font-weight:800; }
-    .ov2-wl-ok { font-size:9px; color:var(--green); font-weight:800; }
-    .ov2-wl-bar { height:3px; border-radius:2px; background:var(--surf); margin-top:5px; overflow:hidden; }
-    .ov2-wl-bar-fill { height:100%; border-radius:2px; transition:width .5s; }
+    .ov2-wl-name-left { display:flex; align-items:center; gap:5px; min-width:0; }
+    .ov2-wl-name-txt  { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-wl-count     { font-size:12px; font-weight:900; color:var(--ink); flex-shrink:0; }
+    .ov2-wl-overdue   { font-size:9px; color:var(--red); font-weight:800; background:var(--red-bg); padding:1px 5px; border-radius:999px; flex-shrink:0; }
+    .ov2-wl-ok        { font-size:9px; color:var(--green); font-weight:700; flex-shrink:0; }
+    .ov2-wl-bar       { height:3px; border-radius:2px; background:var(--surf); margin-top:4px; overflow:hidden; }
+    .ov2-wl-bar-fill  { height:100%; border-radius:2px; transition:width .5s; }
 
-    /* Projects pipeline strip */
-    .ov2-proj-strip {
-      display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px;
-    }
-    .ov2-proj-card {
-      background:var(--surf-lo); border:1px solid var(--line); border-radius:var(--r);
-      padding:13px 14px 11px; display:flex; flex-direction:column; gap:7px;
-      text-decoration:none; color:inherit;
-      border-left-width:3px; border-left-style:solid;
-      transition:box-shadow .15s, transform .15s;
-    }
-    .ov2-proj-card:hover { box-shadow:var(--sh); transform:translateY(-2px); }
-    .ov2-proj-title { font-size:12px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    .ov2-proj-stages { display:flex; gap:5px; flex-wrap:wrap; }
-    .ov2-proj-stage {
-      font-size:9px; font-weight:800; padding:2px 6px; border-radius:999px; line-height:1.5;
-    }
-    .ov2-proj-stage.bl  { background:var(--surf);        color:var(--muted); }
-    .ov2-proj-stage.wip { background:var(--blue-tint);   color:var(--blue); }
-    .ov2-proj-stage.dn  { background:var(--green-tint);  color:var(--green); }
-    .ov2-proj-bar      { height:3px; border-radius:2px; background:var(--line); overflow:hidden; }
-    .ov2-proj-bar-fill { height:100%; border-radius:2px; transition:width .4s; }
-    .ov2-proj-footer   { display:flex; align-items:center; justify-content:space-between; }
-    .ov2-proj-avs      { display:flex; gap:3px; }
-    .ov2-proj-av {
-      width:20px; height:20px; border-radius:50%; color:#fff;
-      font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center;
-    }
-    .ov2-proj-pct { font-size:10px; font-weight:900; color:var(--muted2); }
+    /* Left column (workload + notes combined) */
+    .ov2-left-col { display:flex; flex-direction:column; }
+    .ov2-divider  { border:none; border-top:1px solid var(--line); margin:14px 0 12px; }
 
-    /* Notes strip — 3 horizontal cards */
-    .ov2-notes-strip {
-      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+    /* Projects: dense in-progress task list per project */
+    .ov2-proj-blocks {
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px;
     }
-    @media(max-width:900px){ .ov2-notes-strip{grid-template-columns:1fr} }
-    .ov2-note-card {
+    .ov2-prj-block {
       background:var(--surf-lo); border:1px solid var(--line); border-radius:var(--r);
-      padding:12px 14px; cursor:pointer; text-align:left; width:100%;
       border-left-width:3px; border-left-style:solid;
-      display:flex; flex-direction:column; gap:5px;
-      transition:box-shadow .15s, transform .15s;
+      padding:12px 14px; display:flex; flex-direction:column; gap:0;
     }
-    .ov2-note-card:hover { box-shadow:var(--sh); transform:translateY(-2px); }
-    .ov2-note-title   { font-size:12px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    .ov2-note-meta    { font-size:10px; color:var(--muted2); display:flex; gap:8px; flex-wrap:wrap; }
-    .ov2-note-preview {
-      font-size:10px; color:var(--muted2); overflow:hidden;
-      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.45;
+    .ov2-prj-hd {
+      display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;
     }
+    .ov2-prj-hd-title { font-size:12px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-prj-hd-meta  { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+    .ov2-prj-prog-badge {
+      font-size:9px; font-weight:800; padding:2px 7px; border-radius:999px;
+      background:var(--green-tint); color:var(--green);
+    }
+    .ov2-prj-task-row {
+      display:flex; align-items:center; gap:7px;
+      padding:5px 0; border-bottom:1px solid var(--line);
+    }
+    .ov2-prj-task-row:last-child { border-bottom:none; padding-bottom:0; }
+    .ov2-prj-task-title { flex:1; font-size:11px; font-weight:700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-prj-task-avs   { display:flex; gap:2px; flex-shrink:0; }
+    .ov2-prj-task-av    {
+      width:18px; height:18px; border-radius:50%; color:#fff;
+      font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    }
+    .ov2-prj-task-due   { font-size:9px; color:var(--muted2); font-weight:700; flex-shrink:0; white-space:nowrap; }
+    .ov2-prj-task-due.late { color:var(--red); }
+
+    /* Compact notes (inside left column) */
+    .ov2-note-sm {
+      display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; cursor:pointer;
+      padding:7px 0 7px 8px; border-left-width:3px; border-left-style:solid;
+      border-top:none; border-right:none; border-bottom:1px solid var(--line);
+      background:transparent; transition:background .12s;
+    }
+    .ov2-note-sm:last-child { border-bottom:none; }
+    .ov2-note-sm:hover { background:var(--surf-lo); border-radius:var(--r-xs); }
+    .ov2-note-sm-title   { font-size:11px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-note-sm-meta    { font-size:9px; color:var(--muted2); display:flex; gap:6px; }
+    .ov2-note-sm-preview { font-size:10px; color:var(--muted2); overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; line-height:1.4; }
+
     .ov2-empty {
-      font-size:11px; color:var(--muted2); padding:18px; border:1.5px dashed var(--line2);
+      font-size:11px; color:var(--muted2); padding:14px; border:1.5px dashed var(--line2);
       border-radius:var(--r); text-align:center; line-height:1.9;
     }
 
@@ -794,22 +796,23 @@
           </div>
         </div>
 
-        <!-- ── PROJECTS PIPELINE (hidden when empty) ── -->
+        <!-- ── PROJECTS: in-progress tasks (hidden when empty) ── -->
         <div class="ov2-card" id="ov-projects-section" style="display:none;margin-bottom:16px">
           <div class="ov2-sec-head">
             <div class="ov2-sec-title">
               <div class="ib blue" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">folder_open</span></div>
-              Projekty w toku
+              Projekty — zadania w trakcie
             </div>
-            <button class="btn sm ghost" data-mod-jump="projects">Zarządzaj →</button>
+            <button class="btn sm ghost" data-mod-jump="projects">Wszystkie projekty →</button>
           </div>
-          <div class="ov2-proj-strip" id="ov-projects-list"></div>
+          <div class="ov2-proj-blocks" id="ov-projects-list"></div>
         </div>
 
-        <!-- ── TRIPTYCH: Workload | Agenda | Ryzyka ── -->
+        <!-- ── MAIN GRID: [Workload+Notes] | [Agenda] | [Ryzyka] ── -->
         <div class="ov2-triptych">
-          <!-- Team Workload -->
-          <div class="ov2-card">
+
+          <!-- LEFT: Workload + Notatki -->
+          <div class="ov2-card ov2-left-col">
             <div class="ov2-sec-head">
               <div class="ov2-sec-title">
                 <div class="ib blue" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">group</span></div>
@@ -818,8 +821,23 @@
               <button class="btn sm ghost" data-mod-jump="team">Zespół →</button>
             </div>
             <div id="ov-workload-list"></div>
+
+            <div class="ov2-divider"></div>
+
+            <div class="ov2-sec-head" style="margin-bottom:10px">
+              <div class="ov2-sec-title" style="font-size:11px">
+                <div class="ib green" style="width:22px;height:22px"><span class="material-symbols-outlined" style="font-size:11px">note_alt</span></div>
+                Ostatnie notatki
+              </div>
+              <div style="display:flex;gap:3px">
+                <button class="btn sm ghost" style="padding:3px 7px" data-mod-jump="team">Zespół</button>
+                <button class="btn sm ghost" style="padding:3px 7px" data-mod-jump="selfnotes">Własne</button>
+              </div>
+            </div>
+            <div id="ov-notes-list"></div>
           </div>
-          <!-- Agenda -->
+
+          <!-- MIDDLE: Agenda -->
           <div class="ov2-card">
             <div class="ov2-sec-head">
               <div class="ov2-sec-title">
@@ -830,7 +848,8 @@
             </div>
             <div class="ov-list" id="ov-agenda-list"></div>
           </div>
-          <!-- Risks -->
+
+          <!-- RIGHT: Ryzyka -->
           <div class="ov2-card">
             <div class="ov2-sec-head">
               <div class="ov2-sec-title">
@@ -840,21 +859,7 @@
             </div>
             <div class="ov-list" id="ov-risks-list"></div>
           </div>
-        </div>
 
-        <!-- ── NOTES STRIP ── -->
-        <div class="ov2-card" style="margin-top:16px">
-          <div class="ov2-sec-head">
-            <div class="ov2-sec-title">
-              <div class="ib green" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">note_alt</span></div>
-              Ostatnie notatki
-            </div>
-            <div style="display:flex;gap:6px">
-              <button class="btn sm ghost" data-mod-jump="team">Zespołowe →</button>
-              <button class="btn sm ghost" data-mod-jump="selfnotes">Własne →</button>
-            </div>
-          </div>
-          <div class="ov2-notes-strip" id="ov-notes-list"></div>
         </div>
 
       </div>
@@ -1465,48 +1470,52 @@ function renderOverview(){
   setTxt('ov-total-open',String(allOpen.length));setTxt('ov-overdue',String(overdue.length));
   setTxt('ov-week',String(week.length));setTxt('ov-notes',String(notes14.length));
 
-  /* ── Projects pipeline ── */
+  /* ── Projects: in-progress tasks per project ── */
   const projSec=document.getElementById('ov-projects-section');
   const projList=document.getElementById('ov-projects-list');
   if(projSec&&projList){
-    const activeProj=(S.projects||[]).filter(p=>p.status==='active'&&Array.isArray(p.cards));
+    const activeProj=(S.projects||[]).filter(p=>p.status==='active'&&Array.isArray(p.cards)&&p.cards.some(c=>c.stage==='inprogress'));
     if(!activeProj.length){projSec.style.display='none';}
     else{
       projSec.style.display='';
-      const av=(id)=>{if(id==='me')return{ini:'JA',c:'var(--blue)'};const m=S.members.find(x=>x.id===id);if(!m)return{ini:'?',c:'#888'};const p=m.name.trim().split(/\s+/);return{ini:(p.length>=2?p[0][0]+p[1][0]:m.name.substring(0,2)).toUpperCase(),c:m.color};};
+      const avInfo=(id)=>{if(id==='me')return{ini:'JA',c:'var(--blue)'};const m=S.members.find(x=>x.id===id);if(!m)return{ini:'?',c:'#888'};const p=m.name.trim().split(/\s+/);return{ini:(p.length>=2?p[0][0]+p[1][0]:m.name.substring(0,2)).toUpperCase(),c:m.color};};
       projList.innerHTML=activeProj.map(proj=>{
         const total=proj.cards.length;
-        const bl=proj.cards.filter(c=>c.stage==='backlog').length;
-        const ip=proj.cards.filter(c=>c.stage==='inprogress').length;
         const dn=proj.cards.filter(c=>c.stage==='done').length;
         const pct=total?Math.round(dn/total*100):0;
-        const avHtml=(proj.assignees||[]).slice(0,5).map(id=>{const{ini,c}=av(id);return `<span class="ov2-proj-av" style="background:${c}">${ini}</span>`;}).join('');
-        return `<a href="javascript:void 0" class="ov2-proj-card" style="border-left-color:${proj.color}" data-mod-jump="projects">
-          <div class="ov2-proj-title">${escH(proj.title)}</div>
-          <div class="ov2-proj-stages">
-            <span class="ov2-proj-stage bl">📋 ${bl}</span>
-            <span class="ov2-proj-stage wip">⚡ ${ip}</span>
-            <span class="ov2-proj-stage dn">✅ ${dn}<span style="opacity:.5">/${total}</span></span>
+        const ipCards=proj.cards.filter(c=>c.stage==='inprogress');
+        const taskRows=ipCards.map(card=>{
+          const due=parseDate(card.dueDate);
+          const late=due&&due<t;
+          const avHtml=card.assignees.slice(0,4).map(id=>{const{ini,c}=avInfo(id);return `<span class="ov2-prj-task-av" style="background:${c}">${ini}</span>`;}).join('');
+          return `<div class="ov2-prj-task-row">
+            <span class="ov2-prj-task-title">${escH(card.title)}</span>
+            <span class="ov2-prj-task-avs">${avHtml}</span>
+            ${due?`<span class="ov2-prj-task-due${late?' late':''}">${fmtShort(due)}</span>`:''}
+          </div>`;
+        }).join('');
+        return `<div class="ov2-prj-block" style="border-left-color:${proj.color}">
+          <div class="ov2-prj-hd">
+            <span class="ov2-prj-hd-title">${escH(proj.title)}</span>
+            <div class="ov2-prj-hd-meta">
+              <span class="ov2-prj-prog-badge">${dn}/${total} ✅</span>
+              <span style="font-size:9px;color:var(--muted2)">${pct}%</span>
+            </div>
           </div>
-          <div class="ov2-proj-bar"><div class="ov2-proj-bar-fill" style="width:${pct}%;background:${proj.color}"></div></div>
-          <div class="ov2-proj-footer">
-            <div class="ov2-proj-avs">${avHtml||'<span style="font-size:10px;color:var(--muted2)">—</span>'}</div>
-            <span class="ov2-proj-pct">${pct}%</span>
-          </div>
-        </a>`;
+          ${taskRows}
+        </div>`;
       }).join('');
-      projList.querySelectorAll('[data-mod-jump]').forEach(el=>el.addEventListener('click',()=>switchModule('projects')));
     }
   }
 
-  /* ── Team Workload (compact) ── */
+  /* ── Team Workload (inline status badge) ── */
   const loadEl=document.getElementById('ov-workload-list');
   if(loadEl){
     const per=S.members.map(m=>{
-      const open=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done').length;
+      const ttOpen=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done');
       const projOpen=(S.projects||[]).filter(p=>p.status==='active').reduce((n,p)=>n+p.cards.filter(c=>c.stage!=='done'&&c.assignees.includes(m.id)).length,0);
-      const total=open+projOpen;
-      const over=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done'&&(()=>{const d=parseDate(tt.dueDate);return d&&d<t;})()).length;
+      const total=ttOpen.length+projOpen;
+      const over=ttOpen.filter(tt=>{const d=parseDate(tt.dueDate);return d&&d<t;}).length;
       return{m,total,over};
     });
     const max=Math.max(1,...per.map(x=>x.total));
@@ -1515,11 +1524,13 @@ function renderOverview(){
         <div class="ov2-wl-av" style="background:${m.color}">${m.name.charAt(0).toUpperCase()}</div>
         <div class="ov2-wl-body">
           <div class="ov2-wl-name">
-            <span>${escH(m.name)}</span>
+            <div class="ov2-wl-name-left">
+              <span class="ov2-wl-name-txt">${escH(m.name)}</span>
+              ${over?`<span class="ov2-wl-overdue">⚠️${over}</span>`:`<span class="ov2-wl-ok">✓</span>`}
+            </div>
             <span class="ov2-wl-count">${total}</span>
           </div>
           <div class="ov2-wl-bar"><div class="ov2-wl-bar-fill" style="width:${Math.round(total/max*100)}%;background:${m.color}"></div></div>
-          ${over?`<div class="ov2-wl-overdue">⚠️ ${over} po terminie</div>`:`<div class="ov2-wl-ok">✓ brak zaległości</div>`}
         </div>
       </div>`).join('')
     :`<div class="ov2-empty">Dodaj członków i zadania.</div>`;
@@ -1561,20 +1572,21 @@ function renderOverview(){
     }
   }
 
-  /* ── Notes strip ── */
+  /* ── Notes compact (inside left column) ── */
   const notesEl=document.getElementById('ov-notes-list');
   if(notesEl){
-    const merged=[...S.notes.map(note=>({source:'person',note})),...S.selfNotes.map(note=>({source:'self',note}))].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,3);
+    const merged=[...S.notes.map(note=>({source:'person',note})),...S.selfNotes.map(note=>({source:'self',note}))].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,4);
     notesEl.innerHTML=merged.length?merged.map(({source,note})=>{
       const m=source==='person'?S.members.find(x=>x.id===note.personId):null;
-      const ownerLabel=source==='self'?'👤 Ja':(m?`👥 ${escH(m.name)}`:'👥 Ogólna');
+      const ownerLabel=source==='self'?'Ja':(m?escH(m.name):'Ogólna');
       const catColor=note.category==='1on1'?'var(--green)':note.category==='issue'?'var(--red)':note.category==='feedback'?'var(--purple)':note.category==='meeting'?'var(--amber)':'var(--line2)';
-      return `<button type="button" class="ov2-note-card ov-note-jump" data-ov-source="${source}" data-ov-note-id="${note.id}" data-ov-person-id="${note.personId||''}" style="border-left-color:${catColor}">
-        <div class="ov2-note-title">${escH(note.title||'Notatka bez tytułu')}</div>
-        <div class="ov2-note-meta"><span>${ownerLabel}</span><span>📅 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div>
-        <div class="ov2-note-preview">${escH(note.content||'')}</div>
+      const dateStr=new Date(note.createdAt).toLocaleDateString('pl-PL',{day:'2-digit',month:'short'});
+      return `<button type="button" class="ov2-note-sm ov-note-jump" data-ov-source="${source}" data-ov-note-id="${note.id}" data-ov-person-id="${note.personId||''}" style="border-left-color:${catColor}">
+        <div class="ov2-note-sm-title">${escH(note.title||'Notatka bez tytułu')}</div>
+        <div class="ov2-note-sm-meta"><span>${ownerLabel}</span><span>${dateStr}</span></div>
+        <div class="ov2-note-sm-preview">${escH(note.content||'')}</div>
       </button>`;
-    }).join(''):`<div class="ov2-empty" style="grid-column:1/-1">Brak notatek — dodaj 1on1, blokery lub notatki własne.</div>`;
+    }).join(''):`<div class="ov2-empty">Brak notatek — dodaj 1on1 lub notatkę własną.</div>`;
     notesEl.querySelectorAll('.ov-note-jump').forEach(btn=>btn.addEventListener('click',()=>jumpToOverviewNote(btn.dataset.ovSource,btn.dataset.ovNoteId,btn.dataset.ovPersonId||null)));
   }
 }
