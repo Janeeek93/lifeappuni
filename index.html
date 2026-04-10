@@ -322,6 +322,12 @@ const BUDGET_EOM_UI_KEY = 'lifeos_budget_eom_ui_v1';
 const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
 const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
+const DEF_WORKHUB_MEMBERS = [
+  { id:'m1', name:'Pracownik 1', role:'', color:'#6366f1', profileNote:'', specialties:[] },
+  { id:'m2', name:'Pracownik 2', role:'', color:'#f59e0b', profileNote:'', specialties:[] },
+  { id:'m3', name:'Pracownik 3', role:'', color:'#10b981', profileNote:'', specialties:[] },
+  { id:'m4', name:'Pracownik 4', role:'', color:'#f43f5e', profileNote:'', specialties:[] },
+];
 
 function getHouseStorageRaw(){
   return localStorage.getItem(HOUSE_STORAGE_KEY) || localStorage.getItem(HOUSE_STORAGE_KEY_LEGACY);
@@ -368,6 +374,28 @@ function num(s) {
 function monthKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function parseDate(dateString){ if(!dateString) return null; const p = dateString.split('-').map(Number); return new Date(Date.UTC(p[0], p[1]-1, p[2])); }
 function parseLocalDate(dateString){ if(!dateString) return null; const p = dateString.split('-').map(Number); if(p.some(v=>!Number.isFinite(v))) return null; return new Date(p[0], p[1]-1, p[2]); }
+function getTasksStateForDashboard(){
+  const workhub = safeParse(localStorage.getItem(WORKHUB_STORAGE_KEY), null);
+  if(workhub && Array.isArray(workhub.tasks)) return { tasks: workhub.tasks };
+  return safeParse(localStorage.getItem(TASKS_STORAGE_KEY), { tasks: [] }) || { tasks: [] };
+}
+function getWorkhubStateForBackup(){
+  const workhub = safeParse(localStorage.getItem(WORKHUB_STORAGE_KEY), null);
+  if(workhub && typeof workhub === 'object'){
+    return {
+      tasks: Array.isArray(workhub.tasks) ? workhub.tasks : [],
+      members: Array.isArray(workhub.members) && workhub.members.length ? workhub.members : DEF_WORKHUB_MEMBERS,
+      teamTasks: Array.isArray(workhub.teamTasks) ? workhub.teamTasks : [],
+      notes: Array.isArray(workhub.notes) ? workhub.notes : [],
+      selfNotes: Array.isArray(workhub.selfNotes) ? workhub.selfNotes : [],
+    };
+  }
+  const legacyTasks = safeParse(localStorage.getItem(TASKS_STORAGE_KEY), null);
+  if(legacyTasks && Array.isArray(legacyTasks.tasks)){
+    return { tasks: legacyTasks.tasks, members: DEF_WORKHUB_MEMBERS, teamTasks: [], notes: [], selfNotes: [] };
+  }
+  return null;
+}
 function getWeekNumber(d){ d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7)); const yStart=new Date(Date.UTC(d.getUTCFullYear(),0,1)); return [d.getUTCFullYear(), Math.ceil((((d - yStart)/86400000)+1)/7)] }
 function getISOWeekStart(year, week){ const simple = new Date(Date.UTC(year,0,4)); simple.setUTCDate(simple.getUTCDate() + (week-1)*7); const day = simple.getUTCDay(); const diff = (day === 0 ? -6 : 1) - day; simple.setUTCDate(simple.getUTCDate()+diff); return new Date(simple.getFullYear(), simple.getMonth(), simple.getDate()); }
 function formatShortDate(date){ if(!(date instanceof Date)) return ''; const time = date.getTime(); if(Number.isNaN(time)) return ''; return date.toLocaleDateString('pl-PL',{ day:'2-digit', month:'2-digit' }); }
@@ -480,8 +508,7 @@ function renderGreetingAndDate(){
 /* === UPCOMING TASKS === */
 function renderUpcomingTasks(){
   const listEl = document.getElementById('upcoming-tasks-list');
-  const tasksRaw = localStorage.getItem(TASKS_STORAGE_KEY);
-  const tasksState = safeParse(tasksRaw, { tasks: [] });
+  const tasksState = getTasksStateForDashboard();
   if(!tasksState || !Array.isArray(tasksState.tasks) || tasksState.tasks.length === 0){
     listEl.innerHTML = `<div class="tiny muted" style="padding: 14px;">Brak zadań.</div>`;
     document.getElementById('priorities-summary').textContent = 'Brak zadań';
@@ -855,15 +882,30 @@ function renderKPIData(){
   }
 
   // --- Tasks KPI ---
-  const tasksRaw = localStorage.getItem(TASKS_STORAGE_KEY);
-  if(tasksRaw){
-    const t = safeParse(tasksRaw, { tasks: [] });
+  const t = getTasksStateForDashboard();
+  if(Array.isArray(t?.tasks) && t.tasks.length){
     const today = new Date(); today.setUTCHours(0,0,0,0);
+    const todayTs = today.getTime();
+    const workhub = getWorkhubStateForBackup();
+    const teamMembers = Array.isArray(workhub?.members) ? workhub.members : [];
+    const teamTasks = Array.isArray(workhub?.teamTasks) ? workhub.teamTasks : [];
     const activeTasks = Array.isArray(t?.tasks) ? t.tasks.filter(x=> x.status!=='done') : [];
     const overdue = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate) < today).length;
     const forToday = activeTasks.filter(x => x.dueDate && parseDate(x.dueDate).getTime() === today.getTime()).length;
     const activeCount = activeTasks.length;
     const activeClass = activeCount > 15 ? 'value-bad' : activeCount > 5 ? 'value-warn' : 'value-ok';
+    const teamToday = teamMembers.map(member=>{
+      const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)?.getTime()===todayTs).length;
+      const shortName = (member.name||'Bez nazwy').split(' ')[0];
+      return { id: member.id, name: shortName, count };
+    });
+    const teamOverdue = teamMembers.map(member=>{
+      const count = teamTasks.filter(task=>task.assigneeId===member.id&&task.status!=='done'&&task.dueDate&&parseDate(task.dueDate)<today).length;
+      return { id: member.id, count };
+    });
+    const totalTeamToday = teamToday.reduce((sum,item)=>sum+item.count,0);
+    const overdueTeamCount = teamOverdue.reduce((sum,item)=>sum+item.count,0);
+    const totalTodayAll = forToday + totalTeamToday;
 
     const now = new Date();
     const start = new Date(now); start.setDate(now.getDate() - now.getDay() + (now.getDay()===0?-6:1)); start.setHours(0,0,0,0);
@@ -871,21 +913,23 @@ function renderKPIData(){
     const weekly = t.tasks.filter(x=> x.dueDate && new Date(x.dueDate)>=start && new Date(x.dueDate)<=end);
     const done = weekly.filter(x=> x.status==='done').length;
     const planned = weekly.length;
-    const progress = planned>0 ? (done/planned)*100 : 0;
-    const detailLines = [
-      `Zaległe: ${overdue} • Na dziś: ${forToday}.`,
-      planned > 0 ? `Postęp tygodnia: ${done}/${planned} (${Math.round(progress)}%).` : 'Brak zadań zaplanowanych na ten tydzień.'
-    ];
 
-    const overdueHtml = overdue > 0 ? `<span class="st-badge-red">${overdue} zaległych</span>` : '';
+    const overdueTotal = overdue + overdueTeamCount;
+    const overdueHtml = overdueTotal > 0 ? `<span class="st-badge-red">${overdueTotal} zaległych</span>` : '';
+    const memberRowsHtml = [
+      `<div class="st-team-row"><span class="st-team-name">Ja</span><strong class="st-team-count">${forToday}</strong></div>`,
+      ...teamToday.map(item=>`<div class="st-team-row"><span class="st-team-name">${item.name}</span><strong class="st-team-count">${item.count}</strong></div>`)
+    ].join('');
     kpiElements.tasks.innerHTML = `
       <div class="st-icon-row">
         <span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span>
         ${overdueHtml}
       </div>
-      <div class="st-value ${activeClass}">${activeCount}</div>
-      <div class="st-label">aktywnych</div>
-      <div class="st-note">${forToday > 0 ? `${forToday} na dziś` : 'brak na dziś'} · ${done}/${planned} tyg.</div>`;
+      <div class="st-value ${activeClass}">${totalTodayAll}</div>
+      <div class="st-label">na dziś (ja + zespół)</div>
+      <div class="st-team-breakdown">${memberRowsHtml}</div>
+      <div class="st-overdue">Zaległe: Ja ${overdue} • Zespół ${overdueTeamCount}</div>
+      <div class="st-note">${done}/${planned} zadań tygodniowych ukończonych</div>`;
   } else {
     kpiElements.tasks.innerHTML = `
       <div class="st-icon-row"><span class="material-symbols-outlined" style="font-size:22px;color:#0057c0;">assignment</span></div>
@@ -1498,17 +1542,20 @@ const importInput = document.getElementById('import-file-input');
 exportBtn.onclick = ()=>{
   const trainingRaw = TRAININGS_STORAGE_KEYS.map(key => localStorage.getItem(key)).find(Boolean);
   const trainingData = trainingRaw ? safeParse(trainingRaw, null) : null;
+  const workhubState = getWorkhubStateForBackup();
+  const tasksLegacy = safeParse(localStorage.getItem(TASKS_STORAGE_KEY), null);
+  const tasksForBackup = Array.isArray(workhubState?.tasks) ? { tasks: workhubState.tasks } : tasksLegacy;
   const allData = {
     budget: JSON.parse(localStorage.getItem(BUDGET_STORAGE_KEY) || 'null'),
     fuel: JSON.parse(localStorage.getItem(FUEL_STORAGE_KEY) || 'null'),
-    tasks_pro: JSON.parse(localStorage.getItem(TASKS_STORAGE_KEY) || 'null'),
+    tasks_pro: tasksForBackup,
     trainings: trainingData,
     house: JSON.parse(getHouseStorageRaw() || 'null'),
     loan: JSON.parse(localStorage.getItem(LOAN_STORAGE_KEY) || 'null'),
     settings: JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || 'null'),
     body_metrics: JSON.parse(localStorage.getItem(BODY_METRICS_KEY) || 'null'),
     inv_hub_snapshots: JSON.parse(localStorage.getItem(INV_HUB_SNAP_KEY) || 'null'),
-    workhub: JSON.parse(localStorage.getItem(WORKHUB_STORAGE_KEY) || 'null'),
+    workhub: workhubState,
     kpis: JSON.parse(localStorage.getItem(KPI_STORAGE_KEY) || 'null'),
     invest_sheet: JSON.parse(localStorage.getItem(INVEST_SHEET_KEY) || 'null'),
     budget_filters: JSON.parse(localStorage.getItem(BUDGET_FILTERS_KEY) || 'null'),
@@ -1533,7 +1580,27 @@ importInput.onchange = (e)=>{
       const data = JSON.parse(ev.target.result);
       if(data.budget) localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(data.budget));
       if(data.fuel) localStorage.setItem(FUEL_STORAGE_KEY, JSON.stringify(data.fuel));
-      if(data.tasks_pro) localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(data.tasks_pro));
+      const importedWorkhub = data.workhub && typeof data.workhub === 'object' ? data.workhub : null;
+      if(importedWorkhub){
+        const normalizedWorkhub = {
+          tasks: Array.isArray(importedWorkhub.tasks) ? importedWorkhub.tasks : [],
+          members: Array.isArray(importedWorkhub.members) && importedWorkhub.members.length ? importedWorkhub.members : DEF_WORKHUB_MEMBERS,
+          teamTasks: Array.isArray(importedWorkhub.teamTasks) ? importedWorkhub.teamTasks : [],
+          notes: Array.isArray(importedWorkhub.notes) ? importedWorkhub.notes : [],
+          selfNotes: Array.isArray(importedWorkhub.selfNotes) ? importedWorkhub.selfNotes : [],
+        };
+        localStorage.setItem(WORKHUB_STORAGE_KEY, JSON.stringify(normalizedWorkhub));
+        localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify({ tasks: normalizedWorkhub.tasks }));
+      } else if(data.tasks_pro && Array.isArray(data.tasks_pro.tasks)){
+        localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(data.tasks_pro));
+        localStorage.setItem(WORKHUB_STORAGE_KEY, JSON.stringify({
+          tasks: data.tasks_pro.tasks,
+          members: DEF_WORKHUB_MEMBERS,
+          teamTasks: [],
+          notes: [],
+          selfNotes: [],
+        }));
+      }
       if(data.trainings){
         localStorage.setItem(TRAININGS_STORAGE_KEY_MODERN, JSON.stringify(data.trainings));
         localStorage.removeItem(TRAININGS_STORAGE_KEY_LEGACY);
@@ -1543,7 +1610,6 @@ importInput.onchange = (e)=>{
       if(data.settings) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data.settings));
       if(data.body_metrics) localStorage.setItem(BODY_METRICS_KEY, JSON.stringify(data.body_metrics));
       if(data.inv_hub_snapshots) localStorage.setItem(INV_HUB_SNAP_KEY, JSON.stringify(data.inv_hub_snapshots));
-      if(data.workhub) localStorage.setItem(WORKHUB_STORAGE_KEY, JSON.stringify(data.workhub));
       if(data.kpis) localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(data.kpis));
       if(data.invest_sheet) localStorage.setItem(INVEST_SHEET_KEY, JSON.stringify(data.invest_sheet));
       if(data.budget_filters) localStorage.setItem(BUDGET_FILTERS_KEY, JSON.stringify(data.budget_filters));
