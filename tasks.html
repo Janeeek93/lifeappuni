@@ -256,6 +256,12 @@
     .ov-note-jump:hover { transform:translateX(3px)!important; background:var(--card)!important; box-shadow:var(--sh)!important; }
     .ov-note-preview { font-size:11px; color:var(--muted2); margin-top:5px; line-height:1.5; white-space:pre-line; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
     .ov-empty { font-size:11px; color:var(--muted2); padding:22px; border:1.5px dashed var(--line2); border-radius:var(--r-lg); text-align:center; line-height:1.9; }
+    .ov-proj-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .ov-proj-title-wrap { min-width:0; }
+    .ov-proj-team { display:flex; align-items:center; margin-top:8px; }
+    .ov-proj-av { width:22px; height:22px; border-radius:50%; color:#fff; font-size:9px; font-weight:800; border:2px solid var(--card); display:flex; align-items:center; justify-content:center; margin-left:-6px; }
+    .ov-proj-av:first-child { margin-left:0; }
+    .ov-proj-more { font-size:9px; font-weight:800; color:var(--muted2); margin-left:7px; }
 
     /* Workload bars */
     .wl-wrap { display:flex; align-items:center; gap:10px; margin-top:10px; }
@@ -687,8 +693,8 @@
         <!-- MAIN GRID — 12 columns -->
         <div class="ov-grid">
 
-          <!-- WORKLOAD — 7 cols, Editorial CRM style workload bars -->
-          <section class="sec" style="grid-column:span 7">
+          <!-- WORKLOAD — 4 cols, compact view -->
+          <section class="sec" style="grid-column:span 4">
             <div class="sec-head">
               <div>
                 <div class="sec-title">
@@ -700,6 +706,21 @@
               <button class="btn sm ghost" data-mod-jump="team">Zarządzaj →</button>
             </div>
             <div class="ov-list" id="ov-workload-list"></div>
+          </section>
+
+          <!-- PROJECTS SNAPSHOT — 3 cols -->
+          <section class="sec" style="grid-column:span 3">
+            <div class="sec-head">
+              <div>
+                <div class="sec-title">
+                  <div class="ib purple" style="width:28px;height:28px"><span class="material-symbols-outlined" style="font-size:14px">view_kanban</span></div>
+                  Projekty
+                </div>
+                <div class="sec-sub">Otwarte tematy, ownerzy i bieżący focus.</div>
+              </div>
+              <button class="btn sm ghost" data-mod-jump="projects">Tablica →</button>
+            </div>
+            <div class="ov-list" id="ov-projects-list"></div>
           </section>
 
           <!-- AGENDA — 5 cols -->
@@ -1358,6 +1379,22 @@ function renderOverview(){
     const per=S.members.map(m=>{const open=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done');const over=open.filter(tt=>{const d=parseDate(tt.dueDate);return d&&d<t;}).length;return{m,open:open.length,over};});
     const max=Math.max(1,...per.map(x=>x.open));
     loadEl.innerHTML=per.length?per.sort((a,b)=>b.open-a.open).map(({m,open,over})=>`<div class="ov-item"><div class="m-av" style="background:${m.color};width:34px;height:34px;border-radius:9px;flex-shrink:0">${m.name.charAt(0).toUpperCase()}</div><div class="ov-item-body"><div class="ov-item-title" style="display:flex;align-items:center;justify-content:space-between"><span>${escH(m.name)}</span><span style="font-size:11px;font-weight:900;margin-left:8px">${Math.round(open/max*100)}%</span></div><div class="ov-item-meta">${open} aktywnych${over?` · <span style="color:var(--red);font-weight:800">⚠️ ${over} po terminie</span>`:'&nbsp;&nbsp;<span style="color:var(--green);font-weight:700">✓ brak zaległości</span>'}</div><div class="wl-wrap"><div class="wl-track"><div class="wl-fill" style="width:${Math.round(open/max*100)}%;background:${m.color}"></div></div></div></div></div>`).join(''):'<div class="ov-empty">Dodaj członków i zadania aby zobaczyć workload.</div>';
+  }
+
+  const projEl=document.getElementById('ov-projects-list');
+  if(projEl){
+    const activeProjects=S.projects
+      .filter(p=>p.status==='active')
+      .map(p=>{
+        const inProgress=[...p.cards].filter(c=>c.stage==='inprogress');
+        const topCard=inProgress[0]||p.cards.find(c=>c.stage==='backlog')||null;
+        const assignees=(p.assignees||[])
+          .map(id=>S.members.find(m=>m.id===id))
+          .filter(Boolean);
+        return {project:p,inProgressCount:inProgress.length,topCard,assignees};
+      })
+      .sort((a,b)=>b.inProgressCount-a.inProgressCount||a.project.title.localeCompare(b.project.title,'pl'));
+    projEl.innerHTML=activeProjects.length?activeProjects.slice(0,4).map(({project,inProgressCount,topCard,assignees})=>`<div class="ov-item" style="border-left:3px solid ${project.color};padding-left:11px"><div class="ov-item-body"><div class="ov-proj-head"><div class="ov-proj-title-wrap"><div class="ov-item-title">${escH(project.title)}</div><div class="ov-item-meta"><span>🟣 ${inProgressCount} w toku</span><span>📌 ${project.cards.filter(c=>c.stage!=='done').length} otwartych</span></div></div><span class="pill purple">${inProgressCount?'aktywny':'spokojny'}</span></div><div class="ov-item-meta" style="margin-top:7px;color:var(--ink)">${topCard?`▶️ Teraz: <strong>${escH(topCard.title)}</strong>`:'✅ Brak taska w realizacji'}</div><div class="ov-proj-team">${assignees.slice(0,4).map(m=>`<div class="ov-proj-av" style="background:${m.color}" title="${escH(m.name)}">${escH(m.name.charAt(0).toUpperCase())}</div>`).join('')}${assignees.length>4?`<span class="ov-proj-more">+${assignees.length-4}</span>`:''}</div></div></div>`).join(''):'<div class="ov-empty">Brak otwartych projektów.<br>Dodaj projekt, żeby monitorować postęp.</div>';
   }
 
   const agendaEl=document.getElementById('ov-agenda-list');
