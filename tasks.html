@@ -960,8 +960,12 @@
             <div class="sec-sub-sm">Szybkie notatki do 1on1, spotkań i pomysłów — możesz je potem zamienić na zadania.</div>
           </div>
         </div>
-        <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r-xl);padding:22px;margin-bottom:18px;box-shadow:var(--sh-sm)">
-          <div class="add-note-area" style="margin-bottom:0">
+        <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r-xl);margin-bottom:18px;box-shadow:var(--sh-sm);overflow:hidden">
+          <div class="qa-head" style="padding:12px 18px">
+            <strong><span class="material-symbols-outlined" style="font-size:14px">add_notes</span>Dodaj nową notatkę</strong>
+            <button class="btn sm" id="sn-toggle">Rozwiń</button>
+          </div>
+          <div class="add-note-area" id="sn-add-area" style="margin-bottom:0;display:none">
             <div class="fgrid g2" style="margin-bottom:10px">
               <div class="fg"><label class="fl">Tytuł</label><input type="text" id="sn-title" placeholder="Np. 1on1 z przełożonym"></div>
               <div class="fg"><label class="fl">Kategoria</label><select id="sn-cat"><option value="general">📄 Ogólna</option><option value="1on1">🤝 1on1</option><option value="meeting">🗓️ Spotkanie</option><option value="idea">💡 Pomysł</option></select></div>
@@ -1764,6 +1768,13 @@ function showModal(title,wide,bodyHtml,buttons){
 }
 function showAlert(msg){showModal(msg,false,'',[{label:'OK',cls:'btn primary'}]);}
 function showConfirm(msg,onYes){showModal(msg,false,'',[{label:'Anuluj',cls:'btn'},{label:'Potwierdź',cls:'btn danger',fn:onYes}]);}
+function setSelfNoteComposer(open,focus=false){
+  const area=document.getElementById('sn-add-area'),btn=document.getElementById('sn-toggle');
+  if(!area||!btn)return;
+  area.style.display=open?'block':'none';
+  btn.textContent=open?'Zwiń':'Rozwiń';
+  if(open&&focus)requestAnimationFrame(()=>document.getElementById('sn-title')?.focus());
+}
 function switchModule(id){
   document.querySelectorAll('.mod-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
@@ -1808,7 +1819,8 @@ function init(){
   });
   document.getElementById('bulk-select-all')?.addEventListener('change',e=>{if(e.target.checked)currentVisibleTaskIds.forEach(id=>selectedTaskIds.add(id));else currentVisibleTaskIds.forEach(id=>selectedTaskIds.delete(id));updateBulkUi();renderTaskTable();});
   document.getElementById('bulk-delete-btn')?.addEventListener('click',()=>{if(!selectedTaskIds.size){showAlert('Zaznacz zadania do usunięcia.');return;}showConfirm(`Usunąć ${selectedTaskIds.size} zaznaczonych zadań?`,()=>{S.tasks=S.tasks.filter(t=>!selectedTaskIds.has(t.id));selectedTaskIds.clear();save();renderMyTasks();renderCalendar();});});
-  document.getElementById('sn-add')?.addEventListener('click',()=>{const title=(document.getElementById('sn-title')?.value||'').trim(),content=(document.getElementById('sn-content')?.value||'').trim();if(!content){showAlert('Treść notatki jest wymagana.');return;}S.selfNotes.unshift(normSelfNote({id:`sn_${Date.now()}`,title,category:document.getElementById('sn-cat')?.value||'general',content,createdAt:new Date().toISOString()}));document.getElementById('sn-title').value='';document.getElementById('sn-content').value='';save();renderSelfNotes();});
+  document.getElementById('sn-toggle')?.addEventListener('click',()=>{const open=document.getElementById('sn-add-area')?.style.display!=='none';setSelfNoteComposer(!open);});
+  document.getElementById('sn-add')?.addEventListener('click',()=>{const title=(document.getElementById('sn-title')?.value||'').trim(),content=(document.getElementById('sn-content')?.value||'').trim();if(!content){showAlert('Treść notatki jest wymagana.');return;}S.selfNotes.unshift(normSelfNote({id:`sn_${Date.now()}`,title,category:document.getElementById('sn-cat')?.value||'general',content,createdAt:new Date().toISOString()}));document.getElementById('sn-title').value='';document.getElementById('sn-content').value='';save();renderSelfNotes();setSelfNoteComposer(false);});
   ['f-cat','f-prio','f-date','f-hide-done','f-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderTaskTable));
   document.getElementById('f-tag')?.addEventListener('input',renderTaskTable);
   document.getElementById('f-sort-dir')?.addEventListener('click',e=>{e.currentTarget.textContent=e.currentTarget.textContent==='↑'?'↓':'↑';renderTaskTable();});
@@ -1818,7 +1830,7 @@ function init(){
     const active=document.querySelector('.mod-tab.active')?.dataset.mod;
     if(active==='calendar'&&calSel){document.getElementById('dp-inp')?.focus();return;}
     if(active==='team'&&selMember){document.getElementById('ptc-tasks')?.querySelector('#tt-inp')?.focus();return;}
-    if(active==='selfnotes'){document.getElementById('sn-title')?.focus();return;}
+    if(active==='selfnotes'){setSelfNoteComposer(true,true);return;}
     if(active==='projects'){if(selProject)openCardModal(selProject,null,'backlog');else openProjectModal();return;}
     switchModule('mytasks');requestAnimationFrame(()=>document.getElementById('f-title')?.focus());
   });
@@ -1847,7 +1859,7 @@ function init(){
   document.getElementById('overlay')?.addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))document.getElementById('overlay').style.display='none';});
   document.getElementById('btn-export')?.addEventListener('click',()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`lifeos-workhub-${new Date().toISOString().slice(0,10)}.json`;a.click();});
   document.getElementById('btn-import')?.addEventListener('click',()=>{const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const p=sp(ev.target.result,null);if(p&&Array.isArray(p.tasks)){S.tasks=p.tasks.map(normTask).filter(Boolean);if(Array.isArray(p.members))S.members=p.members.map(normMember);if(Array.isArray(p.teamTasks))S.teamTasks=p.teamTasks.map(normTT).filter(Boolean);if(Array.isArray(p.notes))S.notes=p.notes.map(normNote).filter(Boolean);if(Array.isArray(p.selfNotes))S.selfNotes=p.selfNotes.map(normSelfNote).filter(Boolean);save();renderMyTasks();renderCalendar();renderMemberList();renderSelfNotes();showAlert('✅ Zaimportowano pomyślnie!');}else showAlert('❌ Nieprawidłowy plik JSON.');};r.readAsText(f);};inp.click();});
-  renderOverview();buildCalFilter();renderCalendar();renderMyTasks();renderSelfNotes();
+  renderOverview();buildCalFilter();renderCalendar();renderMyTasks();renderSelfNotes();setSelfNoteComposer(false);
 }
 init();
 </script>
