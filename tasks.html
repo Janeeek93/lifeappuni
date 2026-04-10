@@ -257,12 +257,134 @@
     .ov-note-preview { font-size:11px; color:var(--muted2); margin-top:5px; line-height:1.5; white-space:pre-line; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
     .ov-empty { font-size:11px; color:var(--muted2); padding:22px; border:1.5px dashed var(--line2); border-radius:var(--r-lg); text-align:center; line-height:1.9; }
 
-    /* Workload bars */
+    /* Workload bars (legacy, kept for compat) */
     .wl-wrap { display:flex; align-items:center; gap:10px; margin-top:10px; }
     .wl-track { flex:1; height:5px; background:var(--surf); border-radius:999px; overflow:hidden; }
     .wl-fill  { height:100%; border-radius:999px; transition:width .5s ease; }
     .ov-link-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
     .jump-focus { box-shadow:0 0 0 2.5px var(--blue) inset!important; }
+
+    /* ═══════════ OVERVIEW v2 — Revolut/fintech style ═══════════ */
+
+    /* KPI strip — 4 slim horizontal chips */
+    .ov2-kpi-strip {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;
+    }
+    @media(max-width:900px){ .ov2-kpi-strip{grid-template-columns:repeat(2,1fr)} }
+    .ov2-kpi {
+      background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+      padding:14px 16px; display:flex; align-items:center; gap:10px;
+      box-shadow:var(--sh-sm); transition:transform .15s, box-shadow .15s;
+    }
+    .ov2-kpi:hover { transform:translateY(-2px); box-shadow:var(--sh); }
+    .ov2-kpi-icon {
+      width:34px; height:34px; border-radius:var(--r-sm);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .ov2-kpi-icon .material-symbols-outlined { font-size:17px; }
+    .ov2-kpi-icon.blue   { background:var(--blue-bg);   color:var(--blue); }
+    .ov2-kpi-icon.red    { background:var(--red-bg);    color:var(--red); }
+    .ov2-kpi-icon.amber  { background:var(--amber-bg);  color:var(--amber); }
+    .ov2-kpi-icon.green  { background:var(--green-bg);  color:var(--green); }
+    .ov2-kpi-body { flex:1; min-width:0; }
+    .ov2-kpi-val  { font-size:24px; font-weight:900; letter-spacing:-1px; line-height:1; display:block; }
+    .ov2-kpi-lbl  { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.7px; color:var(--muted2); display:block; margin-top:2px; }
+
+    /* Section card (shared wrapper) */
+    .ov2-card {
+      background:var(--card); border:1px solid var(--line);
+      border-radius:var(--r-xl); padding:20px 22px; box-shadow:var(--sh-sm);
+    }
+    .ov2-sec-head {
+      display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;
+    }
+    .ov2-sec-title {
+      font-size:13px; font-weight:900; letter-spacing:-.2px;
+      display:flex; align-items:center; gap:8px;
+    }
+
+    /* Triptych — 3 equal columns */
+    .ov2-triptych {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:0;
+    }
+    @media(max-width:1100px){ .ov2-triptych{grid-template-columns:1fr 1fr} }
+    @media(max-width:700px)  { .ov2-triptych{grid-template-columns:1fr} }
+
+    /* Workload compact rows */
+    .ov2-wl-row {
+      display:flex; align-items:center; gap:9px;
+      padding:7px 0; border-bottom:1px solid var(--line);
+    }
+    .ov2-wl-row:last-child { border-bottom:none; padding-bottom:0; }
+    .ov2-wl-av {
+      width:28px; height:28px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:900; color:#fff; flex-shrink:0;
+    }
+    .ov2-wl-body { flex:1; min-width:0; }
+    .ov2-wl-name {
+      font-size:11px; font-weight:800; display:flex;
+      align-items:center; justify-content:space-between;
+    }
+    .ov2-wl-count { font-size:11px; font-weight:900; color:var(--ink); }
+    .ov2-wl-overdue { font-size:9px; color:var(--red); font-weight:800; }
+    .ov2-wl-ok { font-size:9px; color:var(--green); font-weight:800; }
+    .ov2-wl-bar { height:3px; border-radius:2px; background:var(--surf); margin-top:5px; overflow:hidden; }
+    .ov2-wl-bar-fill { height:100%; border-radius:2px; transition:width .5s; }
+
+    /* Projects pipeline strip */
+    .ov2-proj-strip {
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px;
+    }
+    .ov2-proj-card {
+      background:var(--surf-lo); border:1px solid var(--line); border-radius:var(--r);
+      padding:13px 14px 11px; display:flex; flex-direction:column; gap:7px;
+      text-decoration:none; color:inherit;
+      border-left-width:3px; border-left-style:solid;
+      transition:box-shadow .15s, transform .15s;
+    }
+    .ov2-proj-card:hover { box-shadow:var(--sh); transform:translateY(-2px); }
+    .ov2-proj-title { font-size:12px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-proj-stages { display:flex; gap:5px; flex-wrap:wrap; }
+    .ov2-proj-stage {
+      font-size:9px; font-weight:800; padding:2px 6px; border-radius:999px; line-height:1.5;
+    }
+    .ov2-proj-stage.bl  { background:var(--surf);        color:var(--muted); }
+    .ov2-proj-stage.wip { background:var(--blue-tint);   color:var(--blue); }
+    .ov2-proj-stage.dn  { background:var(--green-tint);  color:var(--green); }
+    .ov2-proj-bar      { height:3px; border-radius:2px; background:var(--line); overflow:hidden; }
+    .ov2-proj-bar-fill { height:100%; border-radius:2px; transition:width .4s; }
+    .ov2-proj-footer   { display:flex; align-items:center; justify-content:space-between; }
+    .ov2-proj-avs      { display:flex; gap:3px; }
+    .ov2-proj-av {
+      width:20px; height:20px; border-radius:50%; color:#fff;
+      font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    }
+    .ov2-proj-pct { font-size:10px; font-weight:900; color:var(--muted2); }
+
+    /* Notes strip — 3 horizontal cards */
+    .ov2-notes-strip {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+    }
+    @media(max-width:900px){ .ov2-notes-strip{grid-template-columns:1fr} }
+    .ov2-note-card {
+      background:var(--surf-lo); border:1px solid var(--line); border-radius:var(--r);
+      padding:12px 14px; cursor:pointer; text-align:left; width:100%;
+      border-left-width:3px; border-left-style:solid;
+      display:flex; flex-direction:column; gap:5px;
+      transition:box-shadow .15s, transform .15s;
+    }
+    .ov2-note-card:hover { box-shadow:var(--sh); transform:translateY(-2px); }
+    .ov2-note-title   { font-size:12px; font-weight:800; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .ov2-note-meta    { font-size:10px; color:var(--muted2); display:flex; gap:8px; flex-wrap:wrap; }
+    .ov2-note-preview {
+      font-size:10px; color:var(--muted2); overflow:hidden;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.45;
+    }
+    .ov2-empty {
+      font-size:11px; color:var(--muted2); padding:18px; border:1.5px dashed var(--line2);
+      border-radius:var(--r); text-align:center; line-height:1.9;
+    }
 
     /* ═══════════ CALENDAR ═══════════ */
     .cal-layout { display:grid; grid-template-columns:1fr 290px; gap:18px; align-items:start; }
@@ -636,119 +758,105 @@
       <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
       <div id="mod-overview" class="module active">
 
-        <!-- BENTO KPI ROW — Editorial CRM style -->
-        <div class="bento-row">
-          <div class="bento">
-            <div class="bento-top">
-              <div class="ib blue"><span class="material-symbols-outlined">task_alt</span></div>
-              <span class="pill blue" style="font-size:9px;padding:2px 7px">Aktywne</span>
+        <!-- ── KPI STRIP ── -->
+        <div class="ov2-kpi-strip">
+          <div class="ov2-kpi">
+            <div class="ov2-kpi-icon blue"><span class="material-symbols-outlined">task_alt</span></div>
+            <div class="ov2-kpi-body">
+              <span class="ov2-kpi-val" id="ov-total-open">0</span>
+              <span class="ov2-kpi-lbl">Otwarte taski</span>
             </div>
-            <div class="bento-val" id="ov-total-open">0</div>
-            <div class="bento-lbl">Otwarte taski</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">group</span>Cały zespół
-            </div>
+            <span class="pill blue" style="font-size:9px;margin-left:auto">Cały zespół</span>
           </div>
-          <div class="bento">
-            <div class="bento-top">
-              <div class="ib red"><span class="material-symbols-outlined">timer_off</span></div>
-              <span class="pill red" style="font-size:9px;padding:2px 7px">Pilne</span>
+          <div class="ov2-kpi">
+            <div class="ov2-kpi-icon red"><span class="material-symbols-outlined">timer_off</span></div>
+            <div class="ov2-kpi-body">
+              <span class="ov2-kpi-val" style="color:var(--red)" id="ov-overdue">0</span>
+              <span class="ov2-kpi-lbl">Po terminie</span>
             </div>
-            <div class="bento-val" style="color:var(--red)" id="ov-overdue">0</div>
-            <div class="bento-lbl">Po terminie</div>
-            <div class="bento-sub" style="color:var(--red)">
-              <span class="material-symbols-outlined" style="font-size:13px">warning</span>Wymaga uwagi
-            </div>
+            <span class="pill red" style="font-size:9px;margin-left:auto">Pilne</span>
           </div>
-          <div class="bento">
-            <div class="bento-top">
-              <div class="ib amber"><span class="material-symbols-outlined">event_upcoming</span></div>
-              <span class="pill amber" style="font-size:9px;padding:2px 7px">7 dni</span>
+          <div class="ov2-kpi">
+            <div class="ov2-kpi-icon amber"><span class="material-symbols-outlined">event_upcoming</span></div>
+            <div class="ov2-kpi-body">
+              <span class="ov2-kpi-val" style="color:var(--amber)" id="ov-week">0</span>
+              <span class="ov2-kpi-lbl">Deadline 7 dni</span>
             </div>
-            <div class="bento-val" style="color:var(--amber)" id="ov-week">0</div>
-            <div class="bento-lbl">Deadline w tygodniu</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">calendar_today</span>Nadchodzące
-            </div>
+            <span class="pill amber" style="font-size:9px;margin-left:auto">Nadchodzące</span>
           </div>
-          <div class="bento">
-            <div class="bento-top">
-              <div class="ib green"><span class="material-symbols-outlined">note_alt</span></div>
-              <span class="pill green" style="font-size:9px;padding:2px 7px">14 dni</span>
+          <div class="ov2-kpi">
+            <div class="ov2-kpi-icon green"><span class="material-symbols-outlined">note_alt</span></div>
+            <div class="ov2-kpi-body">
+              <span class="ov2-kpi-val" style="color:var(--green)" id="ov-notes">0</span>
+              <span class="ov2-kpi-lbl">Notatki 14 dni</span>
             </div>
-            <div class="bento-val" style="color:var(--green)" id="ov-notes">0</div>
-            <div class="bento-lbl">Notatki (14 dni)</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">edit_note</span>Wszystkie
-            </div>
+            <span class="pill green" style="font-size:9px;margin-left:auto">Wszystkie</span>
           </div>
         </div>
 
-        <!-- MAIN GRID — 12 columns -->
-        <div class="ov-grid">
-
-          <!-- WORKLOAD — 7 cols, Editorial CRM style workload bars -->
-          <section class="sec" style="grid-column:span 7">
-            <div class="sec-head">
-              <div>
-                <div class="sec-title">
-                  <div class="ib blue" style="width:28px;height:28px"><span class="material-symbols-outlined" style="font-size:14px">group</span></div>
-                  Team Workload
-                </div>
-                <div class="sec-sub">Obciążenie i podział zadań w zespole.</div>
-              </div>
-              <button class="btn sm ghost" data-mod-jump="team">Zarządzaj →</button>
+        <!-- ── PROJECTS PIPELINE (hidden when empty) ── -->
+        <div class="ov2-card" id="ov-projects-section" style="display:none;margin-bottom:16px">
+          <div class="ov2-sec-head">
+            <div class="ov2-sec-title">
+              <div class="ib blue" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">folder_open</span></div>
+              Projekty w toku
             </div>
-            <div class="ov-list" id="ov-workload-list"></div>
-          </section>
+            <button class="btn sm ghost" data-mod-jump="projects">Zarządzaj →</button>
+          </div>
+          <div class="ov2-proj-strip" id="ov-projects-list"></div>
+        </div>
 
-          <!-- AGENDA — 5 cols -->
-          <section class="sec" style="grid-column:span 5">
-            <div class="sec-head">
-              <div>
-                <div class="sec-title">
-                  <div class="ib purple" style="width:28px;height:28px"><span class="material-symbols-outlined" style="font-size:14px">event_note</span></div>
-                  Twoja agenda
-                </div>
-                <div class="sec-sub">Najbliższe priorytety do dowiezienia.</div>
+        <!-- ── TRIPTYCH: Workload | Agenda | Ryzyka ── -->
+        <div class="ov2-triptych">
+          <!-- Team Workload -->
+          <div class="ov2-card">
+            <div class="ov2-sec-head">
+              <div class="ov2-sec-title">
+                <div class="ib blue" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">group</span></div>
+                Team Workload
+              </div>
+              <button class="btn sm ghost" data-mod-jump="team">Zespół →</button>
+            </div>
+            <div id="ov-workload-list"></div>
+          </div>
+          <!-- Agenda -->
+          <div class="ov2-card">
+            <div class="ov2-sec-head">
+              <div class="ov2-sec-title">
+                <div class="ib purple" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">event_note</span></div>
+                Twoja agenda
               </div>
               <button class="btn sm ghost" data-mod-jump="mytasks">Wszystkie →</button>
             </div>
             <div class="ov-list" id="ov-agenda-list"></div>
-          </section>
-
-          <!-- ACTIVE PIPELINE — 7 cols, CRM-style task cards -->
-          <section class="sec" style="grid-column:span 7">
-            <div class="sec-head">
-              <div>
-                <div class="sec-title">
-                  <div class="ib red" style="width:28px;height:28px"><span class="material-symbols-outlined" style="font-size:14px">warning</span></div>
-                  Ryzyka i blokery
-                </div>
-                <div class="sec-sub">Zadania z wysokim priorytetem lub przekroczonym terminem.</div>
+          </div>
+          <!-- Risks -->
+          <div class="ov2-card">
+            <div class="ov2-sec-head">
+              <div class="ov2-sec-title">
+                <div class="ib red" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">warning</span></div>
+                Ryzyka i blokery
               </div>
             </div>
             <div class="ov-list" id="ov-risks-list"></div>
-          </section>
-
-          <!-- NOTES — 5 cols -->
-          <section class="sec" style="grid-column:span 5">
-            <div class="sec-head">
-              <div>
-                <div class="sec-title">
-                  <div class="ib green" style="width:28px;height:28px"><span class="material-symbols-outlined" style="font-size:14px">note_alt</span></div>
-                  Ostatnie notatki
-                </div>
-                <div class="sec-sub">3 najnowsze z całej aplikacji.</div>
-              </div>
-            </div>
-            <div class="ov-list" id="ov-notes-list"></div>
-            <div class="ov-link-row">
-              <button class="btn sm" data-mod-jump="team">Notatki zespołu</button>
-              <button class="btn sm" data-mod-jump="selfnotes">Notatki własne</button>
-            </div>
-          </section>
+          </div>
         </div>
+
+        <!-- ── NOTES STRIP ── -->
+        <div class="ov2-card" style="margin-top:16px">
+          <div class="ov2-sec-head">
+            <div class="ov2-sec-title">
+              <div class="ib green" style="width:26px;height:26px"><span class="material-symbols-outlined" style="font-size:13px">note_alt</span></div>
+              Ostatnie notatki
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn sm ghost" data-mod-jump="team">Zespołowe →</button>
+              <button class="btn sm ghost" data-mod-jump="selfnotes">Własne →</button>
+            </div>
+          </div>
+          <div class="ov2-notes-strip" id="ov-notes-list"></div>
+        </div>
+
       </div>
 
       <!-- ═══════════════════ CALENDAR ═══════════════════ -->
@@ -1346,45 +1454,127 @@ function openCalTaskModal(taskId,owner){
 function renderMyTasks(){renderKpis();renderInsights();renderTaskTable();}
 function renderOverview(){
   const t=todayUTC(),h7=new Date(t);h7.setUTCDate(h7.getUTCDate()+7);
-  const allOpen=[...S.tasks.filter(x=>x.status!=='done').map(task=>({...task,_owner:'Ja',_color:'var(--blue)'})),...S.teamTasks.filter(x=>x.status!=='done').map(task=>{const m=S.members.find(mm=>mm.id===task.assigneeId);return{...task,_owner:m?.name||'Bez osoby',_color:m?.color||'#64748b'};})];
+  const allOpen=[
+    ...S.tasks.filter(x=>x.status!=='done').map(task=>({...task,_owner:'Ja',_color:'var(--blue)'})),
+    ...S.teamTasks.filter(x=>x.status!=='done').map(task=>{const m=S.members.find(mm=>mm.id===task.assigneeId);return{...task,_owner:m?.name||'Bez osoby',_color:m?.color||'#64748b'};}),
+  ];
   const overdue=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d<t;});
   const week=allOpen.filter(x=>{const d=parseDate(x.dueDate);return d&&d>=t&&d<=h7;});
   const notes14=[...S.notes,...S.selfNotes].filter(n=>{const d=new Date(n.createdAt);return d>=new Date(Date.now()-13*DAY);});
   const setTxt=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  setTxt('ov-total-open',String(allOpen.length));setTxt('ov-overdue',String(overdue.length));setTxt('ov-week',String(week.length));setTxt('ov-notes',String(notes14.length));
+  setTxt('ov-total-open',String(allOpen.length));setTxt('ov-overdue',String(overdue.length));
+  setTxt('ov-week',String(week.length));setTxt('ov-notes',String(notes14.length));
 
-  const loadEl=document.getElementById('ov-workload-list');
-  if(loadEl){
-    const per=S.members.map(m=>{const open=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done');const over=open.filter(tt=>{const d=parseDate(tt.dueDate);return d&&d<t;}).length;return{m,open:open.length,over};});
-    const max=Math.max(1,...per.map(x=>x.open));
-    loadEl.innerHTML=per.length?per.sort((a,b)=>b.open-a.open).map(({m,open,over})=>`<div class="ov-item"><div class="m-av" style="background:${m.color};width:34px;height:34px;border-radius:9px;flex-shrink:0">${m.name.charAt(0).toUpperCase()}</div><div class="ov-item-body"><div class="ov-item-title" style="display:flex;align-items:center;justify-content:space-between"><span>${escH(m.name)}</span><span style="font-size:11px;font-weight:900;margin-left:8px">${Math.round(open/max*100)}%</span></div><div class="ov-item-meta">${open} aktywnych${over?` · <span style="color:var(--red);font-weight:800">⚠️ ${over} po terminie</span>`:'&nbsp;&nbsp;<span style="color:var(--green);font-weight:700">✓ brak zaległości</span>'}</div><div class="wl-wrap"><div class="wl-track"><div class="wl-fill" style="width:${Math.round(open/max*100)}%;background:${m.color}"></div></div></div></div></div>`).join(''):'<div class="ov-empty">Dodaj członków i zadania aby zobaczyć workload.</div>';
-  }
-
-  const agendaEl=document.getElementById('ov-agenda-list');
-  if(agendaEl){
-    const mine=S.tasks.filter(x=>x.status!=='done').map(task=>({task,d:parseDate(task.dueDate)})).sort((a,b)=>{if(a.d&&b.d)return a.d-b.d;if(a.d)return -1;if(b.d)return 1;return priW(a.task.priority)-priW(b.task.priority);}).slice(0,5);
-    agendaEl.innerHTML=mine.length?mine.map(({task,d})=>{const accentColor=task.priority==='high'?'var(--red)':task.priority==='medium'?'var(--amber)':'var(--green)';return `<div class="ov-item" style="border-left:3px solid ${accentColor};padding-left:11px"><div class="ov-item-body"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span>${priLabel(task.priority)}</span><span>${d?`📅 ${fmtShort(d)} (${fmtRel(d,t)})`:'bez terminu'}</span></div></div></div>`;}).join(''):'<div class="ov-empty">Brak aktywnych zadań. Czas zaplanować tydzień ✨</div>';
-  }
-
-  const riskEl=document.getElementById('ov-risks-list');
-  if(riskEl){
-    const risky=[...allOpen].filter(task=>task.priority==='high'||(task.dueDate&&parseDate(task.dueDate)<t)).sort((a,b)=>{const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);if(ad&&bd)return ad-bd;return priW(a.priority)-priW(b.priority);}).slice(0,6);
-    if(!risky.length){riskEl.innerHTML='<div class="ov-empty">Brak zadań ryzykownych 🟢<br>Wszystko pod kontrolą.</div>';}
+  /* ── Projects pipeline ── */
+  const projSec=document.getElementById('ov-projects-section');
+  const projList=document.getElementById('ov-projects-list');
+  if(projSec&&projList){
+    const activeProj=(S.projects||[]).filter(p=>p.status==='active'&&Array.isArray(p.cards));
+    if(!activeProj.length){projSec.style.display='none';}
     else{
-      const byOwner={};risky.forEach(task=>{const owner=task._owner||'Bez osoby';if(!byOwner[owner])byOwner[owner]={color:task._color||'#64748b',tasks:[]};byOwner[owner].tasks.push(task);});
-      riskEl.innerHTML=Object.entries(byOwner).sort((a,b)=>b[1].tasks.length-a[1].tasks.length).map(([owner,val])=>`<div style="margin-bottom:10px"><div class="label-xs" style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="width:8px;height:8px;border-radius:50%;background:${val.color};display:inline-block"></span>${escH(owner)} (${val.tasks.length})</div><div class="ov-list">${val.tasks.map(task=>{const d=parseDate(task.dueDate);const late=d&&d<t;return `<div class="ov-item" style="border-left:3px solid ${late?'var(--red)':'var(--amber)'};padding-left:11px"><div class="ov-item-body"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta">${d?`📅 ${fmtShort(d)} ${late?'<strong style="color:var(--red)">(po terminie)</strong>':fmtRel(d,t)}`:'bez terminu'}</div></div><span class="pill prio-${task.priority}">${priShort(task.priority)}</span></div>`;}).join('')}</div></div>`).join('');
+      projSec.style.display='';
+      const av=(id)=>{if(id==='me')return{ini:'JA',c:'var(--blue)'};const m=S.members.find(x=>x.id===id);if(!m)return{ini:'?',c:'#888'};const p=m.name.trim().split(/\s+/);return{ini:(p.length>=2?p[0][0]+p[1][0]:m.name.substring(0,2)).toUpperCase(),c:m.color};};
+      projList.innerHTML=activeProj.map(proj=>{
+        const total=proj.cards.length;
+        const bl=proj.cards.filter(c=>c.stage==='backlog').length;
+        const ip=proj.cards.filter(c=>c.stage==='inprogress').length;
+        const dn=proj.cards.filter(c=>c.stage==='done').length;
+        const pct=total?Math.round(dn/total*100):0;
+        const avHtml=(proj.assignees||[]).slice(0,5).map(id=>{const{ini,c}=av(id);return `<span class="ov2-proj-av" style="background:${c}">${ini}</span>`;}).join('');
+        return `<a href="javascript:void 0" class="ov2-proj-card" style="border-left-color:${proj.color}" data-mod-jump="projects">
+          <div class="ov2-proj-title">${escH(proj.title)}</div>
+          <div class="ov2-proj-stages">
+            <span class="ov2-proj-stage bl">📋 ${bl}</span>
+            <span class="ov2-proj-stage wip">⚡ ${ip}</span>
+            <span class="ov2-proj-stage dn">✅ ${dn}<span style="opacity:.5">/${total}</span></span>
+          </div>
+          <div class="ov2-proj-bar"><div class="ov2-proj-bar-fill" style="width:${pct}%;background:${proj.color}"></div></div>
+          <div class="ov2-proj-footer">
+            <div class="ov2-proj-avs">${avHtml||'<span style="font-size:10px;color:var(--muted2)">—</span>'}</div>
+            <span class="ov2-proj-pct">${pct}%</span>
+          </div>
+        </a>`;
+      }).join('');
+      projList.querySelectorAll('[data-mod-jump]').forEach(el=>el.addEventListener('click',()=>switchModule('projects')));
     }
   }
 
+  /* ── Team Workload (compact) ── */
+  const loadEl=document.getElementById('ov-workload-list');
+  if(loadEl){
+    const per=S.members.map(m=>{
+      const open=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done').length;
+      const projOpen=(S.projects||[]).filter(p=>p.status==='active').reduce((n,p)=>n+p.cards.filter(c=>c.stage!=='done'&&c.assignees.includes(m.id)).length,0);
+      const total=open+projOpen;
+      const over=S.teamTasks.filter(tt=>tt.assigneeId===m.id&&tt.status!=='done'&&(()=>{const d=parseDate(tt.dueDate);return d&&d<t;})()).length;
+      return{m,total,over};
+    });
+    const max=Math.max(1,...per.map(x=>x.total));
+    loadEl.innerHTML=per.length?per.sort((a,b)=>b.total-a.total).map(({m,total,over})=>`
+      <div class="ov2-wl-row">
+        <div class="ov2-wl-av" style="background:${m.color}">${m.name.charAt(0).toUpperCase()}</div>
+        <div class="ov2-wl-body">
+          <div class="ov2-wl-name">
+            <span>${escH(m.name)}</span>
+            <span class="ov2-wl-count">${total}</span>
+          </div>
+          <div class="ov2-wl-bar"><div class="ov2-wl-bar-fill" style="width:${Math.round(total/max*100)}%;background:${m.color}"></div></div>
+          ${over?`<div class="ov2-wl-overdue">⚠️ ${over} po terminie</div>`:`<div class="ov2-wl-ok">✓ brak zaległości</div>`}
+        </div>
+      </div>`).join('')
+    :`<div class="ov2-empty">Dodaj członków i zadania.</div>`;
+  }
+
+  /* ── Agenda ── */
+  const agendaEl=document.getElementById('ov-agenda-list');
+  if(agendaEl){
+    const mine=S.tasks.filter(x=>x.status!=='done').map(task=>({task,d:parseDate(task.dueDate)})).sort((a,b)=>{if(a.d&&b.d)return a.d-b.d;if(a.d)return -1;if(b.d)return 1;return priW(a.task.priority)-priW(b.task.priority);}).slice(0,6);
+    agendaEl.innerHTML=mine.length?mine.map(({task,d})=>{
+      const ac=task.priority==='high'?'var(--red)':task.priority==='medium'?'var(--amber)':'var(--green)';
+      return `<div class="ov-item" style="border-left:3px solid ${ac};padding-left:11px"><div class="ov-item-body"><div class="ov-item-title">${escH(task.title)}</div><div class="ov-item-meta"><span class="pill prio-${task.priority}" style="font-size:9px">${priShort(task.priority)}</span><span>${d?`📅 ${fmtShort(d)} (${fmtRel(d,t)})`:'bez terminu'}</span></div></div></div>`;
+    }).join(''):`<div class="ov2-empty">Brak aktywnych zadań ✨</div>`;
+  }
+
+  /* ── Risks ── */
+  const riskEl=document.getElementById('ov-risks-list');
+  if(riskEl){
+    const risky=[...allOpen].filter(task=>task.priority==='high'||(task.dueDate&&parseDate(task.dueDate)<t)).sort((a,b)=>{const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);if(ad&&bd)return ad-bd;return priW(a.priority)-priW(b.priority);}).slice(0,7);
+    if(!risky.length){riskEl.innerHTML=`<div class="ov2-empty">Brak ryzyk 🟢<br>Wszystko pod kontrolą.</div>`;}
+    else{
+      const byOwner={};risky.forEach(task=>{const owner=task._owner||'Bez osoby';if(!byOwner[owner])byOwner[owner]={color:task._color||'#64748b',tasks:[]};byOwner[owner].tasks.push(task);});
+      riskEl.innerHTML=Object.entries(byOwner).sort((a,b)=>b[1].tasks.length-a[1].tasks.length).map(([owner,val])=>`
+        <div style="margin-bottom:10px">
+          <div class="label-xs" style="display:flex;align-items:center;gap:5px;margin-bottom:5px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${val.color};display:inline-block"></span>${escH(owner)} (${val.tasks.length})
+          </div>
+          <div class="ov-list">${val.tasks.map(task=>{
+            const d=parseDate(task.dueDate);const late=d&&d<t;
+            return `<div class="ov-item" style="border-left:3px solid ${late?'var(--red)':'var(--amber)'};padding-left:11px">
+              <div class="ov-item-body">
+                <div class="ov-item-title">${escH(task.title)}</div>
+                <div class="ov-item-meta">${d?`📅 ${fmtShort(d)} ${late?'<strong style="color:var(--red)">(po terminie)</strong>':fmtRel(d,t)}`:'bez terminu'}</div>
+              </div>
+              <span class="pill prio-${task.priority}" style="font-size:9px">${priShort(task.priority)}</span>
+            </div>`;
+          }).join('')}</div>
+        </div>`).join('');
+    }
+  }
+
+  /* ── Notes strip ── */
   const notesEl=document.getElementById('ov-notes-list');
   if(notesEl){
-    const mergedNotes=[...S.notes.map(note=>({source:'person',note})),...S.selfNotes.map(note=>({source:'self',note}))].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,3);
-    notesEl.innerHTML=mergedNotes.length?mergedNotes.map(({source,note})=>{
+    const merged=[...S.notes.map(note=>({source:'person',note})),...S.selfNotes.map(note=>({source:'self',note}))].sort((a,b)=>b.note.createdAt.localeCompare(a.note.createdAt)).slice(0,3);
+    notesEl.innerHTML=merged.length?merged.map(({source,note})=>{
       const m=source==='person'?S.members.find(x=>x.id===note.personId):null;
       const ownerLabel=source==='self'?'👤 Ja':(m?`👥 ${escH(m.name)}`:'👥 Ogólna');
       const catColor=note.category==='1on1'?'var(--green)':note.category==='issue'?'var(--red)':note.category==='feedback'?'var(--purple)':note.category==='meeting'?'var(--amber)':'var(--line2)';
-      return `<button type="button" class="ov-item ov-note-jump" data-ov-source="${source}" data-ov-note-id="${note.id}" data-ov-person-id="${note.personId||''}" style="border-left:3px solid ${catColor};padding-left:11px"><div class="ov-item-body"><div class="ov-item-title">${escH(note.title||'Notatka bez tytułu')}</div><div class="ov-item-meta"><span>${ownerLabel}</span><span>📅 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div><div class="ov-note-preview">${escH(note.content||'')}</div></div></button>`;
-    }).join(''):'<div class="ov-empty">Brak notatek.<br>Dodawaj 1on1, blokery i notatki własne.</div>';
+      return `<button type="button" class="ov2-note-card ov-note-jump" data-ov-source="${source}" data-ov-note-id="${note.id}" data-ov-person-id="${note.personId||''}" style="border-left-color:${catColor}">
+        <div class="ov2-note-title">${escH(note.title||'Notatka bez tytułu')}</div>
+        <div class="ov2-note-meta"><span>${ownerLabel}</span><span>📅 ${new Date(note.createdAt).toLocaleDateString('pl-PL')}</span></div>
+        <div class="ov2-note-preview">${escH(note.content||'')}</div>
+      </button>`;
+    }).join(''):`<div class="ov2-empty" style="grid-column:1/-1">Brak notatek — dodaj 1on1, blokery lub notatki własne.</div>`;
     notesEl.querySelectorAll('.ov-note-jump').forEach(btn=>btn.addEventListener('click',()=>jumpToOverviewNote(btn.dataset.ovSource,btn.dataset.ovNoteId,btn.dataset.ovPersonId||null)));
   }
 }
