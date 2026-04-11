@@ -9,83 +9,195 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
-    .fuel-insights-grid {
-      gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    /* ── Full-width (usuwa right-rail kolumnę) ─────────────── */
+    body[data-page="fuel"] .content { grid-template-columns: 1fr; }
+
+    /* ── KPI Strip ─────────────────────────────────────────── */
+    .fkpi-strip {
+      display: grid;
+      grid-template-columns: auto repeat(4, 1fr);
+      gap: 10px;
     }
 
-    .fuel-insight-card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
+    .fkpi-hero {
+      background: linear-gradient(145deg, #0057c0 0%, #003d8f 100%);
+      border-radius: 13px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 3px;
+      box-shadow: 0 6px 18px rgba(0, 87, 192, 0.24);
+      position: relative;
+      overflow: hidden;
+      min-width: 156px;
+    }
+
+    .fkpi-hero::before {
+      content: '';
+      position: absolute;
+      top: -22px; right: -22px;
+      width: 88px; height: 88px;
+      background: rgba(255,255,255,0.09);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .fkpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    .fkpi-hero .fkpi-label { color: rgba(255,255,255,0.58); }
+    .fkpi-hero .fkpi-value { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.1; }
+    .fkpi-hero .fkpi-value.ok  { color: #6ee7b7; }
+    .fkpi-hero .fkpi-value.bad { color: #fca5a5; }
+    .fkpi-hero .fkpi-note { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+    .fkpi-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
       box-shadow: var(--shadow-sm);
     }
 
-    .fuel-insight-card .label {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-    }
+    .fkpi-card .fkpi-label { color: var(--muted); }
+    .fkpi-card .fkpi-value { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.25; }
+    .fkpi-card .fkpi-note  { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .fuel-insight-card .value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--ink);
-    }
+    .fkpi-card.fkpi-good { border-left: 3px solid var(--green); }
+    .fkpi-card.fkpi-bad  { border-left: 3px solid var(--red); }
+    .fkpi-card.fkpi-good .fkpi-value { color: var(--green); }
+    .fkpi-card.fkpi-bad  .fkpi-value { color: var(--red); }
 
-    .fuel-insight-card .note {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .fuel-form-grid {
-      align-items: flex-end;
-    }
-
-    .fuel-form-actions {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .fuel-analytics-grid {
+    /* ══ Mozaikowy grid ═══════════════════════════════════════
+     * Kolumny:  [1fr koszt-chart] [1fr tabela-mies] [280px panel]
+     * Wiersze:  [row1: główny wykres] [row2: cena/L + tabela]
+     * Panel prawy rozpina oba wiersze → brak białych pól
+     */
+    .fuel-dash {
       display: grid;
-      gap: 18px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: 1fr 1fr 280px;
+      grid-template-rows: auto auto;
+      gap: 14px;
+      align-items: stretch;
     }
 
-    .summary-delta {
-      font-weight: 600;
+    /* Jawne pozycje w gridzie */
+    .fd-main  { grid-column: 1 / 3; grid-row: 1; display: flex; flex-direction: column; }
+    .fd-avg   { grid-column: 1;     grid-row: 2; display: flex; flex-direction: column; }
+    .fd-mth   { grid-column: 2;     grid-row: 2; display: flex; flex-direction: column; }
+    .fd-right { grid-column: 3;     grid-row: 1 / 3; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Baza kart ── */
+    .fc, .fp {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 13px 15px;
+      box-shadow: var(--shadow-sm);
     }
 
-    .summary-delta.up {
-      color: var(--red);
+    /* Karty wykresów rozciągają canvas żeby wypełnić wysokość gridu */
+    .fc { flex: 1; display: flex; flex-direction: column; }
+    .fc .chart-area { flex: 1; min-height: 140px; }
+
+    /* ── Nagłówek karty wykresu ── */
+    .fch {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 8px; flex-shrink: 0; margin-bottom: 10px;
+    }
+    .fch select { font-size: 12px; padding: 3px 8px; height: auto; }
+
+    /* Tytuł kafelka */
+    .fct {
+      font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); display: block; flex-shrink: 0;
     }
 
-    .summary-delta.down {
-      color: var(--green);
+    /* ── Tabela miesięczna ── */
+    .fd-mth .fp { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .mth-scroll { flex: 1; overflow-y: auto; min-height: 0; margin-top: 9px; }
+
+    table.ctbl { font-size: 12px; }
+    table.ctbl th { font-size: 10px; letter-spacing: 0.04em; padding: 5px 7px; }
+    table.ctbl td { padding: 5px 7px; }
+
+    /* ── Panel prawy: podział wysokości ──
+     * fp-inv: stały (ostatnia faktura)
+     * fp-kpi: rośnie → wypełnia brakującą przestrzeń
+     * fp-form: stały (formularz)
+     */
+    .fp-inv  { flex: 0 0 auto; }
+    .fp-kpi  { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .fp-form { flex: 0 0 auto; }
+
+    /* Ostatnia faktura */
+    .last-invoice-card { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+    .last-invoice-card .label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .last-invoice-card .value { font-size: 18px; font-weight: 800; color: var(--ink); }
+    .last-invoice-card .note  { font-size: 11px; color: var(--muted); }
+
+    /* 2×2 wskaźniki — wypełniają fp-kpi */
+    .fuel-insights-2x2 {
+      flex: 1; min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+      gap: 7px; margin-top: 8px;
     }
 
-    .summary-delta.flat {
-      color: var(--muted);
+    .fuel-insight-card {
+      background: var(--surface); border-radius: 9px;
+      padding: 10px 11px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .fuel-insight-card .label { font-size: 9.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .fuel-insight-card .value { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .fuel-insight-card .note  { font-size: 10px; color: var(--muted); }
+
+    /* ── Formularz kompaktowy ── */
+    .fuel-add-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .fuel-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    #tx-ref { grid-column: 1 / -1; }
+    .fuel-add-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; }
+    .fuel-add-grid input, .fuel-add-grid select { font-size: 13px; padding: 7px 10px; height: auto; }
+
+    /* ── Delta miesięczna ── */
+    .summary-delta { font-weight: 600; }
+    .summary-delta.up   { color: var(--red); }
+    .summary-delta.down { color: var(--green); }
+    .summary-delta.flat { color: var(--muted); }
+
+    /* ══ Responsive ═══════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .fkpi-strip { grid-template-columns: 1fr 1fr 1fr; }
+      .fkpi-hero  { grid-column: 1 / -1; }
+      .fuel-dash  {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+      }
+      .fd-main  { grid-column: 1 / 3; grid-row: 1; }
+      .fd-avg   { grid-column: 1;     grid-row: 2; }
+      .fd-mth   { grid-column: 2;     grid-row: 2; }
+      .fd-right { grid-column: 1 / 3; grid-row: 3;
+                  flex-direction: row; flex-wrap: wrap; gap: 10px; }
+      .fd-right > .fp { flex: 1 1 200px; }
+      .fp-kpi { flex: 2 1 300px; }
+      .fuel-insights-2x2 { grid-auto-rows: auto; }
     }
 
-    .last-invoice-card {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .table-wrapper.scrollable {
-      max-height: 320px;
-      overflow: auto;
+    @media (max-width: 720px) {
+      .fkpi-strip { grid-template-columns: 1fr 1fr; }
+      .fkpi-hero  { grid-column: 1 / -1; }
+      .fuel-dash  { grid-template-columns: 1fr; grid-template-rows: auto; }
+      .fd-main, .fd-avg, .fd-mth, .fd-right { grid-column: 1; grid-row: auto; }
     }
   </style>
 </head>
@@ -174,90 +286,124 @@
 
       <div class="content">
         <main class="content-main stack">
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Kluczowe wnioski</h2>
-              <span class="tiny muted">Aktualizowane automatycznie na podstawie historii tankowań</span>
-            </div>
-            <div id="insights-grid" class="grid-3 fuel-insights-grid"></div>
-            <div class="insight-bubble" id="fuel-kpi-insight">Dodaj pierwszą transakcję, aby zobaczyć trend wydatków.</div>
-          </section>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Ostatnia faktura</h2>
-              <span class="tiny muted">Historia aktualizuje się po każdym dodaniu faktury</span>
+          <!-- ① KPI STRIP ────────────────────────────────────────── -->
+          <div class="fkpi-strip">
+            <div class="fkpi-hero">
+              <span class="fkpi-label">Saldo rozliczeń</span>
+              <span class="fkpi-value ok" id="fuel-balance">0,00 PLN</span>
+              <span class="fkpi-note" id="balance-info">—</span>
             </div>
-            <div class="last-invoice-card" id="last-invoice-card">
-              <div class="muted">Brak faktur w historii</div>
+            <div class="fkpi-card">
+              <span class="fkpi-label">Śr. cena/L (12m)</span>
+              <span class="fkpi-value" id="avg-price-12m">—</span>
+              <span class="fkpi-note" id="avg-price-12m-note">Brak danych</span>
             </div>
-          </section>
+            <div class="fkpi-card fkpi-good">
+              <span class="fkpi-label">Min cena/L</span>
+              <span class="fkpi-value" id="best-price">—</span>
+              <span class="fkpi-note" id="best-price-note">—</span>
+            </div>
+            <div class="fkpi-card fkpi-bad">
+              <span class="fkpi-label">Max cena/L</span>
+              <span class="fkpi-value" id="worst-price">—</span>
+              <span class="fkpi-note" id="worst-price-note">—</span>
+            </div>
+            <div class="fkpi-card">
+              <span class="fkpi-label">Śr. faktura</span>
+              <span class="fkpi-value" id="avg-invoice">—</span>
+              <span class="fkpi-note" id="avg-invoice-note">—</span>
+            </div>
+          </div>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Podsumowanie miesięczne</h2>
-              <p class="tiny muted" id="monthly-summary-caption">Ostatnie 6 miesięcy</p>
-            </div>
-            <div class="table-wrapper scrollable">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Miesiąc</th>
-                    <th>Faktury</th>
-                    <th>Litry</th>
-                    <th>Śr. cena</th>
-                    <th>Zmiana m/m</th>
-                  </tr>
-                </thead>
-                <tbody id="monthly-summary-body"></tbody>
-              </table>
-            </div>
-          </section>
+          <!-- ② MOZAIKOWY GRID ─────────────────────────────────── -->
+          <div class="fuel-dash">
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Analityka</h2>
-              <select id="analytics-period-filter" style="width:auto;">
-                <option value="12" selected>Ostatni rok</option>
-                <option value="24">Ostatnie 2 lata</option>
-                <option value="36">Ostatnie 3 lata</option>
-                <option value="all">Wszystkie dane</option>
-              </select>
+            <!-- Główny wykres: kolumny 1-2, wiersz 1 -->
+            <div class="fc fd-main">
+              <div class="fch">
+                <span class="fct" style="margin:0;">Miesięczne koszty i tankowania</span>
+                <select id="analytics-period-filter">
+                  <option value="12" selected>12 miesięcy</option>
+                  <option value="24">2 lata</option>
+                  <option value="36">3 lata</option>
+                  <option value="all">Wszystko</option>
+                </select>
+              </div>
+              <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
             </div>
-            <div class="fuel-analytics-grid">
-              <article class="chart-card">
-                <h3 class="title">Miesięczne koszty i liczba tankowań</h3>
-                <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
-              </article>
-              <article class="chart-card">
-                <h3 class="title">Średnia cena za litr</h3>
-                <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
-              </article>
-            </div>
-          </section>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title" id="form-title">Dodaj transakcję</h2>
-              <span class="tiny muted">Obsługujemy faktury i zaliczki firmowe</span>
+            <!-- Wykres ceny/L: kolumna 1, wiersz 2 -->
+            <div class="fc fd-avg">
+              <span class="fct" style="margin-bottom:10px;">Cena / litr</span>
+              <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
             </div>
-            <div class="grid g-4 fuel-form-grid">
-              <input type="hidden" id="tx-id">
-              <input type="date" id="tx-date">
-              <select id="tx-type">
-                <option value="invoice">Faktura (koszt)</option>
-                <option value="advance">Zaliczka (wpływ)</option>
-              </select>
-              <input type="text" id="tx-ref" placeholder="Nr faktury / Opis">
-              <input type="text" id="tx-liters" placeholder="Litry (opcjonalnie)" inputmode="decimal">
-              <input type="text" id="tx-amount" placeholder="Kwota" inputmode="decimal" required>
-              <div class="fuel-form-actions">
-                <button id="cancel-edit-btn" class="btn soft" style="display:none;">Anuluj</button>
-                <button id="add-tx-btn" class="btn primary">Dodaj</button>
+
+            <!-- Tabela miesięczna: kolumna 2, wiersz 2 -->
+            <div class="fd-mth">
+              <div class="fp" style="height:100%; box-sizing:border-box;">
+                <div class="fch">
+                  <span class="fct" style="margin:0;">Podsumowanie</span>
+                  <span class="tiny muted" id="monthly-summary-caption">—</span>
+                </div>
+                <div class="mth-scroll">
+                  <table class="ctbl">
+                    <thead>
+                      <tr>
+                        <th>Miesiąc</th><th>Szt.</th><th>Litry</th><th>Śr./L</th><th>Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody id="monthly-summary-body"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </section>
 
+            <!-- Panel prawy: kolumna 3, wiersze 1-2 -->
+            <div class="fd-right">
+
+              <!-- Ostatnia faktura (stały rozmiar) -->
+              <div class="fp fp-inv">
+                <span class="fct" style="margin-bottom:0;">Ostatnia faktura</span>
+                <div id="last-invoice-card" class="last-invoice-card">
+                  <span class="muted" style="font-size:12px;">Brak faktur</span>
+                </div>
+              </div>
+
+              <!-- Wskaźniki 2×2 (rośnie, wypełnia przestrzeń) -->
+              <div class="fp fp-kpi">
+                <span class="fct" style="margin-bottom:0;">Wskaźniki</span>
+                <div id="insights-grid" class="fuel-insights-2x2"></div>
+                <div class="insight-bubble" id="fuel-kpi-insight" style="margin-top:9px; flex-shrink:0;">Dodaj pierwszą transakcję.</div>
+              </div>
+
+              <!-- Formularz (stały rozmiar) -->
+              <div class="fp fp-form">
+                <div class="fuel-add-head">
+                  <span class="fct" id="form-title" style="margin:0;">Nowa transakcja</span>
+                  <button id="cancel-edit-btn" class="btn soft" style="display:none; font-size:11px; padding:3px 10px;">Anuluj</button>
+                </div>
+                <div class="fuel-add-grid">
+                  <input type="hidden" id="tx-id">
+                  <input type="date" id="tx-date">
+                  <select id="tx-type">
+                    <option value="invoice">Faktura</option>
+                    <option value="advance">Zaliczka</option>
+                  </select>
+                  <input type="text" id="tx-amount" placeholder="Kwota" inputmode="decimal" required>
+                  <input type="text" id="tx-liters" placeholder="Litry (opt.)" inputmode="decimal">
+                  <input type="text" id="tx-ref" placeholder="Nr faktury / Opis">
+                  <div class="fuel-add-actions">
+                    <button id="add-tx-btn" class="btn primary">Dodaj</button>
+                  </div>
+                </div>
+                <div class="insight-bubble" id="kpi-context-bubble" style="margin-top:8px;">Wprowadź historyczne faktury.</div>
+              </div>
+
+            </div><!-- /fd-right -->
+          </div><!-- /fuel-dash -->
+
+          <!-- ③ HISTORIA TRANSAKCJI (pełna szerokość) ──────────── -->
           <section class="card card-section">
             <div class="section-heading">
               <h2 class="title">Historia transakcji</h2>
@@ -269,7 +415,7 @@
                   <tr>
                     <th>Data</th>
                     <th>Typ</th>
-                    <th>Opis/Nr faktury</th>
+                    <th>Opis / Nr faktury</th>
                     <th>Litry</th>
                     <th>Cena/l</th>
                     <th>Kwota</th>
@@ -280,51 +426,8 @@
               </table>
             </div>
           </section>
-        </main>
 
-        <aside class="right-rail">
-          <div class="kpi-compact">
-            <span class="kpi-emoji">⛽</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Saldo rozliczeń</span>
-              <span class="kpi-value ok" id="fuel-balance">0,00 PLN</span>
-              <span class="tiny muted" id="balance-info">—</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🧾</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Śr. cena/L (12m)</span>
-              <span class="kpi-value" id="avg-price-12m">—</span>
-              <span class="tiny muted" id="avg-price-12m-note">Brak danych z ostatniego roku</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🟢</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Najlepsza cena</span>
-              <span class="kpi-value" id="best-price">—</span>
-              <span class="tiny muted" id="best-price-note">Dodaj faktury z litrami</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🔴</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Najwyższa cena</span>
-              <span class="kpi-value" id="worst-price">—</span>
-              <span class="tiny muted" id="worst-price-note">Dodaj faktury z litrami</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">💳</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Śr. faktura</span>
-              <span class="kpi-value" id="avg-invoice">—</span>
-              <span class="tiny muted" id="avg-invoice-note">Czekamy na nowe dane</span>
-            </div>
-          </div>
-          <div class="insight-bubble" id="kpi-context-bubble">Wprowadź historyczne faktury, aby zobaczyć trend kosztów paliwa.</div>
-        </aside>
+        </main>
       </div>
     </div>
   </div>
@@ -551,7 +654,7 @@ function render() {
 
     // Render KPI rail
     balanceEl.textContent = fmt(metrics.balance);
-    balanceEl.className = `kpi-value ${metrics.balance >= 0 ? 'ok' : 'bad'}`;
+    balanceEl.className = `fkpi-value ${metrics.balance >= 0 ? 'ok' : 'bad'}`;
     balanceInfoEl.textContent = metrics.balance >= 0
         ? 'Masz jeszcze środki z zaliczki do wykorzystania'
         : 'Musisz zwrócić pieniądze firmie';
@@ -846,59 +949,171 @@ function renderAnalytics() {
     renderAvgPriceChart(labels, avgPrices);
 }
 
+// Abbreviated number formatter for chart labels (e.g. 1234 → "1,2k")
+function fmtBar(v) {
+    if (!v && v !== 0) return '';
+    if (Math.abs(v) >= 10000) return (v / 1000).toFixed(0).replace('.', ',') + 'k';
+    if (Math.abs(v) >= 1000)  return (v / 1000).toFixed(1).replace('.', ',') + 'k';
+    return String(Math.round(v));
+}
+
+// Modern data-labels plugin using Inter font + per-dataset config
 const datalabelsPlugin = {
-    id: 'datalabels',
-    afterDraw: (chart) => {
-        const ctx = chart.ctx;
+    id: 'fuelDatalabels',
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
         chart.data.datasets.forEach((dataset, i) => {
-            if (dataset.type === 'bar' || !dataset.type) {
-                const meta = chart.getDatasetMeta(i);
-                meta.data.forEach((bar, index) => {
-                    const data = dataset.data[index];
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillStyle = '#64748b';
-                    ctx.font = '11px sans-serif';
-                    ctx.fillText(Math.round(data), bar.x, bar.y - 5);
-                    ctx.restore();
-                });
-            }
+            if (dataset.datalabel === false) return;
+            const meta = chart.getDatasetMeta(i);
+            if (meta.hidden) return;
+            meta.data.forEach((element, index) => {
+                const value = dataset.data[index];
+                if (!value || value === 0) return;
+                const label = dataset.datalabelFmt ? dataset.datalabelFmt(value) : fmtBar(value);
+                if (!label) return;
+                ctx.save();
+                ctx.font = `600 11px 'Inter', system-ui, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = dataset.datalabelColor || '#9b9d9f';
+                ctx.fillText(label, element.x, element.y - 6);
+                ctx.restore();
+            });
         });
     }
 };
 
 function renderMonthlyCostsChart(labels, costs, counts) {
-    const ctx = document.getElementById('monthly-costs-chart').getContext('2d');
-    if(window.monthlyCostsChart) window.monthlyCostsChart.destroy();
+    const canvas = document.getElementById('monthly-costs-chart');
+    const ctx = canvas.getContext('2d');
+    if (window.monthlyCostsChart) window.monthlyCostsChart.destroy();
+
+    const fmtLabels = labels.map(l => {
+        const d = new Date(l + '-01');
+        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+    });
+
     window.monthlyCostsChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels,
+            labels: fmtLabels,
             datasets: [
                 {
-                    label: 'Miesięczny koszt paliwa',
+                    label: 'Koszt miesięczny',
                     data: costs,
-                    backgroundColor: 'rgba(190, 18, 60, 0.7)',
+                    backgroundColor(context) {
+                        const chart = context.chart;
+                        const { ctx: c, chartArea } = chart;
+                        if (!chartArea) return 'rgba(0,87,192,0.7)';
+                        if (!chart._barGrad) {
+                            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            g.addColorStop(0, 'rgba(0, 87, 192, 0.90)');
+                            g.addColorStop(1, 'rgba(0, 87, 192, 0.38)');
+                            chart._barGrad = g;
+                        }
+                        return chart._barGrad;
+                    },
+                    borderColor: 'transparent',
+                    borderRadius: 6,
+                    borderSkipped: false,
                     yAxisID: 'y',
+                    datalabelFmt: (v) => fmtBar(v),
+                    datalabelColor: '#0057c0',
                 },
                 {
-                    label: 'Liczba tankowań',
+                    label: 'Tankowania',
                     data: counts,
                     type: 'line',
-                    borderColor: 'rgba(3, 105, 161, 0.7)',
+                    borderColor: '#059669',
+                    backgroundColor: 'transparent',
+                    pointBackgroundColor: '#059669',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    borderWidth: 2.5,
                     yAxisID: 'y1',
-                    tension: 0.1
+                    datalabel: false,
                 }
             ]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: true }, datalabels: { display: true } },
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 500, easing: 'easeOutQuart' },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        borderRadius: 3,
+                        useBorderRadius: true,
+                        font: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                        color: '#595c5e',
+                        padding: 16,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e2022',
+                    titleColor: '#f5f6f8',
+                    bodyColor: '#9b9d9f',
+                    borderColor: '#3a3d40',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 10,
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    titleFont: { family: "'Inter', system-ui, sans-serif", weight: '600', size: 13 },
+                    bodyFont: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                    callbacks: {
+                        label(c) {
+                            if (c.datasetIndex === 0) return `  Koszt: ${fmt(c.raw)}`;
+                            return `  Tankowania: ${c.raw}`;
+                        }
+                    }
+                }
+            },
             scales: {
-                x: { grid: { display: false } },
-                y: { display: true, position: 'left', beginAtZero: true, grid: { display: false }, ticks: {callback: (v) => fmt(v) } },
-                y1: { display: true, position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { stepSize: 1 } }
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                    }
+                },
+                y: {
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    grid: { color: 'rgba(218,221,224,0.55)', drawTicks: false },
+                    border: { display: false, dash: [4, 4] },
+                    ticks: {
+                        callback: (v) => fmtBar(v),
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                        maxTicksLimit: 6,
+                    }
+                },
+                y1: {
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false, drawTicks: false },
+                    border: { display: false },
+                    ticks: {
+                        stepSize: 1,
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                    }
+                }
             }
         },
         plugins: [datalabelsPlugin]
@@ -907,25 +1122,95 @@ function renderMonthlyCostsChart(labels, costs, counts) {
 
 
 function renderAvgPriceChart(labels, prices) {
-    const ctx = document.getElementById('avg-price-chart').getContext('2d');
-    if(window.avgPriceChart) window.avgPriceChart.destroy();
+    const canvas = document.getElementById('avg-price-chart');
+    const ctx = canvas.getContext('2d');
+    if (window.avgPriceChart) window.avgPriceChart.destroy();
+
+    const fmtLabels = labels.map(l => {
+        const d = new Date(l + '-01');
+        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+    });
+
     window.avgPriceChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels,
+            labels: fmtLabels,
             datasets: [{
-                label: 'Średnia cena za litr',
+                label: 'Śr. cena / litr',
                 data: prices,
-                borderColor: 'rgba(234, 88, 12, 0.7)',
-                backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                borderColor: '#0057c0',
+                backgroundColor(context) {
+                    const chart = context.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return 'rgba(0,87,192,0.08)';
+                    if (!chart._areaGrad) {
+                        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                        g.addColorStop(0, 'rgba(0, 87, 192, 0.22)');
+                        g.addColorStop(1, 'rgba(0, 87, 192, 0.00)');
+                        chart._areaGrad = g;
+                    }
+                    return chart._areaGrad;
+                },
                 fill: true,
-                tension: 0.1
+                tension: 0.4,
+                borderWidth: 2.5,
+                pointBackgroundColor: '#0057c0',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                datalabelFmt: (v) => v > 0 ? String(v.toFixed(2)).replace('.', ',') : null,
+                datalabelColor: '#0057c0',
             }]
         },
-        options: { 
-            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }},
-            scales: { x: { grid: { display: false } }, y: { grid: { display: false }, beginAtZero: false, ticks: { callback: (v) => fmt(v, 'PLN/L') } } } 
-        }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 500, easing: 'easeOutQuart' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e2022',
+                    titleColor: '#f5f6f8',
+                    bodyColor: '#9b9d9f',
+                    borderColor: '#3a3d40',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 10,
+                    titleFont: { family: "'Inter', system-ui, sans-serif", weight: '600', size: 13 },
+                    bodyFont: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                    callbacks: {
+                        label(c) {
+                            return c.raw > 0 ? `  Śr. cena: ${fmt(c.raw, 'PLN/L')}` : '  Brak danych';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(218,221,224,0.55)', drawTicks: false },
+                    border: { display: false, dash: [4, 4] },
+                    ticks: {
+                        callback: (v) => String(v.toFixed(2)).replace('.', ','),
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                        maxTicksLimit: 6,
+                    }
+                }
+            }
+        },
+        plugins: [datalabelsPlugin]
     });
 }
 
