@@ -37,10 +37,33 @@
   --vacation-color: #64748b;
 }
 
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography harmonization (match Budget/Tasks) */
+h1, h2, h3, h4, h5, h6 { font-weight: 700; letter-spacing: -0.02em; }
+.label-xs, .fl { font-weight: 700; letter-spacing: .06em; }
+.pill, .chip, .seg-item { font-weight: 600; }
+
+/* Layout fixes (match Tasks) */
+.main { flex: 1; min-width: 0; width: 0; }
+.content {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
 .page-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 100%;
+  max-width: 100% !important;
 }
 
 .month-switcher {
@@ -1306,39 +1329,48 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 8px 0 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 8;
+  padding: 8px 0;
+  margin: 12px 0 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
 }
 
 .subnav button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  transition: var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .subnav button:hover {
-  color: var(--accent);
-  border-color: var(--primary-border);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .subnav button.is-active {
-  color: var(--accent);
-  background: var(--primary-soft);
-  border-color: var(--primary-border);
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
   box-shadow: var(--shadow-sm);
 }
 
 .section-panel {
   display: none;
+  margin-top: 12px;
 }
 
 .section-panel.is-active {
