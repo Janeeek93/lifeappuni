@@ -1559,6 +1559,11 @@ function renderCharts() {
   Chart.defaults.plugins.tooltip.borderWidth = 1;
   Chart.defaults.plugins.tooltip.cornerRadius = 10;
   Chart.defaults.plugins.tooltip.padding = 12;
+  Chart.defaults.elements.line.borderWidth = 2.5;
+  Chart.defaults.elements.point.borderWidth = 2;
+  Chart.defaults.elements.point.radius = 4;
+  Chart.defaults.elements.point.hoverRadius = 6;
+  Chart.defaults.elements.bar.borderRadius = 6;
 
   // === Paid data ===
   const paidCount = payments.length;
@@ -1717,15 +1722,17 @@ function destroyAllLoanCharts() {
 function getLoanPalette() {
   const styles = getComputedStyle(document.body);
   return {
-    green: styles.getPropertyValue('--green').trim(),
-    greenSoft: styles.getPropertyValue('--green-soft').trim(),
-    orange: styles.getPropertyValue('--orange').trim(),
-    orangeSoft: styles.getPropertyValue('--orange-soft').trim(),
-    blue: styles.getPropertyValue('--blue').trim(),
-    blueSoft: styles.getPropertyValue('--blue-soft').trim(),
+    // Chłodniejsza paleta wzorowana na module Paliwo (bardziej nowoczesna i spójna)
+    green: '#059669',
+    greenSoft: 'rgba(5, 150, 105, 0.18)',
+    orange: '#2563eb',
+    orangeSoft: 'rgba(37, 99, 235, 0.16)',
+    blue: '#0057c0',
+    blueSoft: 'rgba(0, 87, 192, 0.16)',
     line: styles.getPropertyValue('--line').trim(),
     card: styles.getPropertyValue('--card').trim(),
-    ink: styles.getPropertyValue('--ink').trim()
+    ink: styles.getPropertyValue('--ink').trim(),
+    muted: styles.getPropertyValue('--muted').trim()
   };
 }
 
@@ -1949,8 +1956,28 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.green },
-              { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 3, pointBackgroundColor: palette.orange }
+              {
+                label: 'Kapitał',
+                data: principalSeries,
+                borderColor: palette.green,
+                backgroundColor: palette.greenSoft,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 4,
+                pointBackgroundColor: palette.green,
+                pointBorderColor: '#ffffff'
+              },
+              {
+                label: 'Odsetki',
+                data: interestSeries,
+                borderColor: palette.orange,
+                backgroundColor: palette.orangeSoft,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 4,
+                pointBackgroundColor: palette.orange,
+                pointBorderColor: '#ffffff'
+              }
             ]
           },
           plugins: [ChartDataLabels],
@@ -2103,9 +2130,9 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał skumulowany', data: cumulativePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: false, tension: 0.25, pointRadius: 0 },
-              { label: 'Odsetki skumulowane', data: cumulativeInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: false, tension: 0.25, pointRadius: 0 },
-              { label: 'Łącznie', data: cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]), borderColor: palette.blue, backgroundColor: palette.blueSoft, fill: false, borderDash: [6, 4], tension: 0.25, pointRadius: 0 }
+              { label: 'Kapitał skumulowany', data: cumulativePrincipal, borderColor: palette.green, backgroundColor: palette.greenSoft, fill: true, tension: 0.3, pointRadius: 2, pointBackgroundColor: palette.green, pointBorderColor: '#fff' },
+              { label: 'Odsetki skumulowane', data: cumulativeInterest, borderColor: palette.orange, backgroundColor: palette.orangeSoft, fill: true, tension: 0.3, pointRadius: 2, pointBackgroundColor: palette.orange, pointBorderColor: '#fff' },
+              { label: 'Łącznie', data: cumulativePrincipal.map((value, index) => value + cumulativeInterest[index]), borderColor: palette.blue, backgroundColor: palette.blueSoft, fill: false, borderDash: [6, 4], tension: 0.3, pointRadius: 2, pointBackgroundColor: palette.blue, pointBorderColor: '#fff' }
             ]
           },
           plugins: [ChartDataLabels],
