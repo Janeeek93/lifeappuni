@@ -695,6 +695,56 @@
     body[data-page="loan"] main.stack {
       gap: 16px;
     }
+    body[data-page="loan"] .content {
+      grid-template-columns: 1fr;
+    }
+    body[data-page="loan"] .right-rail {
+      display: none;
+    }
+    body[data-page="loan"] .loan-bento-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+    body[data-page="loan"] .loan-bento-card {
+      background: #fff;
+      border: 1px solid #e3e7f7;
+      border-radius: 14px;
+      box-shadow: 0 12px 32px -18px rgba(19, 27, 46, 0.22);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    body[data-page="loan"] .loan-bento-card .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 800;
+      color: #58627b;
+    }
+    body[data-page="loan"] .loan-bento-card .value {
+      font-size: 27px;
+      font-weight: 900;
+      color: #131b2e;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    body[data-page="loan"] .loan-bento-card .note {
+      font-size: 12px;
+      color: #6a7288;
+      font-weight: 600;
+    }
+    body[data-page="loan"] .loan-bento-card.hero {
+      background: linear-gradient(145deg, #0050cb 0%, #0066ff 100%);
+      border-color: transparent;
+      color: #fff;
+    }
+    body[data-page="loan"] .loan-bento-card.hero .label,
+    body[data-page="loan"] .loan-bento-card.hero .value,
+    body[data-page="loan"] .loan-bento-card.hero .note {
+      color: #fff;
+    }
     body[data-page="loan"] .card {
       background: #ffffff;
       border: 1px solid #e3e7f7;
@@ -761,6 +811,16 @@
       border: 1px solid #dfe5f8;
       background: linear-gradient(160deg, #ffffff 0%, #f6f8ff 100%);
       box-shadow: 0 10px 24px -18px rgba(19, 27, 46, 0.28);
+    }
+    @media (max-width: 1100px) {
+      body[data-page="loan"] .loan-bento-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      body[data-page="loan"] .loan-bento-summary {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -858,6 +918,29 @@
             </section>
 
             <div id="dashboard-container" class="stack tight" style="display: none;">
+              <section class="loan-bento-summary">
+                <article class="loan-bento-card">
+                  <span class="label">Pozostało do spłaty</span>
+                  <span class="value" id="capital-remaining">—</span>
+                  <span class="note" id="capital-remaining-note">—</span>
+                </article>
+                <article class="loan-bento-card">
+                  <span class="label">Następna rata</span>
+                  <span class="value" id="next-payment">—</span>
+                  <span class="note" id="next-payment-note">—</span>
+                </article>
+                <article class="loan-bento-card">
+                  <span class="label">Kapitał spłacony</span>
+                  <span class="value" id="capital-paid">—</span>
+                  <span class="note" id="capital-paid-note">—</span>
+                </article>
+                <article class="loan-bento-card hero">
+                  <span class="label">Śr. rata</span>
+                  <span class="value" id="avg-installment">—</span>
+                  <span class="note" id="avg-installment-note">—</span>
+                </article>
+              </section>
+
               <section class="card loan-progress-card">
                 <div class="loan-progress-header">
                   <h2 class="title">Postęp spłaty kapitału</h2>
@@ -1017,21 +1100,21 @@
           </div>
         </main>
 
-        <aside class="right-rail">
+        <aside class="right-rail" aria-hidden="true">
           <div class="kpi-compact">
             <span class="kpi-emoji">💰</span>
             <div class="kpi-body">
               <span class="kpi-label">Kapitał pozostały</span>
-              <span class="kpi-value" id="capital-remaining">—</span>
-              <span class="tiny muted" id="capital-remaining-note"></span>
+              <span class="kpi-value" id="capital-remaining-legacy">—</span>
+              <span class="tiny muted" id="capital-remaining-note-legacy"></span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">📉</span>
             <div class="kpi-body">
               <span class="kpi-label">Kapitał spłacony</span>
-              <span class="kpi-value" id="capital-paid">—</span>
-              <span class="tiny muted" id="capital-paid-note"></span>
+              <span class="kpi-value" id="capital-paid-legacy">—</span>
+              <span class="tiny muted" id="capital-paid-note-legacy"></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -1046,16 +1129,16 @@
             <span class="kpi-emoji">💸</span>
             <div class="kpi-body">
               <span class="kpi-label">Śr. rata</span>
-              <span class="kpi-value" id="avg-installment">—</span>
-              <span class="tiny muted" id="avg-installment-note"></span>
+              <span class="kpi-value" id="avg-installment-legacy">—</span>
+              <span class="tiny muted" id="avg-installment-note-legacy"></span>
             </div>
           </div>
           <div class="kpi-compact">
             <span class="kpi-emoji">⏳</span>
             <div class="kpi-body">
               <span class="kpi-label">Następna rata</span>
-              <span class="kpi-value" id="next-payment">—</span>
-              <span class="tiny muted" id="next-payment-note"></span>
+              <span class="kpi-value" id="next-payment-legacy">—</span>
+              <span class="tiny muted" id="next-payment-note-legacy"></span>
             </div>
           </div>
         </aside>
@@ -1799,12 +1882,12 @@ function getLoanPalette() {
   const styles = getComputedStyle(document.body);
   return {
     // Chłodniejsza paleta wzorowana na module Paliwo (bardziej nowoczesna i spójna)
-    green: '#059669',
-    greenSoft: 'rgba(5, 150, 105, 0.18)',
-    orange: '#2563eb',
-    orangeSoft: 'rgba(37, 99, 235, 0.16)',
-    blue: '#0057c0',
-    blueSoft: 'rgba(0, 87, 192, 0.16)',
+    green: '#0050cb',
+    greenSoft: 'rgba(0, 102, 255, 0.18)',
+    orange: '#7b97ff',
+    orangeSoft: 'rgba(123, 151, 255, 0.20)',
+    blue: '#003fa4',
+    blueSoft: 'rgba(0, 80, 203, 0.16)',
     line: styles.getPropertyValue('--line').trim(),
     card: styles.getPropertyValue('--card').trim(),
     ink: styles.getPropertyValue('--ink').trim(),
