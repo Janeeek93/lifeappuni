@@ -87,6 +87,25 @@
       max-height: 320px;
       overflow: auto;
     }
+
+    /* ── Chart container overrides ─────────────── */
+    .fuel-analytics-grid .chart-card {
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .fuel-analytics-grid .chart-card h3.title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0 0 4px 0;
+    }
+
+    .fuel-analytics-grid .chart-area {
+      min-height: 280px;
+    }
   </style>
 </head>
 <body data-page="fuel">
@@ -846,59 +865,171 @@ function renderAnalytics() {
     renderAvgPriceChart(labels, avgPrices);
 }
 
+// Abbreviated number formatter for chart labels (e.g. 1234 → "1,2k")
+function fmtBar(v) {
+    if (!v && v !== 0) return '';
+    if (Math.abs(v) >= 10000) return (v / 1000).toFixed(0).replace('.', ',') + 'k';
+    if (Math.abs(v) >= 1000)  return (v / 1000).toFixed(1).replace('.', ',') + 'k';
+    return String(Math.round(v));
+}
+
+// Modern data-labels plugin using Inter font + per-dataset config
 const datalabelsPlugin = {
-    id: 'datalabels',
-    afterDraw: (chart) => {
-        const ctx = chart.ctx;
+    id: 'fuelDatalabels',
+    afterDatasetsDraw(chart) {
+        const { ctx } = chart;
         chart.data.datasets.forEach((dataset, i) => {
-            if (dataset.type === 'bar' || !dataset.type) {
-                const meta = chart.getDatasetMeta(i);
-                meta.data.forEach((bar, index) => {
-                    const data = dataset.data[index];
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillStyle = '#64748b';
-                    ctx.font = '11px sans-serif';
-                    ctx.fillText(Math.round(data), bar.x, bar.y - 5);
-                    ctx.restore();
-                });
-            }
+            if (dataset.datalabel === false) return;
+            const meta = chart.getDatasetMeta(i);
+            if (meta.hidden) return;
+            meta.data.forEach((element, index) => {
+                const value = dataset.data[index];
+                if (!value || value === 0) return;
+                const label = dataset.datalabelFmt ? dataset.datalabelFmt(value) : fmtBar(value);
+                if (!label) return;
+                ctx.save();
+                ctx.font = `600 11px 'Inter', system-ui, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = dataset.datalabelColor || '#9b9d9f';
+                ctx.fillText(label, element.x, element.y - 6);
+                ctx.restore();
+            });
         });
     }
 };
 
 function renderMonthlyCostsChart(labels, costs, counts) {
-    const ctx = document.getElementById('monthly-costs-chart').getContext('2d');
-    if(window.monthlyCostsChart) window.monthlyCostsChart.destroy();
+    const canvas = document.getElementById('monthly-costs-chart');
+    const ctx = canvas.getContext('2d');
+    if (window.monthlyCostsChart) window.monthlyCostsChart.destroy();
+
+    const fmtLabels = labels.map(l => {
+        const d = new Date(l + '-01');
+        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+    });
+
     window.monthlyCostsChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels,
+            labels: fmtLabels,
             datasets: [
                 {
-                    label: 'Miesięczny koszt paliwa',
+                    label: 'Koszt miesięczny',
                     data: costs,
-                    backgroundColor: 'rgba(190, 18, 60, 0.7)',
+                    backgroundColor(context) {
+                        const chart = context.chart;
+                        const { ctx: c, chartArea } = chart;
+                        if (!chartArea) return 'rgba(0,87,192,0.7)';
+                        if (!chart._barGrad) {
+                            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            g.addColorStop(0, 'rgba(0, 87, 192, 0.90)');
+                            g.addColorStop(1, 'rgba(0, 87, 192, 0.38)');
+                            chart._barGrad = g;
+                        }
+                        return chart._barGrad;
+                    },
+                    borderColor: 'transparent',
+                    borderRadius: 6,
+                    borderSkipped: false,
                     yAxisID: 'y',
+                    datalabelFmt: (v) => fmtBar(v),
+                    datalabelColor: '#0057c0',
                 },
                 {
-                    label: 'Liczba tankowań',
+                    label: 'Tankowania',
                     data: counts,
                     type: 'line',
-                    borderColor: 'rgba(3, 105, 161, 0.7)',
+                    borderColor: '#059669',
+                    backgroundColor: 'transparent',
+                    pointBackgroundColor: '#059669',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    borderWidth: 2.5,
                     yAxisID: 'y1',
-                    tension: 0.1
+                    datalabel: false,
                 }
             ]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: true }, datalabels: { display: true } },
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 500, easing: 'easeOutQuart' },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: {
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        borderRadius: 3,
+                        useBorderRadius: true,
+                        font: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                        color: '#595c5e',
+                        padding: 16,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e2022',
+                    titleColor: '#f5f6f8',
+                    bodyColor: '#9b9d9f',
+                    borderColor: '#3a3d40',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 10,
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    titleFont: { family: "'Inter', system-ui, sans-serif", weight: '600', size: 13 },
+                    bodyFont: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                    callbacks: {
+                        label(c) {
+                            if (c.datasetIndex === 0) return `  Koszt: ${fmt(c.raw)}`;
+                            return `  Tankowania: ${c.raw}`;
+                        }
+                    }
+                }
+            },
             scales: {
-                x: { grid: { display: false } },
-                y: { display: true, position: 'left', beginAtZero: true, grid: { display: false }, ticks: {callback: (v) => fmt(v) } },
-                y1: { display: true, position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { stepSize: 1 } }
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                    }
+                },
+                y: {
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    grid: { color: 'rgba(218,221,224,0.55)', drawTicks: false },
+                    border: { display: false, dash: [4, 4] },
+                    ticks: {
+                        callback: (v) => fmtBar(v),
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                        maxTicksLimit: 6,
+                    }
+                },
+                y1: {
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false, drawTicks: false },
+                    border: { display: false },
+                    ticks: {
+                        stepSize: 1,
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                    }
+                }
             }
         },
         plugins: [datalabelsPlugin]
@@ -907,25 +1038,95 @@ function renderMonthlyCostsChart(labels, costs, counts) {
 
 
 function renderAvgPriceChart(labels, prices) {
-    const ctx = document.getElementById('avg-price-chart').getContext('2d');
-    if(window.avgPriceChart) window.avgPriceChart.destroy();
+    const canvas = document.getElementById('avg-price-chart');
+    const ctx = canvas.getContext('2d');
+    if (window.avgPriceChart) window.avgPriceChart.destroy();
+
+    const fmtLabels = labels.map(l => {
+        const d = new Date(l + '-01');
+        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+    });
+
     window.avgPriceChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels,
+            labels: fmtLabels,
             datasets: [{
-                label: 'Średnia cena za litr',
+                label: 'Śr. cena / litr',
                 data: prices,
-                borderColor: 'rgba(234, 88, 12, 0.7)',
-                backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                borderColor: '#0057c0',
+                backgroundColor(context) {
+                    const chart = context.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return 'rgba(0,87,192,0.08)';
+                    if (!chart._areaGrad) {
+                        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                        g.addColorStop(0, 'rgba(0, 87, 192, 0.22)');
+                        g.addColorStop(1, 'rgba(0, 87, 192, 0.00)');
+                        chart._areaGrad = g;
+                    }
+                    return chart._areaGrad;
+                },
                 fill: true,
-                tension: 0.1
+                tension: 0.4,
+                borderWidth: 2.5,
+                pointBackgroundColor: '#0057c0',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                datalabelFmt: (v) => v > 0 ? String(v.toFixed(2)).replace('.', ',') : null,
+                datalabelColor: '#0057c0',
             }]
         },
-        options: { 
-            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }},
-            scales: { x: { grid: { display: false } }, y: { grid: { display: false }, beginAtZero: false, ticks: { callback: (v) => fmt(v, 'PLN/L') } } } 
-        }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 500, easing: 'easeOutQuart' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e2022',
+                    titleColor: '#f5f6f8',
+                    bodyColor: '#9b9d9f',
+                    borderColor: '#3a3d40',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 10,
+                    titleFont: { family: "'Inter', system-ui, sans-serif", weight: '600', size: 13 },
+                    bodyFont: { family: "'Inter', system-ui, sans-serif", size: 12 },
+                    callbacks: {
+                        label(c) {
+                            return c.raw > 0 ? `  Śr. cena: ${fmt(c.raw, 'PLN/L')}` : '  Brak danych';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(218,221,224,0.55)', drawTicks: false },
+                    border: { display: false, dash: [4, 4] },
+                    ticks: {
+                        callback: (v) => String(v.toFixed(2)).replace('.', ','),
+                        color: '#9b9d9f',
+                        font: { family: "'Inter', system-ui, sans-serif", size: 11 },
+                        padding: 8,
+                        maxTicksLimit: 6,
+                    }
+                }
+            }
+        },
+        plugins: [datalabelsPlugin]
     });
 }
 
