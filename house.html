@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl" data-theme="dark">
+<html lang="pl" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="chart-defaults.js" defer></script>
   <style>
     /* ========================================================
        BUILD MASTER — DESIGN SYSTEM (Blueprint Noir)
@@ -115,62 +116,6 @@
       flex-direction: column;
       overflow: hidden;
       min-height: 0;
-    }
-
-    /* ── Top Bar ──────────────────────────────────────── */
-    .bm-topbar {
-      background: var(--bm-surface);
-      border-bottom: 1px solid var(--bm-border);
-      padding: 0 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
-      flex-shrink: 0;
-      gap: 16px;
-    }
-
-    .bm-topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .bm-logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--bm-orange-dim);
-      border: 1px solid rgba(249,115,22,.3);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-
-    .bm-project-name {
-      font-family: var(--bm-head);
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--bm-ink);
-      letter-spacing: .3px;
-    }
-
-    .bm-project-name small {
-      display: block;
-      font-family: var(--bm-body);
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--bm-orange);
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      margin-top: -2px;
-    }
-
-    .bm-topbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     /* ── Buttons ──────────────────────────────────────── */
@@ -1149,7 +1094,6 @@
       .bm-kanban-cols { grid-template-columns: 1fr; }
       .bm-form-row    { grid-template-columns: 1fr; }
       .bm-content     { padding: 16px; }
-      .bm-topbar      { padding: 0 16px; }
     }
 
     /* ── Alert box ────────────────────────────────────── */
@@ -1253,30 +1197,31 @@
   <div class="app-main bm-wrap bm-main-bg">
 
     <!-- Top Bar -->
-    <header class="site-header">
-      <div class="site-header__left">
-        <div class="site-header__greeting">
-          <h2 class="site-header__title">BuildMaster Pro</h2>
-          <p style="margin:0;font-size:12px;color:var(--muted);">
-            <small style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Projekt budowlany</small>
-            <span id="bm-project-display-name" style="display:block;margin-top:2px;">Budowa Domu</span>
-          </p>
-        </div>
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          Live Syncing
-        </div>
+    <header class="page-header">
+      <div class="page-header__top">
+        <span class="page-overline">Budowa</span>
+        <h1 class="page-title">
+          <span class="material-symbols-outlined page-title__icon">construction</span>
+          <span class="page-title__text" id="bm-project-display-name">BuildMaster Pro</span>
+        </h1>
+        <div class="live-badge"><span class="live-dot"></span>Live</div>
       </div>
-      <div class="site-header__right">
-        <div class="header-btn-group">
-          <button class="btn" onclick="bm.openSettingsModal()">Projekt</button>
-          <button class="btn" onclick="bm.exportData()">Eksport</button>
-          <button class="btn" onclick="bm.importData()">Import</button>
-          <button class="btn" onclick="bm.generateReport()">Raport</button>
-        </div>
-        <a href="#" class="header-icon-btn" id="bm-theme-btn" title="Zmień motyw" onclick="bm.toggleTheme(); return false;">
+      <div class="page-header__actions">
+        <button class="btn" onclick="bm.openSettingsModal()">
+          <span class="material-symbols-outlined">settings</span>Projekt
+        </button>
+        <button class="btn" onclick="bm.exportData()">
+          <span class="material-symbols-outlined">download</span>Eksport
+        </button>
+        <button class="btn" onclick="bm.importData()">
+          <span class="material-symbols-outlined">upload</span>Import
+        </button>
+        <button class="btn" onclick="bm.generateReport()">
+          <span class="material-symbols-outlined">article</span>Raport
+        </button>
+        <button class="btn ghost icon-btn" id="bm-theme-btn" title="Zmień motyw" onclick="bm.toggleTheme(); return false;">
           <span class="material-symbols-outlined">dark_mode</span>
-        </a>
+        </button>
       </div>
     </header>
 
@@ -1287,16 +1232,16 @@
 
     <!-- Tab Navigation -->
     <nav class="bm-tabs-bar" id="bm-tabs">
-      <button class="bm-tab active" data-tab="overview">📊 Panel główny</button>
-      <button class="bm-tab" data-tab="timeline">📅 Harmonogram</button>
-      <button class="bm-tab" data-tab="phases">✅ Etapy &amp; Zadania <span class="bm-tab-badge bm-hidden" id="bm-tasks-badge">0</span></button>
-      <button class="bm-tab" data-tab="budget">💰 Budżet</button>
-      <button class="bm-tab" data-tab="simulation">🧮 Symulacja</button>
-      <button class="bm-tab" data-tab="contractors">👷 Wykonawcy</button>
-      <button class="bm-tab" data-tab="materials">🧱 Materiały</button>
-      <button class="bm-tab" data-tab="projects">🏡 Projekty</button>
-      <button class="bm-tab" data-tab="docs">🔗 Linki &amp; Notatki</button>
-      <button class="bm-tab" data-tab="weather">🌤️ Pogoda</button>
+      <button class="bm-tab active" data-tab="overview"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">dashboard</span> Panel główny</button>
+      <button class="bm-tab" data-tab="timeline"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">calendar_month</span> Harmonogram</button>
+      <button class="bm-tab" data-tab="phases"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">check_circle</span> Etapy &amp; Zadania <span class="bm-tab-badge bm-hidden" id="bm-tasks-badge">0</span></button>
+      <button class="bm-tab" data-tab="budget"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">payments</span> Budżet</button>
+      <button class="bm-tab" data-tab="simulation"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">calculate</span> Symulacja</button>
+      <button class="bm-tab" data-tab="contractors"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">engineering</span> Wykonawcy</button>
+      <button class="bm-tab" data-tab="materials"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">foundation</span> Materiały</button>
+      <button class="bm-tab" data-tab="projects"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">home</span> Projekty</button>
+      <button class="bm-tab" data-tab="docs"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">link</span> Linki &amp; Notatki</button>
+      <button class="bm-tab" data-tab="weather"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px">wb_sunny</span> Pogoda</button>
     </nav>
 
     <!-- Scrollable Content Area -->
@@ -1581,7 +1526,7 @@ const PHASE_COLORS = [
 ];
 
 const defaultState = () => ({
-  theme: 'dark',
+  theme: 'light',
   project: {
     name: 'Budowa Domu Jednorodzinnego',
     address: '',
