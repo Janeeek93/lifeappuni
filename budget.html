@@ -18,12 +18,42 @@
     }
 
     .budget-tabs {
-      position: sticky;
-      top: 0;
+      display: flex;
+      gap: 2px;
+      border-bottom: 1px solid var(--line);
       background: var(--bg);
-      z-index: 8;
-      padding: 8px 0;
+      position: sticky;
+      top: var(--topbar-height);
+      z-index: 10;
+      overflow-x: auto;
+      padding: 0;
       margin-bottom: 0;
+    }
+
+    .budget-tabs .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px 11px;
+      border-radius: 0;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .budget-tabs .tab:hover { color: var(--ink); background: transparent; box-shadow: none; }
+    .budget-tabs .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 800;
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .trend {
@@ -4657,33 +4687,30 @@
     </aside>
 
     <div class="main">
-      <header class="site-header" role="banner">
-        <div class="site-header__left">
-          <div class="site-header__greeting">
-            <h1 class="site-header__title">Budżet</h1>
-          </div>
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            Finanse osobiste
-          </div>
+      <header class="page-header" role="banner">
+        <div class="page-header__top">
+          <span class="page-overline">Finanse</span>
+          <h1 class="page-title">
+            <span class="material-symbols-outlined page-title__icon">payments</span>
+            <span class="page-title__text">Budżet</span>
+          </h1>
+          <div class="live-badge"><span class="live-dot"></span>Finanse osobiste</div>
         </div>
-        <div class="site-header__right" aria-label="Akcje strony">
+        <div class="page-header__actions">
           <div class="toolbar budget-month-nav">
-            <button class="btn soft" id="prevMonthBtn" title="Poprzedni miesiąc">←</button>
+            <button class="btn ghost icon-btn" id="prevMonthBtn" title="Poprzedni miesiąc"><span class="material-symbols-outlined">chevron_left</span></button>
             <span class="pill" id="workingMonth">YYYY-MM</span>
-            <button class="btn soft" id="nextMonthBtn" title="Następny miesiąc">→</button>
+            <button class="btn ghost icon-btn" id="nextMonthBtn" title="Następny miesiąc"><span class="material-symbols-outlined">chevron_right</span></button>
           </div>
-          <div class="header-btn-group budget-io-actions">
-            <button class="btn ghost" id="exportBtn">⬇️ Eksport JSON</button>
-            <button class="btn ghost" id="importBtn">⬆️ Import JSON</button>
-            <input type="file" id="importFile" accept="application/json" style="display:none" />
-          </div>
+          <button class="btn ghost" id="exportBtn"><span class="material-symbols-outlined">download</span>Eksport</button>
+          <button class="btn ghost" id="importBtn"><span class="material-symbols-outlined">upload</span>Import</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
         </div>
       </header>
 
       <div class="content">
         <main class="page-content content-main stack">
-    <div class="tabs budget-tabs" style="margin-top:12px">
+    <div class="tabs budget-tabs">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="overview">Przegląd</button>
       <button class="tab" data-tab="incomes">Przychody</button>
