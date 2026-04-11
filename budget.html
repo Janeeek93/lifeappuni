@@ -69,10 +69,10 @@
     .inv-kpi-card.accent .inv-kpi-value { color:#fff; }
     .inv-kpi-card.accent .inv-kpi-sub { color:rgba(255,255,255,.65); }
 
-    .inv-trade-tabs { display:inline-flex; gap:0; border-radius:10px; overflow:hidden; border:1px solid rgba(148,163,184,.3); }
-    .inv-trade-tab { border:none; background:transparent; padding:8px 20px; font-weight:600; font-size:13px; cursor:pointer; color:var(--muted); transition:all .2s; }
-    .inv-trade-tab.is-active { background:#2563eb; color:#fff; }
-    .inv-trade-tab.sell-active { background:#dc2626; color:#fff; }
+    .inv-trade-tabs { display:inline-flex; gap:0; border-radius:999px; overflow:hidden; border:1px solid var(--fin-line, rgba(148,163,184,.3)); background:var(--fin-surface, #f1f5f9); }
+    .inv-trade-tab { border:none; background:transparent; padding:8px 20px; font-weight:600; font-size:13px; cursor:pointer; color:var(--fin-muted, var(--muted)); transition:all .2s; }
+    .inv-trade-tab.is-active { background:var(--fin-accent, #2563eb); color:#fff; }
+    .inv-trade-tab.sell-active { background:var(--fin-danger, #dc2626); color:#fff; }
     .inv-trade-grid { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-top:10px; }
     .inv-trade-field { display:flex; flex-direction:column; gap:4px; min-width:130px; flex:0 1 auto; font-size:13px; font-weight:500; }
     .inv-trade-field.grow { flex:1 1 180px; }
@@ -97,10 +97,10 @@
     .inv-trade-filter { border:none; background:transparent; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; color:var(--muted); transition:all .15s; }
     .inv-trade-filter.is-active { background:#fff; color:var(--ink); box-shadow:0 2px 8px rgba(0,0,0,.08); }
 
-    .inv-analytics-nav { display:inline-flex; gap:6px; padding:4px; border-radius:12px; background:rgba(148,163,184,.14); flex-wrap:wrap; }
-    .inv-analytics-btn { border:none; background:transparent; padding:8px 12px; border-radius:10px; font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; transition:background-color .2s,color .2s,box-shadow .2s; }
-    .inv-analytics-btn:hover, .inv-analytics-btn:focus-visible { background:rgba(255,255,255,.7); color:var(--ink); outline:none; }
-    .inv-analytics-btn.is-active { background:#fff; color:var(--ink); box-shadow:0 10px 28px rgba(15,23,42,.12); }
+    .inv-analytics-nav { display:inline-flex; gap:6px; padding:4px; border-radius:999px; background:var(--fin-surface, rgba(148,163,184,.14)); border:1px solid var(--fin-line, rgba(148,163,184,.25)); flex-wrap:wrap; }
+    .inv-analytics-btn { border:none; background:transparent; padding:8px 12px; border-radius:999px; font-weight:600; font-size:13px; color:var(--fin-muted, var(--muted)); cursor:pointer; transition:background-color .2s,color .2s,box-shadow .2s; }
+    .inv-analytics-btn:hover, .inv-analytics-btn:focus-visible { background:#fff; color:var(--fin-ink, var(--ink)); outline:none; }
+    .inv-analytics-btn.is-active { background:var(--fin-accent, #2563eb); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,.24); }
     .inv-analytics-panels { display:grid; gap:20px; margin-top:10px; }
     .inv-analytics-panel { display:none; }
     .inv-analytics-panel.is-active { display:block; }
@@ -4587,7 +4587,7 @@
   </style>
 </head>
 <body data-page="budget">
-  <div class="layout">
+  <div class="app-shell">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
         <span class="sidebar__emoji">🧭</span>
@@ -4650,7 +4650,7 @@
       </div>
     </aside>
 
-    <div class="main">
+    <div class="app-main">
       <header class="site-header" role="banner">
         <div class="site-header__left">
           <div class="site-header__greeting">
@@ -5051,9 +5051,9 @@
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Analityka</strong>
               <div class="inv-analytics-nav" role="tablist">
-                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.35)">Hub analityczny</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="calendar" style="background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;box-shadow:0 2px 8px rgba(8,145,178,.25)">Kalendarz P&amp;L</button>
-                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="road100k" data-roadto-nav-btn style="background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.24)">Road to 100k</button>
+                <button type="button" class="inv-analytics-btn is-active" data-inv-panel-btn="hub">Hub analityczny</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="calendar">Kalendarz P&amp;L</button>
+                <button type="button" class="inv-analytics-btn" data-inv-panel-btn="road100k" data-roadto-nav-btn>Road to 100k</button>
               </div>
             </div>
             <div class="inv-analytics-panels">
@@ -7439,24 +7439,6 @@
       const isA=btn.dataset.invPanelBtn===panel;
       btn.classList.toggle('is-active',isA);
       btn.setAttribute('aria-selected',String(isA));
-      if(btn.dataset.invPanelBtn==='hub'){
-        btn.style.background='linear-gradient(135deg,#2563eb,#7c3aed)';
-        btn.style.color='#fff';
-        btn.style.boxShadow=isA?'0 4px 16px rgba(37,99,235,.35)':'0 2px 8px rgba(37,99,235,.25)';
-        btn.style.opacity=isA?'1':'0.78';
-      }
-      if(btn.dataset.invPanelBtn==='calendar'){
-        btn.style.background='linear-gradient(135deg,#0891b2,#2563eb)';
-        btn.style.color='#fff';
-        btn.style.boxShadow=isA?'0 4px 16px rgba(8,145,178,.35)':'0 2px 8px rgba(8,145,178,.2)';
-        btn.style.opacity=isA?'1':'0.75';
-      }
-      if(btn.dataset.invPanelBtn==='road100k'){
-        btn.style.background='linear-gradient(135deg,#7c3aed,#db2777)';
-        btn.style.color='#fff';
-        btn.style.boxShadow=isA?'0 4px 16px rgba(124,58,237,.34)':'0 2px 8px rgba(124,58,237,.22)';
-        btn.style.opacity=isA?'1':'0.76';
-      }
     });
     document.querySelectorAll('.inv-analytics-panel').forEach(p=>p.classList.toggle('is-active',p.dataset.panel===panel));
     if(panel==='hub') renderInvHub();
