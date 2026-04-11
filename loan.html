@@ -1546,6 +1546,19 @@ function renderCharts() {
 
   Chart.defaults.font.family = "'Inter', sans-serif";
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted').trim();
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 10;
+  Chart.defaults.plugins.legend.labels.boxHeight = 10;
+  Chart.defaults.plugins.legend.labels.padding = 14;
+  Chart.defaults.plugins.legend.labels.color = '#595c5e';
+  Chart.defaults.plugins.legend.labels.font = { family: "'Inter', sans-serif", size: 12 };
+  Chart.defaults.plugins.tooltip.backgroundColor = '#1e2022';
+  Chart.defaults.plugins.tooltip.titleColor = '#f5f6f8';
+  Chart.defaults.plugins.tooltip.bodyColor = '#9b9d9f';
+  Chart.defaults.plugins.tooltip.borderColor = '#3a3d40';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.cornerRadius = 10;
+  Chart.defaults.plugins.tooltip.padding = 12;
 
   // === Paid data ===
   const paidCount = payments.length;
@@ -1841,7 +1854,7 @@ function renderChartForPanel(panelType) {
               yRate: { type: 'linear', position: 'right', grid: { display: false }, min: yRateMin, max: yRateMax, ticks: { callback: (value) => `${value}%` } }
             },
             plugins: {
-              legend: { position: 'bottom', labels: { usePointStyle: true } },
+              legend: { position: 'top', align: 'end' },
               tooltip: {
                 callbacks: {
                   label: (context) => {
@@ -1945,7 +1958,7 @@ function renderChartForPanel(panelType) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom' },
+              legend: { position: 'top', align: 'end' },
               tooltip: {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
@@ -2022,7 +2035,7 @@ function renderChartForPanel(panelType) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: 'bottom', labels: { usePointStyle: true } },
+              legend: { position: 'top', align: 'end' },
               tooltip: {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`
@@ -2101,7 +2114,7 @@ function renderChartForPanel(panelType) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-              legend: { position: 'bottom' },
+              legend: { position: 'top', align: 'end' },
               tooltip: {
                 callbacks: {
                   label: (context) => `${context.dataset.label}: ${fmtChartValue(context.raw)}`
@@ -2308,7 +2321,7 @@ function renderChartForPanel(panelType) {
               }
             },
             plugins: {
-              legend: { position: 'bottom' },
+              legend: { position: 'top', align: 'end' },
               tooltip: {
                 callbacks: {
                   label: (context) => {
