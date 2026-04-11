@@ -17,6 +17,7 @@
     .fuel-fintech .content {
       gap: 24px;
       padding: 24px;
+      grid-template-columns: 1fr;
     }
 
     .fuel-fintech .card {
@@ -24,17 +25,6 @@
       border: 1px solid #dce7fa;
       border-radius: 20px;
       box-shadow: 0 12px 32px -24px rgba(8, 47, 107, 0.45);
-    }
-
-    .fuel-fintech .site-header {
-      background: rgba(245, 248, 255, 0.88);
-      border-bottom: 1px solid #d8e4f8;
-      backdrop-filter: blur(14px);
-    }
-
-    .fuel-fintech .site-header__title {
-      font-size: 34px;
-      letter-spacing: -0.04em;
     }
 
     .fuel-fintech .btn.primary {
@@ -183,6 +173,46 @@
       background: #f5f9ff;
       color: #20406e;
     }
+
+    .fuel-kpi-board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .fuel-hero-grid {
+      display: grid;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 20px;
+    }
+
+    .fuel-analytics-layout {
+      display: grid;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .fuel-analytics-layout .card {
+      height: 100%;
+    }
+
+    @media (max-width: 1280px) {
+      .fuel-kpi-board {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .fuel-hero-grid,
+      .fuel-analytics-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .fuel-kpi-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 <body data-page="fuel" class="fuel-fintech">
@@ -268,68 +298,116 @@
         </div>
       </header>
 
-      <div class="content">
+      <div class="content fuel-page-content">
         <main class="content-main stack">
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Panel KPI</h2>
-              <span class="tiny muted">Styl fintech + automatyczna analityka na podstawie historii tankowań</span>
+          <section class="fuel-kpi-board">
+            <div class="kpi-compact">
+              <span class="kpi-emoji">⛽</span>
+              <div class="kpi-body">
+                <span class="kpi-label">Saldo rozliczeń</span>
+                <span class="kpi-value ok" id="fuel-balance">0,00 PLN</span>
+                <span class="tiny muted" id="balance-info">—</span>
+              </div>
             </div>
-            <div id="insights-grid" class="grid-3 fuel-insights-grid"></div>
-            <div class="insight-bubble" id="fuel-kpi-insight">Dodaj pierwszą transakcję, aby zobaczyć trend wydatków.</div>
+            <div class="kpi-compact">
+              <span class="kpi-emoji">🧾</span>
+              <div class="kpi-body">
+                <span class="kpi-label">Śr. cena/L (12m)</span>
+                <span class="kpi-value" id="avg-price-12m">—</span>
+                <span class="tiny muted" id="avg-price-12m-note">Brak danych z ostatniego roku</span>
+              </div>
+            </div>
+            <div class="kpi-compact">
+              <span class="kpi-emoji">🟢</span>
+              <div class="kpi-body">
+                <span class="kpi-label">Najlepsza cena</span>
+                <span class="kpi-value" id="best-price">—</span>
+                <span class="tiny muted" id="best-price-note">Dodaj faktury z litrami</span>
+              </div>
+            </div>
+            <div class="kpi-compact">
+              <span class="kpi-emoji">🔴</span>
+              <div class="kpi-body">
+                <span class="kpi-label">Najwyższa cena</span>
+                <span class="kpi-value" id="worst-price">—</span>
+                <span class="tiny muted" id="worst-price-note">Dodaj faktury z litrami</span>
+              </div>
+            </div>
+            <div class="kpi-compact">
+              <span class="kpi-emoji">💳</span>
+              <div class="kpi-body">
+                <span class="kpi-label">Śr. faktura</span>
+                <span class="kpi-value" id="avg-invoice">—</span>
+                <span class="tiny muted" id="avg-invoice-note">Czekamy na nowe dane</span>
+              </div>
+            </div>
           </section>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Ostatnia faktura</h2>
-              <span class="tiny muted">Historia aktualizuje się po każdym dodaniu faktury</span>
-            </div>
-            <div class="last-invoice-card" id="last-invoice-card">
-              <div class="muted">Brak faktur w historii</div>
-            </div>
+          <section class="fuel-hero-grid">
+            <article class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">Panel KPI</h2>
+                <span class="tiny muted">One-page podgląd kosztów i trendu paliwa</span>
+              </div>
+              <div id="insights-grid" class="grid-3 fuel-insights-grid"></div>
+              <div class="insight-bubble" id="fuel-kpi-insight">Dodaj pierwszą transakcję, aby zobaczyć trend wydatków.</div>
+            </article>
+
+            <article class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">Ostatnia faktura</h2>
+                <span class="tiny muted">Najszybszy podgląd ostatniego tankowania</span>
+              </div>
+              <div class="last-invoice-card" id="last-invoice-card">
+                <div class="muted">Brak faktur w historii</div>
+              </div>
+              <div class="insight-bubble" id="kpi-context-bubble">Wprowadź historyczne faktury, aby zobaczyć trend kosztów paliwa.</div>
+            </article>
           </section>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Podsumowanie miesięczne</h2>
-              <p class="tiny muted" id="monthly-summary-caption">Ostatnie 6 miesięcy</p>
-            </div>
-            <div class="table-wrapper scrollable">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Miesiąc</th>
-                    <th>Faktury</th>
-                    <th>Litry</th>
-                    <th>Śr. cena</th>
-                    <th>Zmiana m/m</th>
-                  </tr>
-                </thead>
-                <tbody id="monthly-summary-body"></tbody>
-              </table>
-            </div>
-          </section>
+          <section class="fuel-analytics-layout">
+            <article class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">Analityka</h2>
+                <select id="analytics-period-filter" style="width:auto;">
+                  <option value="12" selected>Ostatni rok</option>
+                  <option value="24">Ostatnie 2 lata</option>
+                  <option value="36">Ostatnie 3 lata</option>
+                  <option value="all">Wszystkie dane</option>
+                </select>
+              </div>
+              <div class="fuel-analytics-grid">
+                <article class="chart-card">
+                  <h3 class="title">Miesięczne koszty i liczba tankowań</h3>
+                  <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
+                </article>
+                <article class="chart-card">
+                  <h3 class="title">Średnia cena za litr</h3>
+                  <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
+                </article>
+              </div>
+            </article>
 
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Analityka</h2>
-              <select id="analytics-period-filter" style="width:auto;">
-                <option value="12" selected>Ostatni rok</option>
-                <option value="24">Ostatnie 2 lata</option>
-                <option value="36">Ostatnie 3 lata</option>
-                <option value="all">Wszystkie dane</option>
-              </select>
-            </div>
-            <div class="fuel-analytics-grid">
-              <article class="chart-card">
-                <h3 class="title">Miesięczne koszty i liczba tankowań</h3>
-                <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
-              </article>
-              <article class="chart-card">
-                <h3 class="title">Średnia cena za litr</h3>
-                <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
-              </article>
-            </div>
+            <article class="card card-section">
+              <div class="section-heading">
+                <h2 class="title">Podsumowanie miesięczne</h2>
+                <p class="tiny muted" id="monthly-summary-caption">Ostatnie 6 miesięcy</p>
+              </div>
+              <div class="table-wrapper scrollable">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Miesiąc</th>
+                      <th>Faktury</th>
+                      <th>Litry</th>
+                      <th>Śr. cena</th>
+                      <th>Zmiana m/m</th>
+                    </tr>
+                  </thead>
+                  <tbody id="monthly-summary-body"></tbody>
+                </table>
+              </div>
+            </article>
           </section>
 
           <section class="card card-section">
@@ -377,50 +455,6 @@
             </div>
           </section>
         </main>
-
-        <aside class="right-rail">
-          <div class="kpi-compact">
-            <span class="kpi-emoji">⛽</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Saldo rozliczeń</span>
-              <span class="kpi-value ok" id="fuel-balance">0,00 PLN</span>
-              <span class="tiny muted" id="balance-info">—</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🧾</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Śr. cena/L (12m)</span>
-              <span class="kpi-value" id="avg-price-12m">—</span>
-              <span class="tiny muted" id="avg-price-12m-note">Brak danych z ostatniego roku</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🟢</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Najlepsza cena</span>
-              <span class="kpi-value" id="best-price">—</span>
-              <span class="tiny muted" id="best-price-note">Dodaj faktury z litrami</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">🔴</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Najwyższa cena</span>
-              <span class="kpi-value" id="worst-price">—</span>
-              <span class="tiny muted" id="worst-price-note">Dodaj faktury z litrami</span>
-            </div>
-          </div>
-          <div class="kpi-compact">
-            <span class="kpi-emoji">💳</span>
-            <div class="kpi-body">
-              <span class="kpi-label">Śr. faktura</span>
-              <span class="kpi-value" id="avg-invoice">—</span>
-              <span class="tiny muted" id="avg-invoice-note">Czekamy na nowe dane</span>
-            </div>
-          </div>
-          <div class="insight-bubble" id="kpi-context-bubble">Wprowadź historyczne faktury, aby zobaczyć trend kosztów paliwa.</div>
-        </aside>
       </div>
     </div>
   </div>
