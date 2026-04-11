@@ -322,13 +322,20 @@
             <!-- Główny wykres: kolumny 1-2, wiersz 1 -->
             <div class="fc fd-main">
               <div class="fch">
-                <span class="fct" style="margin:0;">Miesięczne koszty i tankowania</span>
-                <select id="analytics-period-filter">
-                  <option value="12" selected>12 miesięcy</option>
-                  <option value="24">2 lata</option>
-                  <option value="36">3 lata</option>
-                  <option value="all">Wszystko</option>
-                </select>
+                <span class="fct" style="margin:0;">Koszty i tankowania</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <select id="analytics-grouping-filter">
+                    <option value="month" selected>Miesięcznie</option>
+                    <option value="quarter">Kwartalnie</option>
+                    <option value="year">Rocznie</option>
+                  </select>
+                  <select id="analytics-period-filter">
+                    <option value="12">12 miesięcy</option>
+                    <option value="24" selected>2 lata</option>
+                    <option value="36">3 lata</option>
+                    <option value="all">Wszystko</option>
+                  </select>
+                </div>
               </div>
               <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
             </div>
@@ -919,6 +926,7 @@ function resetForm() {
 
 function renderAnalytics() {
     const periodMonths = document.getElementById('analytics-period-filter').value;
+    const grouping = document.getElementById('analytics-grouping-filter').value;
     const now = new Date();
     let startDate = new Date(1970, 0, 1);
 
@@ -928,25 +936,60 @@ function renderAnalytics() {
     }
 
     const invoices = state.transactions.filter(tx => tx.type === 'invoice' && new Date(tx.date) >= startDate);
-    
-    const monthlyData = invoices.reduce((acc, tx) => {
-        const month = tx.date.slice(0, 7);
-        if (!acc[month]) {
-            acc[month] = { totalCost: 0, totalLiters: 0, count: 0 };
+
+    const groupedData = invoices.reduce((acc, tx) => {
+        const key = getGroupingKey(tx.date, grouping);
+        if (!acc[key]) {
+            acc[key] = { totalCost: 0, totalLiters: 0, count: 0 };
         }
-        acc[month].totalCost += Math.abs(tx.amount);
-        acc[month].totalLiters += tx.liters || 0;
-        acc[month].count += 1;
+        acc[key].totalCost += Math.abs(tx.amount);
+        acc[key].totalLiters += tx.liters || 0;
+        acc[key].count += 1;
         return acc;
     }, {});
 
-    const labels = Object.keys(monthlyData).sort();
-    const costs = labels.map(m => monthlyData[m].totalCost);
-    const counts = labels.map(m => monthlyData[m].count);
-    const avgPrices = labels.map(m => monthlyData[m].totalLiters > 0 ? monthlyData[m].totalCost / monthlyData[m].totalLiters : 0);
-    
-    renderMonthlyCostsChart(labels, costs, counts);
-    renderAvgPriceChart(labels, avgPrices);
+    const labels = Object.keys(groupedData).sort(groupingSort);
+    const costs = labels.map(m => groupedData[m].totalCost);
+    const counts = labels.map(m => groupedData[m].count);
+    const avgPrices = labels.map(m => groupedData[m].totalLiters > 0 ? groupedData[m].totalCost / groupedData[m].totalLiters : 0);
+
+    renderMonthlyCostsChart(labels, costs, counts, grouping);
+    renderAvgPriceChart(labels, avgPrices, grouping);
+}
+
+function getGroupingKey(dateStr, grouping) {
+    const [yearStr, monthStr] = dateStr.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    if (grouping === 'year') return `${year}`;
+    if (grouping === 'quarter') return `${year}-Q${Math.ceil(month / 3)}`;
+    return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+function groupingSort(a, b) {
+    const [ay, ar] = splitGroupingKey(a);
+    const [by, br] = splitGroupingKey(b);
+    if (ay !== by) return ay - by;
+    return ar - br;
+}
+
+function splitGroupingKey(key) {
+    if (key.includes('-Q')) {
+        const [y, q] = key.split('-Q');
+        return [Number(y), Number(q)];
+    }
+    if (key.includes('-')) {
+        const [y, m] = key.split('-');
+        return [Number(y), Number(m)];
+    }
+    return [Number(key), 1];
+}
+
+function formatChartLabel(label, grouping) {
+    if (grouping === 'year') return label;
+    if (grouping === 'quarter') return label;
+    const d = new Date(label + '-01');
+    return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
 }
 
 // Abbreviated number formatter for chart labels (e.g. 1234 → "1,2k")
@@ -983,15 +1026,12 @@ const datalabelsPlugin = {
     }
 };
 
-function renderMonthlyCostsChart(labels, costs, counts) {
+function renderMonthlyCostsChart(labels, costs, counts, grouping = 'month') {
     const canvas = document.getElementById('monthly-costs-chart');
     const ctx = canvas.getContext('2d');
     if (window.monthlyCostsChart) window.monthlyCostsChart.destroy();
 
-    const fmtLabels = labels.map(l => {
-        const d = new Date(l + '-01');
-        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
-    });
+    const fmtLabels = labels.map(l => formatChartLabel(l, grouping));
 
     window.monthlyCostsChart = new Chart(ctx, {
         type: 'bar',
@@ -1121,15 +1161,12 @@ function renderMonthlyCostsChart(labels, costs, counts) {
 }
 
 
-function renderAvgPriceChart(labels, prices) {
+function renderAvgPriceChart(labels, prices, grouping = 'month') {
     const canvas = document.getElementById('avg-price-chart');
     const ctx = canvas.getContext('2d');
     if (window.avgPriceChart) window.avgPriceChart.destroy();
 
-    const fmtLabels = labels.map(l => {
-        const d = new Date(l + '-01');
-        return d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
-    });
+    const fmtLabels = labels.map(l => formatChartLabel(l, grouping));
 
     window.avgPriceChart = new Chart(ctx, {
         type: 'line',
@@ -1320,6 +1357,7 @@ clearAllBtn.addEventListener('click', () => {
 // Initial setup
 dateInput.value = new Date().toISOString().slice(0,10);
 document.getElementById('analytics-period-filter').onchange = renderAnalytics;
+document.getElementById('analytics-grouping-filter').onchange = renderAnalytics;
 render();
 
 </script>
