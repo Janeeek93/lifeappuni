@@ -12,18 +12,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="chart-defaults.js" defer></script>
   <style>
-    /* Minimalny, arkuszowy wygląd */
-    .sheet-card { border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: 0 10px 30px rgba(15,23,42,0.05); }
-    .sheet-card h3 { margin: 0 0 8px; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-    .kpi { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(120deg, rgba(59,130,246,0.05), rgba(16,185,129,0.05)); }
-    .kpi .value { font-size: 26px; font-weight: 800; }
-    .kpi .label { color: var(--muted); font-size: 13px; }
+    /* Investments layout */
+    body[data-page="investments"] .content { grid-template-columns: 1fr; }
 
     .table-toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
     .filter-tabs button { border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; cursor: pointer; }
-    .filter-tabs button.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .filter-tabs button.active { background: var(--accent-weak); color: var(--accent); border-color: var(--accent); }
 
     .sheet-table { width: 100%; border-collapse: collapse; }
     .sheet-table th, .sheet-table td { border: 1px solid #e2e8f0; padding: 10px; background: white; }
@@ -41,7 +36,6 @@
     .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; background: #f1f5f9; border: 1px solid var(--line); font-size: 12px; }
 
     .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-    .chart-box { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: white; min-height: 260px; }
 
     .snapshot-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
     .snapshot-list { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -130,56 +124,54 @@
       <header class="page-header">
         <div class="page-header__top">
           <span class="page-overline">Finanse</span>
-          <h1 class="page-title"><span class="page-title__icon">📈</span><span class="page-title__text">Arkusz inwestycji</span></h1>
+          <h1 class="page-title"><span class="material-symbols-outlined page-title__icon">show_chart</span><span class="page-title__text">Inwestycje</span></h1>
         </div>
         <div class="page-header__actions">
-          <button class="btn" id="snapshot-btn">💾 Zapisz snapshot</button>
-          <button class="btn soft" id="reset-btn">🧹 Wyczyść dane</button>
+          <button class="btn" id="snapshot-btn"><span class="material-symbols-outlined">save</span>Zapisz snapshot</button>
+          <button class="btn soft" id="reset-btn"><span class="material-symbols-outlined">delete_sweep</span>Wyczyść dane</button>
         </div>
       </header>
 
       <div class="content">
         <main class="page-content stack" style="gap: 14px;">
-          <section class="sheet-card" style="padding: 16px;">
-            <div class="kpi-grid">
-              <div class="kpi">
-                <div class="label">Wartość portfela</div>
-                <div class="value" id="kpi-value">0 zł</div>
-                <div class="muted" id="kpi-pnl">PnL: 0 zł</div>
-              </div>
-              <div class="kpi">
-                <div class="label">Wpłaty (BUY)</div>
-                <div class="value" id="kpi-inflows">0 zł</div>
-                <div class="muted">Suma wszystkich zakupów</div>
-              </div>
-              <div class="kpi">
-                <div class="label">Aktywa w portfelu</div>
-                <div class="value" id="kpi-assets">0</div>
-                <div class="muted" id="kpi-activity">Transakcje w tym miesiącu: 0</div>
-              </div>
+          <div class="kpi-grid">
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Wartość portfela</div>
+              <div class="kpi-tile__value" id="kpi-value">0 zł</div>
+              <div class="kpi-tile__note" id="kpi-pnl">PnL: 0 zł</div>
             </div>
-          </section>
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Wpłaty (BUY)</div>
+              <div class="kpi-tile__value" id="kpi-inflows">0 zł</div>
+              <div class="kpi-tile__note">Suma wszystkich zakupów</div>
+            </div>
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Aktywa w portfelu</div>
+              <div class="kpi-tile__value" id="kpi-assets">0</div>
+              <div class="kpi-tile__note" id="kpi-activity">Transakcje w tym miesiącu: 0</div>
+            </div>
+          </div>
 
-          <section class="chart-grid">
-            <div class="chart-box">
+          <div class="chart-grid">
+            <div class="chart-card">
               <div class="snapshot-row">
                 <h3>Historia wartości</h3>
                 <span class="muted">Twórz snapshoty, aby śledzić progres</span>
               </div>
               <canvas id="valueChart" height="160"></canvas>
             </div>
-            <div class="chart-box">
+            <div class="chart-card">
               <h3>Alokacja wg typu</h3>
               <canvas id="allocationChart" height="160"></canvas>
               <div id="top-allocation" class="muted" style="margin-top: 10px;"></div>
             </div>
-            <div class="chart-box">
+            <div class="chart-card">
               <h3>Wpłaty miesięczne</h3>
               <canvas id="inflowChart" height="160"></canvas>
             </div>
-          </section>
+          </div>
 
-          <section class="sheet-card" style="padding: 16px;">
+          <section class="card" style="padding: 16px;">
             <div class="table-toolbar">
               <div class="filter-tabs">
                 <button data-filter="all" class="active">Wszystko</button>
