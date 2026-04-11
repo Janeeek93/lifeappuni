@@ -47,8 +47,9 @@
     .table-modern tbody tr:nth-child(even) { background: #f8fafc; }
     .table-modern td { vertical-align: top; }
     .kpi-card {
-      background: #0f172a;
-      color: #fff;
+      background: var(--fin-card, #fff);
+      color: var(--fin-ink, var(--ink));
+      border: 1px solid var(--fin-line, var(--line));
       border-radius: 14px;
       padding: 16px;
       display: flex;
@@ -61,9 +62,9 @@
       color: var(--ink);
       border: 1px solid var(--line);
     }
-    .kpi-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+    .kpi-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fin-muted, var(--muted)); }
     .kpi-card .value { font-size: 26px; font-weight: 700; }
-    .kpi-card .sub { font-size: 12px; opacity: 0.8; }
+    .kpi-card .sub { font-size: 12px; color: var(--fin-muted, var(--muted)); }
     .chart-empty {
       position: absolute;
       inset: 0;
@@ -107,7 +108,7 @@
     .inventory-inline .grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
     .inventory-empty { text-align: center; padding: 16px; color: var(--muted); font-size: 13px; }
     .inventory-table-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-    .inventory-badge { display: inline-flex; align-items: center; gap: 4px; background: #e2e8f0; border-radius: 999px; padding: 2px 8px; font-size: 11px; color: #475569; }
+    .inventory-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--fin-surface, #e2e8f0); border:1px solid var(--fin-line, var(--line)); border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--fin-muted, #475569); }
     .inventory-quick-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
     .inventory-bulk-actions {
         padding: 8px;
@@ -141,7 +142,7 @@
   </style>
 </head>
 <body data-page="inventory">
-  <div class="layout">
+  <div class="app-shell">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
         <span class="sidebar__emoji">🧭</span>
@@ -204,7 +205,7 @@
       </div>
     </aside>
 
-    <div class="main">
+    <div class="app-main">
       <header class="site-header" role="banner">
         <div class="site-header__left">
           <div class="site-header__greeting">
@@ -217,8 +218,8 @@
         </div>
         <div class="site-header__right" aria-label="Akcje strony">
           <div class="page-header__badges">
-            <span class="badge">💾 Dane lokalne</span>
-            <span class="badge">📈 Analiza offline</span>
+            <span class="badge"><span class="material-symbols-outlined" style="font-size:14px;">save</span>Dane lokalne</span>
+            <span class="badge"><span class="material-symbols-outlined" style="font-size:14px;">monitoring</span>Analiza offline</span>
           </div>
         </div>
       </header>
@@ -231,7 +232,7 @@
                 <h3 class="title" style="margin-bottom:4px">Magazyn sprzedażowy</h3>
                 <div class="muted" style="max-width:640px">Monitoruj zapasy, wynik i przepływ gotówki z odsprzedaży obuwia oraz ubrań.</div>
               </div>
-              <div class="inventory-badge">🧾 Stan magazynowy</div>
+              <div class="inventory-badge"><span class="material-symbols-outlined" style="font-size:13px;">inventory_2</span>Stan magazynowy</div>
             </div>
 
             <div class="inventory-toolbar">
@@ -243,12 +244,12 @@
                     <option value="USD">USD</option>
                   </select>
                 </label>
-                <button class="btn soft" id="inv-refresh-rates">🔄 Pobierz dzisiejsze kursy</button>
+                <button class="btn soft" id="inv-refresh-rates">Pobierz dzisiejsze kursy</button>
                 <span class="muted" id="inv-rate-info">Brak kursów – pobierz aktualne notowania.</span>
               </div>
               <div class="row">
-                <button class="btn ghost" id="inv-toggle-import">📥 Import / wklejka</button>
-                <button class="btn ghost" id="inv-export-btn">⬇️ Eksport CSV</button>
+                <button class="btn ghost" id="inv-toggle-import">Import / wklejka</button>
+                <button class="btn ghost" id="inv-export-btn">Eksport CSV</button>
               </div>
             </div>
 
@@ -268,7 +269,7 @@
                   <h4 class="title" style="margin:0">Dodaj nowy towar</h4>
                   <div class="muted">Uzupełnij podstawowe informacje, aby śledzić wartość magazynu.</div>
                 </div>
-                <span class="inventory-badge">💡 Możesz też importować hurtowo</span>
+                <span class="inventory-badge"><span class="material-symbols-outlined" style="font-size:13px;">tips_and_updates</span>Możesz też importować hurtowo</span>
               </div>
               <form id="inv-add-form" class="grid g-4" style="margin-top:12px">
                 <label class="tiny">Marka<input name="brand" placeholder="np. Nike" required /></label>
