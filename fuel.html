@@ -75,26 +75,27 @@
     .fkpi-card.fkpi-good .fkpi-value { color: var(--green); }
     .fkpi-card.fkpi-bad  .fkpi-value { color: var(--red); }
 
-    /* ── Dashboard 2-col grid ──────────────────────────────── */
+    /* ══ Mozaikowy grid ═══════════════════════════════════════
+     * Kolumny:  [1fr koszt-chart] [1fr tabela-mies] [280px panel]
+     * Wiersze:  [row1: główny wykres] [row2: cena/L + tabela]
+     * Panel prawy rozpina oba wiersze → brak białych pól
+     */
     .fuel-dash {
       display: grid;
-      grid-template-columns: 1fr 292px;
+      grid-template-columns: 1fr 1fr 280px;
+      grid-template-rows: auto auto;
       gap: 14px;
-      align-items: start;
+      align-items: stretch;
     }
 
-    .fuel-left { display: flex; flex-direction: column; gap: 14px; }
+    /* Jawne pozycje w gridzie */
+    .fd-main  { grid-column: 1 / 3; grid-row: 1; display: flex; flex-direction: column; }
+    .fd-avg   { grid-column: 1;     grid-row: 2; display: flex; flex-direction: column; }
+    .fd-mth   { grid-column: 2;     grid-row: 2; display: flex; flex-direction: column; }
+    .fd-right { grid-column: 3;     grid-row: 1 / 3; display: flex; flex-direction: column; gap: 10px; }
 
-    .fuel-right {
-      position: sticky;
-      top: calc(var(--topbar-height) + 14px);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    /* ── Chart / data cards ────────────────────────────────── */
-    .fuel-chart, .fuel-panel, .fuel-monthly {
+    /* ── Baza kart ── */
+    .fc, .fp {
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -102,115 +103,101 @@
       box-shadow: var(--shadow-sm);
     }
 
-    .fuel-chart-head {
-      display: flex;
-      align-items: center;
+    /* Karty wykresów rozciągają canvas żeby wypełnić wysokość gridu */
+    .fc { flex: 1; display: flex; flex-direction: column; }
+    .fc .chart-area { flex: 1; min-height: 140px; }
+
+    /* ── Nagłówek karty wykresu ── */
+    .fch {
+      display: flex; align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
-      gap: 8px;
+      gap: 8px; flex-shrink: 0; margin-bottom: 10px;
+    }
+    .fch select { font-size: 12px; padding: 3px 8px; height: auto; }
+
+    /* Tytuł kafelka */
+    .fct {
+      font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--muted); display: block; flex-shrink: 0;
     }
 
-    .fuel-chart-head select { font-size: 12px; padding: 3px 8px; height: auto; }
+    /* ── Tabela miesięczna ── */
+    .fd-mth .fp { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .mth-scroll { flex: 1; overflow-y: auto; min-height: 0; margin-top: 9px; }
 
-    .fct { /* fuel chart title */
-      font-size: 10.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--muted);
-      display: block;
-      margin-bottom: 10px;
-    }
-
-    /* ── Secondary row: avg-price + monthly table ──────────── */
-    .fuel-secondary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      align-items: start;
-    }
-
-    .fuel-monthly .mth-scroll {
-      max-height: 188px;
-      overflow-y: auto;
-      margin-top: 9px;
-    }
-
-    /* compact table in monthly card */
     table.ctbl { font-size: 12px; }
     table.ctbl th { font-size: 10px; letter-spacing: 0.04em; padding: 5px 7px; }
     table.ctbl td { padding: 5px 7px; }
 
-    /* ── Last invoice in panel ─────────────────────────────── */
+    /* ── Panel prawy: podział wysokości ──
+     * fp-inv: stały (ostatnia faktura)
+     * fp-kpi: rośnie → wypełnia brakującą przestrzeń
+     * fp-form: stały (formularz)
+     */
+    .fp-inv  { flex: 0 0 auto; }
+    .fp-kpi  { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .fp-form { flex: 0 0 auto; }
+
+    /* Ostatnia faktura */
     .last-invoice-card { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
     .last-invoice-card .label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
     .last-invoice-card .value { font-size: 18px; font-weight: 800; color: var(--ink); }
     .last-invoice-card .note  { font-size: 11px; color: var(--muted); }
 
-    /* ── 2×2 insight cards ─────────────────────────────────── */
+    /* 2×2 wskaźniki — wypełniają fp-kpi */
     .fuel-insights-2x2 {
+      flex: 1; min-height: 0;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 7px;
-      margin-top: 8px;
+      grid-auto-rows: 1fr;
+      gap: 7px; margin-top: 8px;
     }
 
     .fuel-insight-card {
-      background: var(--surface);
-      border-radius: 9px;
-      padding: 9px 11px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      background: var(--surface); border-radius: 9px;
+      padding: 10px 11px; display: flex; flex-direction: column; gap: 3px;
     }
-
     .fuel-insight-card .label { font-size: 9.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
     .fuel-insight-card .value { font-size: 13px; font-weight: 700; color: var(--ink); }
     .fuel-insight-card .note  { font-size: 10px; color: var(--muted); }
 
-    /* ── Compact add form ──────────────────────────────────── */
-    .fuel-add-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 9px;
-    }
-
-    .fuel-add-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
+    /* ── Formularz kompaktowy ── */
+    .fuel-add-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .fuel-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     #tx-ref { grid-column: 1 / -1; }
+    .fuel-add-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; }
+    .fuel-add-grid input, .fuel-add-grid select { font-size: 13px; padding: 7px 10px; height: auto; }
 
-    .fuel-add-actions {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-
-    .fuel-add-grid input,
-    .fuel-add-grid select { font-size: 13px; padding: 7px 10px; height: auto; }
-
-    /* ── Summary delta ─────────────────────────────────────── */
+    /* ── Delta miesięczna ── */
     .summary-delta { font-weight: 600; }
     .summary-delta.up   { color: var(--red); }
     .summary-delta.down { color: var(--green); }
     .summary-delta.flat { color: var(--muted); }
 
-    /* ── Responsive ────────────────────────────────────────── */
+    /* ══ Responsive ═══════════════════════════════════════════ */
     @media (max-width: 1100px) {
       .fkpi-strip { grid-template-columns: 1fr 1fr 1fr; }
       .fkpi-hero  { grid-column: 1 / -1; }
-      .fuel-dash  { grid-template-columns: 1fr; }
-      .fuel-right { position: static; }
+      .fuel-dash  {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+      }
+      .fd-main  { grid-column: 1 / 3; grid-row: 1; }
+      .fd-avg   { grid-column: 1;     grid-row: 2; }
+      .fd-mth   { grid-column: 2;     grid-row: 2; }
+      .fd-right { grid-column: 1 / 3; grid-row: 3;
+                  flex-direction: row; flex-wrap: wrap; gap: 10px; }
+      .fd-right > .fp { flex: 1 1 200px; }
+      .fp-kpi { flex: 2 1 300px; }
+      .fuel-insights-2x2 { grid-auto-rows: auto; }
     }
 
     @media (max-width: 720px) {
-      .fkpi-strip     { grid-template-columns: 1fr 1fr; }
-      .fuel-secondary { grid-template-columns: 1fr; }
+      .fkpi-strip { grid-template-columns: 1fr 1fr; }
+      .fkpi-hero  { grid-column: 1 / -1; }
+      .fuel-dash  { grid-template-columns: 1fr; grid-template-rows: auto; }
+      .fd-main, .fd-avg, .fd-mth, .fd-right { grid-column: 1; grid-row: auto; }
     }
   </style>
 </head>
@@ -329,82 +316,69 @@
             </div>
           </div>
 
-          <!-- ② DASHBOARD GRID ─────────────────────────────────── -->
+          <!-- ② MOZAIKOWY GRID ─────────────────────────────────── -->
           <div class="fuel-dash">
 
-            <!-- LEFT COLUMN: wykresy -->
-            <div class="fuel-left">
+            <!-- Główny wykres: kolumny 1-2, wiersz 1 -->
+            <div class="fc fd-main">
+              <div class="fch">
+                <span class="fct" style="margin:0;">Miesięczne koszty i tankowania</span>
+                <select id="analytics-period-filter">
+                  <option value="12" selected>12 miesięcy</option>
+                  <option value="24">2 lata</option>
+                  <option value="36">3 lata</option>
+                  <option value="all">Wszystko</option>
+                </select>
+              </div>
+              <div class="chart-area"><canvas id="monthly-costs-chart"></canvas></div>
+            </div>
 
-              <!-- Główny wykres kosztów + filtr okresu -->
-              <div class="fuel-chart">
-                <div class="fuel-chart-head">
-                  <span class="fct" style="margin:0;">Miesięczne koszty i tankowania</span>
-                  <select id="analytics-period-filter">
-                    <option value="12" selected>12 miesięcy</option>
-                    <option value="24">2 lata</option>
-                    <option value="36">3 lata</option>
-                    <option value="all">Wszystko</option>
-                  </select>
+            <!-- Wykres ceny/L: kolumna 1, wiersz 2 -->
+            <div class="fc fd-avg">
+              <span class="fct" style="margin-bottom:10px;">Cena / litr</span>
+              <div class="chart-area"><canvas id="avg-price-chart"></canvas></div>
+            </div>
+
+            <!-- Tabela miesięczna: kolumna 2, wiersz 2 -->
+            <div class="fd-mth">
+              <div class="fp" style="height:100%; box-sizing:border-box;">
+                <div class="fch">
+                  <span class="fct" style="margin:0;">Podsumowanie</span>
+                  <span class="tiny muted" id="monthly-summary-caption">—</span>
                 </div>
-                <div class="chart-area" style="min-height:228px;">
-                  <canvas id="monthly-costs-chart"></canvas>
+                <div class="mth-scroll">
+                  <table class="ctbl">
+                    <thead>
+                      <tr>
+                        <th>Miesiąc</th><th>Szt.</th><th>Litry</th><th>Śr./L</th><th>Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody id="monthly-summary-body"></tbody>
+                  </table>
                 </div>
               </div>
+            </div>
 
-              <!-- Drugi rząd: cena/L + tabela miesięczna -->
-              <div class="fuel-secondary">
+            <!-- Panel prawy: kolumna 3, wiersze 1-2 -->
+            <div class="fd-right">
 
-                <div class="fuel-chart">
-                  <span class="fct">Cena / litr</span>
-                  <div class="chart-area" style="min-height:172px;">
-                    <canvas id="avg-price-chart"></canvas>
-                  </div>
-                </div>
-
-                <div class="fuel-monthly">
-                  <div class="fuel-chart-head">
-                    <span class="fct" style="margin:0;">Podsumowanie</span>
-                    <span class="tiny muted" id="monthly-summary-caption">—</span>
-                  </div>
-                  <div class="mth-scroll">
-                    <table class="ctbl">
-                      <thead>
-                        <tr>
-                          <th>Miesiąc</th>
-                          <th>Szt.</th>
-                          <th>Litry</th>
-                          <th>Śr./L</th>
-                          <th>Δ</th>
-                        </tr>
-                      </thead>
-                      <tbody id="monthly-summary-body"></tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
-            </div><!-- /fuel-left -->
-
-            <!-- RIGHT PANEL (sticky) -->
-            <div class="fuel-right">
-
-              <!-- Ostatnia faktura -->
-              <div class="fuel-panel">
+              <!-- Ostatnia faktura (stały rozmiar) -->
+              <div class="fp fp-inv">
                 <span class="fct" style="margin-bottom:0;">Ostatnia faktura</span>
                 <div id="last-invoice-card" class="last-invoice-card">
                   <span class="muted" style="font-size:12px;">Brak faktur</span>
                 </div>
               </div>
 
-              <!-- Wskaźniki 2×2 -->
-              <div class="fuel-panel">
+              <!-- Wskaźniki 2×2 (rośnie, wypełnia przestrzeń) -->
+              <div class="fp fp-kpi">
                 <span class="fct" style="margin-bottom:0;">Wskaźniki</span>
                 <div id="insights-grid" class="fuel-insights-2x2"></div>
-                <div class="insight-bubble" id="fuel-kpi-insight" style="margin-top:9px;">Dodaj pierwszą transakcję.</div>
+                <div class="insight-bubble" id="fuel-kpi-insight" style="margin-top:9px; flex-shrink:0;">Dodaj pierwszą transakcję.</div>
               </div>
 
-              <!-- Formularz nowej transakcji (kompaktowy) -->
-              <div class="fuel-panel">
+              <!-- Formularz (stały rozmiar) -->
+              <div class="fp fp-form">
                 <div class="fuel-add-head">
                   <span class="fct" id="form-title" style="margin:0;">Nowa transakcja</span>
                   <button id="cancel-edit-btn" class="btn soft" style="display:none; font-size:11px; padding:3px 10px;">Anuluj</button>
@@ -426,7 +400,7 @@
                 <div class="insight-bubble" id="kpi-context-bubble" style="margin-top:8px;">Wprowadź historyczne faktury.</div>
               </div>
 
-            </div><!-- /fuel-right -->
+            </div><!-- /fd-right -->
           </div><!-- /fuel-dash -->
 
           <!-- ③ HISTORIA TRANSAKCJI (pełna szerokość) ──────────── -->
