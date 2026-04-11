@@ -6,6 +6,7 @@
   <title>LifeOS — Magazyn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
     <style>
@@ -46,24 +47,6 @@
     }
     .table-modern tbody tr:nth-child(even) { background: #f8fafc; }
     .table-modern td { vertical-align: top; }
-    .kpi-card {
-      background: #0f172a;
-      color: #fff;
-      border-radius: 14px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-height: 120px;
-    }
-    .kpi-card.light {
-      background: var(--surface);
-      color: var(--ink);
-      border: 1px solid var(--line);
-    }
-    .kpi-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
-    .kpi-card .value { font-size: 26px; font-weight: 700; }
-    .kpi-card .sub { font-size: 12px; opacity: 0.8; }
     .chart-empty {
       position: absolute;
       inset: 0;
@@ -132,16 +115,13 @@
     
     /* Styles for KPIs in the right rail */
     .right-rail .inventory-kpis {
-      grid-template-columns: 1fr; /* Stack KPIs vertically */
+      grid-template-columns: 1fr;
       margin-top: 0;
-    }
-    .right-rail .kpi-card {
-        margin-bottom: 12px;
     }
   </style>
 </head>
 <body data-page="inventory">
-  <div class="layout">
+  <div class="app-shell">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
         <span class="sidebar__emoji">🧭</span>
@@ -211,21 +191,16 @@
     </aside>
 
     <div class="main">
-      <header class="site-header" role="banner">
-        <div class="site-header__left">
-          <div class="site-header__greeting">
-            <h1 class="site-header__title">Magazyn</h1>
-          </div>
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            Stan i rotacja towarów
-          </div>
+      <header class="page-header">
+        <div class="page-header__top">
+          <span class="page-overline">Handel</span>
+          <h1 class="page-title">
+            <span class="material-symbols-outlined page-title__icon">inventory_2</span>
+            <span class="page-title__text">Magazyn</span>
+          </h1>
         </div>
-        <div class="site-header__right" aria-label="Akcje strony">
-          <div class="page-header__badges">
-            <span class="badge">💾 Dane lokalne</span>
-            <span class="badge">📈 Analiza offline</span>
-          </div>
+        <div class="page-header__actions">
+          <div class="live-badge"><span class="live-dot"></span>Stan i rotacja towarów</div>
         </div>
       </header>
 
@@ -407,30 +382,30 @@
         </main>
         <aside class="right-rail">
           <div class="inventory-kpis">
-            <div class="kpi-card light">
-              <div class="label">Towar na stanie</div>
-              <div class="value" id="inv-kpi-stock-count">0</div>
-              <div class="sub" id="inv-kpi-stock-extra">Koszt zakupu: —</div>
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Towar na stanie</div>
+              <div class="kpi-tile__value" id="inv-kpi-stock-count">0</div>
+              <div class="kpi-tile__note" id="inv-kpi-stock-extra">Koszt zakupu: —</div>
             </div>
-            <div class="kpi-card light">
-              <div class="label">Wycena (wybrana waluta)</div>
-              <div class="value" id="inv-kpi-stock-worth">—</div>
-              <div class="sub" id="inv-kpi-stock-worth-sub">Śr. koszt i czas w magazynie</div>
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Wycena (wybrana waluta)</div>
+              <div class="kpi-tile__value kpi-tile__value--sm" id="inv-kpi-stock-worth">—</div>
+              <div class="kpi-tile__note" id="inv-kpi-stock-worth-sub">Śr. koszt i czas w magazynie</div>
             </div>
-            <div class="kpi-card light">
-              <div class="label">Planowana sprzedaż</div>
-              <div class="value" id="inv-kpi-plan-worth">—</div>
-              <div class="sub" id="inv-kpi-plan-extra">Brak planów sprzedaży</div>
+            <div class="kpi-tile">
+              <div class="kpi-tile__overline">Planowana sprzedaż</div>
+              <div class="kpi-tile__value kpi-tile__value--sm" id="inv-kpi-plan-worth">—</div>
+              <div class="kpi-tile__note" id="inv-kpi-plan-extra">Brak planów sprzedaży</div>
             </div>
-            <div class="kpi-card">
-              <div class="label">Sprzedane pozycje</div>
-              <div class="value" id="inv-kpi-sold-count">0</div>
-              <div class="sub" id="inv-kpi-sold-revenue">Przychód: —</div>
+            <div class="kpi-tile kpi-tile--green">
+              <div class="kpi-tile__overline">Sprzedane pozycje</div>
+              <div class="kpi-tile__value" id="inv-kpi-sold-count">0</div>
+              <div class="kpi-tile__note" id="inv-kpi-sold-revenue">Przychód: —</div>
             </div>
-            <div class="kpi-card">
-              <div class="label">Zrealizowany wynik</div>
-              <div class="value" id="inv-kpi-sold-pnl">—</div>
-              <div class="sub" id="inv-kpi-sold-roi">ROI: —</div>
+            <div class="kpi-tile kpi-tile--accent">
+              <div class="kpi-tile__overline">Zrealizowany wynik</div>
+              <div class="kpi-tile__value kpi-tile__value--sm" id="inv-kpi-sold-pnl">—</div>
+              <div class="kpi-tile__note" id="inv-kpi-sold-roi">ROI: —</div>
             </div>
           </div>
         </aside>
@@ -454,6 +429,7 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="chart-defaults.js"></script>
   <script>
   // --- Storage & helpers ------------------------------------------------------
   const STORAGE_KEY='lifeos_budget_v4';
