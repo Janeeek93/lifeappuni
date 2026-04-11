@@ -136,25 +136,27 @@
     .seg-item:hover { color:var(--ink); }
     .seg-item.active { background:var(--card); color:var(--ink); box-shadow:var(--sh-xs); }
 
-    /* ── MODULE NAV — pill style ── */
+    /* ── MODULE NAV — flat underline tabs ── */
     .module-nav {
-      display:flex; gap:3px; padding:5px;
+      display:flex; gap:2px;
+      border-bottom:1px solid var(--line);
       margin-bottom:24px;
-      background:var(--card); border:1px solid var(--line); border-radius:var(--r-xl);
-      box-shadow:var(--sh-sm);
-      position:sticky; top:0; z-index:100; overflow-x:auto;
+      background:transparent;
+      position:sticky; top:64px; z-index:100; overflow-x:auto;
+      background:var(--bg);
     }
     .mod-tab {
       display:flex; align-items:center; gap:6px;
-      padding:9px 18px; border-radius:16px;
-      cursor:pointer; font-weight:800; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
-      color:var(--muted2); background:transparent; border:1.5px solid transparent;
-      transition:all .18s ease; white-space:nowrap; flex-shrink:0;
+      padding:10px 16px 11px;
+      cursor:pointer; font-weight:700; font-size:12px; letter-spacing:.2px;
+      color:var(--muted2); background:transparent; border:none;
+      border-bottom:2px solid transparent; margin-bottom:-1px;
+      transition:color .15s, border-color .15s; white-space:nowrap; flex-shrink:0;
     }
     .mod-tab .material-symbols-outlined { font-size:16px; line-height:1; }
-    .mod-tab:hover { background:var(--surf-lo); color:var(--ink); }
-    .mod-tab.active { background:var(--blue); color:#fff; box-shadow:0 3px 12px rgb(0 87 192/.28); }
-    .mod-tab.active .material-symbols-outlined { color:#fff; }
+    .mod-tab:hover { color:var(--ink); }
+    .mod-tab.active { color:var(--blue); border-bottom-color:var(--blue); font-weight:800; }
+    .mod-tab.active .material-symbols-outlined { color:var(--blue); }
     .module { display:none; }
     .module.active { display:block; animation:fadeUp .22s ease-out; }
 
@@ -169,27 +171,6 @@
     .ov-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; }
     @media(max-width:900px){.ov-grid{grid-template-columns:1fr}}
 
-    /* Stats bento — like Editorial CRM */
-    .bento-row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:20px; }
-    @media(max-width:1100px){.bento-row{grid-template-columns:repeat(2,1fr)}}
-    .bento {
-      background:var(--card); border-radius:var(--r-xl); padding:22px;
-      border:1px solid var(--line); box-shadow:var(--sh-sm);
-      transition:transform .2s, box-shadow .2s; position:relative; overflow:hidden;
-    }
-    .bento:hover { transform:translateY(-3px); box-shadow:var(--sh); }
-    .bento-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; }
-    .bento-val { font-size:34px; font-weight:900; line-height:1; letter-spacing:-2px; font-variant-numeric:tabular-nums; }
-    .bento-lbl { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted2); margin-top:7px; }
-    .bento-sub { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; margin-top:10px; color:var(--muted2); }
-    .bento.compact { padding:12px 14px; border-radius:18px; }
-    .bento.compact .bento-top { margin-bottom:8px; }
-    .bento.compact .ib { width:28px; height:28px; border-radius:8px; }
-    .bento.compact .ib .material-symbols-outlined { font-size:15px; }
-    .bento.compact .pill { font-size:8px!important; padding:1px 6px!important; }
-    .bento.compact .bento-val { font-size:22px; letter-spacing:-1px; }
-    .bento.compact .bento-lbl { margin-top:3px; font-size:9px; letter-spacing:.6px; }
-    .bento.compact .bento-sub { margin-top:4px; font-size:10px; }
 
     /* Section card */
     .sec {
@@ -631,50 +612,50 @@
       <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
       <div id="mod-overview" class="module active">
 
-        <!-- BENTO KPI ROW — Editorial CRM style -->
-        <div class="bento-row">
-          <div class="bento compact">
-            <div class="bento-top">
-              <div class="ib blue"><span class="material-symbols-outlined">task_alt</span></div>
-              <span class="pill blue" style="font-size:9px;padding:2px 7px">Aktywne</span>
+        <!-- KPI ROW -->
+        <div class="kpi-grid" style="margin-bottom:20px">
+          <div class="kpi-tile">
+            <div class="kpi-tile__overline">
+              <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px;color:var(--accent)">task_alt</span>
+              Otwarte taski
             </div>
-            <div class="bento-val" id="ov-total-open">0</div>
-            <div class="bento-lbl">Otwarte taski</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">group</span>Cały zespół
-            </div>
-          </div>
-          <div class="bento compact">
-            <div class="bento-top">
-              <div class="ib red"><span class="material-symbols-outlined">timer_off</span></div>
-              <span class="pill red" style="font-size:9px;padding:2px 7px">Pilne</span>
-            </div>
-            <div class="bento-val" style="color:var(--red)" id="ov-overdue">0</div>
-            <div class="bento-lbl">Po terminie</div>
-            <div class="bento-sub" style="color:var(--red)">
-              <span class="material-symbols-outlined" style="font-size:13px">warning</span>Wymaga uwagi
+            <div class="kpi-tile__value" id="ov-total-open">0</div>
+            <div class="kpi-tile__note">
+              <span class="material-symbols-outlined" style="font-size:12px;vertical-align:-2px">group</span>
+              Cały zespół
             </div>
           </div>
-          <div class="bento compact">
-            <div class="bento-top">
-              <div class="ib amber"><span class="material-symbols-outlined">event_upcoming</span></div>
-              <span class="pill amber" style="font-size:9px;padding:2px 7px">7 dni</span>
+          <div class="kpi-tile kpi-tile--red">
+            <div class="kpi-tile__overline">
+              <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px;color:var(--red)">timer_off</span>
+              Po terminie
             </div>
-            <div class="bento-val" style="color:var(--amber)" id="ov-week">0</div>
-            <div class="bento-lbl">Deadline w tygodniu</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">calendar_today</span>Nadchodzące
+            <div class="kpi-tile__value" style="color:var(--red)" id="ov-overdue">0</div>
+            <div class="kpi-tile__note" style="color:var(--red)">
+              <span class="material-symbols-outlined" style="font-size:12px;vertical-align:-2px">warning</span>
+              Wymaga uwagi
             </div>
           </div>
-          <div class="bento compact">
-            <div class="bento-top">
-              <div class="ib green"><span class="material-symbols-outlined">note_alt</span></div>
-              <span class="pill green" style="font-size:9px;padding:2px 7px">14 dni</span>
+          <div class="kpi-tile kpi-tile--orange">
+            <div class="kpi-tile__overline">
+              <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px;color:var(--orange)">event_upcoming</span>
+              Deadline w tygodniu
             </div>
-            <div class="bento-val" style="color:var(--green)" id="ov-notes">0</div>
-            <div class="bento-lbl">Notatki (14 dni)</div>
-            <div class="bento-sub">
-              <span class="material-symbols-outlined" style="font-size:13px">edit_note</span>Wszystkie
+            <div class="kpi-tile__value" style="color:var(--orange)" id="ov-week">0</div>
+            <div class="kpi-tile__note">
+              <span class="material-symbols-outlined" style="font-size:12px;vertical-align:-2px">calendar_today</span>
+              Nadchodzące · 7 dni
+            </div>
+          </div>
+          <div class="kpi-tile kpi-tile--green">
+            <div class="kpi-tile__overline">
+              <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-3px;color:var(--green)">note_alt</span>
+              Notatki (14 dni)
+            </div>
+            <div class="kpi-tile__value" style="color:var(--green)" id="ov-notes">0</div>
+            <div class="kpi-tile__note">
+              <span class="material-symbols-outlined" style="font-size:12px;vertical-align:-2px">edit_note</span>
+              Wszystkie notatki
             </div>
           </div>
         </div>
