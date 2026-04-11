@@ -8,45 +8,46 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Minimalny, arkuszowy wygląd */
-    .sheet-card { border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: 0 10px 30px rgba(15,23,42,0.05); }
+    /* Krok 1: fintech skin + shared-like classes dla modułu inwestycji */
+    .sheet-card, .fin-card { border: 1px solid var(--fin-line, var(--line)); border-radius: 14px; background: var(--fin-card, var(--card)); box-shadow: 0 10px 30px rgba(15,23,42,0.05); }
     .sheet-card h3 { margin: 0 0 8px; }
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-    .kpi { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(120deg, rgba(59,130,246,0.05), rgba(16,185,129,0.05)); }
+    .kpi, .fin-kpi-card { padding: 16px; border-radius: 12px; border: 1px solid var(--fin-line, var(--line)); background: var(--fin-surface, var(--surface)); }
     .kpi .value { font-size: 26px; font-weight: 800; }
-    .kpi .label { color: var(--muted); font-size: 13px; }
+    .kpi .label { color: var(--fin-muted, var(--muted)); font-size: 13px; }
 
     .table-toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-    .filter-tabs button { border-radius: 10px; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; cursor: pointer; }
-    .filter-tabs button.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+    .filter-tabs, .fin-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-tabs button, .fin-tab { border-radius: 999px; border: 1px solid var(--fin-line, var(--line)); background: var(--fin-surface, var(--surface)); color: var(--fin-muted, var(--muted)); padding: 8px 12px; cursor: pointer; font-weight: 600; }
+    .filter-tabs button.active, .fin-tab.active { background: var(--fin-accent, var(--blue)); color: #fff; border-color: transparent; }
 
     .sheet-table { width: 100%; border-collapse: collapse; }
-    .sheet-table th, .sheet-table td { border: 1px solid #e2e8f0; padding: 10px; background: white; }
+    .sheet-table th, .sheet-table td { border: 1px solid var(--fin-line, #e2e8f0); padding: 10px; background: #fff; }
     .sheet-table thead th { background: #f8fafc; text-align: left; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 2; }
     .sheet-table tbody tr:nth-child(even) td { background: #f9fbfd; }
-    .sheet-table tbody tr:hover td { background: #eef2ff; }
+    .sheet-table tbody tr:hover td { background: var(--fin-surface, #eef2ff); }
     .sheet-table .number { text-align: right; font-variant-numeric: tabular-nums; }
-    .sheet-table input, .sheet-table select { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .sheet-table input, .sheet-table select { width: 100%; padding: 8px; border: 1px solid var(--fin-line, var(--line)); border-radius: 8px; background: var(--fin-surface, var(--surface)); }
 
     .add-row { background: #0f172a0d; }
     .add-row td { background: #f8fafc; }
     .add-row button { width: 100%; }
 
-    .pill { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; background: #f1f5f9; border: 1px solid var(--line); font-size: 12px; }
+    .pill { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 999px; background: var(--fin-surface, var(--surface)); border: 1px solid var(--fin-line, var(--line)); font-size: 12px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; background: var(--fin-surface, #f1f5f9); border: 1px solid var(--fin-line, var(--line)); font-size: 12px; }
 
     .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-    .chart-box { padding: 16px; border-radius: 12px; border: 1px solid var(--line); background: white; min-height: 260px; }
+    .chart-box, .fin-chart-card { padding: 16px; border-radius: 12px; border: 1px solid var(--fin-line, var(--line)); background: #fff; min-height: 260px; }
 
     .snapshot-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
     .snapshot-list { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .muted { color: var(--muted); }
-    .text-green { color: var(--green); }
-    .text-red { color: var(--red); }
+    .muted { color: var(--fin-muted, var(--muted)); }
+    .text-green { color: var(--fin-success, var(--green)); }
+    .text-red { color: var(--fin-danger, var(--red)); }
     .shake { animation: shake 0.3s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 50%{transform:translateX(4px);} 75%{transform:translateX(-3px);} }
 
@@ -60,39 +61,42 @@
   </style>
 </head>
 <body data-page="investments">
-  <div class="layout">
+  <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar__header"><span class="sidebar__emoji">🧭</span><span class="sidebar__brand">LifeOS</span></div>
       <nav class="sidebar__nav">
         <ul class="sidebar__list">
-          <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="sidebar__icon">💰</span><span class="sidebar__label">Budżet</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="sidebar__icon">✅</span><span class="sidebar__label">Zadania</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="sidebar__icon">💪</span><span class="sidebar__label">Progres</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="sidebar__icon">⛽</span><span class="sidebar__label">Paliwo</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="sidebar__icon">🏦</span><span class="sidebar__label">Kredyt</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="sidebar__icon">📦</span><span class="sidebar__label">Magazyn</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="sidebar__icon">🏠</span><span class="sidebar__label">Budowa</span></a></li>
-          <li class="sidebar__item"><a class="sidebar__link active" href="investments.html" data-page="investments"><span class="sidebar__icon">📈</span><span class="sidebar__label">Inwestycje</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span class="sidebar__label">Dashboard</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="material-symbols-outlined">payments</span><span class="sidebar__label">Budżet</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="material-symbols-outlined">assignment</span><span class="sidebar__label">Zadania</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="material-symbols-outlined">trending_up</span><span class="sidebar__label">Progres</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="material-symbols-outlined">local_gas_station</span><span class="sidebar__label">Paliwo</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="material-symbols-outlined">credit_card</span><span class="sidebar__label">Kredyt</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="material-symbols-outlined">inventory_2</span><span class="sidebar__label">Magazyn</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="material-symbols-outlined">construction</span><span class="sidebar__label">Budowa</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link sidebar__link--active" aria-current="page" href="investments.html" data-page="investments"><span class="material-symbols-outlined">monitoring</span><span class="sidebar__label">Inwestycje</span></a></li>
         </ul>
       </nav>
       <div class="sidebar__footer"><strong>Twój cyfrowy dom</strong></div>
     </aside>
 
-    <div class="main">
-      <header class="page-header">
-        <div class="page-header__top">
-          <span class="page-overline">Finanse</span>
-          <h1 class="page-title"><span class="page-title__icon">📈</span><span class="page-title__text">Arkusz inwestycji</span></h1>
+    <div class="app-main">
+      <header class="site-header">
+        <div class="site-header__left">
+          <div class="site-header__greeting">
+            <h1 class="site-header__title">Inwestycje</h1>
+            <p class="live-badge" style="border:none;background:transparent;padding:0;font-size:12px;color:var(--muted);">Tryb fintech (krok 1)</p>
+          </div>
         </div>
-        <div class="page-header__actions">
-          <button class="btn" id="snapshot-btn">💾 Zapisz snapshot</button>
-          <button class="btn soft" id="reset-btn">🧹 Wyczyść dane</button>
+        <div class="site-header__right">
+          <div class="header-btn-group">
+            <button class="btn" id="snapshot-btn">Zapisz snapshot</button>
+            <button class="btn" id="reset-btn">Wyczyść dane</button>
+          </div>
         </div>
       </header>
 
-      <div class="content">
-        <main class="page-content stack" style="gap: 14px;">
+      <main class="page-content stack" style="gap: 14px;">
           <section class="sheet-card" style="padding: 16px;">
             <div class="kpi-grid">
               <div class="kpi">
@@ -187,8 +191,7 @@
               </table>
             </div>
           </section>
-        </main>
-      </div>
+      </main>
     </div>
   </div>
 
@@ -377,6 +380,17 @@
       });
     }
 
+    function getFinChartTheme() {
+      const css = getComputedStyle(document.documentElement);
+      const text = (css.getPropertyValue('--fin-muted') || css.getPropertyValue('--muted') || '#64748b').trim();
+      const grid = (css.getPropertyValue('--fin-line') || css.getPropertyValue('--line') || '#e2e8f0').trim();
+      const accent = (css.getPropertyValue('--fin-accent') || css.getPropertyValue('--blue') || '#2563eb').trim();
+      const success = (css.getPropertyValue('--fin-success') || css.getPropertyValue('--green') || '#16a34a').trim();
+      const warning = (css.getPropertyValue('--fin-warning') || css.getPropertyValue('--orange') || '#f59e0b').trim();
+      const danger = (css.getPropertyValue('--fin-danger') || css.getPropertyValue('--red') || '#ef4444').trim();
+      return { text, grid, accent, success, warning, danger };
+    }
+
     function renderAllocationChart() {
       const holdings = calcStats().holdings;
       const labels = holdings.map(h => h.type.toUpperCase());
@@ -389,10 +403,11 @@
       const typeValues = Object.values(byType);
 
       if (allocationChart) allocationChart.destroy();
+      const t = getFinChartTheme();
       allocationChart = new Chart(document.getElementById('allocationChart'), {
         type: 'doughnut',
-        data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: ['#2563eb','#16a34a','#f59e0b','#8b5cf6','#0ea5e9','#ef4444'] }] },
-        options: { plugins: { legend: { position: 'bottom' } } }
+        data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: [t.accent,t.success,t.warning,'#8b5cf6','#0ea5e9',t.danger] }] },
+        options: { plugins: { legend: { position: 'bottom', labels: { color: t.text, boxWidth: 12 } } } }
       });
 
       const top = Object.entries(byType).sort((a,b) => b[1]-a[1]).slice(0,3).map(([type, val]) => `${mapType(type)}: ${formatCurrency(val)}`);
@@ -403,11 +418,18 @@
       const snapshots = state.snapshots.length ? state.snapshots : buildVirtualSnapshots();
       const labels = snapshots.map(s => new Date(s.date).toLocaleDateString('pl-PL'));
       const values = snapshots.map(s => s.value);
+      const t = getFinChartTheme();
       if (valueChart) valueChart.destroy();
       valueChart = new Chart(document.getElementById('valueChart'), {
         type: 'line',
-        data: { labels, datasets: [{ label: 'Wartość portfela', data: values, tension: 0.25, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', fill: true }] },
-        options: { scales: { y: { beginAtZero: false } }, plugins: { legend: { display: false } } }
+        data: { labels, datasets: [{ label: 'Wartość portfela', data: values, tension: 0.25, borderColor: t.accent, backgroundColor: 'rgba(37,99,235,0.1)', fill: true }] },
+        options: {
+          scales: {
+            y: { beginAtZero: false, ticks: { color: t.text }, grid: { color: t.grid } },
+            x: { ticks: { color: t.text }, grid: { color: t.grid } }
+          },
+          plugins: { legend: { display: false } }
+        }
       });
     }
 
@@ -425,11 +447,18 @@
       });
       const labels = Object.keys(buckets).sort();
       const values = labels.map(l => buckets[l]);
+      const t = getFinChartTheme();
       if (inflowChart) inflowChart.destroy();
       inflowChart = new Chart(document.getElementById('inflowChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Wpłaty', data: values, backgroundColor: '#10b981' }] },
-        options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+        data: { labels, datasets: [{ label: 'Wpłaty', data: values, backgroundColor: t.success }] },
+        options: {
+          scales: {
+            y: { beginAtZero: true, ticks: { color: t.text }, grid: { color: t.grid } },
+            x: { ticks: { color: t.text }, grid: { color: t.grid } }
+          },
+          plugins: { legend: { display: false } }
+        }
       });
     }
 

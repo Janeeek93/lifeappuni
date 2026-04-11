@@ -180,10 +180,10 @@
       justify-content: center;
       gap: 7px;
       padding: 8px 14px;
-      border-radius: var(--bm-r);
-      border: 1px solid var(--bm-border);
-      background: var(--bm-surface);
-      color: var(--bm-ink-2);
+      border-radius: 999px;
+      border: 1px solid var(--fin-line, var(--bm-border));
+      background: var(--fin-surface, var(--bm-surface));
+      color: var(--fin-muted, var(--bm-ink-2));
       font-family: var(--bm-body);
       font-weight: 600;
       font-size: 13px;
@@ -193,15 +193,15 @@
       line-height: 1;
       text-decoration: none;
     }
-    .bm-btn:hover { background: var(--bm-card-hi); color: var(--bm-ink); border-color: var(--bm-ink-4); }
-    .bm-btn-primary { background: var(--bm-orange); color: #fff; border-color: transparent; }
-    .bm-btn-primary:hover { background: #ea6c10; color: #fff; box-shadow: var(--bm-orange-glow); }
+    .bm-btn:hover { background: #fff; color: var(--fin-ink, var(--bm-ink)); border-color: var(--fin-accent, var(--bm-ink-4)); }
+    .bm-btn-primary { background: var(--fin-accent, var(--bm-orange)); color: #fff; border-color: transparent; }
+    .bm-btn-primary:hover { background: #1d4ed8; color: #fff; box-shadow: 0 8px 24px rgba(37,99,235,.3); }
     .bm-btn-ghost { background: transparent; border-color: transparent; }
-    .bm-btn-ghost:hover { background: var(--bm-card-hi); }
-    .bm-btn-danger { background: var(--bm-red-dim); color: var(--bm-red); border-color: rgba(248,113,113,.25); }
-    .bm-btn-danger:hover { background: var(--bm-red); color: #fff; }
-    .bm-btn-success { background: var(--bm-green-dim); color: var(--bm-green); border-color: rgba(52,211,153,.25); }
-    .bm-btn-success:hover { background: var(--bm-green); color: #fff; }
+    .bm-btn-ghost:hover { background: var(--fin-surface, var(--bm-card-hi)); }
+    .bm-btn-danger { background: #fff5f5; color: var(--fin-danger, var(--bm-red)); border-color: rgba(248,113,113,.25); }
+    .bm-btn-danger:hover { background: var(--fin-danger, var(--bm-red)); color: #fff; }
+    .bm-btn-success { background: #ecfdf5; color: var(--fin-success, var(--bm-green)); border-color: rgba(52,211,153,.25); }
+    .bm-btn-success:hover { background: var(--fin-success, var(--bm-green)); color: #fff; }
     .bm-btn-icon { width: 34px; height: 34px; padding: 0; font-size: 15px; }
     .bm-btn-sm { padding: 5px 10px; font-size: 12px; }
     .bm-btn-lg { padding: 11px 20px; font-size: 15px; }
@@ -2015,7 +2015,7 @@ function renderActivity() {
   const el = document.getElementById('bm-activity-feed');
   if (!el) return;
   if (!state.activities.length) {
-    el.innerHTML = '<div class="bm-empty"><div class="bm-empty-icon">📭</div><div class="bm-empty-title">Brak aktywności</div></div>';
+    el.innerHTML = '<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">mail</span></div><div class="bm-empty-title">Brak aktywności</div></div>';
     return;
   }
   const icons = { task:'✅', expense:'💰', note:'📝', contractor:'👷', material:'🧱', link:'🔗', phase:'📅', project:'🏡', settings:'⚙️' };
@@ -2202,7 +2202,7 @@ function renderPhases() {
   if (!el) return;
 
   if (!phases.length) {
-    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon">📋</div><div class="bm-empty-title">Brak etapów</div><button class="bm-btn bm-btn-primary" onclick="bm.openPhaseModal(null)">Dodaj etap</button></div>`;
+    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">checklist</span></div><div class="bm-empty-title">Brak etapów</div><button class="bm-btn bm-btn-primary" onclick="bm.openPhaseModal(null)">Dodaj etap</button></div>`;
     return;
   }
 
@@ -2222,13 +2222,13 @@ function renderPhases() {
           <span class="bm-task-check ${task.status==='done'?'checked':''}" onclick="bm.toggleTaskStatus('${task.id}',event)">${task.status==='done'?'✓':''}</span>
           <span class="bm-task-card-name">${task.name}</span>
           <div class="bm-task-card-actions">
-            <button class="bm-btn bm-btn-ghost bm-btn-icon" style="width:24px;height:24px;font-size:12px" onclick="bm.openTaskModal('${task.id}');event.stopPropagation()">✏️</button>
-            <button class="bm-btn bm-btn-ghost bm-btn-icon" style="width:24px;height:24px;font-size:12px" onclick="bm.deleteTask('${task.id}',event)">🗑️</button>
+            <button class="bm-btn bm-btn-ghost bm-btn-icon" style="width:24px;height:24px;font-size:12px" onclick="bm.openTaskModal('${task.id}');event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px">edit</span></button>
+            <button class="bm-btn bm-btn-ghost bm-btn-icon" style="width:24px;height:24px;font-size:12px" onclick="bm.deleteTask('${task.id}',event)"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
           </div>
         </div>
         <div class="bm-task-card-foot">
-          ${task.endDate?`<span class="bm-task-due ${isOverdue?'overdue':''}">📅 ${fmtDate(task.endDate)}</span>`:''}
-          ${contr?`<span class="bm-badge bm-badge-blue bm-text-sm">👷 ${contr.name}</span>`:''}
+          ${task.endDate?`<span class="bm-task-due ${isOverdue?'overdue':''}"><span class="material-symbols-outlined" style="font-size:12px">calendar_month</span> ${fmtDate(task.endDate)}</span>`:''}
+          ${contr?`<span class="bm-badge bm-badge-blue bm-text-sm"><span class="material-symbols-outlined" style="font-size:12px">engineering</span> ${contr.name}</span>`:''}
           ${task.cost>0?`<span class="bm-badge bm-badge-teal bm-text-sm">${fmtCur(task.cost)}</span>`:''}
         </div>
       </div>`;
@@ -2252,9 +2252,9 @@ function renderPhases() {
           <span class="bm-text-muted bm-text-sm">${tasks.length} zadań</span>
         </div>
         ${svgRing(pct)}
-        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openPhaseModal('${ph.id}');event.stopPropagation()">✏️</button>
-        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openTaskModal(null,'${ph.id}');event.stopPropagation()">➕</button>
-        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.deletePhase('${ph.id}',event)">🗑️</button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openPhaseModal('${ph.id}');event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:16px">edit</span></button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.openTaskModal(null,'${ph.id}');event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:16px">add</span></button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon" style="font-size:14px" onclick="bm.deletePhase('${ph.id}',event)"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
         <span class="bm-phase-chevron">▼</span>
       </div>
       ${!collapsed?`<div class="bm-phase-body">
@@ -2388,7 +2388,7 @@ bm.renderContractors = () => {
   if (!el) return;
   let list = state.contractors.filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()) || (c.specialty||'').toLowerCase().includes(q.toLowerCase()));
   if (!list.length) {
-    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon">👷</div><div class="bm-empty-title">Brak wykonawców</div><div class="bm-empty-desc">Dodaj swoich wykonawców i podwykonawców.</div><button class="bm-btn bm-btn-primary" onclick="bm.openContractorModal(null)">Dodaj wykonawcę</button></div>`;
+    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">engineering</span></div><div class="bm-empty-title">Brak wykonawców</div><div class="bm-empty-desc">Dodaj swoich wykonawców i podwykonawców.</div><button class="bm-btn bm-btn-primary" onclick="bm.openContractorModal(null)">Dodaj wykonawcę</button></div>`;
     return;
   }
   el.innerHTML = list.map(c => `
@@ -2407,8 +2407,8 @@ bm.renderContractors = () => {
       <div class="bm-contractor-actions">
         <div class="bm-stars">${'★'.repeat(c.rating||0)}${'☆'.repeat(5-(c.rating||0))}</div>
         <div style="display:flex;gap:6px">
-          <button class="bm-btn bm-btn-sm" onclick="bm.openContractorModal('${c.id}')">✏️ Edytuj</button>
-          <button class="bm-btn bm-btn-danger bm-btn-sm" onclick="bm.deleteContractor('${c.id}')">🗑️</button>
+          <button class="bm-btn bm-btn-sm" onclick="bm.openContractorModal('${c.id}')"><span class="material-symbols-outlined" style="font-size:14px">edit</span>Edytuj</button>
+          <button class="bm-btn bm-btn-danger bm-btn-sm" onclick="bm.deleteContractor('${c.id}')"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
         </div>
       </div>
     </div>
@@ -2422,7 +2422,7 @@ function renderMaterials() {
   const el = document.getElementById('bm-materials-list');
   if (!el) return;
   if (!state.materials.length) {
-    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon">🧱</div><div class="bm-empty-title">Brak materiałów</div><button class="bm-btn bm-btn-primary" onclick="bm.openMaterialModal(null)">Dodaj materiał</button></div>`;
+    el.innerHTML = `<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">inventory_2</span></div><div class="bm-empty-title">Brak materiałów</div><button class="bm-btn bm-btn-primary" onclick="bm.openMaterialModal(null)">Dodaj materiał</button></div>`;
     return;
   }
   const statusColors = { ordered:'bm-badge-blue', delivered:'bm-badge-green', used:'bm-badge-gray', needed:'bm-badge-yellow' };
@@ -2438,8 +2438,8 @@ function renderMaterials() {
       ${m.totalCost?`<span class="bm-badge bm-badge-teal">${fmtCur(m.totalCost)}</span>`:''}
       <span class="bm-badge ${statusColors[m.status]||'bm-badge-gray'}">${statusNames[m.status]||m.status||'—'}</span>
       <div style="display:flex;gap:4px">
-        <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openMaterialModal('${m.id}')">✏️</button>
-        <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteMaterial('${m.id}')">🗑️</button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openMaterialModal('${m.id}')"><span class="material-symbols-outlined" style="font-size:14px">edit</span></button>
+        <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteMaterial('${m.id}')"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
       </div>
     </div>
   `).join('');
@@ -2455,7 +2455,7 @@ bm.renderProjects = () => {
   if (!el) return;
   let list = state.projects.filter(p => !q || p.name.toLowerCase().includes(q.toLowerCase()) || (p.description||'').toLowerCase().includes(q.toLowerCase()));
   if (!list.length) {
-    el.innerHTML = `<div class="bm-empty" style="grid-column:1/-1"><div class="bm-empty-icon">🏡</div><div class="bm-empty-title">Brak projektów</div><div class="bm-empty-desc">Zapisz projekty domów które Cię inspirują.</div><button class="bm-btn bm-btn-primary" onclick="bm.openProjectModal(null)">Dodaj projekt</button></div>`;
+    el.innerHTML = `<div class="bm-empty" style="grid-column:1/-1"><div class="bm-empty-icon"><span class="material-symbols-outlined">home_work</span></div><div class="bm-empty-title">Brak projektów</div><div class="bm-empty-desc">Zapisz projekty domów które Cię inspirują.</div><button class="bm-btn bm-btn-primary" onclick="bm.openProjectModal(null)">Dodaj projekt</button></div>`;
     return;
   }
   el.innerHTML = list.map(p => `
@@ -2504,12 +2504,12 @@ bm.renderDocs = () => {
           ${l.category?`<span class="bm-badge bm-badge-blue bm-text-sm" style="margin-top:4px">${l.category}</span>`:''}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          ${l.url?`<a href="${l.url}" target="_blank" class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm">↗</a>`:''}
-          <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openLinkModal('${l.id}')">✏️</button>
-          <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteLink('${l.id}')">🗑️</button>
+          ${l.url?`<a href="${l.url}" target="_blank" class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm"><span class="material-symbols-outlined" style="font-size:14px">open_in_new</span></a>`:''}
+          <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openLinkModal('${l.id}')"><span class="material-symbols-outlined" style="font-size:14px">edit</span></button>
+          <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteLink('${l.id}')"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
         </div>
       </div>
-    `).join('') : `<div class="bm-empty"><div class="bm-empty-icon">🔗</div><div class="bm-empty-title">Brak linków</div><button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.openLinkModal(null)">Dodaj link</button></div>`;
+    `).join('') : `<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">link</span></div><div class="bm-empty-title">Brak linków</div><button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.openLinkModal(null)">Dodaj link</button></div>`;
   }
 
   // Notes
@@ -2528,12 +2528,12 @@ bm.renderDocs = () => {
         <div class="bm-note-card-foot">
           <span style="font-size:11px;color:var(--bm-ink-3)">${new Date(n.createdAt).toLocaleDateString('pl-PL')}</span>
           <div style="display:flex;gap:4px">
-            <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openNoteModal('${n.id}');event.stopPropagation()">✏️</button>
-            <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteNote('${n.id}');event.stopPropagation()">🗑️</button>
+            <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.openNoteModal('${n.id}');event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px">edit</span></button>
+            <button class="bm-btn bm-btn-ghost bm-btn-icon bm-btn-sm" onclick="bm.deleteNote('${n.id}');event.stopPropagation()"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
           </div>
         </div>
       </div>
-    `).join('') : `<div class="bm-empty"><div class="bm-empty-icon">📝</div><div class="bm-empty-title">Brak notatek</div><button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.openNoteModal(null)">Dodaj notatkę</button></div>`;
+    `).join('') : `<div class="bm-empty"><div class="bm-empty-icon"><span class="material-symbols-outlined">note_stack</span></div><div class="bm-empty-title">Brak notatek</div><button class="bm-btn bm-btn-primary bm-btn-sm" onclick="bm.openNoteModal(null)">Dodaj notatkę</button></div>`;
   }
 };
 
