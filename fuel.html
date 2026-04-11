@@ -9,20 +9,66 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
+    .fuel-fintech {
+      --fuel-bg: radial-gradient(1200px 500px at 80% -120px, rgba(0, 87, 192, 0.12), transparent 65%), var(--bg);
+      background: var(--fuel-bg);
+    }
+
+    .fuel-fintech .content {
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .fuel-fintech .card {
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      border: 1px solid #dce7fa;
+      border-radius: 20px;
+      box-shadow: 0 12px 32px -24px rgba(8, 47, 107, 0.45);
+    }
+
+    .fuel-fintech .site-header {
+      background: rgba(245, 248, 255, 0.88);
+      border-bottom: 1px solid #d8e4f8;
+      backdrop-filter: blur(14px);
+    }
+
+    .fuel-fintech .site-header__title {
+      font-size: 34px;
+      letter-spacing: -0.04em;
+    }
+
+    .fuel-fintech .btn.primary {
+      background: linear-gradient(135deg, #0057c0 0%, #1b74f0 100%);
+      border: none;
+      box-shadow: 0 12px 22px -12px rgba(0, 87, 192, 0.85);
+    }
+
+    .fuel-fintech .btn.soft {
+      background: #eef4ff;
+      border-color: #cdddf8;
+      color: #0d3368;
+    }
+
+    .fuel-fintech .btn.danger {
+      border-color: #f5c5cf;
+      background: #fff2f4;
+      color: #9f1f2b;
+    }
+
     .fuel-insights-grid {
       gap: 16px;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
 
     .fuel-insight-card {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
+      background: linear-gradient(155deg, #f7faff 0%, #eff5ff 100%);
+      border: 1px solid #d6e4fb;
+      border-radius: 18px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 8px 24px -18px rgba(0, 87, 192, 0.5);
     }
 
     .fuel-insight-card .label {
@@ -34,9 +80,10 @@
     }
 
     .fuel-insight-card .value {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--ink);
+      font-size: 28px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.03em;
     }
 
     .fuel-insight-card .note {
@@ -46,6 +93,14 @@
 
     .fuel-form-grid {
       align-items: flex-end;
+    }
+
+    .fuel-fintech .fuel-form-grid input,
+    .fuel-fintech .fuel-form-grid select,
+    .fuel-fintech #analytics-period-filter {
+      border: 1px solid #d3e1f7;
+      background: #f8fbff;
+      border-radius: 12px;
     }
 
     .fuel-form-actions {
@@ -80,16 +135,57 @@
     .last-invoice-card {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
+      border-radius: 16px;
+      border: 1px solid #d8e5fa;
+      background: linear-gradient(150deg, #f8fbff 0%, #eef4ff 100%);
+      padding: 18px;
     }
 
     .table-wrapper.scrollable {
       max-height: 320px;
       overflow: auto;
     }
+
+    .fuel-fintech .table-wrapper table thead th {
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: #466085;
+      background: #f2f7ff;
+    }
+
+    .fuel-fintech .table-wrapper table tbody tr:hover {
+      background: #f7fbff;
+    }
+
+    .fuel-fintech .chart-card {
+      border-radius: 16px;
+      border: 1px solid #dbe8fb;
+      background: #fbfdff;
+    }
+
+    .fuel-fintech .kpi-compact {
+      border: 1px solid #d4e3fb;
+      border-radius: 18px;
+      background: linear-gradient(165deg, #f9fbff, #eff5ff);
+      box-shadow: 0 8px 22px -16px rgba(2, 45, 109, 0.45);
+      padding: 14px;
+    }
+
+    .fuel-fintech .kpi-value {
+      letter-spacing: -0.02em;
+    }
+
+    .fuel-fintech .insight-bubble {
+      border-radius: 16px;
+      border: 1px solid #cfe0fb;
+      background: #f5f9ff;
+      color: #20406e;
+    }
   </style>
 </head>
-<body data-page="fuel">
+<body data-page="fuel" class="fuel-fintech">
   <div class="layout">
     <aside class="sidebar" aria-label="Główna nawigacja">
       <div class="sidebar__header">
@@ -176,8 +272,8 @@
         <main class="content-main stack">
           <section class="card card-section">
             <div class="section-heading">
-              <h2 class="title">Kluczowe wnioski</h2>
-              <span class="tiny muted">Aktualizowane automatycznie na podstawie historii tankowań</span>
+              <h2 class="title">Panel KPI</h2>
+              <span class="tiny muted">Styl fintech + automatyczna analityka na podstawie historii tankowań</span>
             </div>
             <div id="insights-grid" class="grid-3 fuel-insights-grid"></div>
             <div class="insight-bubble" id="fuel-kpi-insight">Dodaj pierwszą transakcję, aby zobaczyć trend wydatków.</div>
