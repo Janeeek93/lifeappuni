@@ -3416,22 +3416,15 @@ function renderChartForPanel(panelType) {
     if (shareCanvas) {
       const shareCtx = shareCanvas.getContext('2d');
       const shareLabelFormatter = (value) => `${Number(value).toFixed(1)}%`;
-      const shareLabelOffset = (context) => {
-        const chart = context.chart;
-        const datasetIndex = context.datasetIndex;
-        const dataIndex = context.dataIndex;
-        const yScale = chart.scales.y;
-        if (!yScale) return 0;
-        const meta = chart.getDatasetMeta(datasetIndex);
-        if (!meta || !meta.data || !meta.data[dataIndex]) return 0;
-        const element = meta.data[dataIndex];
-        const target = datasetIndex === 0 ? 10 : 80;
-        const targetPixel = yScale.getPixelForValue(target);
-        const baseOffset = targetPixel - element.y;
-        const separation = datasetIndex === 0 ? -14 : 14;
-        return baseOffset + separation;
-      };
+      const shareLabelOffset = (context) => (context.datasetIndex === 0 ? -8 : 8);
       const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
+      const allShareValues = [...sharePrincipal, ...shareInterest].filter((value) => Number.isFinite(value));
+      const shareRawMin = allShareValues.length ? Math.min(...allShareValues) : 0;
+      const shareRawMax = allShareValues.length ? Math.max(...allShareValues) : 100;
+      const shareSpan = Math.max(shareRawMax - shareRawMin, 6);
+      const sharePadding = Math.max(3, shareSpan * 0.15);
+      const shareAxisMin = Math.max(0, Math.floor((shareRawMin - sharePadding) * 10) / 10);
+      const shareAxisMax = Math.min(100, Math.ceil((shareRawMax + sharePadding) * 10) / 10);
       if (charts.shareArea) {
         charts.shareArea.data.labels = labels;
         charts.shareArea.data.datasets[0].data = sharePrincipal;
@@ -3445,6 +3438,9 @@ function renderChartForPanel(panelType) {
         charts.shareArea.options.plugins.datalabels.borderRadius = 10;
         charts.shareArea.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
         charts.shareArea.options.plugins.datalabels.formatter = shareLabelFormatter;
+        charts.shareArea.options.scales.y.min = shareAxisMin;
+        charts.shareArea.options.scales.y.max = shareAxisMax;
+        charts.shareArea.options.scales.y.stacked = false;
         charts.shareArea.update();
       } else {
         charts.shareArea = new Chart(shareCtx, {
@@ -3481,7 +3477,7 @@ function renderChartForPanel(panelType) {
             },
             scales: {
               x: loanAxisX({ grid: { display: false, drawOnChartArea: false } }),
-              y: loanAxisY((value) => `${value}%`, { stacked: true, min: 0, max: 100 })
+              y: loanAxisY((value) => `${value}%`, { stacked: false, min: shareAxisMin, max: shareAxisMax })
             }
           }
         });
