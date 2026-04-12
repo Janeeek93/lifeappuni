@@ -1142,7 +1142,7 @@ const STORE='lifeos_workhub_v1',OLD='lifeos_tasks_pro_v2',DAY=86400000;
 const DEF_MEMBERS=[{id:'m1',name:'Pracownik 1',role:'',color:'#6366f1',profileNote:'',specialties:[]},{id:'m2',name:'Pracownik 2',role:'',color:'#f59e0b',profileNote:'',specialties:[]},{id:'m3',name:'Pracownik 3',role:'',color:'#10b981',profileNote:'',specialties:[]},{id:'m4',name:'Pracownik 4',role:'',color:'#f43f5e',profileNote:'',specialties:[]}];
 let S={tasks:[],members:[...DEF_MEMBERS],teamTasks:[],notes:[],selfNotes:[],projects:[]};
 let charts={};
-let calDate=todayUTC(),calSel=null,calFilter=new Set(['me','m1','m2','m3','m4']);
+let calDate=todayUTC(),calSel=null,calFilter=new Set();
 let selMember=null,activePTab='tasks',collGroups=new Set(),expandedRows=new Set(),formSubs=[],modalSteps=[],goalExpandedIds=new Set();
 let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
@@ -1184,17 +1184,18 @@ const uniqIds=arr=>[...new Set((Array.isArray(arr)?arr:[]).map(x=>(x||'').toStri
 function buildCalFilter(){
   const el=document.getElementById('cal-filter');if(!el)return;
   const chips=[{id:'me',label:'Ja',color:'var(--blue)',init:'M'},...S.members.map(m=>({id:m.id,label:m.name.split(' ')[0],color:m.color,init:m.name.charAt(0).toUpperCase()}))];
-  el.innerHTML='<span class="small muted" style="font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.6px;margin-right:4px">Pokaż:</span>'+chips.map(c=>`<div class="pf-chip ${calFilter.has(c.id)?'active':''}" data-cid="${c.id}" style="color:${c.color}"><div class="pf-av" style="background:${c.color}">${c.init}</div>${c.label}</div>`).join('');
+  el.innerHTML='<span class="small muted" style="font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.6px;margin-right:4px">Pokaż:</span><span class="small muted" style="font-size:10px">Brak zaznaczeń = cały zespół</span>'+chips.map(c=>`<div class="pf-chip ${calFilter.has(c.id)?'active':''}" data-cid="${c.id}" style="color:${c.color}"><div class="pf-av" style="background:${c.color}">${c.init}</div>${c.label}</div>`).join('');
   el.querySelectorAll('.pf-chip').forEach(chip=>chip.addEventListener('click',()=>{const id=chip.dataset.cid;calFilter.has(id)?calFilter.delete(id):calFilter.add(id);buildCalFilter();renderCalendar();if(calSel)updateDayPanel(calSel);}));
 }
 function getCalTasks(){
   const tasks=[];
-  if(calFilter.has('me'))S.tasks.forEach(t=>tasks.push({...t,_owner:'me',_color:'var(--blue)'}));
-  S.members.forEach(m=>{if(!calFilter.has(m.id))return;S.teamTasks.filter(t=>t.assigneeId===m.id).forEach(t=>tasks.push({...t,_owner:m.id,_ownerName:m.name,_color:m.color,category:'work'}));});
+  const showAll=calFilter.size===0;
+  if(showAll||calFilter.has('me'))S.tasks.forEach(t=>tasks.push({...t,_owner:'me',_color:'var(--blue)'}));
+  S.members.forEach(m=>{if(!showAll&&!calFilter.has(m.id))return;S.teamTasks.filter(t=>t.assigneeId===m.id).forEach(t=>tasks.push({...t,_owner:m.id,_ownerName:m.name,_color:m.color,category:'work'}));});
   // Project cards — one entry per matching assignee (so card shows in each person's row)
   S.projects.filter(p=>p.status==='active').forEach(proj=>{
     proj.cards.filter(c=>c.dueDate&&c.stage!=='done').forEach(card=>{
-      uniqIds(card.assignees).filter(a=>calFilter.has(a)).forEach(owner=>{
+      uniqIds(card.assignees).filter(a=>showAll||calFilter.has(a)).forEach(owner=>{
         const m=owner==='me'?null:S.members.find(x=>x.id===owner);
         tasks.push({id:card.id,title:`◈ ${card.title}`,dueDate:card.dueDate,priority:card.priority,status:'todo',_owner:owner,_ownerName:m?.name,_color:proj.color,_isProject:true,_projectId:proj.id,category:'work'});
       });
