@@ -5438,14 +5438,19 @@
           <div class="card stack" style="flex:2;min-width:300px">
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Trend majątku netto</strong>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <select id="eom2-cat-filter" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)">
-                  <option value="all">Wszystkie kategorie</option>
-                </select>
-                <div class="inv-trade-filters" style="margin:0">
-                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
-                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
-                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
+	              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+	                <select id="eom2-cat-filter" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)">
+	                  <option value="all">Wszystkie kategorie</option>
+	                </select>
+	                <div class="inv-trade-filters" style="margin:0">
+	                  <button type="button" class="eom2-gran-btn is-active" data-granularity="monthly">Miesiące</button>
+	                  <button type="button" class="eom2-gran-btn" data-granularity="quarterly">Kwartały</button>
+	                  <button type="button" class="eom2-gran-btn" data-granularity="yearly">Lata</button>
+	                </div>
+	                <div class="inv-trade-filters" style="margin:0">
+	                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
+	                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
+	                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
                 </div>
               </div>
             </div>
@@ -13568,11 +13573,37 @@
   // ===== EOM V2 — Redesigned Wealth Tracker =================================
   let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null;
   let eom2SelectedRange=6;
+  let eom2SelectedGranularity='monthly';
   let eom2SelectedCat='all';
   let eom2Bound=false;
   const eom2TypeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
   const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
   const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+
+  function eom2AggregateMonths(months, granularity){
+    if(granularity==='monthly') return months.slice();
+    const bucketLastMonth=new Map();
+    for(const ym of months){
+      const [yearStr, monthStr]=String(ym).split('-');
+      const year=Number(yearStr);
+      const month=Number(monthStr);
+      if(!Number.isFinite(year)||!Number.isFinite(month)) continue;
+      const key=granularity==='yearly' ? String(year) : `${year}-Q${Math.floor((month-1)/3)+1}`;
+      const prev=bucketLastMonth.get(key);
+      if(!prev||ym>prev) bucketLastMonth.set(key, ym);
+    }
+    return Array.from(bucketLastMonth.values()).sort();
+  }
+
+  function eom2FormatTrendLabel(ym, granularity){
+    if(granularity==='monthly') return formatMonthLabel(ym);
+    const [yearStr, monthStr]=String(ym).split('-');
+    const year=Number(yearStr);
+    const month=Number(monthStr);
+    if(!Number.isFinite(year)||!Number.isFinite(month)) return ym;
+    if(granularity==='yearly') return String(year);
+    return `Q${Math.floor((month-1)/3)+1} ${year}`;
+  }
 
   function eom2InvestmentBridge(){
     if(!Array.isArray(b().eomInvestmentBridge)) b().eomInvestmentBridge=[];
@@ -13880,11 +13911,11 @@
       catFilter.innerHTML=opts;
       catFilter.value=curVal;
     }
-    if(nwCanvas){
-      let months=ctx.months;
-      if(eom2SelectedRange!=='all'){
-        const n=parseInt(eom2SelectedRange)||6;
-        months=months.slice(-n);
+	    if(nwCanvas){
+	      let months=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+	      if(eom2SelectedRange!=='all'){
+	        const n=parseInt(eom2SelectedRange)||6;
+	        months=months.slice(-n);
       }
       if(months.length>0){
         const subAccColors=['#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#e11d48','#84cc16'];
@@ -13925,10 +13956,10 @@
             datasets.push({label:acc.name,data:accData,borderColor:col,backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false,spanGaps:true});
           });
         }
-        eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
-          type:'line',
-          data:{labels:months.map(m=>formatMonthLabel(m)),datasets},
-          options:{responsive:true,maintainAspectRatio:false,
+	        eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
+	          type:'line',
+	          data:{labels:months.map(m=>eom2FormatTrendLabel(m,eom2SelectedGranularity)),datasets},
+	          options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'circle'}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
             interaction:{mode:'index',intersect:false},
             scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
@@ -14272,6 +14303,13 @@
       btn.onclick=()=>{
         eom2SelectedRange=btn.dataset.range==='all'?'all':parseInt(btn.dataset.range);
         document.querySelectorAll('.eom2-range-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
+        renderEomV2();
+      };
+    });
+    document.querySelectorAll('.eom2-gran-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        eom2SelectedGranularity=btn.dataset.granularity||'monthly';
+        document.querySelectorAll('.eom2-gran-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
         renderEomV2();
       };
     });
