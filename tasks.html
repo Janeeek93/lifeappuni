@@ -79,7 +79,7 @@
 
     /* ── LAYOUT FIXES ── */
     .main { flex: 1; min-width: 0; width: 0; }
-    .content { width: 100%; max-width: 100%; }
+    .content { width: 100%; max-width: 100%; grid-template-columns: minmax(0,1fr); }
     .page-content { width: 100%; max-width: 100% !important; }
 
     /* ── ANIMATIONS ── */
@@ -172,38 +172,39 @@
     .seg-item:hover { color:var(--ink); }
     .seg-item.active { background:var(--card); color:var(--ink); box-shadow:var(--sh-xs); }
 
-    /* ── MODULE NAV — aligned with budget tabs ── */
+    /* ── MODULE NAV — 1:1 with trainings subnav ── */
     .module-nav {
       display:flex;
-      gap:6px;
-      flex-wrap:nowrap;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
       position:sticky;
       top:0;
       background:var(--bg);
       z-index:8;
-      padding:8px 0;
+      padding:8px 0 12px;
       margin:12px 0 0;
+      border-bottom:1px solid var(--line);
       overflow-x:auto;
     }
     .mod-tab {
       display:inline-flex;
       align-items:center;
-      gap:4px;
-      padding:7px 10px;
-      border-radius:var(--r-xs);
-      border:1px solid var(--line);
-      background:var(--surface);
+      gap:6px;
+      padding:8px 14px;
+      border-radius:10px;
+      border:1px solid transparent;
+      background:transparent;
       color:var(--muted);
-      font-weight:700;
-      font-size:12px;
+      font-weight:600;
+      font-size:13px;
       cursor:pointer;
-      transition:all var(--transition);
+      transition:background var(--transition), color var(--transition), border-color var(--transition);
       white-space:nowrap;
-      flex-shrink:0;
     }
-    .mod-tab .material-symbols-outlined { font-size:14px; line-height:1; }
-    .mod-tab:hover { color:var(--ink); border-color:var(--blue-bg); }
-    .mod-tab.active { color:var(--ink); border-color:var(--blue-bg); background:var(--blue-tint); }
+    .mod-tab .material-symbols-outlined { font-size:16px; line-height:1; }
+    .mod-tab:hover { background:var(--surface); color:var(--ink); }
+    .mod-tab.active { background:var(--card); border-color:var(--line); color:var(--ink); box-shadow:var(--shadow-sm); }
     .module { display:none; margin-top:12px; }
     .module.active { display:block; animation:fadeUp .22s ease-out; }
 
