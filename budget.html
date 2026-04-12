@@ -5392,25 +5392,33 @@
             </div>
           </div>
           <div id="eom2-booking-grid"></div>
-          <div class="card stack" style="margin-top:8px;padding:10px 12px">
-            <div class="eom2-bridge-head">
-              <strong>Połączenie z inwestycjami</strong>
-              <div class="row" style="gap:8px">
-                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
-                <button class="btn soft" type="button" id="eom2-bridge-apply">Pobierz aktualne</button>
-              </div>
-            </div>
-            <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
-            <div class="table-wrapper" style="margin-top:6px">
-              <table class="modern-table eom2-bridge-table">
-                <thead>
-                  <tr><th>Źródło (Inwestycje)</th><th>Księguj na konto EOM</th><th>Znak</th><th>Podgląd</th><th></th></tr>
-                </thead>
-                <tbody id="eom2-bridge-body"></tbody>
-              </table>
-            </div>
-            <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
-          </div>
+	          <div class="card stack" style="margin-top:8px;padding:10px 12px">
+	            <div class="eom2-bridge-head">
+	              <strong>Połączenie z inwestycjami</strong>
+	              <div class="row" style="gap:8px">
+	                <button class="btn soft" type="button" id="eom2-bridge-toggle" aria-expanded="false">
+	                  <span class="material-symbols-outlined" style="font-size:16px">expand_more</span>
+	                  <span>Rozwiń mapowania</span>
+	                </button>
+	                <button class="btn soft" type="button" id="eom2-bridge-apply">Pobierz aktualne</button>
+	              </div>
+	            </div>
+	            <div id="eom2-bridge-panel" hidden>
+	              <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
+	              <div class="row" style="justify-content:flex-end;margin-top:8px">
+	                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
+	              </div>
+	              <div class="table-wrapper" style="margin-top:6px">
+	                <table class="modern-table eom2-bridge-table">
+	                  <thead>
+	                    <tr><th>Źródło (Inwestycje)</th><th>Księguj na konto EOM</th><th>Znak</th><th>Podgląd</th><th></th></tr>
+	                  </thead>
+	                  <tbody id="eom2-bridge-body"></tbody>
+	                </table>
+	              </div>
+	              <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
+	            </div>
+	          </div>
           <form id="eom2-add-account" class="row" style="gap:8px;margin-top:8px">
             <input name="name" placeholder="Nowe konto (np. Revolut, Karta kredytowa)" style="flex:1;height:38px" required />
             <select name="type" style="height:38px;min-width:140px">
@@ -14201,6 +14209,19 @@
       });
     };
 
+
+    const bridgeToggleBtn=document.getElementById('eom2-bridge-toggle');
+    const bridgePanel=document.getElementById('eom2-bridge-panel');
+    if(bridgeToggleBtn&&bridgePanel){
+      bridgeToggleBtn.onclick=()=>{
+        const isHidden=bridgePanel.hidden;
+        bridgePanel.hidden=!isHidden;
+        bridgeToggleBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        bridgeToggleBtn.innerHTML=isHidden
+          ? '<span class="material-symbols-outlined" style="font-size:16px">expand_less</span><span>Zwiń mapowania</span>'
+          : '<span class="material-symbols-outlined" style="font-size:16px">expand_more</span><span>Rozwiń mapowania</span>';
+      };
+    }
 
     const bridgeAddBtn=document.getElementById('eom2-bridge-add');
     if(bridgeAddBtn) bridgeAddBtn.onclick=()=>{
