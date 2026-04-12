@@ -155,6 +155,50 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      justify-content: center;
+    }
+
+    .loan-page-panel {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .loan-page-panel.active {
+      display: flex;
+    }
+
+    .loan-page-tabs .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .loan-page-tabs .material-symbols-outlined {
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .loan-overview-split {
+      display: grid;
+      grid-template-columns: minmax(0, 4fr) minmax(260px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .loan-overview-split > .card {
+      height: 100%;
+    }
+
+    .loan-overview-split .fintech-overview-card,
+    .loan-overview-split .fintech-market-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .loan-overview-split .fintech-market-list {
+      flex: 1;
+      align-content: start;
     }
 
     .loan-tab-btn {
@@ -700,25 +744,21 @@
   
     /* === Fintech redesign layer === */
     body[data-page="loan"] {
-      --blue: #2563eb;
-      --blue-soft: rgba(37, 99, 235, 0.12);
-      --green: #0f9f6e;
-      --green-soft: rgba(15, 159, 110, 0.12);
-      --orange: #f97316;
-      --orange-soft: rgba(249, 115, 22, 0.14);
-      --ink: #0f172a;
-      --muted: #64748b;
-      --line: rgba(148, 163, 184, 0.24);
+      --blue: #0057c0;
+      --blue-soft: #dbeafe;
+      --green: #059669;
+      --green-soft: #dcfce7;
+      --orange: #ea580c;
+      --orange-soft: #ffedd5;
+      --ink: #2c2f31;
+      --muted: #595c5e;
+      --line: #dadde0;
       --card: #ffffff;
-      --surface: #eef4ff;
-      --accent: #2563eb;
-      --accent-weak: rgba(37, 99, 235, 0.12);
-      --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.12);
-      background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.06), transparent 24%),
-        radial-gradient(circle at top right, rgba(15, 159, 110, 0.05), transparent 20%),
-        linear-gradient(180deg, #f7f9ff 0%, #f3f6ff 100%);
+      --surface: #eff1f3;
+      --accent: #0057c0;
+      --accent-weak: hsl(214 70% 94%);
       color: var(--ink);
+      background: var(--bg);
     }
 
     body[data-page="loan"] .main {
@@ -728,28 +768,44 @@
     body[data-page="loan"] .site-header {
       position: sticky;
       top: 0;
-      z-index: 20;
-      backdrop-filter: blur(16px);
-      background: rgba(247, 249, 255, 0.78);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+      z-index: 30;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(245, 246, 248, 0.88);
+      border-bottom: 1px solid var(--line);
+      height: var(--topbar-height);
+      padding: 0 32px;
     }
 
     body[data-page="loan"] .site-header__title {
-      font-size: 1.8rem;
-      letter-spacing: -0.04em;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #2c2f31;
     }
 
     body[data-page="loan"] .live-badge {
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      font-size: 11px;
+      font-weight: 600;
+      color: #595c5e;
+      background: #eff1f3;
+      border: 1px solid #dadde0;
+      box-shadow: none;
     }
 
     body[data-page="loan"] .content {
-      display: grid;
-      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 360px);
-      gap: 28px;
-      align-items: start;
+      display: block;
+    }
+
+    body[data-page="loan"] .content > .stack.tight {
+      padding: 20px 28px 36px;
+      gap: 24px;
+    }
+
+    body[data-page="loan"] #dashboard-container > .loan-page-tabs {
+      margin-top: 12px;
     }
 
     body[data-page="loan"] .stack.tight {
@@ -1063,30 +1119,38 @@
 
     .loan-tab-nav {
       gap: 10px;
-      padding: 8px;
-      border-radius: 22px;
-      background: linear-gradient(180deg, rgba(248,250,255,0.96), rgba(233,240,255,0.82));
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
+      padding: 8px 0 12px;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--line);
+      box-shadow: none;
+      justify-content: center;
     }
 
     .loan-tab-btn {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      padding: 11px 16px;
-      border-radius: 16px;
+      font-size: 13px;
+      letter-spacing: 0;
+      text-transform: none;
+      padding: 8px 14px;
+      border-radius: 10px;
       border: 1px solid transparent;
-      background: rgba(255,255,255,0.12);
-      color: #475569;
-      font-weight: 800;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, background 0.18s ease;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
     }
 
     .loan-tab-btn.active {
-      color: #1d4ed8;
-      background: linear-gradient(180deg, rgba(255,255,255,1), rgba(247,250,255,0.96));
-      box-shadow: 0 16px 32px rgba(37,99,235,0.12);
-      transform: translateY(-1px);
+      color: var(--ink);
+      background: var(--card);
+      border-color: var(--line);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .loan-tab-btn:hover {
+      background: var(--surface);
+      color: var(--ink);
     }
 
     .loan-chart-actions {
@@ -1658,6 +1722,10 @@
         grid-template-columns: 1fr;
       }
 
+      .loan-overview-split {
+        grid-template-columns: 1fr;
+      }
+
       .fintech-rail {
         position: static;
       }
@@ -1668,6 +1736,12 @@
 
       .fintech-inline-metrics {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      body[data-page="loan"] .content > .stack.tight {
+        padding: 16px;
       }
     }
 
@@ -1704,6 +1778,18 @@
   </style>
 
 <style id="loan-v3-overrides">
+  body[data-page="loan"] [data-loan-tab-panel="analytics"] {
+    min-height: 78vh;
+  }
+
+  body[data-page="loan"] #loan-analytics-card {
+    min-height: 100%;
+  }
+
+  body[data-page="loan"] #loan-tab-panels {
+    min-height: 420px;
+  }
+
   body[data-page="loan"] .loan-chart-grid {
     grid-template-columns: minmax(0, 1.62fr) minmax(360px, 1.08fr);
     gap: 20px;
@@ -1720,10 +1806,11 @@
 
   body[data-page="loan"] .loan-chart-area {
     padding: 18px 18px 10px;
+    min-height: 420px !important;
   }
 
   body[data-page="loan"] .loan-donut-area {
-    min-height: 318px;
+    min-height: 414px;
     padding: 14px;
   }
 
@@ -1732,12 +1819,20 @@
   }
 
   @media (max-width: 1200px) {
+    body[data-page="loan"] [data-loan-tab-panel="analytics"] {
+      min-height: 0;
+    }
+
+    body[data-page="loan"] #loan-tab-panels {
+      min-height: 0;
+    }
+
     body[data-page="loan"] .loan-chart-grid {
       grid-template-columns: 1fr;
     }
 
     body[data-page="loan"] .loan-donut-area {
-      min-height: 300px;
+      min-height: 340px;
     }
   }
 </style>
@@ -1837,8 +1932,16 @@
             </section>
 
             <div id="dashboard-container" class="stack tight" style="display: none;">
-              
-<section class="card loan-progress-card fintech-overview-card">
+              <div class="tabs loan-page-tabs" id="loan-page-tabs">
+                <button class="tab active" data-loan-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
+                <button class="tab" data-loan-tab="analytics"><span class="material-symbols-outlined">analytics</span>Hub analityczny</button>
+                <button class="tab" data-loan-tab="schedule"><span class="material-symbols-outlined">calendar_month</span>Harmonogram spłat</button>
+                <button class="tab" data-loan-tab="history"><span class="material-symbols-outlined">history</span>Historia spłat</button>
+              </div>
+
+              <div class="loan-page-panel active" data-loan-tab-panel="overview">
+                <div class="loan-overview-split">
+                <section class="card loan-progress-card fintech-overview-card">
   <div class="fintech-overview-header">
     <div class="fintech-overview-copy">
       <span class="fintech-eyebrow">Credit cockpit</span>
@@ -1932,7 +2035,46 @@
     </div>
   </div>
 </section>
+                <section class="card fintech-rail-card fintech-market-card">
+                  <div class="section-heading">
+                    <h2 class="title">Metryki rynkowe</h2>
+                    <span class="tiny muted">Bieżący kontekst Twojego kredytu</span>
+                  </div>
+                  <div class="fintech-market-list">
+                    <div class="fintech-market-row fintech-market-row--rate">
+                      <div class="fintech-market-main">
+                        <span class="fintech-market-label">Aktualne oprocentowanie</span>
+                        <strong class="fintech-market-value" id="rail-current-rate">—</strong>
+                        <div class="fintech-rate-inline">
+                          <div id="rate-history-list" class="fintech-rate-inline-list"></div>
+                        </div>
+                      </div>
+                      <span class="fintech-market-note" id="hero-rate-compact">—</span>
+                    </div>
+                    <div class="fintech-market-row">
+                      <div>
+                        <span class="fintech-market-label">Pozostało rat</span>
+                        <strong class="fintech-market-value" id="rail-remaining-installments">—</strong>
+                      </div>
+                      <span class="fintech-market-note" id="rail-remaining-installments-label"></span>
+                    </div>
+                    <div class="fintech-market-row">
+                      <div>
+                        <span class="fintech-market-label">Średnia rata</span>
+                        <strong class="fintech-market-value" id="rail-average-installment">—</strong>
+                      </div>
+                      <span class="fintech-market-note" id="rail-average-installment-note"></span>
+                    </div>
+                  </div>
+                  <div class="fintech-expiry">
+                    <div class="fintech-expiry-year" id="rail-expiry-year">—</div>
+                    <p class="fintech-expiry-copy">Prognozowany finisz spłaty przy obecnym tempie.</p>
+                  </div>
+                </section>
+                </div>
+              </div>
 
+              <div class="loan-page-panel" data-loan-tab-panel="analytics">
 <section class="card loan-charts-card" id="loan-analytics-card">
                 <div class="section-heading">
                   <h2 class="title">Hub analityczny</h2>
@@ -2014,8 +2156,10 @@
                   </div>
                 </div>
               </section>
+              </div>
 
-              <section class="card schedule-card" id="schedule-card">
+              <div class="loan-page-panel" data-loan-tab-panel="schedule">
+                <section class="card schedule-card" id="schedule-card">
                 <div class="section-heading">
                   <h2 class="title">Harmonogram rat</h2>
                   <span class="tiny muted">Oś czasu spłat z planowanymi ratami i statusami</span>
@@ -2032,8 +2176,10 @@
                   <button class="btn soft" id="schedule-show-more-btn">Pokaż więcej rat</button>
                 </div>
               </section>
+              </div>
 
-              <section class="card loan-table-card">
+              <div class="loan-page-panel" data-loan-tab-panel="history">
+                <section class="card loan-table-card">
                 <div class="section-heading">
                   <h2 class="title">Historia spłat</h2>
                   <span class="tiny muted">Edytuj dowolny wpis, aby zaktualizować harmonogram</span>
@@ -2055,77 +2201,11 @@
                   </table>
                 </div>
               </section>
+              </div>
 
             </div>
           </div>
         </main>
-
-        
-<aside class="right-rail fintech-rail">
-  <section class="card fintech-rail-card fintech-links-card fintech-links-card--hero">
-    <div class="section-heading">
-      <h2 class="title">Szybkie akcje</h2>
-      <span class="tiny muted">Najczęściej używane operacje</span>
-    </div>
-    <button class="fintech-link-btn fintech-link-btn--primary" type="button" onclick="openPaymentModal(null)">
-      <span class="material-symbols-outlined">credit_score</span>
-      <span>Dodaj nową spłatę</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="openSetupModal()">
-      <span class="material-symbols-outlined">tune</span>
-      <span>Parametry i ustawienia kredytu</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="document.getElementById('schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-      <span class="material-symbols-outlined">calendar_month</span>
-      <span>Przejdź do harmonogramu rat</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="document.querySelector('.loan-table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-      <span class="material-symbols-outlined">history</span>
-      <span>Przejdź do historii spłat</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-  </section>
-
-  <section class="card fintech-rail-card fintech-market-card">
-    <div class="section-heading">
-      <h2 class="title">Metryki rynkowe</h2>
-      <span class="tiny muted">Bieżący kontekst Twojego kredytu</span>
-    </div>
-    <div class="fintech-market-list">
-      <div class="fintech-market-row fintech-market-row--rate">
-        <div class="fintech-market-main">
-          <span class="fintech-market-label">Aktualne oprocentowanie</span>
-          <strong class="fintech-market-value" id="rail-current-rate">—</strong>
-          <div class="fintech-rate-inline">
-            <div id="rate-history-list" class="fintech-rate-inline-list"></div>
-          </div>
-        </div>
-        <span class="fintech-market-note" id="hero-rate-compact">—</span>
-      </div>
-      <div class="fintech-market-row">
-        <div>
-          <span class="fintech-market-label">Pozostało rat</span>
-          <strong class="fintech-market-value" id="rail-remaining-installments">—</strong>
-        </div>
-        <span class="fintech-market-note" id="rail-remaining-installments-label"></span>
-      </div>
-      <div class="fintech-market-row">
-        <div>
-          <span class="fintech-market-label">Średnia rata</span>
-          <strong class="fintech-market-value" id="rail-average-installment">—</strong>
-        </div>
-        <span class="fintech-market-note" id="rail-average-installment-note"></span>
-      </div>
-    </div>
-    <div class="fintech-expiry">
-      <div class="fintech-expiry-year" id="rail-expiry-year">—</div>
-      <p class="fintech-expiry-copy">Prognozowany finisz spłaty przy obecnym tempie.</p>
-    </div>
-  </section>
-</aside>
       </div>
     </div>
   </div>
@@ -2168,8 +2248,8 @@ let state = {};
 let charts = {};
 let chartDataCache = null;
 const chartLabelState = {
-  line: false,
-  share: false,
+  line: true,
+  share: true,
   cumulative: false,
   change: false
 };
@@ -3339,7 +3419,7 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.16)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.green, pointBorderWidth: 2 },
+              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.16)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.green, pointBorderWidth: 2, hidden: true },
               { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.14)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.orange, pointBorderWidth: 2 }
             ]
           },
@@ -3376,35 +3456,30 @@ function renderChartForPanel(panelType) {
     if (shareCanvas) {
       const shareCtx = shareCanvas.getContext('2d');
       const shareLabelFormatter = (value) => `${Number(value).toFixed(1)}%`;
-      const shareLabelOffset = (context) => {
-        const chart = context.chart;
-        const datasetIndex = context.datasetIndex;
-        const dataIndex = context.dataIndex;
-        const yScale = chart.scales.y;
-        if (!yScale) return 0;
-        const meta = chart.getDatasetMeta(datasetIndex);
-        if (!meta || !meta.data || !meta.data[dataIndex]) return 0;
-        const element = meta.data[dataIndex];
-        const target = datasetIndex === 0 ? 10 : 80;
-        const targetPixel = yScale.getPixelForValue(target);
-        const baseOffset = targetPixel - element.y;
-        const separation = datasetIndex === 0 ? -14 : 14;
-        return baseOffset + separation;
-      };
-      const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
+      const shareLabelOffset = () => -8;
+      const shareLabelColor = () => palette.green;
+      const allShareValues = [...sharePrincipal].filter((value) => Number.isFinite(value));
+      const shareRawMin = allShareValues.length ? Math.min(...allShareValues) : 0;
+      const shareRawMax = allShareValues.length ? Math.max(...allShareValues) : 100;
+      const shareSpan = Math.max(shareRawMax - shareRawMin, 6);
+      const sharePadding = Math.max(3, shareSpan * 0.15);
+      const shareAxisMin = Math.max(0, Math.floor((shareRawMin - sharePadding) * 10) / 10);
+      const shareAxisMax = Math.min(100, Math.ceil((shareRawMax + sharePadding) * 10) / 10);
       if (charts.shareArea) {
         charts.shareArea.data.labels = labels;
         charts.shareArea.data.datasets[0].data = sharePrincipal;
-        charts.shareArea.data.datasets[1].data = shareInterest;
         charts.shareArea.options.plugins.datalabels.display = (ctx) => chartLabelState.share && !ctx.dataset.hidden;
         charts.shareArea.options.plugins.datalabels.offset = shareLabelOffset;
         charts.shareArea.options.plugins.datalabels.color = shareLabelColor;
-        charts.shareArea.options.plugins.datalabels.align = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
-        charts.shareArea.options.plugins.datalabels.anchor = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.align = 'end';
+        charts.shareArea.options.plugins.datalabels.anchor = 'end';
         charts.shareArea.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
         charts.shareArea.options.plugins.datalabels.borderRadius = 10;
         charts.shareArea.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
         charts.shareArea.options.plugins.datalabels.formatter = shareLabelFormatter;
+        charts.shareArea.options.scales.y.min = shareAxisMin;
+        charts.shareArea.options.scales.y.max = shareAxisMax;
+        charts.shareArea.options.scales.y.stacked = false;
         charts.shareArea.update();
       } else {
         charts.shareArea = new Chart(shareCtx, {
@@ -3412,8 +3487,7 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.18)'), fill: 'origin', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' },
-              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.16)'), fill: '-1', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' }
+              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.18)'), fill: 'origin', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' }
             ]
           },
           plugins: [ChartDataLabels],
@@ -3427,8 +3501,8 @@ function renderChartForPanel(panelType) {
               }),
               datalabels: {
                 display: (ctx) => chartLabelState.share && !ctx.dataset.hidden,
-                align: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
-                anchor: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
+                align: 'end',
+                anchor: 'end',
                 clip: false,
                 offset: shareLabelOffset,
                 backgroundColor: 'rgba(255, 255, 255, 0.94)',
@@ -3441,7 +3515,7 @@ function renderChartForPanel(panelType) {
             },
             scales: {
               x: loanAxisX({ grid: { display: false, drawOnChartArea: false } }),
-              y: loanAxisY((value) => `${value}%`, { stacked: true, min: 0, max: 100 })
+              y: loanAxisY((value) => `${value}%`, { stacked: false, min: shareAxisMin, max: shareAxisMax })
             }
           }
         });
@@ -3945,6 +4019,27 @@ function setupLoanChartTabs() {
   });
 }
 
+function setupLoanPageTabs() {
+  const tabButtons = Array.from(document.querySelectorAll('[data-loan-tab]'));
+  const tabPanels = Array.from(document.querySelectorAll('[data-loan-tab-panel]'));
+  if (!tabButtons.length || !tabPanels.length) return;
+
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.loanTab;
+      if (!target || button.classList.contains('active')) return;
+
+      tabButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+      tabPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.loanTabPanel === target));
+
+      if (target === 'analytics') {
+        const activeAnalyticsTab = document.querySelector('.loan-tab-btn.active');
+        renderChartForPanel(activeAnalyticsTab?.dataset.chart || 'mix');
+      }
+    });
+  });
+}
+
 /* === Projections === */
 function generateProjections(count = 3) {
   const { loanDetails, payments } = state;
@@ -4312,6 +4407,7 @@ function setupScheduleControls() {
 function init() {
   loadState();
   render();
+  setupLoanPageTabs();
   setupLoanChartTabs();
   setupLoanChartToggles();
   setupChangeModeSwitch();

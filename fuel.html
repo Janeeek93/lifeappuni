@@ -199,6 +199,39 @@
       .fuel-dash  { grid-template-columns: 1fr; grid-template-rows: auto; }
       .fd-main, .fd-avg, .fd-mth, .fd-right { grid-column: 1; grid-row: auto; }
     }
+
+    /* ── Historia transakcji w modalu ─────────────────────── */
+    #history-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgb(26 29 31 / 0.58);
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 14px;
+    }
+    #history-modal.open { display: flex; }
+    .fuel-history-modal {
+      width: min(1500px, 96vw);
+      max-width: none;
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 22px;
+    }
+    .fuel-history-modal .table-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      margin-top: 10px;
+    }
+    .fuel-history-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
   </style>
 </head>
 <body data-page="fuel">
@@ -280,6 +313,7 @@
           <button id="import-csv-btn" class="btn soft">Importuj z CSV</button>
           <input type="file" id="csv-file-input" accept=".csv" style="display:none;">
           <button id="export-csv-btn" class="btn soft">Eksportuj do CSV</button>
+          <button id="open-history-btn" class="btn soft">Pokaż historię transakcji</button>
           <button id="clear-all-btn" class="btn danger">Wyczyść wszystko</button>
         </div>
       </header>
@@ -410,31 +444,35 @@
             </div><!-- /fd-right -->
           </div><!-- /fuel-dash -->
 
-          <!-- ③ HISTORIA TRANSAKCJI (pełna szerokość) ──────────── -->
-          <section class="card card-section">
-            <div class="section-heading">
-              <h2 class="title">Historia transakcji</h2>
-              <span class="tiny muted">Kliknij wpis, aby edytować lub usuń w przypadku pomyłki</span>
-            </div>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Typ</th>
-                    <th>Opis / Nr faktury</th>
-                    <th>Litry</th>
-                    <th>Cena/l</th>
-                    <th>Kwota</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="history-tbody"></tbody>
-              </table>
-            </div>
-          </section>
-
         </main>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-modal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+    <div class="modal fuel-history-modal">
+      <div class="fuel-history-head">
+        <div>
+          <h2 id="history-modal-title" class="title">Historia transakcji</h2>
+          <span class="tiny muted">Kliknij wpis, aby edytować lub usuń w przypadku pomyłki</span>
+        </div>
+        <button id="close-history-btn" class="btn soft">Zamknij</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Typ</th>
+              <th>Opis / Nr faktury</th>
+              <th>Litry</th>
+              <th>Cena/l</th>
+              <th>Kwota</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -562,6 +600,20 @@ const lastInvoiceCard = document.getElementById('last-invoice-card');
 const exportBtn = document.getElementById('export-csv-btn');
 const importBtn = document.getElementById('import-csv-btn');
 const csvFileInput = document.getElementById('csv-file-input');
+const openHistoryBtn = document.getElementById('open-history-btn');
+const closeHistoryBtn = document.getElementById('close-history-btn');
+const historyModal = document.getElementById('history-modal');
+
+openHistoryBtn?.addEventListener('click', () => historyModal?.classList.add('open'));
+closeHistoryBtn?.addEventListener('click', () => historyModal?.classList.remove('open'));
+historyModal?.addEventListener('click', (e) => {
+    if (e.target === historyModal) historyModal.classList.remove('open');
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && historyModal?.classList.contains('open')) {
+        historyModal.classList.remove('open');
+    }
+});
 const clearAllBtn = document.getElementById('clear-all-btn');
 
 function computeFuelMetrics() {

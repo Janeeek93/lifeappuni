@@ -24,6 +24,24 @@
       z-index: 8;
       padding: 8px 0;
       margin-bottom: 0;
+      flex-wrap: nowrap;
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .budget-tabs .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .budget-tabs .material-symbols-outlined {
+      font-size: 14px;
+      line-height: 1;
     }
 
     .trend {
@@ -444,6 +462,59 @@
     .eom2-bridge-table td, .eom2-bridge-table th { vertical-align:middle; }
     .eom2-bridge-table select, .eom2-bridge-table input { height:34px; width:100%; }
     .eom2-bridge-table .tiny { white-space:nowrap; }
+    .eom2-history-pivot thead th {
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      z-index: 3;
+    }
+    .eom2-history-pivot th:first-child,
+    .eom2-history-pivot td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--card);
+    }
+    .eom2-history-pivot tr.eom2-history-group td {
+      font-weight: 700;
+      background: rgba(51, 65, 85, 0.05);
+    }
+    .eom2-history-pivot tr.eom2-history-total td {
+      font-weight: 800;
+      border-top: 2px solid var(--line);
+    }
+    .eom2-history-account {
+      padding-left: 18px;
+    }
+    .eom2-history-controls {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .eom2-history-compare-toggle {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      height: 34px;
+      white-space: nowrap;
+    }
+    .eom2-history-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 170px;
+    }
+    .eom2-history-field select {
+      height: 34px;
+      min-width: 170px;
+      border-radius: 10px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+    }
 
     .eom2-gainer-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(148,163,184,.08); font-size:13px; }
     .eom2-gainer-item:last-child { border-bottom:none; }
@@ -1541,6 +1612,10 @@
       gap: 10px;
     }
 
+    .dashboard-chart-box {
+      height: 286px;
+    }
+
     .recent-calendar-card {
       display: flex;
       flex-direction: column;
@@ -2170,6 +2245,12 @@
       background: var(--surface);
       max-height: 120px;
       overflow-y: auto;
+    }
+
+    .heatmap-strip--compact {
+      max-height: 82px;
+      padding: 6px;
+      gap: 3px;
     }
 
     .heat-legend {
@@ -4678,38 +4759,42 @@
       <div class="content">
         <main class="page-content content-main stack">
     <div class="tabs budget-tabs" style="margin-top:12px">
-      <button class="tab active" data-tab="dashboard">Dashboard</button>
-      <button class="tab" data-tab="overview">Przegląd</button>
-      <button class="tab" data-tab="incomes">Przychody</button>
-      <button class="tab" data-tab="fixed">Stałe wydatki</button>
-      <button class="tab" data-tab="variable">Wydatki zmienne</button>
-      <button class="tab" data-tab="investments">Inwestycje</button>
-      <button class="tab" data-tab="categories">Kategorie</button>
-      <button class="tab" data-tab="eom">Salda (EOM)</button>
-      <button class="tab" data-tab="goals">Cele</button>
-      <button class="tab" data-tab="analytics">Analityka</button>
-      <button class="tab" data-tab="mom">Porównanie MoM</button>
+      <button class="tab active" data-tab="dashboard"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
+      <button class="tab" data-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
+      <button class="tab" data-tab="incomes"><span class="material-symbols-outlined">payments</span>Przychody</button>
+      <button class="tab" data-tab="fixed"><span class="material-symbols-outlined">account_balance_wallet</span>Stałe wydatki</button>
+      <button class="tab" data-tab="variable"><span class="material-symbols-outlined">shopping_cart</span>Wydatki zmienne</button>
+      <button class="tab" data-tab="investments"><span class="material-symbols-outlined">trending_up</span>Inwestycje</button>
+      <button class="tab" data-tab="categories"><span class="material-symbols-outlined">category</span>Kategorie</button>
+      <button class="tab" data-tab="eom"><span class="material-symbols-outlined">event_note</span>Salda (EOM)</button>
+      <button class="tab" data-tab="goals"><span class="material-symbols-outlined">flag</span>Cele</button>
+      <button class="tab" data-tab="analytics"><span class="material-symbols-outlined">analytics</span>Analityka</button>
+      <button class="tab" data-tab="mom"><span class="material-symbols-outlined">sync_alt</span>Porównanie MoM</button>
     </div>
 
     <!-- Dashboard -->
     <section id="tab-dashboard" class="card" style="margin-top:12px">
       <h3 class="title">Dashboard finansowy</h3>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card">
-          <div class="title">Wydatki dzień po dniu</div>
-          <div class="chart-box"><canvas id="dailyLine"></canvas></div>
+        <div class="inv-hub-chart-card">
+          <div class="inv-hub-chart-card-header">
+            <h4>Wydatki dzień po dniu</h4>
+          </div>
+          <div class="inv-hub-chart-box dashboard-chart-box"><canvas id="dailyLine"></canvas></div>
         </div>
-        <div class="card">
-          <div class="title">Skumulowane: limit vs wydatki</div>
-          <div class="hint">Dwie linie: oczekiwane (np. 400 zł/dzień) vs faktyczne (wydatki + oszczędności)</div>
-          <div class="chart-box"><canvas id="cumulativeLine"></canvas></div>
+        <div class="inv-hub-chart-card">
+          <div class="inv-hub-chart-card-header">
+            <h4>Skumulowane: limit vs wydatki</h4>
+            <span class="tiny muted">Faktyczne vs oczekiwane tempo</span>
+          </div>
+          <div class="inv-hub-chart-box dashboard-chart-box"><canvas id="cumulativeLine"></canvas></div>
         </div>
       </div>
 
       <div class="card heatmap-card" style="margin-top:16px">
         <div class="title">Wydatki dzienne — heatmap</div>
         <div class="muted" style="margin-bottom:4px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
-        <div id="daily-spending-calendar" class="heatmap-strip"></div>
+        <div id="daily-spending-calendar" class="heatmap-strip heatmap-strip--compact"></div>
         <div class="heat-legend">
           <span class="heat-day" style="background:#dcfce7"> </span> w normie
           <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
@@ -4754,32 +4839,6 @@
         </div>
       </div>
 
-      <div class="quick-actions" style="margin-top:12px">
-        <div class="row">
-          <div class="title">Szybkie akcje</div>
-          <div class="row" style="gap:8px">
-            <button id="qa-edit-toggle" class="btn ghost">⚙️ Edytuj szybkie akcje</button>
-          </div>
-        </div>
-        <div id="qa-grid" class="grid g-4" style="margin-top:8px"></div>
-        <div id="qa-editor" class="editor-section" style="display:none">
-          <div class="title">Edycja szybkich akcji</div>
-          <div class="tiny">Zapisuje się w pamięci przeglądarki (localStorage).</div>
-          <form id="qa-add-form" class="grid g-4" style="margin-top:10px">
-            <input name="label" placeholder="Nazwa (np. Jedzenie)" required />
-            <input name="emoji" placeholder="Emoji (np. 🍕)" />
-            <select name="categoryId" required></select>
-            <select name="accountId" required></select>
-            <input name="defaultAmount" placeholder="Domyślna kwota (zł)" inputmode="decimal" />
-            <input name="defaultNote" placeholder="Domyślna notatka" />
-            <button class="btn" type="submit" style="grid-column: 1 / -1;">Dodaj akcję</button>
-          </form>
-          <table style="margin-top:10px">
-            <thead><tr><th>Emoji</th><th>Nazwa</th><th>Kategoria</th><th>Konto</th><th>Domyślna kwota</th><th>Notatka</th><th></th></tr></thead>
-            <tbody id="qa-rows"></tbody>
-          </table>
-        </div>
-      </div>
     </section>
 
     <!-- Overview -->
@@ -5380,31 +5439,39 @@
         <div class="card stack">
           <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <strong>Księgowanie sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-month-label"></span></strong>
-            <div class="row" style="gap:8px">
-              <span class="tiny muted" id="eom2-live-total"></span>
-              <button class="btn" type="button" id="eom2-save">Zapisz salda</button>
-            </div>
-          </div>
+	            <div class="row" style="gap:8px">
+	              <span class="tiny muted" id="eom2-live-total"></span>
+	              <button class="btn soft" type="button" id="eom2-bridge-apply">Pobierz aktualne</button>
+	              <button class="btn" type="button" id="eom2-save">Zapisz salda</button>
+	            </div>
+	          </div>
           <div id="eom2-booking-grid"></div>
-          <div class="card stack" style="margin-top:8px;padding:10px 12px">
-            <div class="eom2-bridge-head">
-              <strong>Połączenie z inwestycjami</strong>
-              <div class="row" style="gap:8px">
-                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
-                <button class="btn soft" type="button" id="eom2-bridge-apply">Pobierz aktualne</button>
-              </div>
-            </div>
-            <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
-            <div class="table-wrapper" style="margin-top:6px">
-              <table class="modern-table eom2-bridge-table">
-                <thead>
-                  <tr><th>Źródło (Inwestycje)</th><th>Księguj na konto EOM</th><th>Znak</th><th>Podgląd</th><th></th></tr>
-                </thead>
-                <tbody id="eom2-bridge-body"></tbody>
-              </table>
-            </div>
-            <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
-          </div>
+	          <div class="card stack" style="margin-top:8px;padding:10px 12px">
+	            <div class="eom2-bridge-head">
+	              <strong>Połączenie z inwestycjami</strong>
+	              <div class="row" style="gap:8px">
+	                <button class="btn soft" type="button" id="eom2-bridge-toggle" aria-expanded="false">
+	                  <span class="material-symbols-outlined" style="font-size:16px">expand_more</span>
+	                  <span>Rozwiń mapowania</span>
+	                </button>
+	              </div>
+	            </div>
+	            <div id="eom2-bridge-panel" hidden>
+	              <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
+	              <div class="row" style="justify-content:flex-end;margin-top:8px">
+	                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
+	              </div>
+	              <div class="table-wrapper" style="margin-top:6px">
+	                <table class="modern-table eom2-bridge-table">
+	                  <thead>
+	                    <tr><th>Źródło (Inwestycje)</th><th>Księguj na konto EOM</th><th>Znak</th><th>Podgląd</th><th></th></tr>
+	                  </thead>
+	                  <tbody id="eom2-bridge-body"></tbody>
+	                </table>
+	              </div>
+	              <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
+	            </div>
+	          </div>
           <form id="eom2-add-account" class="row" style="gap:8px;margin-top:8px">
             <input name="name" placeholder="Nowe konto (np. Revolut, Karta kredytowa)" style="flex:1;height:38px" required />
             <select name="type" style="height:38px;min-width:140px">
@@ -5424,14 +5491,19 @@
           <div class="card stack" style="flex:2;min-width:300px">
             <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <strong>Trend majątku netto</strong>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <select id="eom2-cat-filter" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)">
-                  <option value="all">Wszystkie kategorie</option>
-                </select>
-                <div class="inv-trade-filters" style="margin:0">
-                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
-                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
-                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
+	              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+	                <select id="eom2-cat-filter" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)">
+	                  <option value="all">Wszystkie kategorie</option>
+	                </select>
+	                <div class="inv-trade-filters" style="margin:0">
+	                  <button type="button" class="eom2-gran-btn is-active" data-granularity="monthly">Miesiące</button>
+	                  <button type="button" class="eom2-gran-btn" data-granularity="quarterly">Kwartały</button>
+	                  <button type="button" class="eom2-gran-btn" data-granularity="yearly">Lata</button>
+	                </div>
+	                <div class="inv-trade-filters" style="margin:0">
+	                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
+	                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
+	                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
                 </div>
               </div>
             </div>
@@ -5475,16 +5547,30 @@
         </div>
 
         <!-- History (collapsible) -->
-        <details class="card stack">
-          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
-            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
-          </summary>
-          <div class="table-wrapper" style="margin-top:12px">
-            <table class="modern-table" id="eom2-history-table">
-              <thead id="eom2-history-thead"></thead>
-              <tbody id="eom2-history-tbody"></tbody>
-            </table>
-          </div>
+	        <details class="card stack">
+	          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
+	            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
+	          </summary>
+	          <div class="eom2-history-controls" style="margin-top:10px">
+	            <label class="tiny eom2-history-compare-toggle" style="display:flex;align-items:center;gap:6px">
+	              <input type="checkbox" id="eom2-history-compare-toggle" />
+	              Tryb porównawczy
+	            </label>
+	            <label class="tiny eom2-history-field">
+	              <span>Okres A</span>
+	              <select id="eom2-history-compare-a"></select>
+	            </label>
+	            <label class="tiny eom2-history-field">
+	              <span>Okres B</span>
+	              <select id="eom2-history-compare-b"></select>
+	            </label>
+	          </div>
+	          <div class="table-wrapper" style="margin-top:12px">
+	            <table class="modern-table eom2-history-pivot" id="eom2-history-table">
+	              <thead id="eom2-history-thead"></thead>
+	              <tbody id="eom2-history-tbody"></tbody>
+	            </table>
+	          </div>
         </details>
 
       </div>
@@ -5859,7 +5945,7 @@
         </main>
         <aside class="right-rail">
           <div class="kpi-compact" id="forecast-kpi">
-            <span class="kpi-emoji">🔮</span>
+            <span class="kpi-emoji material-symbols-outlined">insights</span>
             <div class="kpi-body">
               <span class="kpi-label">Prognozowane oszczędności</span>
               <span class="kpi-value" id="forecast-content">0</span>
@@ -5867,7 +5953,7 @@
             </div>
           </div>
           <div class="kpi-compact" id="buffer-kpi">
-            <span class="kpi-emoji">💰</span>
+            <span class="kpi-emoji material-symbols-outlined">savings</span>
             <div class="kpi-body">
               <span class="kpi-label">Zapas/dług na dziś</span>
               <span class="kpi-value" id="buffer-content">0</span>
@@ -5875,7 +5961,7 @@
             </div>
           </div>
           <div class="kpi-compact" id="mom-diff-kpi">
-            <span class="kpi-emoji">🆚</span>
+            <span class="kpi-emoji material-symbols-outlined">compare_arrows</span>
             <div class="kpi-body">
               <span class="kpi-label">MoM bez stałych</span>
               <span class="kpi-value" id="dash-mom-diff">—</span>
@@ -5883,7 +5969,7 @@
             </div>
           </div>
           <div class="kpi-compact">
-            <span class="kpi-emoji">💸</span>
+            <span class="kpi-emoji material-symbols-outlined">payments</span>
             <div class="kpi-body">
               <span class="kpi-label">Pozostały budżet</span>
               <span class="kpi-value" id="dash-remaining">0</span>
@@ -5891,7 +5977,7 @@
             </div>
           </div>
           <div class="kpi-compact">
-            <span class="kpi-emoji">📉</span>
+            <span class="kpi-emoji material-symbols-outlined">trending_down</span>
             <div class="kpi-body">
               <span class="kpi-label">Limit dzienny</span>
               <span class="kpi-value" id="dash-daily-budget">0</span>
@@ -5899,19 +5985,19 @@
             </div>
           </div>
           <div class="kpi-compact">
-            <span class="kpi-emoji">📅</span>
+            <span class="kpi-emoji material-symbols-outlined">calendar_month</span>
             <div class="kpi-body">
               <span class="kpi-label">Wydane dziś</span>
               <span class="kpi-value" id="dash-today-spent">0</span>
-              <span class="tiny muted">Status: <span id="dash-today-vs-budget">—</span></span>
+              <span class="tiny muted"><span id="dash-today-vs-budget">—</span></span>
             </div>
           </div>
           <div class="kpi-compact">
-            <span class="kpi-emoji">📊</span>
+            <span class="kpi-emoji material-symbols-outlined">bar_chart</span>
             <div class="kpi-body">
               <span class="kpi-label">Średnia dzienna</span>
               <span class="kpi-value" id="dash-avg-daily">0</span>
-              <span class="tiny muted">Porównanie: <span id="dash-avg-trend">—</span></span>
+              <span class="tiny muted"><span id="dash-avg-trend">—</span></span>
             </div>
           </div>
         </aside>
@@ -6152,7 +6238,9 @@
 
   // --- Quick actions ----------------------------------------------------------
   function renderQuickActions(){
-    const grid=document.getElementById('qa-grid'); grid.innerHTML='';
+    const grid=document.getElementById('qa-grid');
+    if(!grid) return;
+    grid.innerHTML='';
     for(const qa of (b().quickActions||[])){
       const cat=catsById()[qa.categoryId];
       const btn=document.createElement('div'); btn.className='quick-btn';
@@ -6173,18 +6261,27 @@
   }
   function fillQaEditorSelects(){
     const editor=document.getElementById('qa-editor');
+    if(!editor) return;
     const catSel=editor.querySelector('select[name="categoryId"]'); if(catSel){catSel.innerHTML=''; for(const c of (b().categories||[])){catSel.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id))}}
     const accSel=editor.querySelector('select[name="accountId"]'); if(accSel){accSel.innerHTML=''; for(const a of (b().accounts||[])){accSel.add(new Option(a.name,a.id))}}
   }
-  document.getElementById('qa-edit-toggle').onclick=()=>{const ed=document.getElementById('qa-editor'); ed.style.display = ed.style.display==='none' ? 'block' : 'none';};
-  document.getElementById('qa-add-form').onsubmit=(e)=>{
-    e.preventDefault();
-    const f=new FormData(e.target);
-    const qa={id:'qa_'+Math.random().toString(36).slice(2),label:String(f.get('label')||''),emoji:String(f.get('emoji')||''),categoryId:String(f.get('categoryId')),accountId:String(f.get('accountId')),defaultAmount:String(f.get('defaultAmount')||''),defaultNote:String(f.get('defaultNote')||'')};
-    b().quickActions.push(qa); save(state); e.target.reset(); renderQuickActions(); bindMoneyInputs(document.getElementById('qa-editor'));
+  const qaEditToggle=document.getElementById('qa-edit-toggle');
+  if(qaEditToggle){
+    qaEditToggle.onclick=()=>{const ed=document.getElementById('qa-editor'); if(!ed) return; ed.style.display = ed.style.display==='none' ? 'block' : 'none';};
+  }
+  const qaAddForm=document.getElementById('qa-add-form');
+  if(qaAddForm){
+    qaAddForm.onsubmit=(e)=>{
+      e.preventDefault();
+      const f=new FormData(e.target);
+      const qa={id:'qa_'+Math.random().toString(36).slice(2),label:String(f.get('label')||''),emoji:String(f.get('emoji')||''),categoryId:String(f.get('categoryId')),accountId:String(f.get('accountId')),defaultAmount:String(f.get('defaultAmount')||''),defaultNote:String(f.get('defaultNote')||'')};
+      b().quickActions.push(qa); save(state); e.target.reset(); renderQuickActions(); bindMoneyInputs(document.getElementById('qa-editor'));
+    };
   }
   function renderQuickActionsEditorRows(){
-    const tbody=document.getElementById('qa-rows'); tbody.innerHTML='';
+    const tbody=document.getElementById('qa-rows');
+    if(!tbody) return;
+    tbody.innerHTML='';
     for(const qa of (b().quickActions||[])){
       const tr=document.createElement('tr');
       tr.innerHTML=`
@@ -6347,14 +6444,18 @@
       return (!c || !((c.type==='expense' && c.id!=='c_fixed') || c.type==='saving')) ? s : s + Math.abs(e.amount);
     },0);
     document.getElementById('dash-today-spent').textContent=fmt(todaySpent, state.currency);
-    document.getElementById('dash-today-vs-budget').textContent = todaySpent<=dailyBudget ? '✅ w limicie dziennym' : '⚠️ powyżej limitu';
+    const isTodayWithinBudget = todaySpent <= dailyBudget;
+    document.getElementById('dash-today-vs-budget').innerHTML =
+      `<span class="kpi-status-inline ${isTodayWithinBudget ? 'is-positive' : 'is-warning'}"><span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isTodayWithinBudget ? 'check_circle' : 'warning'}</span>${isTodayWithinBudget ? 'w limicie dziennym' : 'powyżej limitu'}</span>`;
 
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
     const daily=getDailySpending(ym);
     const spentSoFar=Object.values(daily).reduce((a,b)=>a+b,0);
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     document.getElementById('dash-avg-daily').textContent=fmt(avgDaily, state.currency);
-    document.getElementById('dash-avg-trend').textContent = avgDaily <= dailyBudget ? '👍 poniżej planu' : '👎 powyżej planu';
+    const isAverageBelowPlan = avgDaily <= dailyBudget;
+    document.getElementById('dash-avg-trend').innerHTML =
+      `<span class="kpi-status-inline ${isAverageBelowPlan ? 'is-positive' : 'is-warning'}"><span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isAverageBelowPlan ? 'trending_down' : 'trending_up'}</span>${isAverageBelowPlan ? 'poniżej planu' : 'powyżej planu'}</span>`;
 
     // Heatmap
     const cal=document.getElementById('daily-spending-calendar'); cal.innerHTML='';
@@ -6658,7 +6759,7 @@
                     type: 'line',
                     label: 'Limit dzienny',
                     data: Array(daysInMonth).fill(dailyBudget),
-                    borderColor: 'rgba(190, 18, 60, 0.7)',
+                    borderColor: '#ef4444',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     pointRadius: 0,
@@ -6670,7 +6771,7 @@
                     type: 'line',
                     label: 'Średnia dzienna',
                     data: Array(daysInMonth).fill(avgDaily),
-                    borderColor: 'rgba(234, 88, 12, 0.7)',
+                    borderColor: '#f59e0b',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     pointRadius: 0,
@@ -6689,13 +6790,19 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: currencyTicks }
+                    ticks: { callback: currencyTicks, font: { size: 10 } },
+                    grid: { color: 'rgba(148,163,184,.12)' }
                 },
                 x: {
-                    grid: { display: false }
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: 12, font: { size: 10 } }
                 }
             },
             plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 11 }, usePointStyle: true, padding: 12 }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -6733,7 +6840,45 @@
         }
     });
 
-    window.dashCum=new Chart(cumCtx,{type:'line',data:{labels,datasets:[{label:'Skumulowane wydatki',data:cumSpend,borderColor:'#be123c',backgroundColor:'rgba(190,18,60,0.08)',tension:0.3,fill:true},{label:'Skumulowany limit',data:cumAllowed,borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.08)',tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:currencyTicks}}}}});
+    const todayDay=Math.min(new Date().getDate(), daysInMonth);
+    const cumulativeDaysToShow = ym===monthKey() ? todayDay : (monthKey()>ym ? daysInMonth : 0);
+    const cumulativeLabels = labels.slice(0, cumulativeDaysToShow);
+    const cumulativeSpendData = cumSpend.slice(0, cumulativeDaysToShow);
+    const cumulativeAllowedData = cumAllowed.slice(0, cumulativeDaysToShow);
+    const cumulativeExtent = [...cumulativeSpendData, ...cumulativeAllowedData];
+    const cumulativeMax = cumulativeExtent.length ? Math.max(...cumulativeExtent) : 0;
+    const cumulativeMin = cumulativeExtent.length ? Math.min(...cumulativeExtent) : 0;
+    const cumulativeRange = Math.max(cumulativeMax - cumulativeMin, 1);
+    const cumulativePadding = cumulativeRange * 0.08;
+
+    window.dashCum=new Chart(cumCtx,{
+      type:'line',
+      data:{
+        labels:cumulativeLabels,
+        datasets:[
+          {label:'Skumulowane wydatki',data:cumulativeSpendData,borderColor:'#ef4444',backgroundColor:colorWithAlpha('#ef4444',0.12),tension:.35,fill:true,borderWidth:2,pointRadius:0,pointHoverRadius:4},
+          {label:'Skumulowany limit',data:cumulativeAllowedData,borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',0.1),tension:.35,fill:true,borderWidth:2,pointRadius:0,pointHoverRadius:4}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:12}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},
+          y:{
+            min: cumulativeExtent.length ? Math.max(0, cumulativeMin - cumulativePadding) : 0,
+            max: cumulativeExtent.length ? (cumulativeMax + cumulativePadding) : undefined,
+            ticks:{callback:currencyTicks,font:{size:10}},
+            grid:{color:'rgba(148,163,184,.12)'}
+          }
+        }
+      }
+    });
   }
 
   // --- Overview ---------------------------------------------------------------
@@ -13495,11 +13640,40 @@
   // ===== EOM V2 — Redesigned Wealth Tracker =================================
   let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null;
   let eom2SelectedRange=6;
+  let eom2SelectedGranularity='monthly';
   let eom2SelectedCat='all';
+  let eom2HistoryCompareMode=false;
+  let eom2HistoryCompareA='';
+  let eom2HistoryCompareB='';
   let eom2Bound=false;
   const eom2TypeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
   const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
   const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+
+  function eom2AggregateMonths(months, granularity){
+    if(granularity==='monthly') return months.slice();
+    const bucketLastMonth=new Map();
+    for(const ym of months){
+      const [yearStr, monthStr]=String(ym).split('-');
+      const year=Number(yearStr);
+      const month=Number(monthStr);
+      if(!Number.isFinite(year)||!Number.isFinite(month)) continue;
+      const key=granularity==='yearly' ? String(year) : `${year}-Q${Math.floor((month-1)/3)+1}`;
+      const prev=bucketLastMonth.get(key);
+      if(!prev||ym>prev) bucketLastMonth.set(key, ym);
+    }
+    return Array.from(bucketLastMonth.values()).sort();
+  }
+
+  function eom2FormatTrendLabel(ym, granularity){
+    if(granularity==='monthly') return formatMonthLabel(ym);
+    const [yearStr, monthStr]=String(ym).split('-');
+    const year=Number(yearStr);
+    const month=Number(monthStr);
+    if(!Number.isFinite(year)||!Number.isFinite(month)) return ym;
+    if(granularity==='yearly') return String(year);
+    return `Q${Math.floor((month-1)/3)+1} ${year}`;
+  }
 
   function eom2InvestmentBridge(){
     if(!Array.isArray(b().eomInvestmentBridge)) b().eomInvestmentBridge=[];
@@ -13807,11 +13981,11 @@
       catFilter.innerHTML=opts;
       catFilter.value=curVal;
     }
-    if(nwCanvas){
-      let months=ctx.months;
-      if(eom2SelectedRange!=='all'){
-        const n=parseInt(eom2SelectedRange)||6;
-        months=months.slice(-n);
+	    if(nwCanvas){
+	      let months=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+	      if(eom2SelectedRange!=='all'){
+	        const n=parseInt(eom2SelectedRange)||6;
+	        months=months.slice(-n);
       }
       if(months.length>0){
         const subAccColors=['#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#e11d48','#84cc16'];
@@ -13852,10 +14026,10 @@
             datasets.push({label:acc.name,data:accData,borderColor:col,backgroundColor:'transparent',borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:col,tension:.3,fill:false,spanGaps:true});
           });
         }
-        eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
-          type:'line',
-          data:{labels:months.map(m=>formatMonthLabel(m)),datasets},
-          options:{responsive:true,maintainAspectRatio:false,
+	        eom2NwChart=new Chart(nwCanvas.getContext('2d'),{
+	          type:'line',
+	          data:{labels:months.map(m=>eom2FormatTrendLabel(m,eom2SelectedGranularity)),datasets},
+	          options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'circle'}},tooltip:{mode:'index',intersect:false,callbacks:{label:ctx2=>`${ctx2.dataset.label}: ${currencyTicks(ctx2.parsed.y)}`}}},
             interaction:{mode:'index',intersect:false},
             scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
@@ -13934,36 +14108,90 @@
       }
     }
 
-    // --- History Table ---
+    // --- History Table (pivot: rows=accounts grouped by type, cols=periods) ---
     const hThead=el('eom2-history-thead');
     const hTbody=el('eom2-history-tbody');
     const hCount=el('eom2-history-count');
+    const compareToggle=el('eom2-history-compare-toggle');
+    const compareA=el('eom2-history-compare-a');
+    const compareB=el('eom2-history-compare-b');
     if(hThead&&hTbody){
       hThead.innerHTML='';hTbody.innerHTML='';
-      const months=ctx.months.slice(-12);
-      if(hCount) hCount.textContent=`(${months.length} mies.)`;
-      if(months.length>0){
-        // Header: Month | Account1 | Account2 | ... | Net Worth
-        const usedAccounts=accounts.filter(a=>months.some(m=>(ctx.monthBalances[m]||{})[a.id]!==undefined));
-        let hdr='<tr><th>Miesiąc</th>';
-        for(const a of usedAccounts) hdr+=`<th style="text-align:right">${escapeHtml(a.name)}</th>`;
-        hdr+='<th style="text-align:right;font-weight:800">Netto</th></tr>';
-        hThead.innerHTML=hdr;
+      let periods=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+      if(eom2SelectedRange!=='all'){
+        const n=parseInt(eom2SelectedRange)||6;
+        periods=periods.slice(-n);
+      }
+      if(hCount) hCount.textContent=`(${periods.length} okres.)`;
 
-        for(const m of [...months].reverse()){
-          const bals=ctx.monthBalances[m]||{};
-          let row=`<tr><td><strong>${formatMonthLabel(m)}</strong></td>`;
-          for(const a of usedAccounts){
-            const v=bals[a.id];
-            const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
-            row+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
-          }
-          const nw=sumBalances(bals);
-          row+=`<td style="text-align:right;font-weight:800">${fmt(nw,cur)}</td></tr>`;
-          hTbody.innerHTML+=row;
+      if(compareA&&compareB){
+        const options=periods.map(p=>({value:p,label:eom2FormatTrendLabel(p,eom2SelectedGranularity)}));
+        compareA.innerHTML=options.map(o=>`<option value="${o.value}">${o.label}</option>`).join('');
+        compareB.innerHTML=options.map(o=>`<option value="${o.value}">${o.label}</option>`).join('');
+        if(options.length){
+          if(!options.some(o=>o.value===eom2HistoryCompareA)) eom2HistoryCompareA=options[Math.max(0,options.length-2)]?.value||options[0].value;
+          if(!options.some(o=>o.value===eom2HistoryCompareB)) eom2HistoryCompareB=options[options.length-1].value;
+          compareA.value=eom2HistoryCompareA;
+          compareB.value=eom2HistoryCompareB;
         }
-      } else {
+        compareA.disabled=!eom2HistoryCompareMode;
+        compareB.disabled=!eom2HistoryCompareMode;
+      }
+      if(compareToggle) compareToggle.checked=!!eom2HistoryCompareMode;
+      const displayedPeriods=eom2HistoryCompareMode
+        ? [eom2HistoryCompareA,eom2HistoryCompareB].filter(Boolean)
+        : periods;
+
+      if(!displayedPeriods.length){
         hTbody.innerHTML='<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">Brak danych historycznych</td></tr>';
+      } else {
+        const usedAccounts=accounts.filter(a=>displayedPeriods.some(p=>(ctx.monthBalances[p]||{})[a.id]!==undefined));
+        const accountsByType={};
+        for(const t of eom2TypeOrder) accountsByType[t]=usedAccounts.filter(a=>inferAccountType(a)===t);
+        const usedTypes=eom2TypeOrder.filter(t=>(accountsByType[t]||[]).length>0);
+
+        let head='<tr><th>Pozycja</th>';
+        for(const p of displayedPeriods) head+=`<th style="text-align:right">${eom2FormatTrendLabel(p,eom2SelectedGranularity)}</th>`;
+        if(eom2HistoryCompareMode) head+='<th style="text-align:right">Diff (B−A)</th>';
+        head+='</tr>';
+        hThead.innerHTML=head;
+
+        const bal=(period,accId)=>(ctx.monthBalances[period]||{})[accId];
+        const sumType=(period,type)=>(accountsByType[type]||[]).reduce((s,a)=>s+(bal(period,a.id)||0),0);
+        const sumAll=(period)=>sumBalances(ctx.monthBalances[period]||{});
+        const diffCell=(a,b)=>{
+          if(a===undefined||b===undefined) return '<span class="muted">—</span>';
+          const d=b-a;
+          const cls=d>0?'ok':d<0?'bad':'muted';
+          const sign=d>0?'+':'';
+          return `<span class="${cls}">${sign}${fmt(d,cur)}</span>`;
+        };
+
+        for(const type of usedTypes){
+          let groupRow=`<tr class="eom2-history-group"><td>${eom2TypeLabelMap[type]||type}</td>`;
+          for(const p of displayedPeriods) groupRow+=`<td style="text-align:right">${fmt(sumType(p,type),cur)}</td>`;
+          if(eom2HistoryCompareMode) groupRow+=`<td style="text-align:right">${diffCell(sumType(eom2HistoryCompareA,type),sumType(eom2HistoryCompareB,type))}</td>`;
+          groupRow+='</tr>';
+          hTbody.insertAdjacentHTML('beforeend',groupRow);
+
+          for(const acc of accountsByType[type]){
+            let accRow=`<tr><td class="eom2-history-account">${escapeHtml(acc.name)}</td>`;
+            for(const p of displayedPeriods){
+              const v=bal(p,acc.id);
+              const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
+              accRow+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
+            }
+            if(eom2HistoryCompareMode) accRow+=`<td style="text-align:right">${diffCell(bal(eom2HistoryCompareA,acc.id),bal(eom2HistoryCompareB,acc.id))}</td>`;
+            accRow+='</tr>';
+            hTbody.insertAdjacentHTML('beforeend',accRow);
+          }
+        }
+
+        let totalRow='<tr class="eom2-history-total"><td>Majątek netto</td>';
+        for(const p of displayedPeriods) totalRow+=`<td style="text-align:right">${fmt(sumAll(p),cur)}</td>`;
+        if(eom2HistoryCompareMode) totalRow+=`<td style="text-align:right">${diffCell(sumAll(eom2HistoryCompareA),sumAll(eom2HistoryCompareB))}</td>`;
+        totalRow+='</tr>';
+        hTbody.insertAdjacentHTML('beforeend',totalRow);
       }
     }
   }
@@ -14137,6 +14365,19 @@
     };
 
 
+    const bridgeToggleBtn=document.getElementById('eom2-bridge-toggle');
+    const bridgePanel=document.getElementById('eom2-bridge-panel');
+    if(bridgeToggleBtn&&bridgePanel){
+      bridgeToggleBtn.onclick=()=>{
+        const isHidden=bridgePanel.hidden;
+        bridgePanel.hidden=!isHidden;
+        bridgeToggleBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        bridgeToggleBtn.innerHTML=isHidden
+          ? '<span class="material-symbols-outlined" style="font-size:16px">expand_less</span><span>Zwiń mapowania</span>'
+          : '<span class="material-symbols-outlined" style="font-size:16px">expand_more</span><span>Rozwiń mapowania</span>';
+      };
+    }
+
     const bridgeAddBtn=document.getElementById('eom2-bridge-add');
     if(bridgeAddBtn) bridgeAddBtn.onclick=()=>{
       const invAccounts=(b().accounts||[]).filter(acc=>inferAccountType(acc)==='inwestycje');
@@ -14189,6 +14430,28 @@
         renderEomV2();
       };
     });
+    document.querySelectorAll('.eom2-gran-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        eom2SelectedGranularity=btn.dataset.granularity||'monthly';
+        document.querySelectorAll('.eom2-gran-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
+        renderEomV2();
+      };
+    });
+    const historyCompareToggle=document.getElementById('eom2-history-compare-toggle');
+    if(historyCompareToggle) historyCompareToggle.onchange=()=>{
+      eom2HistoryCompareMode=!!historyCompareToggle.checked;
+      renderEomV2();
+    };
+    const historyCompareA=document.getElementById('eom2-history-compare-a');
+    if(historyCompareA) historyCompareA.onchange=()=>{
+      eom2HistoryCompareA=historyCompareA.value;
+      renderEomV2();
+    };
+    const historyCompareB=document.getElementById('eom2-history-compare-b');
+    if(historyCompareB) historyCompareB.onchange=()=>{
+      eom2HistoryCompareB=historyCompareB.value;
+      renderEomV2();
+    };
 
     // Add account form
     const addForm=document.getElementById('eom2-add-account');

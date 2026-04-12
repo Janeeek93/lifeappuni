@@ -134,7 +134,14 @@
   padding-bottom: 4px;
 }
 
-.calendar-header h3 { font-size: 16px; font-weight: 700; }
+.calendar-header h3,
+.card-header > div > h3,
+.bm-dashboard-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
 .calendar-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
 .calendar-legend span { display: inline-flex; align-items: center; gap: 6px; font-weight: 500;}
 
@@ -539,12 +546,6 @@
   gap: 16px;
   flex-wrap: wrap;
   padding: 24px 24px 0;
-}
-
-.bm-dashboard-header h3 {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
 }
 
 .bm-header-controls {
@@ -1306,39 +1307,41 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 8px 0 20px;
+  padding: 8px 0 12px;
+  margin: 12px 0 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .subnav button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  transition: var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .subnav button:hover {
-  color: var(--accent);
-  border-color: var(--primary-border);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .subnav button.is-active {
-  color: var(--accent);
-  background: var(--primary-soft);
-  border-color: var(--primary-border);
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
   box-shadow: var(--shadow-sm);
 }
 
 .section-panel {
   display: none;
+  margin-top: 12px;
 }
 
 .section-panel.is-active {
@@ -1354,6 +1357,17 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    padding: 0 0 24px;
+}
+
+#analytics .card-header {
+    padding: 24px 24px 0;
+    margin-bottom: 0;
+}
+
+#analytics .analytics-top-row,
+#analytics .analytics-grid {
+    padding: 0 24px;
 }
 
 .analytics-top-row {
@@ -1642,15 +1656,15 @@
         </div>
       </header>
 
-      <nav class="subnav" aria-label="Podmenu sekcji">
-        <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
-        <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
-        <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
-        <button type="button" data-section-target="analytics"><i data-lucide="pie-chart" class="icon"></i>Analityka</button>
-      </nav>
-
       <div class="content">
         <main class="page-content content-main stack">
+          <nav class="subnav" aria-label="Podmenu sekcji">
+            <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
+            <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
+            <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
+            <button type="button" data-section-target="analytics"><i data-lucide="pie-chart" class="icon"></i>Analityka</button>
+          </nav>
+
           <!-- New Activity Hub Layout -->
           <div class="card activity-hub section-panel is-active" id="activity-hub">
             <div class="calendar-wrapper">
@@ -1690,7 +1704,6 @@
             <div class="card-header">
               <div>
                 <h3>Historia aktywności</h3>
-                <p class="muted tiny">Podsumowanie ukończonych zadań w ciągu roku</p>
               </div>
               <span class="month-chip" id="heatmap-year-label">--</span>
             </div>
@@ -1709,11 +1722,10 @@
           </section>
 
           <section class="card body-metrics-card section-panel" id="body-metrics">
-            <!-- Dashboard Header -->
+              <!-- Dashboard Header -->
             <div class="bm-dashboard-header">
               <div>
                 <h3>Body Composition Dashboard</h3>
-                <p class="muted tiny">Codzienne ważenie · średnie tygodniowe · analityka progresu</p>
               </div>
               <div class="bm-header-controls">
                 <div class="metrics-filter">
@@ -1829,12 +1841,11 @@
           </section>
 
           <!-- MODERN ANALYTICS DASHBOARD -->
-          <section class="section-panel" id="analytics">
+          <section class="card section-panel" id="analytics">
             <div class="analytics-dashboard">
                 <div class="card-header">
                     <div>
                       <h3>Dashboard Analityczny</h3>
-                      <p class="muted tiny">Twoje centrum dowodzenia nawykami.</p>
                     </div>
                     <span class="month-chip">Live</span>
                 </div>
@@ -4614,8 +4625,6 @@ function setupEventListeners() {
       const target = button.dataset.sectionTarget;
       sectionButtons.forEach(btn => btn.classList.toggle('is-active', btn === button));
       sectionPanels.forEach(panel => panel.classList.toggle('is-active', panel.id === target));
-      const main = document.querySelector('.page-content');
-      if (main) main.scrollIntoView({ behavior: 'smooth', block: 'start' });
       if (target === 'analytics') {
         // Wait for display:block to apply then render
         requestAnimationFrame(() => renderNewAnalytics());
