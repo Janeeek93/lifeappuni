@@ -5921,7 +5921,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Wydane dziś</span>
               <span class="kpi-value" id="dash-today-spent">0</span>
-              <span class="tiny muted">Status: <span id="dash-today-vs-budget">—</span></span>
+              <span class="tiny muted"><span id="dash-today-vs-budget">—</span></span>
             </div>
           </div>
           <div class="kpi-compact">
@@ -5929,7 +5929,7 @@
             <div class="kpi-body">
               <span class="kpi-label">Średnia dzienna</span>
               <span class="kpi-value" id="dash-avg-daily">0</span>
-              <span class="tiny muted">Porównanie: <span id="dash-avg-trend">—</span></span>
+              <span class="tiny muted"><span id="dash-avg-trend">—</span></span>
             </div>
           </div>
         </aside>
@@ -6366,12 +6366,8 @@
     },0);
     document.getElementById('dash-today-spent').textContent=fmt(todaySpent, state.currency);
     const isTodayWithinBudget = todaySpent <= dailyBudget;
-    document.getElementById('dash-today-vs-budget').innerHTML = `
-      <span class="kpi-status-inline ${isTodayWithinBudget ? 'is-positive' : 'is-warning'}">
-        <span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isTodayWithinBudget ? 'check_circle' : 'warning'}</span>
-        ${isTodayWithinBudget ? 'w limicie dziennym' : 'powyżej limitu'}
-      </span>
-    `;
+    document.getElementById('dash-today-vs-budget').innerHTML =
+      `<span class="kpi-status-inline ${isTodayWithinBudget ? 'is-positive' : 'is-warning'}"><span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isTodayWithinBudget ? 'check_circle' : 'warning'}</span>${isTodayWithinBudget ? 'w limicie dziennym' : 'powyżej limitu'}</span>`;
 
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
     const daily=getDailySpending(ym);
@@ -6379,12 +6375,8 @@
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     document.getElementById('dash-avg-daily').textContent=fmt(avgDaily, state.currency);
     const isAverageBelowPlan = avgDaily <= dailyBudget;
-    document.getElementById('dash-avg-trend').innerHTML = `
-      <span class="kpi-status-inline ${isAverageBelowPlan ? 'is-positive' : 'is-warning'}">
-        <span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isAverageBelowPlan ? 'trending_down' : 'trending_up'}</span>
-        ${isAverageBelowPlan ? 'poniżej planu' : 'powyżej planu'}
-      </span>
-    `;
+    document.getElementById('dash-avg-trend').innerHTML =
+      `<span class="kpi-status-inline ${isAverageBelowPlan ? 'is-positive' : 'is-warning'}"><span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isAverageBelowPlan ? 'trending_down' : 'trending_up'}</span>${isAverageBelowPlan ? 'poniżej planu' : 'powyżej planu'}</span>`;
 
     // Heatmap
     const cal=document.getElementById('daily-spending-calendar'); cal.innerHTML='';
