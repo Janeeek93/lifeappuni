@@ -462,6 +462,30 @@
     .eom2-bridge-table td, .eom2-bridge-table th { vertical-align:middle; }
     .eom2-bridge-table select, .eom2-bridge-table input { height:34px; width:100%; }
     .eom2-bridge-table .tiny { white-space:nowrap; }
+    .eom2-history-pivot thead th {
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      z-index: 3;
+    }
+    .eom2-history-pivot th:first-child,
+    .eom2-history-pivot td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--card);
+    }
+    .eom2-history-pivot tr.eom2-history-group td {
+      font-weight: 700;
+      background: rgba(51, 65, 85, 0.05);
+    }
+    .eom2-history-pivot tr.eom2-history-total td {
+      font-weight: 800;
+      border-top: 2px solid var(--line);
+    }
+    .eom2-history-account {
+      padding-left: 18px;
+    }
 
     .eom2-gainer-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(148,163,184,.08); font-size:13px; }
     .eom2-gainer-item:last-child { border-bottom:none; }
@@ -5494,16 +5518,30 @@
         </div>
 
         <!-- History (collapsible) -->
-        <details class="card stack">
-          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
-            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
-          </summary>
-          <div class="table-wrapper" style="margin-top:12px">
-            <table class="modern-table" id="eom2-history-table">
-              <thead id="eom2-history-thead"></thead>
-              <tbody id="eom2-history-tbody"></tbody>
-            </table>
-          </div>
+	        <details class="card stack">
+	          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
+	            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
+	          </summary>
+	          <div class="row" style="margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap">
+	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
+	              <input type="checkbox" id="eom2-history-compare-toggle" />
+	              Tryb porównawczy
+	            </label>
+	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
+	              Okres A
+	              <select id="eom2-history-compare-a" style="height:30px;min-width:130px"></select>
+	            </label>
+	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
+	              Okres B
+	              <select id="eom2-history-compare-b" style="height:30px;min-width:130px"></select>
+	            </label>
+	          </div>
+	          <div class="table-wrapper" style="margin-top:12px">
+	            <table class="modern-table eom2-history-pivot" id="eom2-history-table">
+	              <thead id="eom2-history-thead"></thead>
+	              <tbody id="eom2-history-tbody"></tbody>
+	            </table>
+	          </div>
         </details>
 
       </div>
@@ -13575,6 +13613,9 @@
   let eom2SelectedRange=6;
   let eom2SelectedGranularity='monthly';
   let eom2SelectedCat='all';
+  let eom2HistoryCompareMode=false;
+  let eom2HistoryCompareA='';
+  let eom2HistoryCompareB='';
   let eom2Bound=false;
   const eom2TypeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
   const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
@@ -14038,36 +14079,87 @@
       }
     }
 
-    // --- History Table ---
+    // --- History Table (pivot: rows=accounts grouped by type, cols=periods) ---
     const hThead=el('eom2-history-thead');
     const hTbody=el('eom2-history-tbody');
     const hCount=el('eom2-history-count');
+    const compareToggle=el('eom2-history-compare-toggle');
+    const compareA=el('eom2-history-compare-a');
+    const compareB=el('eom2-history-compare-b');
     if(hThead&&hTbody){
       hThead.innerHTML='';hTbody.innerHTML='';
-      const months=ctx.months.slice(-12);
-      if(hCount) hCount.textContent=`(${months.length} mies.)`;
-      if(months.length>0){
-        // Header: Month | Account1 | Account2 | ... | Net Worth
-        const usedAccounts=accounts.filter(a=>months.some(m=>(ctx.monthBalances[m]||{})[a.id]!==undefined));
-        let hdr='<tr><th>Miesiąc</th>';
-        for(const a of usedAccounts) hdr+=`<th style="text-align:right">${escapeHtml(a.name)}</th>`;
-        hdr+='<th style="text-align:right;font-weight:800">Netto</th></tr>';
-        hThead.innerHTML=hdr;
+      let periods=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+      if(eom2SelectedRange!=='all'){
+        const n=parseInt(eom2SelectedRange)||6;
+        periods=periods.slice(-n);
+      }
+      if(hCount) hCount.textContent=`(${periods.length} okres.)`;
 
-        for(const m of [...months].reverse()){
-          const bals=ctx.monthBalances[m]||{};
-          let row=`<tr><td><strong>${formatMonthLabel(m)}</strong></td>`;
-          for(const a of usedAccounts){
-            const v=bals[a.id];
-            const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
-            row+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
-          }
-          const nw=sumBalances(bals);
-          row+=`<td style="text-align:right;font-weight:800">${fmt(nw,cur)}</td></tr>`;
-          hTbody.innerHTML+=row;
+      if(compareA&&compareB){
+        const options=periods.map(p=>({value:p,label:eom2FormatTrendLabel(p,eom2SelectedGranularity)}));
+        compareA.innerHTML=options.map(o=>`<option value="${o.value}">${o.label}</option>`).join('');
+        compareB.innerHTML=options.map(o=>`<option value="${o.value}">${o.label}</option>`).join('');
+        if(options.length){
+          if(!options.some(o=>o.value===eom2HistoryCompareA)) eom2HistoryCompareA=options[Math.max(0,options.length-2)]?.value||options[0].value;
+          if(!options.some(o=>o.value===eom2HistoryCompareB)) eom2HistoryCompareB=options[options.length-1].value;
+          compareA.value=eom2HistoryCompareA;
+          compareB.value=eom2HistoryCompareB;
         }
-      } else {
+        compareA.disabled=!eom2HistoryCompareMode;
+        compareB.disabled=!eom2HistoryCompareMode;
+      }
+      if(compareToggle) compareToggle.checked=!!eom2HistoryCompareMode;
+
+      if(!periods.length){
         hTbody.innerHTML='<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">Brak danych historycznych</td></tr>';
+      } else {
+        const usedAccounts=accounts.filter(a=>periods.some(p=>(ctx.monthBalances[p]||{})[a.id]!==undefined));
+        const accountsByType={};
+        for(const t of eom2TypeOrder) accountsByType[t]=usedAccounts.filter(a=>inferAccountType(a)===t);
+        const usedTypes=eom2TypeOrder.filter(t=>(accountsByType[t]||[]).length>0);
+
+        let head='<tr><th>Pozycja</th>';
+        for(const p of periods) head+=`<th style="text-align:right">${eom2FormatTrendLabel(p,eom2SelectedGranularity)}</th>`;
+        if(eom2HistoryCompareMode) head+='<th style="text-align:right">Diff (B−A)</th>';
+        head+='</tr>';
+        hThead.innerHTML=head;
+
+        const bal=(period,accId)=>(ctx.monthBalances[period]||{})[accId];
+        const sumType=(period,type)=>(accountsByType[type]||[]).reduce((s,a)=>s+(bal(period,a.id)||0),0);
+        const sumAll=(period)=>sumBalances(ctx.monthBalances[period]||{});
+        const diffCell=(a,b)=>{
+          if(a===undefined||b===undefined) return '<span class="muted">—</span>';
+          const d=b-a;
+          const cls=d>0?'ok':d<0?'bad':'muted';
+          const sign=d>0?'+':'';
+          return `<span class="${cls}">${sign}${fmt(d,cur)}</span>`;
+        };
+
+        for(const type of usedTypes){
+          let groupRow=`<tr class="eom2-history-group"><td>${eom2TypeLabelMap[type]||type}</td>`;
+          for(const p of periods) groupRow+=`<td style="text-align:right">${fmt(sumType(p,type),cur)}</td>`;
+          if(eom2HistoryCompareMode) groupRow+=`<td style="text-align:right">${diffCell(sumType(eom2HistoryCompareA,type),sumType(eom2HistoryCompareB,type))}</td>`;
+          groupRow+='</tr>';
+          hTbody.insertAdjacentHTML('beforeend',groupRow);
+
+          for(const acc of accountsByType[type]){
+            let accRow=`<tr><td class="eom2-history-account">${escapeHtml(acc.name)}</td>`;
+            for(const p of periods){
+              const v=bal(p,acc.id);
+              const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
+              accRow+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
+            }
+            if(eom2HistoryCompareMode) accRow+=`<td style="text-align:right">${diffCell(bal(eom2HistoryCompareA,acc.id),bal(eom2HistoryCompareB,acc.id))}</td>`;
+            accRow+='</tr>';
+            hTbody.insertAdjacentHTML('beforeend',accRow);
+          }
+        }
+
+        let totalRow='<tr class="eom2-history-total"><td>Majątek netto</td>';
+        for(const p of periods) totalRow+=`<td style="text-align:right">${fmt(sumAll(p),cur)}</td>`;
+        if(eom2HistoryCompareMode) totalRow+=`<td style="text-align:right">${diffCell(sumAll(eom2HistoryCompareA),sumAll(eom2HistoryCompareB))}</td>`;
+        totalRow+='</tr>';
+        hTbody.insertAdjacentHTML('beforeend',totalRow);
       }
     }
   }
@@ -14313,6 +14405,21 @@
         renderEomV2();
       };
     });
+    const historyCompareToggle=document.getElementById('eom2-history-compare-toggle');
+    if(historyCompareToggle) historyCompareToggle.onchange=()=>{
+      eom2HistoryCompareMode=!!historyCompareToggle.checked;
+      renderEomV2();
+    };
+    const historyCompareA=document.getElementById('eom2-history-compare-a');
+    if(historyCompareA) historyCompareA.onchange=()=>{
+      eom2HistoryCompareA=historyCompareA.value;
+      renderEomV2();
+    };
+    const historyCompareB=document.getElementById('eom2-history-compare-b');
+    if(historyCompareB) historyCompareB.onchange=()=>{
+      eom2HistoryCompareB=historyCompareB.value;
+      renderEomV2();
+    };
 
     // Add account form
     const addForm=document.getElementById('eom2-add-account');
