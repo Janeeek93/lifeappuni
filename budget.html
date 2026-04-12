@@ -6365,16 +6365,26 @@
       return (!c || !((c.type==='expense' && c.id!=='c_fixed') || c.type==='saving')) ? s : s + Math.abs(e.amount);
     },0);
     document.getElementById('dash-today-spent').textContent=fmt(todaySpent, state.currency);
-    const todayStatus = todaySpent <= dailyBudget ? 'w limicie dziennym' : 'powyżej limitu';
-    document.getElementById('dash-today-vs-budget').textContent = todayStatus;
+    const isTodayWithinBudget = todaySpent <= dailyBudget;
+    document.getElementById('dash-today-vs-budget').innerHTML = `
+      <span class="kpi-status-inline ${isTodayWithinBudget ? 'is-positive' : 'is-warning'}">
+        <span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isTodayWithinBudget ? 'check_circle' : 'warning'}</span>
+        ${isTodayWithinBudget ? 'w limicie dziennym' : 'powyżej limitu'}
+      </span>
+    `;
 
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
     const daily=getDailySpending(ym);
     const spentSoFar=Object.values(daily).reduce((a,b)=>a+b,0);
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     document.getElementById('dash-avg-daily').textContent=fmt(avgDaily, state.currency);
-    const averageTrendStatus = avgDaily <= dailyBudget ? 'poniżej planu' : 'powyżej planu';
-    document.getElementById('dash-avg-trend').textContent = averageTrendStatus;
+    const isAverageBelowPlan = avgDaily <= dailyBudget;
+    document.getElementById('dash-avg-trend').innerHTML = `
+      <span class="kpi-status-inline ${isAverageBelowPlan ? 'is-positive' : 'is-warning'}">
+        <span class="material-symbols-outlined kpi-status-icon" aria-hidden="true">${isAverageBelowPlan ? 'trending_down' : 'trending_up'}</span>
+        ${isAverageBelowPlan ? 'poniżej planu' : 'powyżej planu'}
+      </span>
+    `;
 
     // Heatmap
     const cal=document.getElementById('daily-spending-calendar'); cal.innerHTML='';
