@@ -157,6 +157,16 @@
       gap: 8px;
     }
 
+    .loan-page-panel {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .loan-page-panel.active {
+      display: flex;
+    }
+
     .loan-tab-btn {
       border: 1px solid var(--line);
       background: var(--surface);
@@ -754,10 +764,7 @@
     }
 
     body[data-page="loan"] .content {
-      display: grid;
-      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 360px);
-      gap: 28px;
-      align-items: start;
+      display: block;
     }
 
     body[data-page="loan"] .stack.tight {
@@ -1845,8 +1852,15 @@
             </section>
 
             <div id="dashboard-container" class="stack tight" style="display: none;">
-              
-<section class="card loan-progress-card fintech-overview-card">
+              <div class="tabs loan-page-tabs" id="loan-page-tabs">
+                <button class="tab active" data-loan-tab="overview">Przegląd</button>
+                <button class="tab" data-loan-tab="analytics">Hub analityczny</button>
+                <button class="tab" data-loan-tab="schedule">Harmonogram spłat</button>
+                <button class="tab" data-loan-tab="history">Historia spłat</button>
+              </div>
+
+              <div class="loan-page-panel active" data-loan-tab-panel="overview">
+                <section class="card loan-progress-card fintech-overview-card">
   <div class="fintech-overview-header">
     <div class="fintech-overview-copy">
       <span class="fintech-eyebrow">Credit cockpit</span>
@@ -1940,7 +1954,45 @@
     </div>
   </div>
 </section>
+                <section class="card fintech-rail-card fintech-market-card">
+                  <div class="section-heading">
+                    <h2 class="title">Metryki rynkowe</h2>
+                    <span class="tiny muted">Bieżący kontekst Twojego kredytu</span>
+                  </div>
+                  <div class="fintech-market-list">
+                    <div class="fintech-market-row fintech-market-row--rate">
+                      <div class="fintech-market-main">
+                        <span class="fintech-market-label">Aktualne oprocentowanie</span>
+                        <strong class="fintech-market-value" id="rail-current-rate">—</strong>
+                        <div class="fintech-rate-inline">
+                          <div id="rate-history-list" class="fintech-rate-inline-list"></div>
+                        </div>
+                      </div>
+                      <span class="fintech-market-note" id="hero-rate-compact">—</span>
+                    </div>
+                    <div class="fintech-market-row">
+                      <div>
+                        <span class="fintech-market-label">Pozostało rat</span>
+                        <strong class="fintech-market-value" id="rail-remaining-installments">—</strong>
+                      </div>
+                      <span class="fintech-market-note" id="rail-remaining-installments-label"></span>
+                    </div>
+                    <div class="fintech-market-row">
+                      <div>
+                        <span class="fintech-market-label">Średnia rata</span>
+                        <strong class="fintech-market-value" id="rail-average-installment">—</strong>
+                      </div>
+                      <span class="fintech-market-note" id="rail-average-installment-note"></span>
+                    </div>
+                  </div>
+                  <div class="fintech-expiry">
+                    <div class="fintech-expiry-year" id="rail-expiry-year">—</div>
+                    <p class="fintech-expiry-copy">Prognozowany finisz spłaty przy obecnym tempie.</p>
+                  </div>
+                </section>
+              </div>
 
+              <div class="loan-page-panel" data-loan-tab-panel="analytics">
 <section class="card loan-charts-card" id="loan-analytics-card">
                 <div class="section-heading">
                   <h2 class="title">Hub analityczny</h2>
@@ -2022,8 +2074,10 @@
                   </div>
                 </div>
               </section>
+              </div>
 
-              <section class="card schedule-card" id="schedule-card">
+              <div class="loan-page-panel" data-loan-tab-panel="schedule">
+                <section class="card schedule-card" id="schedule-card">
                 <div class="section-heading">
                   <h2 class="title">Harmonogram rat</h2>
                   <span class="tiny muted">Oś czasu spłat z planowanymi ratami i statusami</span>
@@ -2040,8 +2094,10 @@
                   <button class="btn soft" id="schedule-show-more-btn">Pokaż więcej rat</button>
                 </div>
               </section>
+              </div>
 
-              <section class="card loan-table-card">
+              <div class="loan-page-panel" data-loan-tab-panel="history">
+                <section class="card loan-table-card">
                 <div class="section-heading">
                   <h2 class="title">Historia spłat</h2>
                   <span class="tiny muted">Edytuj dowolny wpis, aby zaktualizować harmonogram</span>
@@ -2063,77 +2119,11 @@
                   </table>
                 </div>
               </section>
+              </div>
 
             </div>
           </div>
         </main>
-
-        
-<aside class="right-rail fintech-rail">
-  <section class="card fintech-rail-card fintech-links-card fintech-links-card--hero">
-    <div class="section-heading">
-      <h2 class="title">Szybkie akcje</h2>
-      <span class="tiny muted">Najczęściej używane operacje</span>
-    </div>
-    <button class="fintech-link-btn fintech-link-btn--primary" type="button" onclick="openPaymentModal(null)">
-      <span class="material-symbols-outlined">credit_score</span>
-      <span>Dodaj nową spłatę</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="openSetupModal()">
-      <span class="material-symbols-outlined">tune</span>
-      <span>Parametry i ustawienia kredytu</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="document.getElementById('schedule-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-      <span class="material-symbols-outlined">calendar_month</span>
-      <span>Przejdź do harmonogramu rat</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-    <button class="fintech-link-btn" type="button" onclick="document.querySelector('.loan-table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
-      <span class="material-symbols-outlined">history</span>
-      <span>Przejdź do historii spłat</span>
-      <span class="material-symbols-outlined">chevron_right</span>
-    </button>
-  </section>
-
-  <section class="card fintech-rail-card fintech-market-card">
-    <div class="section-heading">
-      <h2 class="title">Metryki rynkowe</h2>
-      <span class="tiny muted">Bieżący kontekst Twojego kredytu</span>
-    </div>
-    <div class="fintech-market-list">
-      <div class="fintech-market-row fintech-market-row--rate">
-        <div class="fintech-market-main">
-          <span class="fintech-market-label">Aktualne oprocentowanie</span>
-          <strong class="fintech-market-value" id="rail-current-rate">—</strong>
-          <div class="fintech-rate-inline">
-            <div id="rate-history-list" class="fintech-rate-inline-list"></div>
-          </div>
-        </div>
-        <span class="fintech-market-note" id="hero-rate-compact">—</span>
-      </div>
-      <div class="fintech-market-row">
-        <div>
-          <span class="fintech-market-label">Pozostało rat</span>
-          <strong class="fintech-market-value" id="rail-remaining-installments">—</strong>
-        </div>
-        <span class="fintech-market-note" id="rail-remaining-installments-label"></span>
-      </div>
-      <div class="fintech-market-row">
-        <div>
-          <span class="fintech-market-label">Średnia rata</span>
-          <strong class="fintech-market-value" id="rail-average-installment">—</strong>
-        </div>
-        <span class="fintech-market-note" id="rail-average-installment-note"></span>
-      </div>
-    </div>
-    <div class="fintech-expiry">
-      <div class="fintech-expiry-year" id="rail-expiry-year">—</div>
-      <p class="fintech-expiry-copy">Prognozowany finisz spłaty przy obecnym tempie.</p>
-    </div>
-  </section>
-</aside>
       </div>
     </div>
   </div>
@@ -3953,6 +3943,27 @@ function setupLoanChartTabs() {
   });
 }
 
+function setupLoanPageTabs() {
+  const tabButtons = Array.from(document.querySelectorAll('[data-loan-tab]'));
+  const tabPanels = Array.from(document.querySelectorAll('[data-loan-tab-panel]'));
+  if (!tabButtons.length || !tabPanels.length) return;
+
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.loanTab;
+      if (!target || button.classList.contains('active')) return;
+
+      tabButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+      tabPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.loanTabPanel === target));
+
+      if (target === 'analytics') {
+        const activeAnalyticsTab = document.querySelector('.loan-tab-btn.active');
+        renderChartForPanel(activeAnalyticsTab?.dataset.chart || 'mix');
+      }
+    });
+  });
+}
+
 /* === Projections === */
 function generateProjections(count = 3) {
   const { loanDetails, payments } = state;
@@ -4320,6 +4331,7 @@ function setupScheduleControls() {
 function init() {
   loadState();
   render();
+  setupLoanPageTabs();
   setupLoanChartTabs();
   setupLoanChartToggles();
   setupChangeModeSwitch();
