@@ -4713,14 +4713,18 @@
     <section id="tab-dashboard" class="card" style="margin-top:12px">
       <h3 class="title">Dashboard finansowy</h3>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card">
-          <div class="title">Wydatki dzień po dniu</div>
-          <div class="chart-box"><canvas id="dailyLine"></canvas></div>
+        <div class="inv-hub-chart-card">
+          <div class="inv-hub-chart-card-header">
+            <h4>Wydatki dzień po dniu</h4>
+          </div>
+          <div class="inv-hub-chart-box"><canvas id="dailyLine"></canvas></div>
         </div>
-        <div class="card">
-          <div class="title">Skumulowane: limit vs wydatki</div>
-          <div class="hint">Dwie linie: oczekiwane (np. 400 zł/dzień) vs faktyczne (wydatki + oszczędności)</div>
-          <div class="chart-box"><canvas id="cumulativeLine"></canvas></div>
+        <div class="inv-hub-chart-card">
+          <div class="inv-hub-chart-card-header">
+            <h4>Skumulowane: limit vs wydatki</h4>
+            <span class="tiny muted">Faktyczne vs oczekiwane tempo</span>
+          </div>
+          <div class="inv-hub-chart-box"><canvas id="cumulativeLine"></canvas></div>
         </div>
       </div>
 
@@ -6680,7 +6684,7 @@
                     type: 'line',
                     label: 'Limit dzienny',
                     data: Array(daysInMonth).fill(dailyBudget),
-                    borderColor: 'rgba(190, 18, 60, 0.7)',
+                    borderColor: '#ef4444',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     pointRadius: 0,
@@ -6692,7 +6696,7 @@
                     type: 'line',
                     label: 'Średnia dzienna',
                     data: Array(daysInMonth).fill(avgDaily),
-                    borderColor: 'rgba(234, 88, 12, 0.7)',
+                    borderColor: '#f59e0b',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     pointRadius: 0,
@@ -6711,13 +6715,20 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: currencyTicks }
+                    ticks: { callback: currencyTicks, font: { size: 10 } },
+                    grid: { color: 'rgba(148,163,184,.12)' },
+                    title: { display: true, text: 'Wydatki', font: { size: 10 }, color: 'var(--muted)' }
                 },
                 x: {
-                    grid: { display: false }
+                    grid: { display: false },
+                    ticks: { maxTicksLimit: 12, font: { size: 10 } }
                 }
             },
             plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { size: 11 }, usePointStyle: true, padding: 12 }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -6755,7 +6766,29 @@
         }
     });
 
-    window.dashCum=new Chart(cumCtx,{type:'line',data:{labels,datasets:[{label:'Skumulowane wydatki',data:cumSpend,borderColor:'#be123c',backgroundColor:'rgba(190,18,60,0.08)',tension:0.3,fill:true},{label:'Skumulowany limit',data:cumAllowed,borderColor:'#059669',backgroundColor:'rgba(5,150,105,0.08)',tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:currencyTicks}}}}});
+    window.dashCum=new Chart(cumCtx,{
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:'Skumulowane wydatki',data:cumSpend,borderColor:'#ef4444',backgroundColor:colorWithAlpha('#ef4444',0.12),tension:.35,fill:true,borderWidth:2,pointRadius:0,pointHoverRadius:4},
+          {label:'Skumulowany limit',data:cumAllowed,borderColor:'#2563eb',backgroundColor:colorWithAlpha('#2563eb',0.1),tension:.35,fill:true,borderWidth:2,pointRadius:0,pointHoverRadius:4}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true,padding:12}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${currencyTicks(ctx.parsed.y)}`}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}},
+          y:{beginAtZero:true,ticks:{callback:currencyTicks,font:{size:10}},grid:{color:'rgba(148,163,184,.12)'},title:{display:true,text:'Wartość',font:{size:10},color:'var(--muted)'}}
+        }
+      }
+    });
   }
 
   // --- Overview ---------------------------------------------------------------
