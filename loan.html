@@ -155,6 +155,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      justify-content: center;
     }
 
     .loan-page-panel {
@@ -2207,8 +2208,8 @@ let state = {};
 let charts = {};
 let chartDataCache = null;
 const chartLabelState = {
-  line: false,
-  share: false,
+  line: true,
+  share: true,
   cumulative: false,
   change: false
 };
@@ -3378,7 +3379,7 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.16)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.green, pointBorderWidth: 2 },
+              { label: 'Kapitał', data: principalSeries, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.16)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.green, pointBorderWidth: 2, hidden: true },
               { label: 'Odsetki', data: interestSeries, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.14)'), fill: true, tension: 0.38, borderWidth: 3, pointRadius: 0, pointHoverRadius: 7, pointBackgroundColor: palette.card, pointBorderColor: palette.orange, pointBorderWidth: 2 }
             ]
           },
@@ -3452,7 +3453,7 @@ function renderChartForPanel(panelType) {
             labels,
             datasets: [
               { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.18)'), fill: 'origin', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' },
-              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.16)'), fill: '-1', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' }
+              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.16)'), fill: '-1', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares', hidden: true }
             ]
           },
           plugins: [ChartDataLabels],
