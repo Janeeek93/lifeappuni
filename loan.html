@@ -3416,9 +3416,9 @@ function renderChartForPanel(panelType) {
     if (shareCanvas) {
       const shareCtx = shareCanvas.getContext('2d');
       const shareLabelFormatter = (value) => `${Number(value).toFixed(1)}%`;
-      const shareLabelOffset = (context) => (context.datasetIndex === 0 ? -8 : 8);
-      const shareLabelColor = (context) => (context.datasetIndex === 0 ? palette.green : palette.orange);
-      const allShareValues = [...sharePrincipal, ...shareInterest].filter((value) => Number.isFinite(value));
+      const shareLabelOffset = () => -8;
+      const shareLabelColor = () => palette.green;
+      const allShareValues = [...sharePrincipal].filter((value) => Number.isFinite(value));
       const shareRawMin = allShareValues.length ? Math.min(...allShareValues) : 0;
       const shareRawMax = allShareValues.length ? Math.max(...allShareValues) : 100;
       const shareSpan = Math.max(shareRawMax - shareRawMin, 6);
@@ -3428,12 +3428,11 @@ function renderChartForPanel(panelType) {
       if (charts.shareArea) {
         charts.shareArea.data.labels = labels;
         charts.shareArea.data.datasets[0].data = sharePrincipal;
-        charts.shareArea.data.datasets[1].data = shareInterest;
         charts.shareArea.options.plugins.datalabels.display = (ctx) => chartLabelState.share && !ctx.dataset.hidden;
         charts.shareArea.options.plugins.datalabels.offset = shareLabelOffset;
         charts.shareArea.options.plugins.datalabels.color = shareLabelColor;
-        charts.shareArea.options.plugins.datalabels.align = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
-        charts.shareArea.options.plugins.datalabels.anchor = (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start');
+        charts.shareArea.options.plugins.datalabels.align = 'end';
+        charts.shareArea.options.plugins.datalabels.anchor = 'end';
         charts.shareArea.options.plugins.datalabels.backgroundColor = 'rgba(255, 255, 255, 0.9)';
         charts.shareArea.options.plugins.datalabels.borderRadius = 10;
         charts.shareArea.options.plugins.datalabels.padding = { top: 2, bottom: 2, left: 6, right: 6 };
@@ -3448,8 +3447,7 @@ function renderChartForPanel(panelType) {
           data: {
             labels,
             datasets: [
-              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.18)'), fill: 'origin', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' },
-              { label: 'Odsetki %', data: shareInterest, borderColor: palette.orange, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(124, 92, 255, 0.16)'), fill: '-1', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares', hidden: true }
+              { label: 'Kapitał %', data: sharePrincipal, borderColor: palette.green, backgroundColor: (context) => loanAreaGradient(context.chart, 'rgba(18, 185, 129, 0.18)'), fill: 'origin', tension: 0.38, borderWidth: 3, pointRadius: 0, stack: 'shares' }
             ]
           },
           plugins: [ChartDataLabels],
@@ -3463,8 +3461,8 @@ function renderChartForPanel(panelType) {
               }),
               datalabels: {
                 display: (ctx) => chartLabelState.share && !ctx.dataset.hidden,
-                align: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
-                anchor: (ctx) => (ctx.datasetIndex === 0 ? 'end' : 'start'),
+                align: 'end',
+                anchor: 'end',
                 clip: false,
                 offset: shareLabelOffset,
                 backgroundColor: 'rgba(255, 255, 255, 0.94)',
