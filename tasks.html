@@ -1217,6 +1217,13 @@ function renderCalendar(){
     const dt=(byDate[ds]||[]).sort((a,b)=>priW(a.priority)-priW(b.priority));
     const owners={};
     dt.forEach(task=>{const key=task._owner||'me';if(!owners[key])owners[key]={name:key==='me'?'Ja':(task._ownerName||S.members.find(m=>m.id===key)?.name||'Członek'),color:task._color||'#64748b',tasks:[]};owners[key].tasks.push(task);});
+    Object.values(owners).forEach(ownerGroup=>{
+      ownerGroup.tasks.sort((a,b)=>{
+        const doneDelta=(a.status==='done')-(b.status==='done');
+        if(doneDelta!==0) return doneDelta;
+        return priW(a.priority)-priW(b.priority);
+      });
+    });
     const ownerBlocks=Object.entries(owners).map(([ownerKey,o])=>`<div class="cal-own"><div class="cal-own-h"><span class="dot" style="background:${o.color}"></span>${escH(o.name)} <span style="font-size:8px;opacity:.6">(${o.tasks.length})</span></div>${o.tasks.map(t=>`<div class="cal-pill prio-${t.priority} ${t.status==='done'?'is-done':''}" style="border-left-color:${o.color}" draggable="true" data-move-id="${t.id}" data-move-own="${ownerKey}"><span>${escH(t.title)}</span></div>`).join('')}</div>`).join('');
     html+=`<div class="cal-day ${cls}" data-ds="${ds}"><span class="cal-dn">${d.getUTCDate()}</span><div class="cal-pills">${ownerBlocks||''}</div></div>`;
   }
@@ -1236,7 +1243,16 @@ function updateDayPanel(ds){
   dpDow.textContent=d.toLocaleDateString('pl-PL',{weekday:'long'});
   const _raw=getCalTasks().filter(t=>t.dueDate===ds);
   const _seen=new Set();
-  const tasks=_raw.filter(t=>{if(!t._isProject)return true;if(_seen.has(t.id))return false;_seen.add(t.id);return true;});
+  const tasks=_raw
+    .filter(t=>{if(!t._isProject)return true;if(_seen.has(t.id))return false;_seen.add(t.id);return true;})
+    .sort((a,b)=>{
+      const doneDelta=(a.status==='done')-(b.status==='done');
+      if(doneDelta!==0) return doneDelta;
+      const ownerA=(a._owner==='me'?'Ja':(a._ownerName||S.members.find(m=>m.id===a._owner)?.name||'Członek')).toLowerCase();
+      const ownerB=(b._owner==='me'?'Ja':(b._ownerName||S.members.find(m=>m.id===b._owner)?.name||'Członek')).toLowerCase();
+      if(ownerA!==ownerB) return ownerA.localeCompare(ownerB,'pl');
+      return priW(a.priority)-priW(b.priority);
+    });
   if(!tasks.length){dpBody.innerHTML=`<div class="dp-empty">📭<br>Brak zadań — dodaj poniżej.</div>`;}
   else{
     dpBody.innerHTML=tasks.map(t=>{const m=t._owner!=='me'?S.members.find(x=>x.id===t._owner):null;const bdrColor=t.priority==='high'?'var(--red)':t.priority==='medium'?'var(--amber)':'var(--green)';return `<div class="dp-task" style="border-left-color:${bdrColor}"><input type="checkbox" data-dpid="${t.id}" data-dpown="${t._owner}" ${t.status==='done'?'checked':''}><div class="dp-task-body"><div class="dp-task-title ${t.status==='done'?'done':''}">${escH(t.title)}</div><div class="dp-task-who">${m?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${m.color}"></span> ${escH(m.name)}`:'<span style="color:var(--blue);font-weight:800">Ja</span>'} <span class="pill prio-${t.priority}" style="font-size:9px;padding:1px 5px">${priShort(t.priority)}</span></div></div><button class="btn ghost sm" data-dpedit="${t.id}" data-dpown="${t._owner}" style="padding:3px 5px"><span class="material-symbols-outlined" style="font-size:13px">edit</span></button></div>`;}).join('');
