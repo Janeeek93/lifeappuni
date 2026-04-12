@@ -486,6 +486,35 @@
     .eom2-history-account {
       padding-left: 18px;
     }
+    .eom2-history-controls {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .eom2-history-compare-toggle {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      height: 34px;
+      white-space: nowrap;
+    }
+    .eom2-history-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 170px;
+    }
+    .eom2-history-field select {
+      height: 34px;
+      min-width: 170px;
+      border-radius: 10px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+    }
 
     .eom2-gainer-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(148,163,184,.08); font-size:13px; }
     .eom2-gainer-item:last-child { border-bottom:none; }
@@ -5522,18 +5551,18 @@
 	          <summary style="cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center">
 	            <strong>Historia sald <span class="muted" style="font-weight:400;font-size:12px" id="eom2-history-count"></span></strong>
 	          </summary>
-	          <div class="row" style="margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap">
-	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
+	          <div class="eom2-history-controls" style="margin-top:10px">
+	            <label class="tiny eom2-history-compare-toggle" style="display:flex;align-items:center;gap:6px">
 	              <input type="checkbox" id="eom2-history-compare-toggle" />
 	              Tryb porównawczy
 	            </label>
-	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
-	              Okres A
-	              <select id="eom2-history-compare-a" style="height:30px;min-width:130px"></select>
+	            <label class="tiny eom2-history-field">
+	              <span>Okres A</span>
+	              <select id="eom2-history-compare-a"></select>
 	            </label>
-	            <label class="tiny" style="display:flex;align-items:center;gap:6px">
-	              Okres B
-	              <select id="eom2-history-compare-b" style="height:30px;min-width:130px"></select>
+	            <label class="tiny eom2-history-field">
+	              <span>Okres B</span>
+	              <select id="eom2-history-compare-b"></select>
 	            </label>
 	          </div>
 	          <div class="table-wrapper" style="margin-top:12px">
@@ -14109,17 +14138,20 @@
         compareB.disabled=!eom2HistoryCompareMode;
       }
       if(compareToggle) compareToggle.checked=!!eom2HistoryCompareMode;
+      const displayedPeriods=eom2HistoryCompareMode
+        ? [eom2HistoryCompareA,eom2HistoryCompareB].filter(Boolean)
+        : periods;
 
-      if(!periods.length){
+      if(!displayedPeriods.length){
         hTbody.innerHTML='<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:20px">Brak danych historycznych</td></tr>';
       } else {
-        const usedAccounts=accounts.filter(a=>periods.some(p=>(ctx.monthBalances[p]||{})[a.id]!==undefined));
+        const usedAccounts=accounts.filter(a=>displayedPeriods.some(p=>(ctx.monthBalances[p]||{})[a.id]!==undefined));
         const accountsByType={};
         for(const t of eom2TypeOrder) accountsByType[t]=usedAccounts.filter(a=>inferAccountType(a)===t);
         const usedTypes=eom2TypeOrder.filter(t=>(accountsByType[t]||[]).length>0);
 
         let head='<tr><th>Pozycja</th>';
-        for(const p of periods) head+=`<th style="text-align:right">${eom2FormatTrendLabel(p,eom2SelectedGranularity)}</th>`;
+        for(const p of displayedPeriods) head+=`<th style="text-align:right">${eom2FormatTrendLabel(p,eom2SelectedGranularity)}</th>`;
         if(eom2HistoryCompareMode) head+='<th style="text-align:right">Diff (B−A)</th>';
         head+='</tr>';
         hThead.innerHTML=head;
@@ -14137,14 +14169,14 @@
 
         for(const type of usedTypes){
           let groupRow=`<tr class="eom2-history-group"><td>${eom2TypeLabelMap[type]||type}</td>`;
-          for(const p of periods) groupRow+=`<td style="text-align:right">${fmt(sumType(p,type),cur)}</td>`;
+          for(const p of displayedPeriods) groupRow+=`<td style="text-align:right">${fmt(sumType(p,type),cur)}</td>`;
           if(eom2HistoryCompareMode) groupRow+=`<td style="text-align:right">${diffCell(sumType(eom2HistoryCompareA,type),sumType(eom2HistoryCompareB,type))}</td>`;
           groupRow+='</tr>';
           hTbody.insertAdjacentHTML('beforeend',groupRow);
 
           for(const acc of accountsByType[type]){
             let accRow=`<tr><td class="eom2-history-account">${escapeHtml(acc.name)}</td>`;
-            for(const p of periods){
+            for(const p of displayedPeriods){
               const v=bal(p,acc.id);
               const cls=v!==undefined?(v<0?'inv-pnl-neg':''):'muted';
               accRow+=`<td style="text-align:right" class="${cls}">${v!==undefined?fmt(v,cur):'—'}</td>`;
@@ -14156,7 +14188,7 @@
         }
 
         let totalRow='<tr class="eom2-history-total"><td>Majątek netto</td>';
-        for(const p of periods) totalRow+=`<td style="text-align:right">${fmt(sumAll(p),cur)}</td>`;
+        for(const p of displayedPeriods) totalRow+=`<td style="text-align:right">${fmt(sumAll(p),cur)}</td>`;
         if(eom2HistoryCompareMode) totalRow+=`<td style="text-align:right">${diffCell(sumAll(eom2HistoryCompareA),sumAll(eom2HistoryCompareB))}</td>`;
         totalRow+='</tr>';
         hTbody.insertAdjacentHTML('beforeend',totalRow);
