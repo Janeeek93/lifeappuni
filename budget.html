@@ -1559,6 +1559,10 @@
       gap: 10px;
     }
 
+    .dashboard-chart-box {
+      height: 286px;
+    }
+
     .recent-calendar-card {
       display: flex;
       flex-direction: column;
@@ -2188,6 +2192,12 @@
       background: var(--surface);
       max-height: 120px;
       overflow-y: auto;
+    }
+
+    .heatmap-strip--compact {
+      max-height: 82px;
+      padding: 6px;
+      gap: 3px;
     }
 
     .heat-legend {
@@ -4717,21 +4727,21 @@
           <div class="inv-hub-chart-card-header">
             <h4>Wydatki dzień po dniu</h4>
           </div>
-          <div class="inv-hub-chart-box"><canvas id="dailyLine"></canvas></div>
+          <div class="inv-hub-chart-box dashboard-chart-box"><canvas id="dailyLine"></canvas></div>
         </div>
         <div class="inv-hub-chart-card">
           <div class="inv-hub-chart-card-header">
             <h4>Skumulowane: limit vs wydatki</h4>
             <span class="tiny muted">Faktyczne vs oczekiwane tempo</span>
           </div>
-          <div class="inv-hub-chart-box"><canvas id="cumulativeLine"></canvas></div>
+          <div class="inv-hub-chart-box dashboard-chart-box"><canvas id="cumulativeLine"></canvas></div>
         </div>
       </div>
 
       <div class="card heatmap-card" style="margin-top:16px">
         <div class="title">Wydatki dzienne — heatmap</div>
         <div class="muted" style="margin-bottom:4px">Zielone = w budżecie, Pomarańczowe = przekroczenie, Czerwone = duże przekroczenie</div>
-        <div id="daily-spending-calendar" class="heatmap-strip"></div>
+        <div id="daily-spending-calendar" class="heatmap-strip heatmap-strip--compact"></div>
         <div class="heat-legend">
           <span class="heat-day" style="background:#dcfce7"> </span> w normie
           <span class="heat-day" style="background:#ffedd5"> </span> lekko powyżej
@@ -4776,32 +4786,6 @@
         </div>
       </div>
 
-      <div class="quick-actions" style="margin-top:12px">
-        <div class="row">
-          <div class="title">Szybkie akcje</div>
-          <div class="row" style="gap:8px">
-            <button id="qa-edit-toggle" class="btn ghost">⚙️ Edytuj szybkie akcje</button>
-          </div>
-        </div>
-        <div id="qa-grid" class="grid g-4" style="margin-top:8px"></div>
-        <div id="qa-editor" class="editor-section" style="display:none">
-          <div class="title">Edycja szybkich akcji</div>
-          <div class="tiny">Zapisuje się w pamięci przeglądarki (localStorage).</div>
-          <form id="qa-add-form" class="grid g-4" style="margin-top:10px">
-            <input name="label" placeholder="Nazwa (np. Jedzenie)" required />
-            <input name="emoji" placeholder="Emoji (np. 🍕)" />
-            <select name="categoryId" required></select>
-            <select name="accountId" required></select>
-            <input name="defaultAmount" placeholder="Domyślna kwota (zł)" inputmode="decimal" />
-            <input name="defaultNote" placeholder="Domyślna notatka" />
-            <button class="btn" type="submit" style="grid-column: 1 / -1;">Dodaj akcję</button>
-          </form>
-          <table style="margin-top:10px">
-            <thead><tr><th>Emoji</th><th>Nazwa</th><th>Kategoria</th><th>Konto</th><th>Domyślna kwota</th><th>Notatka</th><th></th></tr></thead>
-            <tbody id="qa-rows"></tbody>
-          </table>
-        </div>
-      </div>
     </section>
 
     <!-- Overview -->
@@ -6174,7 +6158,9 @@
 
   // --- Quick actions ----------------------------------------------------------
   function renderQuickActions(){
-    const grid=document.getElementById('qa-grid'); grid.innerHTML='';
+    const grid=document.getElementById('qa-grid');
+    if(!grid) return;
+    grid.innerHTML='';
     for(const qa of (b().quickActions||[])){
       const cat=catsById()[qa.categoryId];
       const btn=document.createElement('div'); btn.className='quick-btn';
@@ -6195,18 +6181,27 @@
   }
   function fillQaEditorSelects(){
     const editor=document.getElementById('qa-editor');
+    if(!editor) return;
     const catSel=editor.querySelector('select[name="categoryId"]'); if(catSel){catSel.innerHTML=''; for(const c of (b().categories||[])){catSel.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id))}}
     const accSel=editor.querySelector('select[name="accountId"]'); if(accSel){accSel.innerHTML=''; for(const a of (b().accounts||[])){accSel.add(new Option(a.name,a.id))}}
   }
-  document.getElementById('qa-edit-toggle').onclick=()=>{const ed=document.getElementById('qa-editor'); ed.style.display = ed.style.display==='none' ? 'block' : 'none';};
-  document.getElementById('qa-add-form').onsubmit=(e)=>{
-    e.preventDefault();
-    const f=new FormData(e.target);
-    const qa={id:'qa_'+Math.random().toString(36).slice(2),label:String(f.get('label')||''),emoji:String(f.get('emoji')||''),categoryId:String(f.get('categoryId')),accountId:String(f.get('accountId')),defaultAmount:String(f.get('defaultAmount')||''),defaultNote:String(f.get('defaultNote')||'')};
-    b().quickActions.push(qa); save(state); e.target.reset(); renderQuickActions(); bindMoneyInputs(document.getElementById('qa-editor'));
+  const qaEditToggle=document.getElementById('qa-edit-toggle');
+  if(qaEditToggle){
+    qaEditToggle.onclick=()=>{const ed=document.getElementById('qa-editor'); if(!ed) return; ed.style.display = ed.style.display==='none' ? 'block' : 'none';};
+  }
+  const qaAddForm=document.getElementById('qa-add-form');
+  if(qaAddForm){
+    qaAddForm.onsubmit=(e)=>{
+      e.preventDefault();
+      const f=new FormData(e.target);
+      const qa={id:'qa_'+Math.random().toString(36).slice(2),label:String(f.get('label')||''),emoji:String(f.get('emoji')||''),categoryId:String(f.get('categoryId')),accountId:String(f.get('accountId')),defaultAmount:String(f.get('defaultAmount')||''),defaultNote:String(f.get('defaultNote')||'')};
+      b().quickActions.push(qa); save(state); e.target.reset(); renderQuickActions(); bindMoneyInputs(document.getElementById('qa-editor'));
+    };
   }
   function renderQuickActionsEditorRows(){
-    const tbody=document.getElementById('qa-rows'); tbody.innerHTML='';
+    const tbody=document.getElementById('qa-rows');
+    if(!tbody) return;
+    tbody.innerHTML='';
     for(const qa of (b().quickActions||[])){
       const tr=document.createElement('tr');
       tr.innerHTML=`
