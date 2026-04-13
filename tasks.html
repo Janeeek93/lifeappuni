@@ -172,36 +172,34 @@
     /* ── MODULE NAV — 1:1 with trainings subnav ── */
     .module-nav {
       display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-      position:sticky;
-      top:0;
-      background:var(--bg);
-      z-index:8;
-      padding:8px 0 12px;
-      margin:12px 0 0;
+      gap:2px;
+      padding:0 28px;
       border-bottom:1px solid var(--line);
+      background:var(--card);
       overflow-x:auto;
+      flex-shrink:0;
     }
     .mod-tab {
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:8px 14px;
-      border-radius:10px;
-      border:1px solid transparent;
-      background:transparent;
-      color:var(--muted);
+      gap:7px;
+      padding:13px 16px 11px;
+      font-family:'Inter', sans-serif;
       font-weight:600;
       font-size:13px;
+      color:var(--muted);
       cursor:pointer;
-      transition:background var(--transition), color var(--transition), border-color var(--transition);
+      border:none;
+      background:transparent;
+      border-bottom:2px solid transparent;
+      margin-bottom:-1px;
+      transition:all .2s ease;
       white-space:nowrap;
     }
-    .mod-tab .material-symbols-outlined { font-size:16px; line-height:1; }
-    .mod-tab:hover { background:var(--surface); color:var(--ink); }
-    .mod-tab.active { background:var(--card); border-color:var(--line); color:var(--ink); box-shadow:var(--shadow-sm); }
+    .mod-tab .material-symbols-outlined { font-size:18px; line-height:1; }
+    .mod-tab:hover { color:var(--ink); }
+    .mod-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    @media(max-width:720px){.module-nav{padding:0 16px;}}
     .module { display:none; margin-top:12px; }
     .module.active { display:block; animation:fadeUp .22s ease-out; }
 
@@ -645,32 +643,31 @@
       </div>
     </header>
 
-    <div class="content"><main class="page-content stack">
+    <div class="module-nav">
+      <button class="mod-tab active" data-mod="overview">
+        <span class="material-symbols-outlined">home</span>Przegląd
+      </button>
+      <button class="mod-tab" data-mod="calendar">
+        <span class="material-symbols-outlined">calendar_month</span>Kalendarz
+      </button>
+      <button class="mod-tab" data-mod="team">
+        <span class="material-symbols-outlined">groups</span>Zespół
+      </button>
+      <button class="mod-tab" data-mod="mytasks">
+        <span class="material-symbols-outlined">check_circle</span>Moje zadania
+      </button>
+      <button class="mod-tab" data-mod="selfnotes">
+        <span class="material-symbols-outlined">edit_note</span>Notatki
+      </button>
+      <button class="mod-tab" data-mod="stats">
+        <span class="material-symbols-outlined">analytics</span>Statystyki
+      </button>
+      <button class="mod-tab" data-mod="projects">
+        <span class="material-symbols-outlined">view_kanban</span>Projekty
+      </button>
+    </div>
 
-      <!-- ═══ MODULE NAV ═══ -->
-      <div class="module-nav">
-        <button class="mod-tab active" data-mod="overview">
-          <span class="material-symbols-outlined">home</span>Przegląd
-        </button>
-        <button class="mod-tab" data-mod="calendar">
-          <span class="material-symbols-outlined">calendar_month</span>Kalendarz
-        </button>
-        <button class="mod-tab" data-mod="team">
-          <span class="material-symbols-outlined">groups</span>Zespół
-        </button>
-        <button class="mod-tab" data-mod="mytasks">
-          <span class="material-symbols-outlined">check_circle</span>Moje zadania
-        </button>
-        <button class="mod-tab" data-mod="selfnotes">
-          <span class="material-symbols-outlined">edit_note</span>Notatki
-        </button>
-        <button class="mod-tab" data-mod="stats">
-          <span class="material-symbols-outlined">analytics</span>Statystyki
-        </button>
-        <button class="mod-tab" data-mod="projects">
-          <span class="material-symbols-outlined">view_kanban</span>Projekty
-        </button>
-      </div>
+    <div class="content"><main class="page-content stack">
 
       <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
       <div id="mod-overview" class="module active">
