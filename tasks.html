@@ -913,6 +913,7 @@
         <div class="mytasks-layout">
           <!-- Table card -->
           <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-sm)">
+            <div id="my-project-tasks" style="display:none;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surf-lo)"></div>
             <div class="bulk-row">
               <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700">
                 <input type="checkbox" id="bulk-select-all" style="width:13px;height:13px">Zaznacz widoczne
@@ -1142,6 +1143,7 @@ let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
 let specQuery='';
 let teamHideDone=false;
+let myTasksDefaultCollapsed=false;
 
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
 function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);S.selfNotes=(p.selfNotes||[]).map(normSelfNote).filter(Boolean);S.projects=(p.projects||[]).map(normProject).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
@@ -1420,7 +1422,45 @@ function openCalTaskModal(taskId,owner){
 }
 
 // ── MY TASKS ──
-function renderMyTasks(){renderKpis();renderInsights();renderTaskTable();}
+function getMyProjectCards(){
+  const cards=[];
+  S.projects.filter(p=>p.status==='active').forEach(proj=>{
+    proj.cards.forEach(card=>{
+      if(card.stage==='done') return;
+      if(!uniqIds(card.assignees).includes('me')) return;
+      cards.push({...card,_projId:proj.id,_projTitle:proj.title,_projColor:proj.color});
+    });
+  });
+  return cards.sort((a,b)=>{
+    const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);
+    if(ad&&bd) return ad-bd;
+    if(ad) return -1;
+    if(bd) return 1;
+    return priW(a.priority)-priW(b.priority);
+  });
+}
+function renderMyProjectTasks(){
+  const box=document.getElementById('my-project-tasks');if(!box)return;
+  const cards=getMyProjectCards();
+  if(!cards.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML=`<div class="label-xs" style="margin-bottom:8px">📁 Taski projektowe przypisane do mnie (${cards.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${cards.slice(0,6).map(card=>`<button type="button" class="ov-item ov-note-jump" data-open-card="${card.id}" data-open-proj="${card._projId}" style="text-align:left;border-left:3px solid ${card._projColor};padding-left:10px">
+        <div class="ov-item-body">
+          <div class="ov-item-title">${escH(card.title)}</div>
+          <div class="ov-item-meta">
+            <span class="pill" style="background:${card._projColor}22;color:${card._projColor};border:1px solid ${card._projColor}44">${escH(card._projTitle)}</span>
+            <span class="pill prio-${card.priority}">${priLabel(card.priority)}</span>
+            <span>${card.dueDate?`📅 ${fmtShort(parseDate(card.dueDate))}`:'bez terminu'}</span>
+          </div>
+        </div>
+      </button>`).join('')}
+      ${cards.length>6?`<div class="small muted">+${cards.length-6} kolejnych w module „Projekty”.</div>`:''}
+    </div>`;
+  box.querySelectorAll('[data-open-card]').forEach(el=>el.addEventListener('click',()=>openCardModal(el.dataset.openProj,el.dataset.openCard)));
+}
+function renderMyTasks(){renderKpis();renderInsights();renderMyProjectTasks();renderTaskTable();}
 function renderOverview(){
   const t=todayUTC(),h7=new Date(t);h7.setUTCDate(h7.getUTCDate()+7);
   const allOpen=[
@@ -1549,6 +1589,10 @@ function renderInsights(){
 }
 function renderTaskTable(){
   const tbody=document.getElementById('task-tbody');if(!tbody)return;
+  if(!myTasksDefaultCollapsed){
+    collGroups.add('upcoming');
+    myTasksDefaultCollapsed=true;
+  }
   const catV=(document.getElementById('f-cat')?.value||'all'),prioV=(document.getElementById('f-prio')?.value||'all'),dateV=(document.getElementById('f-date')?.value||'all'),tagV=(document.getElementById('f-tag')?.value||'').toLowerCase().trim();
   const hideDone=document.getElementById('f-hide-done')?.checked??true,sortBy=document.getElementById('f-sort')?.value||'due',sortAsc=document.getElementById('f-sort-dir')?.textContent==='↑';
   let ft=S.tasks;
@@ -1705,7 +1749,10 @@ function openCardModal(projId,cardId,defaultStage='backlog'){
   document.querySelectorAll('.card-stage-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.s===stage));
   // Assignees — show all project assignees + all members
   const everyone=[{id:'me',name:'Ja',color:'var(--blue)'},...S.members.map(m=>({id:m.id,name:m.name.split(' ')[0],color:m.color}))];
-  const cardAssignees=card?card.assignees:(proj.assignees||[]);
+  // For a new card we start with no assignees selected.
+  // Previously we defaulted to all project members, which caused accidental
+  // "everyone is assigned" when adding a backlog task in multi-person projects.
+  const cardAssignees=card?card.assignees:[];
   document.getElementById('cm-assignees').innerHTML=everyone.map(p=>{
     const sel=cardAssignees.includes(p.id);
     return `<button class="card-assignee-chip ${sel?'selected':''}" data-aid="${p.id}" style="color:${p.color}">
@@ -1713,7 +1760,7 @@ function openCardModal(projId,cardId,defaultStage='backlog'){
       ${escH(p.name)}
     </button>`;
   }).join('');
-  document.querySelectorAll('.card-assignee-chip').forEach(chip=>chip.addEventListener('click',()=>chip.classList.toggle('selected')));
+  document.querySelectorAll('#cm-assignees .card-assignee-chip').forEach(chip=>chip.addEventListener('click',()=>chip.classList.toggle('selected')));
   // Comments
   renderCmComments(card?card.comments:[]);
   // Delete visibility
@@ -1746,7 +1793,7 @@ function saveCardModal(){
   const title=document.getElementById('cm-title').value.trim();
   if(!title){showAlert('Tytuł zadania jest wymagany.');return false;}
   const stage=document.querySelector('.card-stage-btn.active')?.dataset.s||'backlog';
-  const assignees=uniqIds([...document.querySelectorAll('.card-assignee-chip.selected')].map(c=>c.dataset.aid));
+  const assignees=uniqIds([...document.querySelectorAll('#cm-assignees .card-assignee-chip.selected')].map(c=>c.dataset.aid));
   const existingComments=cmCardId?(proj.cards.find(c=>c.id===cmCardId)?.comments||[]):[];
   const cardData={title,description:document.getElementById('cm-desc').value.trim(),stage,priority:document.getElementById('cm-prio').value,dueDate:document.getElementById('cm-due').value,assignees,comments:existingComments};
   if(cmCardId){const i=proj.cards.findIndex(c=>c.id===cmCardId);if(i>-1){cmCardId=proj.cards[i].id;proj.cards[i]={...proj.cards[i],...cardData};}}
