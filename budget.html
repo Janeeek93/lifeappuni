@@ -105,6 +105,7 @@
     .inv-kpi-card .inv-kpi-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
     .inv-kpi-card .inv-kpi-value { font-size:20px; font-weight:700; color:var(--ink); line-height:1.2; }
     .inv-kpi-card .inv-kpi-sub { font-size:11px; color:var(--muted); }
+    .inv-kpi-card .inv-kpi-sub.inv-kpi-sub-split { font-size:10px; line-height:1.35; }
     .inv-kpi-card.positive .inv-kpi-value { color:#16a34a; }
     .inv-kpi-card.negative .inv-kpi-value { color:#dc2626; }
     .inv-kpi-card.accent { background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); border-color:transparent; }
@@ -5041,7 +5042,7 @@
             <div class="inv-kpi-card" id="inv-kpi-roi-card">
               <span class="inv-kpi-label">Całkowity ROI</span>
               <span class="inv-kpi-value" id="inv-kpi-roi">—</span>
-              <span class="inv-kpi-sub">Zwrot na kapitale z budżetu</span>
+              <span class="inv-kpi-sub inv-kpi-sub-split" id="inv-kpi-roi-sub">Zwrot na kapitale z budżetu</span>
             </div>
           </div>
 
@@ -7531,14 +7532,23 @@
   function computePortfolioStats(){
     const data=investments();
     const holdings=computeHoldingsFIFO();
+    const assetGroupById={};
+    for(const asset of data.assets||[]) assetGroupById[asset.id]=String(asset.group||'Inne').trim().toUpperCase();
     let capitalFromBudget=0, capitalReturned=0, reinvestPool=0;
+    let etfCapitalFromBudget=0, otherCapitalFromBudget=0;
     for(const t of data.trades){
+      const isEtf=assetGroupById[t.assetId]==='ETF';
       if(t.side==='sell'){
         if(t.sellDestination==='budget') capitalReturned+=num(t.amount);
         else reinvestPool+=num(t.amount);
       } else {
         if(t.fundSource==='reinvest') reinvestPool-=num(t.amount);
-        else capitalFromBudget+=num(t.amount);
+        else {
+          const amount=num(t.amount);
+          capitalFromBudget+=amount;
+          if(isEtf) etfCapitalFromBudget+=amount;
+          else otherCapitalFromBudget+=amount;
+        }
       }
     }
     const totalCostBasis=holdings.reduce((s,h)=>s+h.costBasis,0);
@@ -7548,9 +7558,24 @@
     const totalUnrealizedPnl=hasAnyPrice?(totalMarketValue-totalCostBasis):null;
     const totalPnl=totalRealizedPnl+(totalUnrealizedPnl||0);
     const roi=capitalFromBudget>0?((totalPnl/capitalFromBudget)*100):0;
+    const etfHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()==='ETF');
+    const otherHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()!=='ETF');
+    const etfMarketValue=etfHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+    const otherMarketValue=otherHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+    const etfCostBasis=etfHoldings.reduce((s,h)=>s+h.costBasis,0);
+    const otherCostBasis=otherHoldings.reduce((s,h)=>s+h.costBasis,0);
+    const etfRealizedPnl=etfHoldings.reduce((s,h)=>s+h.realizedPnl,0);
+    const otherRealizedPnl=otherHoldings.reduce((s,h)=>s+h.realizedPnl,0);
+    const etfUnrealizedPnl=etfHoldings.some(h=>h.currentPrice&&h.qty>0)?(etfMarketValue-etfCostBasis):null;
+    const otherUnrealizedPnl=otherHoldings.some(h=>h.currentPrice&&h.qty>0)?(otherMarketValue-otherCostBasis):null;
+    const etfTotalPnl=etfRealizedPnl+(etfUnrealizedPnl||0);
+    const otherTotalPnl=otherRealizedPnl+(otherUnrealizedPnl||0);
+    const etfRoi=etfCapitalFromBudget>0?(etfTotalPnl/etfCapitalFromBudget)*100:null;
+    const otherRoi=otherCapitalFromBudget>0?(otherTotalPnl/otherCapitalFromBudget)*100:null;
     return {holdings,capitalFromBudget,capitalReturned,netFromBudget:capitalFromBudget-capitalReturned,
       reinvestPool:Math.max(0,reinvestPool),totalCostBasis,totalMarketValue,hasAnyPrice,
-      totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi};
+      totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi,
+      roiBreakdown:{etfRoi,otherRoi,etfCapitalFromBudget,otherCapitalFromBudget}};
   }
 
   function computeSellCostBasis(assetId,sellQty){
@@ -8086,7 +8111,13 @@
     el('inv-kpi-pool').textContent=fmt(stats.reinvestPool,cur);
 
     const roiCard=el('inv-kpi-roi-card');
+    const roiSub=el('inv-kpi-roi-sub');
     el('inv-kpi-roi').textContent=stats.capitalFromBudget>0?`${stats.roi.toFixed(1)}%`:'—';
+    if(roiSub){
+      const etfTxt=stats.roiBreakdown?.etfRoi===null?'—':`${stats.roiBreakdown.etfRoi.toFixed(1)}%`;
+      const otherTxt=stats.roiBreakdown?.otherRoi===null?'—':`${stats.roiBreakdown.otherRoi.toFixed(1)}%`;
+      roiSub.innerHTML=`ETF ROI: <strong>${etfTxt}</strong><br>Pozostałe ROI: <strong>${otherTxt}</strong>`;
+    }
     roiCard.className='inv-kpi-card '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
   }
 
