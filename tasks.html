@@ -1716,7 +1716,7 @@ function openCardModal(projId,cardId,defaultStage='backlog'){
       ${escH(p.name)}
     </button>`;
   }).join('');
-  document.querySelectorAll('.card-assignee-chip').forEach(chip=>chip.addEventListener('click',()=>chip.classList.toggle('selected')));
+  document.querySelectorAll('#cm-assignees .card-assignee-chip').forEach(chip=>chip.addEventListener('click',()=>chip.classList.toggle('selected')));
   // Comments
   renderCmComments(card?card.comments:[]);
   // Delete visibility
@@ -1749,7 +1749,7 @@ function saveCardModal(){
   const title=document.getElementById('cm-title').value.trim();
   if(!title){showAlert('Tytuł zadania jest wymagany.');return false;}
   const stage=document.querySelector('.card-stage-btn.active')?.dataset.s||'backlog';
-  const assignees=uniqIds([...document.querySelectorAll('.card-assignee-chip.selected')].map(c=>c.dataset.aid));
+  const assignees=uniqIds([...document.querySelectorAll('#cm-assignees .card-assignee-chip.selected')].map(c=>c.dataset.aid));
   const existingComments=cmCardId?(proj.cards.find(c=>c.id===cmCardId)?.comments||[]):[];
   const cardData={title,description:document.getElementById('cm-desc').value.trim(),stage,priority:document.getElementById('cm-prio').value,dueDate:document.getElementById('cm-due').value,assignees,comments:existingComments};
   if(cmCardId){const i=proj.cards.findIndex(c=>c.id===cmCardId);if(i>-1){cmCardId=proj.cards[i].id;proj.cards[i]={...proj.cards[i],...cardData};}}
