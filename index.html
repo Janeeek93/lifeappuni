@@ -322,6 +322,7 @@ const BUDGET_FILTERS_KEY = 'lifeos_budget_filters_v1';
 const BUDGET_EOM_UI_KEY = 'lifeos_budget_eom_ui_v1';
 const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
 const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
+const INV_CAL_GOAL_KEY = 'invCalGoal';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
 const DEF_WORKHUB_MEMBERS = [
   { id:'m1', name:'Pracownik 1', role:'', color:'#6366f1', profileNote:'', specialties:[] },
@@ -389,11 +390,12 @@ function getWorkhubStateForBackup(){
       teamTasks: Array.isArray(workhub.teamTasks) ? workhub.teamTasks : [],
       notes: Array.isArray(workhub.notes) ? workhub.notes : [],
       selfNotes: Array.isArray(workhub.selfNotes) ? workhub.selfNotes : [],
+      projects: Array.isArray(workhub.projects) ? workhub.projects : [],
     };
   }
   const legacyTasks = safeParse(localStorage.getItem(TASKS_STORAGE_KEY), null);
   if(legacyTasks && Array.isArray(legacyTasks.tasks)){
-    return { tasks: legacyTasks.tasks, members: DEF_WORKHUB_MEMBERS, teamTasks: [], notes: [], selfNotes: [] };
+    return { tasks: legacyTasks.tasks, members: DEF_WORKHUB_MEMBERS, teamTasks: [], notes: [], selfNotes: [], projects: [] };
   }
   return null;
 }
@@ -1568,6 +1570,7 @@ exportBtn.onclick = ()=>{
     budget_eom_ui: JSON.parse(localStorage.getItem(BUDGET_EOM_UI_KEY) || 'null'),
     inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
     inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
+    inv_cal_goal: localStorage.getItem(INV_CAL_GOAL_KEY) || null,
     trainings_migration: localStorage.getItem(TRAININGS_MIGRATION_KEY) || null,
   };
   const blob = new Blob([JSON.stringify(allData, null, 2)],{type:'application/json'});
@@ -1594,6 +1597,7 @@ importInput.onchange = (e)=>{
           teamTasks: Array.isArray(importedWorkhub.teamTasks) ? importedWorkhub.teamTasks : [],
           notes: Array.isArray(importedWorkhub.notes) ? importedWorkhub.notes : [],
           selfNotes: Array.isArray(importedWorkhub.selfNotes) ? importedWorkhub.selfNotes : [],
+          projects: Array.isArray(importedWorkhub.projects) ? importedWorkhub.projects : [],
         };
         localStorage.setItem(WORKHUB_STORAGE_KEY, JSON.stringify(normalizedWorkhub));
         localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify({ tasks: normalizedWorkhub.tasks }));
@@ -1605,6 +1609,7 @@ importInput.onchange = (e)=>{
           teamTasks: [],
           notes: [],
           selfNotes: [],
+          projects: [],
         }));
       }
       if(data.trainings){
@@ -1622,6 +1627,7 @@ importInput.onchange = (e)=>{
       if(data.budget_eom_ui) localStorage.setItem(BUDGET_EOM_UI_KEY, JSON.stringify(data.budget_eom_ui));
       if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
       if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);
+      if(data.inv_cal_goal !== null && data.inv_cal_goal !== undefined) localStorage.setItem(INV_CAL_GOAL_KEY, data.inv_cal_goal);
       if(data.trainings_migration) localStorage.setItem(TRAININGS_MIGRATION_KEY, data.trainings_migration);
       showNotification('Dane zostały pomyślnie zaimportowane!','success');
       setTimeout(renderAll, 300);
