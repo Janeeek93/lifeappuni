@@ -105,7 +105,12 @@
     .inv-kpi-card .inv-kpi-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
     .inv-kpi-card .inv-kpi-value { font-size:20px; font-weight:700; color:var(--ink); line-height:1.2; }
     .inv-kpi-card .inv-kpi-sub { font-size:11px; color:var(--muted); }
-    .inv-kpi-card .inv-kpi-sub.inv-kpi-sub-split { font-size:10px; line-height:1.35; }
+    .inv-kpi-card .inv-kpi-sub.inv-kpi-sub-split { font-size:10px; line-height:1.2; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .inv-kpi-roi-mini { display:inline-flex; align-items:baseline; gap:4px; white-space:nowrap; }
+    .inv-kpi-roi-mini b { font-size:11px; color:var(--ink); font-weight:700; }
+    .inv-kpi-roi-delta { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:999px; font-size:9px; font-weight:700; line-height:1; }
+    .inv-kpi-roi-delta.up { color:#16a34a; background:rgba(22,163,74,.12); }
+    .inv-kpi-roi-delta.down { color:#dc2626; background:rgba(220,38,38,.12); }
     .inv-kpi-card.positive .inv-kpi-value { color:#16a34a; }
     .inv-kpi-card.negative .inv-kpi-value { color:#dc2626; }
     .inv-kpi-card.accent { background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); border-color:transparent; }
@@ -8116,7 +8121,12 @@
     if(roiSub){
       const etfTxt=stats.roiBreakdown?.etfRoi===null?'—':`${stats.roiBreakdown.etfRoi.toFixed(1)}%`;
       const otherTxt=stats.roiBreakdown?.otherRoi===null?'—':`${stats.roiBreakdown.otherRoi.toFixed(1)}%`;
-      roiSub.innerHTML=`ETF ROI: <strong>${etfTxt}</strong><br>Pozostałe ROI: <strong>${otherTxt}</strong>`;
+      let deltaHtml='';
+      if(stats.roiBreakdown?.etfRoi!==null&&stats.roiBreakdown?.otherRoi!==null){
+        if(stats.roiBreakdown.otherRoi>stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta up" title="Rest lepszy od ETF">▲</span>';
+        else if(stats.roiBreakdown.otherRoi<stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta down" title="Rest słabszy od ETF">▼</span>';
+      }
+      roiSub.innerHTML=`<span class="inv-kpi-roi-mini">ETF <b>${etfTxt}</b></span><span class="inv-kpi-roi-mini">Rest <b>${otherTxt}</b></span>${deltaHtml}`;
     }
     roiCard.className='inv-kpi-card '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
   }
