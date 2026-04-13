@@ -1143,6 +1143,7 @@ let selectedTaskIds=new Set(),currentVisibleTaskIds=[];
 let statsR=7,statsC='all';
 let specQuery='';
 let teamHideDone=false;
+let myTasksDefaultCollapsed=false;
 
 const sp=(s,fb)=>{try{const p=JSON.parse(s);return p&&typeof p==='object'?p:fb;}catch{return fb;}};
 function loadState(){const raw=localStorage.getItem(STORE);if(raw){const p=sp(raw,null);if(p){S.tasks=(p.tasks||[]).map(normTask).filter(Boolean);S.members=Array.isArray(p.members)&&p.members.length?p.members.map(normMember):DEF_MEMBERS.map(normMember);S.teamTasks=(p.teamTasks||[]).map(normTT).filter(Boolean);S.notes=(p.notes||[]).map(normNote).filter(Boolean);S.selfNotes=(p.selfNotes||[]).map(normSelfNote).filter(Boolean);S.projects=(p.projects||[]).map(normProject).filter(Boolean);return;}}const old=sp(localStorage.getItem(OLD),null);if(old&&Array.isArray(old.tasks))S.tasks=old.tasks.map(normTask).filter(Boolean);}
@@ -1588,6 +1589,10 @@ function renderInsights(){
 }
 function renderTaskTable(){
   const tbody=document.getElementById('task-tbody');if(!tbody)return;
+  if(!myTasksDefaultCollapsed){
+    collGroups.add('upcoming');
+    myTasksDefaultCollapsed=true;
+  }
   const catV=(document.getElementById('f-cat')?.value||'all'),prioV=(document.getElementById('f-prio')?.value||'all'),dateV=(document.getElementById('f-date')?.value||'all'),tagV=(document.getElementById('f-tag')?.value||'').toLowerCase().trim();
   const hideDone=document.getElementById('f-hide-done')?.checked??true,sortBy=document.getElementById('f-sort')?.value||'due',sortAsc=document.getElementById('f-sort-dir')?.textContent==='↑';
   let ft=S.tasks;
