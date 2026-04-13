@@ -5355,7 +5355,7 @@
                   </div>
                   <div class="table-wrapper">
                     <table class="inv-hub-table" id="inv-hub-snap-table">
-                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI</th><th></th></tr></thead>
+                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI Total</th><th>ROI ETF</th><th>ROI Rest</th><th></th></tr></thead>
                       <tbody></tbody>
                     </table>
                   </div>
@@ -8965,8 +8965,14 @@
         for(const s of reversed){
           const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
           const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const etfRoiNum=Number(s.etfRoi);
+          const restRoiNum=Number(s.restRoi);
+          const hasEtfRoi=Number.isFinite(etfRoiNum);
+          const hasRestRoi=Number.isFinite(restRoiNum);
+          const etfRoiCls=hasEtfRoi?(etfRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+          const restRoiCls=hasRestRoi?(restRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
+          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td class="${etfRoiCls}">${hasEtfRoi?`${etfRoiNum.toFixed(2)}%`:'—'}</td><td class="${restRoiCls}">${hasRestRoi?`${restRoiNum.toFixed(2)}%`:'—'}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
           tr.querySelector('[data-snap-del]').onclick=()=>invHubDeleteSnapshot(s.date);
           snapTbody.appendChild(tr);
         }
