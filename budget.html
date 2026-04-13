@@ -6144,6 +6144,7 @@
       if(typeof a.priceProvider!=='string') a.priceProvider='manual';
       if(typeof a.priceSymbol!=='string') a.priceSymbol='';
       if(typeof a.priceCurrency!=='string') a.priceCurrency='PLN';
+      if(typeof a.isArchived!=='boolean') a.isArchived=false;
     }
 
     return st;
@@ -7591,7 +7592,7 @@
       if(!sel) continue;
       const current=sel.value;
       sel.innerHTML='';
-      const assetsList=sortAssetsByGroupThenName(investments().assets);
+      const assetsList=sortAssetsByGroupThenName((investments().assets||[]).filter(a=>!a.isArchived));
       if(assetsList.length===0) sel.add(new Option('Dodaj aktywo...','',true,true));
       for(const a of assetsList) sel.add(new Option(`${a.name} (${a.group||'Inne'})`,a.id,false,a.id===current));
       sel.value=current||sel.value;
@@ -7697,7 +7698,7 @@
       <td><span class="muted">${usage.length||0}</span></td>
       <td class="row" style="gap:6px;justify-content:flex-end">
         <button class="btn soft" data-act="save">Zapisz</button>
-        <button class="btn ghost" data-act="delete">Usuń</button>
+        <button class="btn ghost" data-act="delete">${usage.length?'Ukryj':'Usuń'}</button>
       </td>`;
     populateAssetGroupSelect(tr.querySelector('.inv-asset-group'),asset.group||'Inne');
     const providerSel=tr.querySelector('.inv-asset-provider');
@@ -7711,7 +7712,11 @@
     tr.querySelector('[data-act="delete"]').onclick=()=>{
       const id=tr.dataset.assetId;
       if(!id){tr.remove();return;}
-      if(confirm('Usunąć aktywo i wszystkie powiązane transakcje?')) deleteInvestmentAsset(id);
+      if(usage.length){
+        if(confirm('Ukryć aktywo z panelu i wyłączyć odświeżanie cen? Historia transakcji, snapshoty i P&L zostaną zachowane.')) archiveInvestmentAsset(id,true);
+        return;
+      }
+      if(confirm('Usunąć aktywo? (brak transakcji dla tego aktywa)')) deleteInvestmentAsset(id);
     };
     return tr;
   }
@@ -7721,7 +7726,7 @@
     const empty=document.getElementById('inv-asset-empty');
     if(!tbody||!empty) return;
     tbody.innerHTML='';
-    const sorted=sortAssetsByGroupThenName(assets);
+    const sorted=sortAssetsByGroupThenName((assets||[]).filter(a=>!a.isArchived));
     for(const asset of sorted) tbody.appendChild(createAssetRow(asset,trades));
     empty.style.display=sorted.length?'none':'block';
   }
@@ -7745,7 +7750,7 @@
       }
     } else {
       const newId='inv_asset_'+Math.random().toString(36).slice(2);
-      data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency});
+      data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency,isArchived:false});
       row.dataset.assetId=newId;
     }
     save(state);renderInvestments();
@@ -7783,7 +7788,7 @@
         }
       } else {
         const newId='inv_asset_'+Math.random().toString(36).slice(2);
-        data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency});
+        data.assets.push({id:newId,name,group,currentPrice:price,priceDate:price?new Date().toISOString().slice(0,10):null,priceProvider,priceSymbol,priceCurrency,isArchived:false});
         row.dataset.assetId=newId;changed=true;
       }
     }
@@ -7986,7 +7991,7 @@
 
   async function refreshInvestmentPrices(){
     const data=investments();
-    const assets=data.assets||[];
+    const assets=(data.assets||[]).filter(a=>!a.isArchived);
     const refreshBtn=document.getElementById('inv-refresh-prices-btn');
     const modalRefreshBtn=document.getElementById('inv-asset-refresh-prices');
     if(!assets.length){setInvPriceStatus('Brak aktywów do odświeżenia.');return;}
@@ -8051,10 +8056,20 @@
 
   function deleteInvestmentAsset(assetId){
     const data=investments();
-    const relatedTxIds=new Set(data.trades.filter(t=>t.assetId===assetId).map(t=>t.txId).filter(Boolean));
-    b().transactions=b().transactions.filter(tx=>!relatedTxIds.has(tx.id));
-    data.trades=data.trades.filter(t=>t.assetId!==assetId);
     data.assets=data.assets.filter(a=>a.id!==assetId);
+    save(state);renderAll();
+  }
+
+  function archiveInvestmentAsset(assetId,archived=true){
+    const data=investments();
+    const asset=data.assets.find(a=>a.id===assetId);
+    if(!asset) return;
+    const holding=computeHoldingsFIFO().find(h=>h.id===assetId);
+    if(archived && holding && holding.qty>0.000001){
+      alert('Nie możesz ukryć aktywa, które ma jeszcze otwartą pozycję. Najpierw sprzedaj całość lub ustaw aktywo jako aktywne.');
+      return;
+    }
+    asset.isArchived=!!archived;
     save(state);renderAll();
   }
 
