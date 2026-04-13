@@ -7580,7 +7580,10 @@
     return {holdings,capitalFromBudget,capitalReturned,netFromBudget:capitalFromBudget-capitalReturned,
       reinvestPool:Math.max(0,reinvestPool),totalCostBasis,totalMarketValue,hasAnyPrice,
       totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi,
-      roiBreakdown:{etfRoi,otherRoi,etfCapitalFromBudget,otherCapitalFromBudget}};
+      roiBreakdown:{
+        etfRoi,otherRoi,etfCapitalFromBudget,otherCapitalFromBudget,
+        etfTotalPnl,otherTotalPnl,etfRealizedPnl,otherRealizedPnl
+      }};
   }
 
   function computeSellCostBasis(assetId,sellQty){
@@ -8586,7 +8589,13 @@
       unrealizedPnl:stats.totalUnrealizedPnl||0,
       realizedPnl:stats.totalRealizedPnl,
       roi:stats.roi,
-      costBasis:stats.totalCostBasis
+      costBasis:stats.totalCostBasis,
+      etfRoi:stats.roiBreakdown?.etfRoi??null,
+      restRoi:stats.roiBreakdown?.otherRoi??null,
+      etfCapitalFromBudget:stats.roiBreakdown?.etfCapitalFromBudget??0,
+      restCapitalFromBudget:stats.roiBreakdown?.otherCapitalFromBudget??0,
+      etfTotalPnl:stats.roiBreakdown?.etfTotalPnl??0,
+      restTotalPnl:stats.roiBreakdown?.otherTotalPnl??0
     };
     if(existing>=0) snaps[existing]=snap;
     else snaps.push(snap);
@@ -10689,6 +10698,15 @@
     lines.push(`  Zrealizowany P&L: ${fmt(stats.totalRealizedPnl,cur)}`);
     lines.push(`  Łączny P&L: ${fmt(stats.totalPnl,cur)}`);
     lines.push(`  ROI: ${stats.capitalFromBudget>0?stats.roi.toFixed(2)+'%':'—'}`);
+    const etfRoi=stats.roiBreakdown?.etfRoi;
+    const restRoi=stats.roiBreakdown?.otherRoi;
+    const etfRoiTxt=etfRoi===null||etfRoi===undefined?'—':`${etfRoi.toFixed(2)}%`;
+    const restRoiTxt=restRoi===null||restRoi===undefined?'—':`${restRoi.toFixed(2)}%`;
+    let roiCmp='';
+    if(etfRoi!==null&&etfRoi!==undefined&&restRoi!==null&&restRoi!==undefined){
+      roiCmp=restRoi>etfRoi?' ▲':restRoi<etfRoi?' ▼':'';
+    }
+    lines.push(`  ROI ETF / Rest: ${etfRoiTxt} / ${restRoiTxt}${roiCmp}`);
     lines.push(`  Pula reinwestycyjna: ${fmt(stats.reinvestPool,cur)}`);
 
     // --- Holdings ---
@@ -10757,7 +10775,9 @@
       lines.push('');
       lines.push(`SNAPSHOTY (ostatnie ${recentSnaps.length}):`);
       for(const s of [...recentSnaps].reverse()){
-        lines.push(`  ${s.date} | Wartość: ${fmt(s.portfolioValue,cur)} | Kapitał: ${fmt(s.capitalFromBudget,cur)} | P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} | ROI: ${s.roi.toFixed(2)}%`);
+        const sEtf=s.etfRoi===null||s.etfRoi===undefined?'—':`${Number(s.etfRoi).toFixed(2)}%`;
+        const sRest=s.restRoi===null||s.restRoi===undefined?'—':`${Number(s.restRoi).toFixed(2)}%`;
+        lines.push(`  ${s.date} | Wartość: ${fmt(s.portfolioValue,cur)} | Kapitał: ${fmt(s.capitalFromBudget,cur)} | P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} | ROI: ${s.roi.toFixed(2)}% | ETF/Rest: ${sEtf}/${sRest}`);
       }
     }
 
