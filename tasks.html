@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>LifeOS — Work Hub</title>
+  <title>LifeOS</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     /* ═══════════════════════════════════════════════════════
        FINTECH DESIGN SYSTEM — LifeOS Work Hub
@@ -172,36 +173,34 @@
     /* ── MODULE NAV — 1:1 with trainings subnav ── */
     .module-nav {
       display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-      position:sticky;
-      top:0;
-      background:var(--bg);
-      z-index:8;
-      padding:8px 0 12px;
-      margin:12px 0 0;
+      gap:2px;
+      padding:0 28px;
       border-bottom:1px solid var(--line);
+      background:var(--card);
       overflow-x:auto;
+      flex-shrink:0;
     }
     .mod-tab {
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:8px 14px;
-      border-radius:10px;
-      border:1px solid transparent;
-      background:transparent;
-      color:var(--muted);
+      gap:7px;
+      padding:13px 16px 11px;
+      font-family:'Inter', sans-serif;
       font-weight:600;
       font-size:13px;
+      color:var(--muted);
       cursor:pointer;
-      transition:background var(--transition), color var(--transition), border-color var(--transition);
+      border:none;
+      background:transparent;
+      border-bottom:2px solid transparent;
+      margin-bottom:-1px;
+      transition:all .2s ease;
       white-space:nowrap;
     }
-    .mod-tab .material-symbols-outlined { font-size:16px; line-height:1; }
-    .mod-tab:hover { background:var(--surface); color:var(--ink); }
-    .mod-tab.active { background:var(--card); border-color:var(--line); color:var(--ink); box-shadow:var(--shadow-sm); }
+    .mod-tab .material-symbols-outlined { font-size:18px; line-height:1; }
+    .mod-tab:hover { color:var(--ink); }
+    .mod-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    @media(max-width:720px){.module-nav{padding:0 16px;}}
     .module { display:none; margin-top:12px; }
     .module.active { display:block; animation:fadeUp .22s ease-out; }
 
@@ -630,7 +629,7 @@
         <div class="site-header__greeting">
           <h1 class="site-header__title">Work Hub</h1>
         </div>
-        <div class="live-badge"><span class="live-dot"></span>Live</div>
+       
       </div>
       <div class="site-header__right">
         <button class="btn primary" id="btn-add">
@@ -645,32 +644,31 @@
       </div>
     </header>
 
-    <div class="content"><main class="page-content stack">
+    <div class="module-nav">
+      <button class="mod-tab active" data-mod="overview">
+        <span class="material-symbols-outlined">home</span>Przegląd
+      </button>
+      <button class="mod-tab" data-mod="calendar">
+        <span class="material-symbols-outlined">calendar_month</span>Kalendarz
+      </button>
+      <button class="mod-tab" data-mod="team">
+        <span class="material-symbols-outlined">groups</span>Zespół
+      </button>
+      <button class="mod-tab" data-mod="mytasks">
+        <span class="material-symbols-outlined">check_circle</span>Moje zadania
+      </button>
+      <button class="mod-tab" data-mod="selfnotes">
+        <span class="material-symbols-outlined">edit_note</span>Notatki
+      </button>
+      <button class="mod-tab" data-mod="stats">
+        <span class="material-symbols-outlined">analytics</span>Statystyki
+      </button>
+      <button class="mod-tab" data-mod="projects">
+        <span class="material-symbols-outlined">view_kanban</span>Projekty
+      </button>
+    </div>
 
-      <!-- ═══ MODULE NAV ═══ -->
-      <div class="module-nav">
-        <button class="mod-tab active" data-mod="overview">
-          <span class="material-symbols-outlined">home</span>Przegląd
-        </button>
-        <button class="mod-tab" data-mod="calendar">
-          <span class="material-symbols-outlined">calendar_month</span>Kalendarz
-        </button>
-        <button class="mod-tab" data-mod="team">
-          <span class="material-symbols-outlined">groups</span>Zespół
-        </button>
-        <button class="mod-tab" data-mod="mytasks">
-          <span class="material-symbols-outlined">check_circle</span>Moje zadania
-        </button>
-        <button class="mod-tab" data-mod="selfnotes">
-          <span class="material-symbols-outlined">edit_note</span>Notatki
-        </button>
-        <button class="mod-tab" data-mod="stats">
-          <span class="material-symbols-outlined">analytics</span>Statystyki
-        </button>
-        <button class="mod-tab" data-mod="projects">
-          <span class="material-symbols-outlined">view_kanban</span>Projekty
-        </button>
-      </div>
+    <div class="content"><main class="page-content stack">
 
       <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
       <div id="mod-overview" class="module active">

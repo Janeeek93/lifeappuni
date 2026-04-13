@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LifeOS — Budowa</title>
+  <title>LifeOS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <style>
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+<style>
 /* ═══════════════════════════════════════════════════════
    HOUSE MODULE — LifeOS Design Integration
    Clean, motivating, Kanban-first approach
@@ -177,23 +178,85 @@
 .h-btn .material-symbols-outlined { font-size: 16px; }
 
 /* ── Kanban Board ─────────────────────────────────── */
-.h-kanban { display: flex; flex-direction: column; gap: 24px; }
+.h-kanban-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
 
-.h-project-block {
+.h-project-sidebar {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.h-project-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.h-project-sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+.h-project-list-empty { padding: 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.h-project-list { display: flex; flex-direction: column; }
+.h-project-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.h-project-list-item:hover { background: var(--bg); }
+.h-project-list-item.active { background: rgba(99,102,241,.08); }
+.h-project-list-item.active .h-project-name { color: var(--accent); }
+.h-project-list-item:last-child { border-bottom: none; }
+.h-project-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+}
+.h-kanban-area-empty {
+  min-height: 270px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 22px;
+}
+.h-project-board {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
   overflow: hidden;
-  transition: all .2s ease;
 }
-.h-project-block:hover { box-shadow: 0 2px 12px rgba(0,0,0,.04); }
 
 .h-project-header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  cursor: pointer;
   transition: all .15s ease;
   user-select: none;
 }
@@ -222,13 +285,6 @@
   gap: 8px;
   flex-shrink: 0;
 }
-.h-project-chevron {
-  font-size: 16px;
-  color: var(--muted);
-  transition: transform .2s ease;
-}
-.h-project-block.collapsed .h-project-chevron { transform: rotate(-90deg); }
-
 .h-project-progress {
   display: flex;
   align-items: center;
@@ -792,6 +848,7 @@
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 900px) {
   .h-summary { grid-template-columns: repeat(2, 1fr); }
+  .h-kanban-layout { grid-template-columns: 1fr; }
   .h-kanban-cols { grid-template-columns: 1fr; }
   .h-grid-2, .h-grid-3 { grid-template-columns: 1fr; }
   .h-form-row { grid-template-columns: 1fr; }
@@ -835,14 +892,7 @@
     <header class="site-header">
       <div class="site-header__left">
         <div class="site-header__greeting">
-          <h2 class="site-header__title">🏗️ Budowa</h2>
-          <p style="margin:0;font-size:12px;color:var(--muted);">
-            <span id="h-project-display-name">Budowa Domu</span>
-          </p>
-        </div>
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          Live Syncing
+          <h1 class="site-header__title">Budowa</h1>
         </div>
       </div>
       <div class="site-header__right">
@@ -895,7 +945,7 @@
             <h3 style="font-size:18px;font-weight:700;color:var(--ink);margin:0">Tablica projektów</h3>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="h-btn h-btn-primary" onclick="bm.openTaskModal(null)">
+            <button class="h-btn h-btn-primary" onclick="bm.openTaskModal(null, state.boardSelectedPhaseId)">
               <span class="material-symbols-outlined">add</span> Zadanie
             </button>
             <button class="h-btn" onclick="bm.openPhaseModal(null)">
@@ -903,7 +953,16 @@
             </button>
           </div>
         </div>
-        <div class="h-kanban" id="h-kanban"></div>
+        <div class="h-kanban-layout">
+          <aside class="h-project-sidebar">
+            <div class="h-project-sidebar-head">
+              <span class="h-project-sidebar-title">📁 Projekty</span>
+              <button class="h-btn h-btn-sm h-btn-primary" onclick="bm.openPhaseModal(null)">+ Nowy</button>
+            </div>
+            <div id="h-phase-list"></div>
+          </aside>
+          <div id="h-kanban"></div>
+        </div>
       </div>
 
       <!-- ── CALENDAR ────────────────────────────────── -->
@@ -1076,6 +1135,7 @@
 // ═══════════════════════════════════════════════════════
 const APP_KEY = 'bm_pro_v1';
 const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
+const LOAN_STORAGE_KEY = 'lifeos_loan_v1';
 
 const PHASE_COLORS = ['#6366f1','#0ea5e9','#64748B','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#22c55e','#8b5cf6'];
 
@@ -1137,6 +1197,7 @@ const defaultState = () => ({
   },
   automation: { scheduleAutoAlignedAt: null },
   collapsedPhases: {},
+  boardSelectedPhaseId: null,
 });
 
 let state = {};
@@ -1273,7 +1334,6 @@ function renderTab(tab) {
 
 function refreshAll() {
   updateOverdueBadge();
-  document.getElementById('h-project-display-name').textContent = state.project.name;
   renderTab(activeTab);
 }
 
@@ -1330,76 +1390,101 @@ function renderSummary() {
 function renderKanban() {
   const phases = [...state.phases].sort((a,b)=>a.order-b.order);
   const el = document.getElementById('h-kanban');
+  const listEl = document.getElementById('h-phase-list');
   if (!phases.length) {
+    if (listEl) listEl.innerHTML = `<div class="h-project-list-empty">Brak projektów.<br>Dodaj pierwszy projekt budowy.</div>`;
     el.innerHTML = `<div class="h-empty"><div class="h-empty-icon">📋</div><div class="h-empty-title">Brak projektów</div><div class="h-empty-desc">Utwórz swój pierwszy projekt budowlany.</div><button class="h-btn h-btn-primary" onclick="bm.openPhaseModal(null)"><span class="material-symbols-outlined">add</span> Nowy projekt</button></div>`;
     return;
   }
+  if (!phases.some(p=>p.id===state.boardSelectedPhaseId)) {
+    state.boardSelectedPhaseId = phases[0].id;
+    saveState();
+  }
+  const selId = state.boardSelectedPhaseId;
+  const selPhase = phases.find(p=>p.id===selId);
 
-  el.innerHTML = phases.map(ph => {
-    const tasks = state.tasks.filter(t=>t.phaseId===ph.id);
-    const todo = tasks.filter(t=>t.status==='todo');
-    const doing = tasks.filter(t=>t.status==='inprogress');
-    const done = tasks.filter(t=>t.status==='done');
-    const pct = tasks.length ? Math.round(done.length/tasks.length*100) : 0;
-    const collapsed = state.collapsedPhases[ph.id] || false;
+  if (listEl) {
+    listEl.innerHTML = `<div class="h-project-list">${phases.map(ph=>{
+      const count = state.tasks.filter(t=>t.phaseId===ph.id && t.status!=='done').length;
+      return `<div class="h-project-list-item ${ph.id===selId?'active':''}" data-phase-pick="${ph.id}">
+        <div class="h-project-icon" style="width:30px;height:30px;font-size:14px;background:${ph.color}14;border:1px solid ${ph.color}30">${ph.icon}</div>
+        <div class="h-project-name" style="font-size:13px;line-height:1.35;min-height:auto">${ph.name}</div>
+        <span class="h-project-count">${count}</span>
+      </div>`;
+    }).join('')}</div>`;
+    listEl.querySelectorAll('[data-phase-pick]').forEach(item => item.addEventListener('click', () => {
+      state.boardSelectedPhaseId = item.dataset.phasePick;
+      saveState();
+      renderKanban();
+    }));
+  }
 
-    const r = 11, circ = 2*Math.PI*r, dash = circ*pct/100;
-    const ring = `<svg class="h-project-progress-ring" width="28" height="28" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
-      <circle cx="14" cy="14" r="${r}" fill="none" stroke="var(--line)" stroke-width="2.5"/>
-      <circle cx="14" cy="14" r="${r}" fill="none" stroke="${pct===100?'var(--green)':'var(--accent)'}" stroke-width="2.5" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
-    </svg>`;
+  if (!selPhase) {
+    el.innerHTML = `<div class="h-kanban-area-empty"><div style="font-size:42px;opacity:.2">🗂️</div><div style="font-weight:700;color:var(--ink)">Wybierz projekt</div><div>Wybierz projekt z menu po lewej, aby zobaczyć tablicę Kanban.</div></div>`;
+    return;
+  }
 
-    const taskCard = (task) => {
-      const isOverdue = task.status!=='done' && task.endDate && isPastDate(task.endDate);
-      const contr = state.contractors.find(c=>c.id===task.contractorId);
-      const statusCls = task.status==='done'?'done':task.status==='inprogress'?'doing':'';
-      return `<div class="h-task-card" draggable="true" data-task-id="${task.id}" ondragstart="bm.dragStart(event)" onclick="bm.openTaskModal('${task.id}')">
-        <div class="h-task-card-actions">
-          <button class="h-btn h-btn-ghost" style="width:22px;height:22px;padding:0;font-size:12px" onclick="bm.deleteTask('${task.id}',event)" title="Usuń"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <button class="h-status-btn ${statusCls}" onclick="bm.toggleTaskStatus('${task.id}',event)" title="Zmień status">${task.status==='done'?'✓':task.status==='inprogress'?'●':''}</button>
-          <div style="flex:1;min-width:0">
-            <div class="h-task-card-name">${task.name}</div>
-            <div class="h-task-card-meta">
-              ${task.endDate?`<span class="h-task-tag h-task-tag-date ${isOverdue?'overdue':''}">📅 ${fmtDate(task.endDate)}</span>`:''}
-              ${contr?`<span class="h-task-tag h-task-tag-contractor">👷 ${contr.name}</span>`:''}
-              ${task.cost>0?`<span class="h-task-tag h-task-tag-cost">${fmtCur(task.cost)}</span>`:''}
-              ${task.notes?`<span class="h-task-tag h-task-tag-notes">📝</span>`:''}
-            </div>
+  const tasks = state.tasks.filter(t=>t.phaseId===selPhase.id);
+  const todo = tasks.filter(t=>t.status==='todo');
+  const doing = tasks.filter(t=>t.status==='inprogress');
+  const done = tasks.filter(t=>t.status==='done');
+  const pct = tasks.length ? Math.round(done.length/tasks.length*100) : 0;
+
+  const r = 11, circ = 2*Math.PI*r, dash = circ*pct/100;
+  const ring = `<svg class="h-project-progress-ring" width="28" height="28" viewBox="0 0 28 28" style="transform:rotate(-90deg)">
+    <circle cx="14" cy="14" r="${r}" fill="none" stroke="var(--line)" stroke-width="2.5"/>
+    <circle cx="14" cy="14" r="${r}" fill="none" stroke="${pct===100?'var(--green)':'var(--accent)'}" stroke-width="2.5" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+  </svg>`;
+
+  const taskCard = (task) => {
+    const isOverdue = task.status!=='done' && task.endDate && isPastDate(task.endDate);
+    const contr = state.contractors.find(c=>c.id===task.contractorId);
+    const statusCls = task.status==='done'?'done':task.status==='inprogress'?'doing':'';
+    return `<div class="h-task-card" draggable="true" data-task-id="${task.id}" ondragstart="bm.dragStart(event)" onclick="bm.openTaskModal('${task.id}')">
+      <div class="h-task-card-actions">
+        <button class="h-btn h-btn-ghost" style="width:22px;height:22px;padding:0;font-size:12px" onclick="bm.deleteTask('${task.id}',event)" title="Usuń"><span class="material-symbols-outlined" style="font-size:14px">delete</span></button>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <button class="h-status-btn ${statusCls}" onclick="bm.toggleTaskStatus('${task.id}',event)" title="Zmień status">${task.status==='done'?'✓':task.status==='inprogress'?'●':''}</button>
+        <div style="flex:1;min-width:0">
+          <div class="h-task-card-name">${task.name}</div>
+          <div class="h-task-card-meta">
+            ${task.endDate?`<span class="h-task-tag h-task-tag-date ${isOverdue?'overdue':''}">📅 ${fmtDate(task.endDate)}</span>`:''}
+            ${contr?`<span class="h-task-tag h-task-tag-contractor">👷 ${contr.name}</span>`:''}
+            ${task.cost>0?`<span class="h-task-tag h-task-tag-cost">${fmtCur(task.cost)}</span>`:''}
+            ${task.notes?`<span class="h-task-tag h-task-tag-notes">📝</span>`:''}
           </div>
         </div>
-      </div>`;
-    };
-
-    const colHTML = (status, label, cls, items) => `
-      <div class="h-kanban-col" data-phase="${ph.id}" data-status="${status}" ondragover="bm.dragOver(event)" ondrop="bm.drop(event)">
-        <div class="h-kanban-col-head ${cls}">${label} <span class="count">${items.length}</span></div>
-        <div class="h-kanban-cards">${items.map(taskCard).join('')}
-          ${status==='todo'?`<button class="h-kanban-add" onclick="bm.openTaskModal(null,'${ph.id}')"><span class="material-symbols-outlined" style="font-size:14px">add</span> Dodaj</button>`:''}
-        </div>
-      </div>`;
-
-    return `<div class="h-project-block ${collapsed?'collapsed':''}" data-phase-block="${ph.id}">
-      <div class="h-project-header" onclick="bm.togglePhaseCollapse('${ph.id}')">
-        <div class="h-project-icon" style="background:${ph.color}14;border:1px solid ${ph.color}30">${ph.icon}</div>
-        <div class="h-project-name">${ph.name}</div>
-        <div class="h-project-meta">
-          <span class="h-badge ${pct===100?'h-badge-green':pct>0?'h-badge-orange':'h-badge-gray'}">${pct===100?'Ukończony':pct>0?pct+'%':'Nowy'}</span>
-          <span style="font-size:11px;color:var(--muted)">${tasks.length} zadań</span>
-          ${ring}
-          <button class="h-btn h-btn-ghost h-btn-icon" style="width:28px;height:28px" onclick="bm.openPhaseModal('${ph.id}');event.stopPropagation()" title="Edytuj"><span class="material-symbols-outlined" style="font-size:16px">edit</span></button>
-          <button class="h-btn h-btn-ghost h-btn-icon" style="width:28px;height:28px" onclick="bm.deletePhase('${ph.id}',event)" title="Usuń"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
-          <span class="material-symbols-outlined h-project-chevron">expand_more</span>
-        </div>
       </div>
-      ${!collapsed ? `<div class="h-kanban-cols">
-        ${colHTML('todo','Backlog','backlog',todo)}
-        ${colHTML('inprogress','W trakcie','doing',doing)}
-        ${colHTML('done','Zakończone','done',done)}
-      </div>` : ''}
     </div>`;
-  }).join('');
+  };
+
+  const colHTML = (status, label, cls, items) => `
+    <div class="h-kanban-col" data-phase="${selPhase.id}" data-status="${status}" ondragover="bm.dragOver(event)" ondrop="bm.drop(event)">
+      <div class="h-kanban-col-head ${cls}">${label} <span class="count">${items.length}</span></div>
+      <div class="h-kanban-cards">${items.map(taskCard).join('')}
+        ${status==='todo'?`<button class="h-kanban-add" onclick="bm.openTaskModal(null,'${selPhase.id}')"><span class="material-symbols-outlined" style="font-size:14px">add</span> Dodaj</button>`:''}
+      </div>
+    </div>`;
+
+  el.innerHTML = `<div class="h-project-board">
+    <div class="h-project-header">
+      <div class="h-project-icon" style="background:${selPhase.color}14;border:1px solid ${selPhase.color}30">${selPhase.icon}</div>
+      <div class="h-project-name">${selPhase.name}</div>
+      <div class="h-project-meta">
+        <span class="h-badge ${pct===100?'h-badge-green':pct>0?'h-badge-orange':'h-badge-gray'}">${pct===100?'Ukończony':pct>0?pct+'%':'Nowy'}</span>
+        <span style="font-size:11px;color:var(--muted)">${tasks.length} zadań</span>
+        ${ring}
+        <button class="h-btn h-btn-ghost h-btn-icon" style="width:28px;height:28px" onclick="bm.openPhaseModal('${selPhase.id}')" title="Edytuj"><span class="material-symbols-outlined" style="font-size:16px">edit</span></button>
+        <button class="h-btn h-btn-ghost h-btn-icon" style="width:28px;height:28px" onclick="bm.deletePhase('${selPhase.id}',event)" title="Usuń"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
+      </div>
+    </div>
+    <div class="h-kanban-cols">
+      ${colHTML('todo','Backlog','backlog',todo)}
+      ${colHTML('inprogress','W trakcie','doing',doing)}
+      ${colHTML('done','Zakończone','done',done)}
+    </div>
+  </div>`;
 }
 
 // Drag & Drop
@@ -1424,12 +1509,6 @@ bm.drop = (e) => {
   task.phaseId = newPhase;
   addActivity('task', `Przeniesiono "${task.name}" → ${newStatus==='done'?'Zakończone':newStatus==='inprogress'?'W trakcie':'Backlog'}`);
   saveState(); refreshAll();
-};
-
-bm.togglePhaseCollapse = (phId) => {
-  state.collapsedPhases = state.collapsedPhases || {};
-  state.collapsedPhases[phId] = !state.collapsedPhases[phId];
-  saveState(); renderKanban();
 };
 
 bm.toggleTaskStatus = (taskId, e) => {
@@ -1667,7 +1746,13 @@ bm.renderSimulation = () => {
           <div class="h-form-group"><label class="h-label">Cena zakupu</label><input class="h-input" value="${fmtMoneyInput(s.plotPurchasePrice)}" onchange="bm.updateSimulationField('plotPurchasePrice',this.value)"></div>
           <div class="h-form-row">
             <div class="h-form-group"><label class="h-label">Wkład własny (wpłacony)</label><input class="h-input" value="${fmtMoneyInput(s.plotOwnContributionPaid)}" onchange="bm.updateSimulationField('plotOwnContributionPaid',this.value)"></div>
-            <div class="h-form-group"><label class="h-label">Kapitał spłacony</label><input class="h-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid',this.value)"></div>
+            <div class="h-form-group">
+              <label class="h-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span>Kapitał spłacony</span>
+                <button type="button" onclick="bm.pullPlotCapitalFromLoan()" style="font-size:11px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;cursor:pointer;text-decoration:underline">pobierz aktualne</button>
+              </label>
+              <input class="h-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid',this.value)">
+            </div>
           </div>
           <div class="h-form-group"><label class="h-label">Aktualna wycena (operat)</label><input class="h-input" value="${fmtMoneyInput(s.plotCurrentValuation)}" onchange="bm.updateSimulationField('plotCurrentValuation',this.value)"></div>
         </div>
@@ -1770,6 +1855,22 @@ bm.updateSimulationField = (field, rawValue) => {
   if (field === 'houseOwnCashIncurred') state.houseSimulation[field] = Boolean(rawValue);
   else state.houseSimulation[field] = parseMoneyInput(rawValue);
   saveState(); bm.renderSimulation();
+};
+bm.pullPlotCapitalFromLoan = () => {
+  const raw = localStorage.getItem(LOAN_STORAGE_KEY);
+  if (!raw) return toast('Brak danych kredytu w zakładce Kredyt', 'error');
+  try {
+    const loanState = JSON.parse(raw) || {};
+    const payments = Array.isArray(loanState.payments) ? loanState.payments : [];
+    const totalCapitalPaid = payments.reduce((sum, p) => sum + (Number(p.capital) || 0) + (Number(p.overpayment) || 0), 0);
+    if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
+    state.houseSimulation.plotCapitalRepaid = Math.max(0, totalCapitalPaid);
+    saveState();
+    bm.renderSimulation();
+    toast(`Uzupełniono kapitał: ${fmtCur(totalCapitalPaid)}`, 'success');
+  } catch {
+    toast('Nie udało się odczytać danych z Kredytu', 'error');
+  }
 };
 bm.updateSimulationNumField = (field, rawValue) => {
   if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
@@ -2015,7 +2116,10 @@ bm.openPhaseModal = (phaseId) => {
     if (!name) return toast('Podaj nazwę','error');
     const obj = { id:ph?.id||genId(), name, icon:document.getElementById('ph-icon').value||'🏗️', color:document.getElementById('ph-color').value, order:parseInt(document.getElementById('ph-order').value)||0 };
     if (ph) state.phases = state.phases.map(p=>p.id===obj.id?obj:p);
-    else state.phases.push(obj);
+    else {
+      state.phases.push(obj);
+      state.boardSelectedPhaseId = obj.id;
+    }
     addActivity('phase', `${ph?'Zaktualizowano':'Dodano'} projekt: ${obj.name}`);
     saveState(); closeModal(); refreshAll();
     toast(ph?'Projekt zaktualizowany':'Projekt dodany','success');
@@ -2031,6 +2135,10 @@ bm.deletePhase = (phaseId, e) => {
     state.phases = state.phases.filter(p=>p.id!==phaseId);
     state.tasks = state.tasks.filter(t=>t.phaseId!==phaseId);
     if (state.collapsedPhases?.[phaseId] != null) delete state.collapsedPhases[phaseId];
+    if (state.boardSelectedPhaseId === phaseId) {
+      const next = [...state.phases].sort((a,b)=>a.order-b.order)[0];
+      state.boardSelectedPhaseId = next ? next.id : null;
+    }
     addActivity('phase', `Usunięto projekt: ${ph.name}`);
     saveState(); refreshAll(); toast('Projekt usunięty');
   });

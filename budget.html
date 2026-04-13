@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LifeOS — Budżet (ulepszona wersja)</title>
+  <title>LifeOS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
     <style>
     .row {
@@ -18,30 +19,54 @@
     }
 
     .budget-tabs {
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 8;
-      padding: 8px 0;
-      margin-bottom: 0;
-      flex-wrap: nowrap;
-      gap: 6px;
+      display: flex;
+      gap: 2px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
       overflow-x: auto;
+      flex-shrink: 0;
     }
+    .budget-tabs::-webkit-scrollbar { height: 3px; }
 
     .budget-tabs .tab {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 7px 10px;
-      font-size: 12px;
+      gap: 7px;
+      padding: 13px 16px 11px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all .2s ease;
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .budget-tabs .tab:hover { color: var(--ink); }
+    .budget-tabs .tab.active {
+      color: var(--accent);
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 2px solid var(--accent) !important;
+      box-shadow: none !important;
+    }
 
     .budget-tabs .material-symbols-outlined {
-      font-size: 14px;
+      font-size: 18px;
       line-height: 1;
+    }
+    @media(max-width:720px){.budget-tabs{padding:0 16px;}}
+
+    /* Bring module cards closer to tabs (after moving tabs under header) */
+    .content-main > section[id^="tab-"] {
+      margin-top: 4px !important;
     }
 
     .trend {
@@ -4737,10 +4762,6 @@
           <div class="site-header__greeting">
             <h1 class="site-header__title">Budżet</h1>
           </div>
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            Finanse osobiste
-          </div>
         </div>
         <div class="site-header__right" aria-label="Akcje strony">
           <div class="toolbar budget-month-nav">
@@ -4756,22 +4777,22 @@
         </div>
       </header>
 
+      <div class="tabs budget-tabs">
+        <button class="tab active" data-tab="dashboard"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
+        <button class="tab" data-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
+        <button class="tab" data-tab="incomes"><span class="material-symbols-outlined">payments</span>Przychody</button>
+        <button class="tab" data-tab="fixed"><span class="material-symbols-outlined">account_balance_wallet</span>Stałe wydatki</button>
+        <button class="tab" data-tab="variable"><span class="material-symbols-outlined">shopping_cart</span>Wydatki zmienne</button>
+        <button class="tab" data-tab="investments"><span class="material-symbols-outlined">trending_up</span>Inwestycje</button>
+        <button class="tab" data-tab="categories"><span class="material-symbols-outlined">category</span>Kategorie</button>
+        <button class="tab" data-tab="eom"><span class="material-symbols-outlined">event_note</span>Salda (EOM)</button>
+        <button class="tab" data-tab="goals"><span class="material-symbols-outlined">flag</span>Cele</button>
+        <button class="tab" data-tab="analytics"><span class="material-symbols-outlined">analytics</span>Analityka</button>
+        <button class="tab" data-tab="mom"><span class="material-symbols-outlined">sync_alt</span>Porównanie MoM</button>
+      </div>
+
       <div class="content">
         <main class="page-content content-main stack">
-    <div class="tabs budget-tabs" style="margin-top:12px">
-      <button class="tab active" data-tab="dashboard"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
-      <button class="tab" data-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
-      <button class="tab" data-tab="incomes"><span class="material-symbols-outlined">payments</span>Przychody</button>
-      <button class="tab" data-tab="fixed"><span class="material-symbols-outlined">account_balance_wallet</span>Stałe wydatki</button>
-      <button class="tab" data-tab="variable"><span class="material-symbols-outlined">shopping_cart</span>Wydatki zmienne</button>
-      <button class="tab" data-tab="investments"><span class="material-symbols-outlined">trending_up</span>Inwestycje</button>
-      <button class="tab" data-tab="categories"><span class="material-symbols-outlined">category</span>Kategorie</button>
-      <button class="tab" data-tab="eom"><span class="material-symbols-outlined">event_note</span>Salda (EOM)</button>
-      <button class="tab" data-tab="goals"><span class="material-symbols-outlined">flag</span>Cele</button>
-      <button class="tab" data-tab="analytics"><span class="material-symbols-outlined">analytics</span>Analityka</button>
-      <button class="tab" data-tab="mom"><span class="material-symbols-outlined">sync_alt</span>Porównanie MoM</button>
-    </div>
-
     <!-- Dashboard -->
     <section id="tab-dashboard" class="card" style="margin-top:12px">
       <h3 class="title">Dashboard finansowy</h3>
