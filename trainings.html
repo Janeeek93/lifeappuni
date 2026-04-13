@@ -1299,45 +1299,48 @@
   .bm-kpi-row, .bm-form-section, .bm-chart-section { padding-left: 16px; padding-right: 16px; }
   .bm-analytics-grid { padding: 8px 16px 16px; }
   .bm-chart-container { height: 220px; }
+  .subnav { padding: 0 16px; }
 }
 
 /* Sub navigation */
 .subnav {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 0 12px;
-  margin: 12px 0 0;
+  gap: 2px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--line);
+  background: var(--card);
+  overflow-x: auto;
+  flex-shrink: 0;
 }
+.subnav::-webkit-scrollbar { height: 3px; }
 
 .subnav button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 13px;
+  gap: 7px;
+  padding: 13px 16px 11px;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
+  font-size: 13px;
   color: var(--muted);
   cursor: pointer;
-  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .2s ease;
+  white-space: nowrap;
 }
 
 .subnav button:hover {
-  background: var(--surface);
   color: var(--ink);
 }
 
 .subnav button.is-active {
-  background: var(--card);
-  border-color: var(--line);
-  color: var(--ink);
-  box-shadow: var(--shadow-sm);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
+.subnav button .icon { width: 18px; height: 18px; }
 
 .section-panel {
   display: none;
@@ -1656,15 +1659,15 @@
         </div>
       </header>
 
+      <nav class="subnav" aria-label="Podmenu sekcji">
+        <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
+        <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
+        <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
+        <button type="button" data-section-target="analytics"><i data-lucide="pie-chart" class="icon"></i>Analityka</button>
+      </nav>
+
       <div class="content">
         <main class="page-content content-main stack">
-          <nav class="subnav" aria-label="Podmenu sekcji">
-            <button type="button" class="is-active" data-section-target="activity-hub"><i data-lucide="calendar-days" class="icon"></i>Dziennik</button>
-            <button type="button" data-section-target="activity-heatmap"><i data-lucide="flame" class="icon"></i>Historia</button>
-            <button type="button" data-section-target="body-metrics"><i data-lucide="activity" class="icon"></i>Log wagi</button>
-            <button type="button" data-section-target="analytics"><i data-lucide="pie-chart" class="icon"></i>Analityka</button>
-          </nav>
-
           <!-- New Activity Hub Layout -->
           <div class="card activity-hub section-panel is-active" id="activity-hub">
             <div class="calendar-wrapper">
