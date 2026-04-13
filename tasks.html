@@ -1705,7 +1705,7 @@ function openCardModal(projId,cardId,defaultStage='backlog'){
   document.querySelectorAll('.card-stage-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.s===stage));
   // Assignees — show all project assignees + all members
   const everyone=[{id:'me',name:'Ja',color:'var(--blue)'},...S.members.map(m=>({id:m.id,name:m.name.split(' ')[0],color:m.color}))];
-  const cardAssignees=card?card.assignees:(proj.assignees||[]);
+  const cardAssignees=card?card.assignees:[];
   document.getElementById('cm-assignees').innerHTML=everyone.map(p=>{
     const sel=cardAssignees.includes(p.id);
     return `<button class="card-assignee-chip ${sel?'selected':''}" data-aid="${p.id}" style="color:${p.color}">
