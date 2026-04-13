@@ -168,16 +168,36 @@
       display: flex;
     }
 
-    .loan-page-tabs .tab {
+    .loan-page-tabs {
+      display: none;
+      gap: 2px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .loan-page-tabs::-webkit-scrollbar { height: 3px; }
+    .loan-page-tab {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      padding: 13px 16px 11px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all .2s ease;
+      white-space: nowrap;
     }
-
-    .loan-page-tabs .material-symbols-outlined {
-      font-size: 16px;
-      line-height: 1;
-    }
+    .loan-page-tab:hover { color: var(--ink); }
+    .loan-page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .loan-page-tab .material-symbols-outlined { font-size: 18px; }
 
     .loan-overview-split {
       display: grid;
@@ -802,10 +822,6 @@
     body[data-page="loan"] .content > .stack.tight {
       padding: 20px 28px 36px;
       gap: 24px;
-    }
-
-    body[data-page="loan"] #dashboard-container > .loan-page-tabs {
-      margin-top: 12px;
     }
 
     body[data-page="loan"] .stack.tight {
@@ -1920,6 +1936,13 @@
         </div>
       </header>
 
+      <nav class="loan-page-tabs" id="loan-page-tabs">
+        <button class="loan-page-tab active" data-loan-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
+        <button class="loan-page-tab" data-loan-tab="analytics"><span class="material-symbols-outlined">analytics</span>Hub analityczny</button>
+        <button class="loan-page-tab" data-loan-tab="schedule"><span class="material-symbols-outlined">calendar_month</span>Harmonogram spłat</button>
+        <button class="loan-page-tab" data-loan-tab="history"><span class="material-symbols-outlined">history</span>Historia spłat</button>
+      </nav>
+
       <div class="content">
         <main class="stack tight">
           <div id="app-container" class="stack tight">
@@ -1932,13 +1955,6 @@
             </section>
 
             <div id="dashboard-container" class="stack tight" style="display: none;">
-              <div class="tabs loan-page-tabs" id="loan-page-tabs">
-                <button class="tab active" data-loan-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
-                <button class="tab" data-loan-tab="analytics"><span class="material-symbols-outlined">analytics</span>Hub analityczny</button>
-                <button class="tab" data-loan-tab="schedule"><span class="material-symbols-outlined">calendar_month</span>Harmonogram spłat</button>
-                <button class="tab" data-loan-tab="history"><span class="material-symbols-outlined">history</span>Historia spłat</button>
-              </div>
-
               <div class="loan-page-panel active" data-loan-tab-panel="overview">
                 <div class="loan-overview-split">
                 <section class="card loan-progress-card fintech-overview-card">
@@ -2524,15 +2540,18 @@ function deletePayment(paymentId) {
 /* === Rendering Logic === */
 function render() {
   const rail = document.querySelector('.right-rail');
+  const pageTabs = document.getElementById('loan-page-tabs');
   if (!state.loanDetails) {
     $('#setup-container').style.display = 'block';
     $('#dashboard-container').style.display = 'none';
+    if (pageTabs) pageTabs.style.display = 'none';
     $('#add-payment-btn').style.display = 'none';
     $('#settings-btn').style.display = 'none';
     if (rail) rail.style.display = 'none';
   } else {
     $('#setup-container').style.display = 'none';
     $('#dashboard-container').style.display = 'flex';
+    if (pageTabs) pageTabs.style.display = 'flex';
     $('#add-payment-btn').style.display = 'inline-flex';
     $('#settings-btn').style.display = 'inline-flex';
     if (rail) rail.style.display = 'flex';
