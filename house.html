@@ -1134,6 +1134,7 @@
 // ═══════════════════════════════════════════════════════
 const APP_KEY = 'bm_pro_v1';
 const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
+const LOAN_STORAGE_KEY = 'lifeos_loan_v1';
 
 const PHASE_COLORS = ['#6366f1','#0ea5e9','#64748B','#f59e0b','#ef4444','#10b981','#f97316','#ec4899','#22c55e','#8b5cf6'];
 
@@ -1744,7 +1745,13 @@ bm.renderSimulation = () => {
           <div class="h-form-group"><label class="h-label">Cena zakupu</label><input class="h-input" value="${fmtMoneyInput(s.plotPurchasePrice)}" onchange="bm.updateSimulationField('plotPurchasePrice',this.value)"></div>
           <div class="h-form-row">
             <div class="h-form-group"><label class="h-label">Wkład własny (wpłacony)</label><input class="h-input" value="${fmtMoneyInput(s.plotOwnContributionPaid)}" onchange="bm.updateSimulationField('plotOwnContributionPaid',this.value)"></div>
-            <div class="h-form-group"><label class="h-label">Kapitał spłacony</label><input class="h-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid',this.value)"></div>
+            <div class="h-form-group">
+              <label class="h-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span>Kapitał spłacony</span>
+                <button type="button" onclick="bm.pullPlotCapitalFromLoan()" style="font-size:11px;font-style:italic;color:var(--muted);background:transparent;border:none;padding:0;cursor:pointer;text-decoration:underline">pobierz aktualne</button>
+              </label>
+              <input class="h-input" value="${fmtMoneyInput(s.plotCapitalRepaid)}" onchange="bm.updateSimulationField('plotCapitalRepaid',this.value)">
+            </div>
           </div>
           <div class="h-form-group"><label class="h-label">Aktualna wycena (operat)</label><input class="h-input" value="${fmtMoneyInput(s.plotCurrentValuation)}" onchange="bm.updateSimulationField('plotCurrentValuation',this.value)"></div>
         </div>
@@ -1847,6 +1854,22 @@ bm.updateSimulationField = (field, rawValue) => {
   if (field === 'houseOwnCashIncurred') state.houseSimulation[field] = Boolean(rawValue);
   else state.houseSimulation[field] = parseMoneyInput(rawValue);
   saveState(); bm.renderSimulation();
+};
+bm.pullPlotCapitalFromLoan = () => {
+  const raw = localStorage.getItem(LOAN_STORAGE_KEY);
+  if (!raw) return toast('Brak danych kredytu w zakładce Kredyt', 'error');
+  try {
+    const loanState = JSON.parse(raw) || {};
+    const payments = Array.isArray(loanState.payments) ? loanState.payments : [];
+    const totalCapitalPaid = payments.reduce((sum, p) => sum + (Number(p.capital) || 0) + (Number(p.overpayment) || 0), 0);
+    if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
+    state.houseSimulation.plotCapitalRepaid = Math.max(0, totalCapitalPaid);
+    saveState();
+    bm.renderSimulation();
+    toast(`Uzupełniono kapitał: ${fmtCur(totalCapitalPaid)}`, 'success');
+  } catch {
+    toast('Nie udało się odczytać danych z Kredytu', 'error');
+  }
 };
 bm.updateSimulationNumField = (field, rawValue) => {
   if (!state.houseSimulation) state.houseSimulation = defaultState().houseSimulation;
