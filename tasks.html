@@ -913,6 +913,7 @@
         <div class="mytasks-layout">
           <!-- Table card -->
           <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh-sm)">
+            <div id="my-project-tasks" style="display:none;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surf-lo)"></div>
             <div class="bulk-row">
               <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700">
                 <input type="checkbox" id="bulk-select-all" style="width:13px;height:13px">Zaznacz widoczne
@@ -1420,7 +1421,45 @@ function openCalTaskModal(taskId,owner){
 }
 
 // ── MY TASKS ──
-function renderMyTasks(){renderKpis();renderInsights();renderTaskTable();}
+function getMyProjectCards(){
+  const cards=[];
+  S.projects.filter(p=>p.status==='active').forEach(proj=>{
+    proj.cards.forEach(card=>{
+      if(card.stage==='done') return;
+      if(!uniqIds(card.assignees).includes('me')) return;
+      cards.push({...card,_projId:proj.id,_projTitle:proj.title,_projColor:proj.color});
+    });
+  });
+  return cards.sort((a,b)=>{
+    const ad=parseDate(a.dueDate),bd=parseDate(b.dueDate);
+    if(ad&&bd) return ad-bd;
+    if(ad) return -1;
+    if(bd) return 1;
+    return priW(a.priority)-priW(b.priority);
+  });
+}
+function renderMyProjectTasks(){
+  const box=document.getElementById('my-project-tasks');if(!box)return;
+  const cards=getMyProjectCards();
+  if(!cards.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML=`<div class="label-xs" style="margin-bottom:8px">📁 Taski projektowe przypisane do mnie (${cards.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${cards.slice(0,6).map(card=>`<button type="button" class="ov-item ov-note-jump" data-open-card="${card.id}" data-open-proj="${card._projId}" style="text-align:left;border-left:3px solid ${card._projColor};padding-left:10px">
+        <div class="ov-item-body">
+          <div class="ov-item-title">${escH(card.title)}</div>
+          <div class="ov-item-meta">
+            <span class="pill" style="background:${card._projColor}22;color:${card._projColor};border:1px solid ${card._projColor}44">${escH(card._projTitle)}</span>
+            <span class="pill prio-${card.priority}">${priLabel(card.priority)}</span>
+            <span>${card.dueDate?`📅 ${fmtShort(parseDate(card.dueDate))}`:'bez terminu'}</span>
+          </div>
+        </div>
+      </button>`).join('')}
+      ${cards.length>6?`<div class="small muted">+${cards.length-6} kolejnych w module „Projekty”.</div>`:''}
+    </div>`;
+  box.querySelectorAll('[data-open-card]').forEach(el=>el.addEventListener('click',()=>openCardModal(el.dataset.openProj,el.dataset.openCard)));
+}
+function renderMyTasks(){renderKpis();renderInsights();renderMyProjectTasks();renderTaskTable();}
 function renderOverview(){
   const t=todayUTC(),h7=new Date(t);h7.setUTCDate(h7.getUTCDate()+7);
   const allOpen=[
