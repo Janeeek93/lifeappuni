@@ -11059,6 +11059,16 @@
     dt.limits.maxWeeklyLossPct=Math.abs(num(dt.limits.maxWeeklyLossPct)||0);
     dt.limits.targetDailyProfitPct=Math.abs(num(dt.limits.targetDailyProfitPct)||0);
     dt.limits.targetWeeklyProfitPct=Math.abs(num(dt.limits.targetWeeklyProfitPct)||0);
+    for(const p of dt.positions){
+      if(!Array.isArray(p.tags)) p.tags=[];
+      if(!Number.isFinite(Number(p.executionRating))) p.executionRating=null;
+      if(!Number.isFinite(Number(p.fees))) p.fees=0;
+    }
+    for(const c of dt.closes){
+      if(!Array.isArray(c.tags)) c.tags=[];
+      if(!Number.isFinite(Number(c.executionRating))) c.executionRating=null;
+      if(!Number.isFinite(Number(c.fees))) c.fees=Math.abs(num(c.fee)||0);
+    }
     return dt;
   };
 
@@ -11092,6 +11102,7 @@
     const weekStart=dtWeekStart(today);
     let activeNotional=0, lockedMargin=0, unrealized=0, realized=0, todayPnl=0, weeklyPnl=0;
     let win=0,loss=0;
+    let grossProfit=0,grossLossAbs=0,netProfit=0,netLossAbs=0,totalFees=0;
     const deposits=(dt.capitalFlows||[]).reduce((sum,f)=>sum+(f.type==='deposit'?Math.abs(num(f.amountUsd)):0),0);
     const withdrawals=(dt.capitalFlows||[]).reduce((sum,f)=>sum+(f.type==='withdrawal'?Math.abs(num(f.amountUsd)):0),0);
     const netFlows=deposits-withdrawals;
@@ -11112,9 +11123,14 @@
     }
     for(const c of dt.closes){
       const net=num(c.netPnl);
+      const gross=num(c.grossPnl);
+      const fees=Math.abs(num(c.fees ?? c.fee));
       const cDate=String(c.date||'');
       realized+=net;
+      totalFees+=fees;
       if(net>=0) win++; else loss++;
+      if(gross>=0) grossProfit+=gross; else grossLossAbs+=Math.abs(gross);
+      if(net>=0) netProfit+=net; else netLossAbs+=Math.abs(net);
       if(cDate===today) todayPnl+=net;
       if(cDate>=weekStart && cDate<=today) weeklyPnl+=net;
     }
@@ -11126,7 +11142,19 @@
     const roi=((equity-netFlows)/baseForRoi)*100;
     const todayPct=netFlows!==0?(todayPnl/Math.abs(netFlows))*100:0;
     const weeklyPct=netFlows!==0?(weeklyPnl/Math.abs(netFlows))*100:0;
-    return {activeNotional,lockedMargin,unrealized,realized,todayPnl,weeklyPnl,todayPct,weeklyPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,deposits,withdrawals,netFlows,freeCash,walletBalance,equity,canTrade:deposits>0&&freeCash>0};
+    const winRate=total?((win/total)*100):0;
+    const avgWin=win>0?netProfit/win:0;
+    const avgLoss=loss>0?netLossAbs/loss:0;
+    const expectancy=(winRate/100)*avgWin-((100-winRate)/100)*avgLoss;
+    const profitFactor=grossLossAbs>0?(grossProfit/grossLossAbs):(grossProfit>0?Infinity:0);
+    let running=netFlows;
+    let peak=running;
+    for(const c of [...dt.closes].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))){
+      running+=num(c.netPnl);
+      if(running>peak) peak=running;
+    }
+    const currentDrawdown=Math.max(0,peak-equity);
+    return {activeNotional,lockedMargin,unrealized,realized,todayPnl,weeklyPnl,todayPct,weeklyPct,roi,win,loss,winRate,openPositions,deposits,withdrawals,netFlows,freeCash,walletBalance,equity,canTrade:deposits>0&&freeCash>0,profitFactor,expectancy,currentDrawdown,totalFees};
   }
 
   function renderDayTradingDashboard(){
@@ -11171,15 +11199,18 @@
     const gross=(closePrice-num(position.entry))*qty*dir;
     const riskPerUnit=(num(position.entry)-num(position.sl))*dir;
     const riskAbs=Math.max(0,riskPerUnit*qty);
-    const net=gross-fee;
+    const fees=Math.abs(num(fee));
+    const net=gross-fees;
     const rr=riskAbs>0?net/riskAbs:null;
     dayTrading().closes.unshift({
       id:'dt_close_'+Math.random().toString(36).slice(2),
       positionId:position.id,ticker:position.ticker,side:position.side,date:closeDate,
-      qty,closePrice,fee,grossPnl:gross,netPnl:net,rr,releasedMargin:(num(position.entry)*qty)/lev,partial:(qty<(num(position.initialQty)-num(position.closedQty||0)-0.0000001))
+      qty,closePrice,fees,fee:fees,grossPnl:gross,netPnl:net,rr,releasedMargin:(num(position.entry)*qty)/lev,partial:(qty<(num(position.initialQty)-num(position.closedQty||0)-0.0000001)),
+      tags:Array.isArray(position.tags)?[...position.tags]:[],executionRating:Number.isFinite(Number(position.executionRating))?Number(position.executionRating):null
     });
     position.closedQty=(num(position.closedQty)||0)+qty;
     position.realizedPnl=(num(position.realizedPnl)||0)+net;
+    position.fees=(num(position.fees)||0)+fees;
     if(position.closedQty>=num(position.initialQty)-0.0000001){
       position.status='closed';
       position.closedDate=closeDate;
@@ -11456,7 +11487,8 @@
         dt.positions.unshift({
           id:'dt_pos_'+Math.random().toString(36).slice(2),ticker:payload.ticker,side:payload.side,openDate:payload.date,sizeQty:payload.sizeQty,
           entry:payload.entry,sl:payload.sl,tp:payload.tp,note:payload.note,status:'open',leverage:payload.leverage,
-          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr,notionalUsd:m.notionalUsd,marginRequired:m.marginRequired
+          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr,notionalUsd:m.notionalUsd,marginRequired:m.marginRequired,
+          tags:[],executionRating:null,fees:0
         });
         save(state);form.reset();
         if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
