@@ -1578,11 +1578,11 @@ function computePlannerAutoValues(plannerLike = state.planner) {
   const entry = n(plannerLike.entry);
   const stop = n(plannerLike.stop);
   const riskPerUnit = Math.abs(entry - stop);
-  const marginAllocation = capital * (riskPct / 100);
-  if (!(capital > 0 && entry > 0 && leverage > 0 && stop > 0 && riskPerUnit > 0 && marginAllocation > 0)) {
+  const riskAmount = capital * (riskPct / 100);
+  if (!(capital > 0 && entry > 0 && leverage > 0 && stop > 0 && riskPerUnit > 0 && riskAmount > 0)) {
     return { qty: 0, tp: 0 };
   }
-  const qty = (marginAllocation * leverage) / entry;
+  const qty = (riskAmount * leverage) / riskPerUnit;
   const tp = plannerLike.side === 'short' ? entry - (riskPerUnit * 2) : entry + (riskPerUnit * 2);
   return { qty, tp };
 }
@@ -1789,10 +1789,11 @@ function renderPlanner() {
   const customTp = n(state.planner.tp);
   const entry = n(state.planner.entry);
   const stop = n(state.planner.stop);
-  const recommendedSlUsd = (recommendedQty > 0 && entry > 0 && stop > 0) ? Math.abs(entry - stop) * recommendedQty : 0;
-  const recommendedTpUsd = (recommendedQty > 0 && recommendedTp > 0 && entry > 0) ? Math.abs(recommendedTp - entry) * recommendedQty : 0;
-  const customSlUsd = (customQty > 0 && entry > 0 && stop > 0) ? Math.abs(entry - stop) * customQty : 0;
-  const customTpUsd = (customQty > 0 && customTp > 0 && entry > 0) ? Math.abs(customTp - entry) * customQty : 0;
+  const leverageValue = Math.max(n(state.planner.leverage), 1);
+  const recommendedSlUsd = (recommendedQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * recommendedQty) / leverageValue : 0;
+  const recommendedTpUsd = (recommendedQty > 0 && recommendedTp > 0 && entry > 0) ? (Math.abs(recommendedTp - entry) * recommendedQty) / leverageValue : 0;
+  const customSlUsd = (customQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * customQty) / leverageValue : 0;
+  const customTpUsd = (customQty > 0 && customTp > 0 && entry > 0) ? (Math.abs(customTp - entry) * customQty) / leverageValue : 0;
   const diffQty = customQty - recommendedQty;
   const diffTpPrice = customTp - recommendedTp;
   const diffSlUsd = customSlUsd - recommendedSlUsd;
@@ -1827,7 +1828,7 @@ function renderPlanner() {
       : 'Pozycja mieszana — poprawa jednego parametru kosztem drugiego.';
   const balanceLine = `ΔRR ${fmtDiff(rrDiff)} • ΔSL ${fmtDiffMoney(diffSlUsd)} • ΔTP ${fmtDiffMoney(diffTpUsd)}`;
   const cards = [
-    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? `Size liczony dynamicznie z dźwigni ${fmtNum(n(state.planner.leverage), 0)}x` : 'Kliknij „Wylicz pozycję”' },
+    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? `SL ≈ ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo przy dźwigni ${fmtNum(n(state.planner.leverage), 0)}x` : 'Kliknij „Wylicz pozycję”' },
     { label: 'Rekomendowany TP price', value: recommendedTp > 0 ? fmtNum(recommendedTp, 4) : '—', note: 'Target liczony automatycznie jako 2R od SL' },
     { label: 'Rekomendowany SL (USD)', value: recommendedSlUsd > 0 ? fmtMoney(recommendedSlUsd) : '—', note: 'Strata do SL przy rekomendowanym size' },
     { label: 'Rekomendowany TP (USD)', value: recommendedTpUsd > 0 ? fmtMoney(recommendedTpUsd) : '—', note: 'Potencjalny zysk do TP przy rekomendacji' },
