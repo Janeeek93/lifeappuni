@@ -151,6 +151,12 @@
     .dt-inline-input.qty { width:75px; }
     .dt-chart-box { height:260px; position:relative; }
     .dt-muted-empty { text-align:center; color:var(--muted); font-size:12px; padding:18px 0; }
+    .dt-close-modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.4); backdrop-filter:blur(2px); z-index:70; display:none; }
+    .dt-close-modal { position:fixed; inset:0; margin:auto; width:min(560px,94vw); height:max-content; background:var(--surface); border-radius:18px; border:1px solid rgba(148,163,184,.2); box-shadow:0 20px 55px rgba(15,23,42,.22); padding:16px; z-index:75; display:none; }
+    .dt-close-modal[open], .dt-close-modal-backdrop[open] { display:block; }
+    .dt-close-pcts { display:flex; gap:6px; flex-wrap:wrap; }
+    .dt-close-pct { border:none; border-radius:7px; padding:6px 10px; font-size:11px; font-weight:700; color:var(--muted); background:rgba(148,163,184,.12); cursor:pointer; }
+    .dt-close-pct:hover { background:rgba(37,99,235,.12); color:#1d4ed8; }
 
     .inv-trade-tabs { display:inline-flex; gap:0; border-radius:10px; overflow:hidden; border:1px solid rgba(148,163,184,.3); }
     .inv-trade-tab { border:none; background:transparent; padding:8px 20px; font-weight:600; font-size:13px; cursor:pointer; color:var(--muted); transition:all .2s; }
@@ -5064,6 +5070,27 @@
 
             <div class="card stack">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong>Zarządzanie kapitałem konta</strong>
+                <span class="tiny muted">Saldo startowe + wpłaty/wypłaty</span>
+              </div>
+              <form id="dt-capital-form" class="dt-form-grid">
+                <label>Saldo początkowe (USD)<input name="startingBalance" inputmode="decimal" placeholder="0.00" /></label>
+                <label>Data<input name="date" type="date" required /></label>
+                <label>Typ przepływu<select name="flowType"><option value="deposit">Wpłata</option><option value="withdrawal">Wypłata</option></select></label>
+                <label>Kwota (USD)<input name="amountUsd" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>Notatka<input name="note" placeholder="np. dopłata kapitału / wypłata zysku" /></label>
+                <button class="btn soft" type="submit">Dodaj przepływ</button>
+              </form>
+              <div class="table-wrapper">
+                <table class="dt-table">
+                  <thead><tr><th>Data</th><th>Typ</th><th>Kwota</th><th>Notatka</th><th></th></tr></thead>
+                  <tbody id="dt-capital-rows"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card stack">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Plan pozycji i zarządzanie ryzykiem</strong>
                 <span class="tiny muted">SL/TP, RR i kontrola pozycji w czasie rzeczywistym</span>
               </div>
@@ -5071,7 +5098,7 @@
                 <label>Ticker<input name="ticker" placeholder="np. BTC, ETH, SOL" required /></label>
                 <label>Strona<select name="side"><option value="long">Long</option><option value="short">Short</option></select></label>
                 <label>Data<input name="date" type="date" required /></label>
-                <label>Kapitał pozycji (USD)<input name="sizeUsd" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>Position size (krypto)<input name="sizeQty" inputmode="decimal" placeholder="np. 0.02" required /></label>
                 <label>Entry<input name="entry" inputmode="decimal" placeholder="0.00" required /></label>
                 <label>SL<input name="sl" inputmode="decimal" placeholder="0.00" required /></label>
                 <label>TP planowany<input name="tp" inputmode="decimal" placeholder="0.00" required /></label>
@@ -5088,7 +5115,7 @@
               </div>
               <div class="table-wrapper">
                 <table class="dt-table">
-                  <thead><tr><th>Ticker</th><th>Strona</th><th>Entry</th><th>Akt. cena</th><th>Pozostało</th><th>Niezreal. PnL</th><th>Plan RR</th><th>Partial close qty</th><th>Cena close</th><th>Fee (USD)</th><th></th></tr></thead>
+                  <thead><tr><th>Ticker</th><th>Strona</th><th>Entry</th><th>Akt. cena</th><th>Pozostało</th><th>Nominał (USD)</th><th>Niezreal. PnL</th><th>Plan RR</th><th></th></tr></thead>
                   <tbody id="dt-open-rows"></tbody>
                 </table>
               </div>
@@ -5111,6 +5138,32 @@
                 </table>
               </div>
             </div>
+          </div>
+          <div id="dt-close-modal-backdrop" class="dt-close-modal-backdrop"></div>
+          <div id="dt-close-modal" class="dt-close-modal">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+              <strong>Zamykanie pozycji</strong>
+              <button type="button" class="btn ghost" id="dt-close-cancel-top">✕</button>
+            </div>
+            <form id="dt-close-form" class="dt-form-grid">
+              <label>Pozycja<input name="ticker" readonly /></label>
+              <label>Dostępna ilość<input name="maxQty" readonly /></label>
+              <label>Ilość do zamknięcia<input name="closeQty" inputmode="decimal" required /></label>
+              <label>Cena zamknięcia<input name="closePrice" inputmode="decimal" required /></label>
+              <label>Prowizja (USD)<input name="fee" inputmode="decimal" value="0" /></label>
+              <label>Data<input name="date" type="date" required /></label>
+              <div class="dt-close-pcts" style="grid-column:1/-1">
+                <button class="dt-close-pct" type="button" data-pct="25">25%</button>
+                <button class="dt-close-pct" type="button" data-pct="50">50%</button>
+                <button class="dt-close-pct" type="button" data-pct="75">75%</button>
+                <button class="dt-close-pct" type="button" data-pct="100">100%</button>
+              </div>
+              <div class="dt-preview" id="dt-close-preview" style="grid-column:1/-1">Wybierz ilość i cenę zamknięcia.</div>
+              <div class="row" style="gap:8px;grid-column:1/-1;justify-content:flex-end">
+                <button type="button" class="btn ghost" id="dt-close-cancel">Anuluj</button>
+                <button type="submit" class="btn">Zamknij pozycję</button>
+              </div>
+            </form>
           </div>
 
           <div id="inv-longterm-panel">
@@ -6235,15 +6288,17 @@
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
     if(!bud.investments) bud.investments={assets:[], trades:[], groups:[]};
-    if(!bud.dayTrading) bud.dayTrading={positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}};
+    if(!bud.dayTrading) bud.dayTrading={positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}, startingBalance:0, capitalFlows:[]};
     if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
     if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
     if(!Array.isArray(bud.dayTrading.positions)) bud.dayTrading.positions=[];
     if(!Array.isArray(bud.dayTrading.closes)) bud.dayTrading.closes=[];
+    if(!Array.isArray(bud.dayTrading.capitalFlows)) bud.dayTrading.capitalFlows=[];
     if(!bud.dayTrading.limits || typeof bud.dayTrading.limits!=='object') bud.dayTrading.limits={dailyLoss:0,weeklyLoss:0};
     if(!Number.isFinite(Number(bud.dayTrading.limits.dailyLoss))) bud.dayTrading.limits.dailyLoss=0;
     if(!Number.isFinite(Number(bud.dayTrading.limits.weeklyLoss))) bud.dayTrading.limits.weeklyLoss=0;
+    if(!Number.isFinite(Number(bud.dayTrading.startingBalance))) bud.dayTrading.startingBalance=0;
     if(!Array.isArray(bud.eomInvestmentBridge)) bud.eomInvestmentBridge=[];
     for(const t of bud.investments.trades){
       if(!t.side) t.side='buy';
@@ -6280,7 +6335,7 @@
         recurringTemplates:[],recurringLog:[],
         fixedTemplates:[],
         investments:{assets:[], trades:[], groups:[]},
-        dayTrading:{positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}},
+        dayTrading:{positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}, startingBalance:0, capitalFlows:[]},
         eomInvestmentBridge:[]
       }}
     });
@@ -7550,6 +7605,7 @@
   let invHoldingsSort={key:'value',dir:'desc'};
   const invCollapsedGroups=new Set();
   let dtEquityChart=null;
+  let dtCloseTargetId=null;
 
   const investments=()=>{
     if(!b().investments) b().investments={assets:[],trades:[],groups:[]};
@@ -10933,28 +10989,30 @@
 
   // --- Day Trading (crypto) -------------------------------------------------
   const dayTrading=()=>{
-    if(!b().dayTrading) b().dayTrading={positions:[],closes:[],limits:{dailyLoss:0,weeklyLoss:0}};
+    if(!b().dayTrading) b().dayTrading={positions:[],closes:[],limits:{dailyLoss:0,weeklyLoss:0},startingBalance:0,capitalFlows:[]};
     const dt=b().dayTrading;
     if(!Array.isArray(dt.positions)) dt.positions=[];
     if(!Array.isArray(dt.closes)) dt.closes=[];
+    if(!Array.isArray(dt.capitalFlows)) dt.capitalFlows=[];
     if(!dt.limits) dt.limits={dailyLoss:0,weeklyLoss:0};
     dt.limits.dailyLoss=num(dt.limits.dailyLoss)||0;
     dt.limits.weeklyLoss=num(dt.limits.weeklyLoss)||0;
+    dt.startingBalance=num(dt.startingBalance)||0;
     return dt;
   };
 
   function dtComputePlanMetrics(payload){
-    const entry=num(payload.entry), sl=num(payload.sl), tp=num(payload.tp), sizeUsd=Math.abs(num(payload.sizeUsd));
+    const entry=num(payload.entry), sl=num(payload.sl), tp=num(payload.tp), sizeQty=Math.abs(num(payload.sizeQty));
     const side=(payload.side||'long')==='short'?'short':'long';
-    if(entry<=0||sizeUsd<=0) return {isValid:false};
-    const qty=sizeUsd/entry;
+    if(entry<=0||sizeQty<=0) return {isValid:false};
+    const qty=sizeQty;
     const dir=side==='short'?-1:1;
     const riskPerUnit=(entry-sl)*dir;
     const rewardPerUnit=(tp-entry)*dir;
     const riskUsd=Math.max(0,riskPerUnit*qty);
     const rewardUsd=Math.max(0,rewardPerUnit*qty);
     const rr=riskUsd>0?rewardUsd/riskUsd:null;
-    return {isValid:true,qty,dir,riskUsd,rewardUsd,rr};
+    return {isValid:true,qty,dir,riskUsd,rewardUsd,rr,notionalUsd:qty*entry};
   }
 
   function dtWeekStart(dateStr){
@@ -10968,8 +11026,9 @@
     const dt=dayTrading();
     const today=new Date().toISOString().slice(0,10);
     const weekStart=dtWeekStart(today);
-    let capital=0, realized=0, todayPnl=0, weeklyPnl=0;
+    let activeNotional=0, unrealized=0, realized=0, todayPnl=0, weeklyPnl=0;
     let win=0,loss=0;
+    const flows=(dt.capitalFlows||[]).reduce((sum,f)=>sum+(f.type==='withdrawal'?-Math.abs(num(f.amountUsd)):Math.abs(num(f.amountUsd))),0);
     const openPositions=[];
     for(const p of dt.positions){
       const initQty=num(p.initialQty)||0;
@@ -10977,7 +11036,10 @@
       const remainingQty=Math.max(0,initQty-closedQty);
       if((p.status||'open')==='open' && remainingQty>0.0000001){
         openPositions.push({...p,remainingQty});
-        capital+=num(p.sizeUsd)||0;
+        const mark=num(p.markPrice)||num(p.entry);
+        const dir=p.side==='short'?-1:1;
+        activeNotional+=remainingQty*num(p.entry);
+        unrealized+=(mark-num(p.entry))*remainingQty*dir;
       }
     }
     for(const c of dt.closes){
@@ -10989,9 +11051,11 @@
       if(cDate>=weekStart && cDate<=today) weeklyPnl+=net;
     }
     const total=win+loss;
-    const roi=capital>0?(realized/capital)*100:0;
-    const todayPct=capital>0?(todayPnl/capital)*100:0;
-    return {capital,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions};
+    const equity=dt.startingBalance+flows+realized+unrealized;
+    const baseForRoi=Math.max(1,dt.startingBalance+flows);
+    const roi=((equity-baseForRoi)/baseForRoi)*100;
+    const todayPct=baseForRoi>0?(todayPnl/baseForRoi)*100:0;
+    return {activeNotional,unrealized,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,startingBalance:dt.startingBalance,flows,equity};
   }
 
   function renderDayTradingDashboard(){
@@ -11004,12 +11068,14 @@
     const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
     const weeklyHit=weeklyLimit>0 && stats.weeklyPnl<=-weeklyLimit;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Kapitał aktywny USD</span><span class="value">${fmt(stats.capital,'USD')}</span><span class="sub">${stats.openPositions.length} otwartych pozycji</span></div>
-      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI łącznie</span><span class="value">${stats.capital>0?stats.roi.toFixed(2)+'%':'—'}</span><span class="sub">Netto z zamkniętych pozycji</span></div>
+      <div class="dt-kpi accent"><span class="label">Saldo konta (equity)</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Start ${fmt(stats.startingBalance,'USD')} | przepływy ${fmt(stats.flows,'USD')}</span></div>
+      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI łącznie</span><span class="value">${stats.roi.toFixed(2)}%</span><span class="sub">Na bazie salda + wpłat/wypłat</span></div>
       <div class="dt-kpi ${stats.realized>=0?'positive':'negative'}"><span class="label">PnL zrealizowany</span><span class="value">${fmt(stats.realized,'USD')}</span><span class="sub">Po uwzględnieniu prowizji</span></div>
+      <div class="dt-kpi ${stats.unrealized>=0?'positive':'negative'}"><span class="label">PnL niezrealizowany</span><span class="value">${fmt(stats.unrealized,'USD')}</span><span class="sub">Na otwartych pozycjach</span></div>
       <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiaj PnL</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% kapitału aktywnego</span></div>
       <div class="dt-kpi ${stats.weeklyPnl>=0?'positive':'negative'} ${weeklyHit?'alert':''}"><span class="label">Tydzień PnL</span><span class="value">${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limit: ${weeklyLimit>0?fmt(-weeklyLimit,'USD'):'nie ustawiono'}</span></div>
-      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss}</span></div>
+      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss} | Open: ${stats.openPositions.length}</span></div>
+      <div class="dt-kpi"><span class="label">Ekspozycja aktywna</span><span class="value">${fmt(stats.activeNotional,'USD')}</span><span class="sub">Nominał otwartych pozycji</span></div>
     `;
   }
 
@@ -11019,10 +11085,10 @@
     if(!form||!preview) return;
     const f=new FormData(form);
     const m=dtComputePlanMetrics({
-      side:f.get('side'), entry:f.get('entry'), sl:f.get('sl'), tp:f.get('tp'), sizeUsd:f.get('sizeUsd')
+      side:f.get('side'), entry:f.get('entry'), sl:f.get('sl'), tp:f.get('tp'), sizeQty:f.get('sizeQty')
     });
     if(!m.isValid){preview.textContent='Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.';return;}
-    preview.innerHTML=`Plan: ilość <b>${m.qty.toFixed(6)}</b> | Ryzyko SL: <span class="neg">${fmt(-m.riskUsd,'USD')}</span> | Potencjał TP: <span class="pos">${fmt(m.rewardUsd,'USD')}</span> | RR: <b>${m.rr?m.rr.toFixed(2):'—'}</b>`;
+    preview.innerHTML=`Plan: ilość <b>${m.qty.toFixed(6)}</b> | Nominał: <b>${fmt(m.notionalUsd,'USD')}</b> | Ryzyko SL: <span class="neg">${fmt(-m.riskUsd,'USD')}</span> | Potencjał TP: <span class="pos">${fmt(m.rewardUsd,'USD')}</span> | RR: <b>${m.rr?m.rr.toFixed(2):'—'}</b>`;
   }
 
   function dtRecordClose(position, qty, closePrice, fee, closeDate){
@@ -11043,6 +11109,62 @@
       position.status='closed';
       position.closedDate=closeDate;
     }
+  }
+
+  function renderDayTradingCapitalFlows(){
+    const dt=dayTrading();
+    const tbody=document.getElementById('dt-capital-rows');
+    if(!tbody) return;
+    tbody.innerHTML='';
+    for(const flow of (dt.capitalFlows||[])){
+      const tr=document.createElement('tr');
+      const sign=flow.type==='withdrawal'?-1:1;
+      tr.innerHTML=`<td>${flow.date||''}</td><td>${flow.type==='withdrawal'?'Wypłata':'Wpłata'}</td><td class="${sign>0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(sign*Math.abs(num(flow.amountUsd)),'USD')}</td><td>${escapeHtml(flow.note||'')}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 7px" data-del="${flow.id}">Usuń</button></td>`;
+      tr.querySelector('[data-del]').onclick=()=>{dt.capitalFlows=dt.capitalFlows.filter(f=>f.id!==flow.id);save(state);renderInvestments();};
+      tbody.appendChild(tr);
+    }
+  }
+
+  function openDtCloseModal(position, defaultPrice){
+    dtCloseTargetId=position.id;
+    const modal=document.getElementById('dt-close-modal');
+    const backdrop=document.getElementById('dt-close-modal-backdrop');
+    const form=document.getElementById('dt-close-form');
+    if(!modal||!backdrop||!form) return;
+    const remain=Math.max(0,num(position.initialQty)-num(position.closedQty||0));
+    form.ticker.value=`${position.ticker} (${String(position.side||'long').toUpperCase()})`;
+    form.maxQty.value=remain.toFixed(6);
+    form.closeQty.value=remain.toFixed(6);
+    form.closePrice.value=(num(defaultPrice)||num(position.entry)||0).toString();
+    form.fee.value='0';
+    form.date.value=new Date().toISOString().slice(0,10);
+    backdrop.setAttribute('open','');
+    modal.setAttribute('open','');
+    renderDtClosePreview();
+  }
+
+  function closeDtCloseModal(){
+    dtCloseTargetId=null;
+    document.getElementById('dt-close-modal')?.removeAttribute('open');
+    document.getElementById('dt-close-modal-backdrop')?.removeAttribute('open');
+  }
+
+  function renderDtClosePreview(){
+    const form=document.getElementById('dt-close-form');
+    const out=document.getElementById('dt-close-preview');
+    if(!form||!out||!dtCloseTargetId) return;
+    const pos=dayTrading().positions.find(p=>p.id===dtCloseTargetId);
+    if(!pos){out.textContent='Pozycja nie istnieje.';return;}
+    const qty=Math.abs(num(form.closeQty.value));
+    const closePrice=Math.abs(num(form.closePrice.value));
+    const fee=Math.abs(num(form.fee.value));
+    if(qty<=0||closePrice<=0){out.textContent='Podaj ilość i cenę zamknięcia.';return;}
+    const dir=pos.side==='short'?-1:1;
+    const gross=(closePrice-num(pos.entry))*qty*dir;
+    const risk=Math.max(0,(num(pos.entry)-num(pos.sl))*dir*qty);
+    const net=gross-fee;
+    const rr=risk>0?net/risk:null;
+    out.innerHTML=`Podgląd: PnL brutto <span class="${gross>=0?'pos':'neg'}">${fmt(gross,'USD')}</span> | Fee ${fmt(-fee,'USD')} | PnL netto <span class="${net>=0?'pos':'neg'}">${fmt(net,'USD')}</span> | RR: <b>${rr!=null?rr.toFixed(2):'—'}</b>`;
   }
 
   function renderDayTradingOpenPositions(){
@@ -11068,22 +11190,14 @@
         <td>${num(p.entry).toFixed(4)}</td>
         <td><input class="dt-inline-input" data-k="mark" value="${mark}" /></td>
         <td>${remainingQty.toFixed(6)}</td>
+        <td>${fmt(remainingQty*num(p.entry),'USD')}</td>
         <td class="${unrl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(unrl,'USD')}</td>
         <td>${rr?rr.toFixed(2):'—'}</td>
-        <td><input class="dt-inline-input qty" data-k="closeQty" value="${remainingQty.toFixed(6)}" /></td>
-        <td><input class="dt-inline-input" data-k="closePrice" value="${mark}" /></td>
-        <td><input class="dt-inline-input" data-k="fee" value="0" /></td>
-        <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij</button></td>
+        <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij / partial TP</button></td>
       `;
       tr.querySelector('[data-k="mark"]').onchange=e=>{p.markPrice=num(e.target.value)||num(p.entry);save(state);renderInvestments();};
       tr.querySelector('[data-act="partial"]').onclick=()=>{
-        const qty=Math.abs(num(tr.querySelector('[data-k="closeQty"]').value));
-        const closePrice=Math.abs(num(tr.querySelector('[data-k="closePrice"]').value));
-        const fee=Math.abs(num(tr.querySelector('[data-k="fee"]').value));
-        if(qty<=0||closePrice<=0){alert('Podaj poprawną ilość i cenę zamknięcia.');return;}
-        if(qty>remainingQty+0.0000001){alert(`Maksymalna ilość do zamknięcia: ${remainingQty.toFixed(6)}`);return;}
-        dtRecordClose(p,qty,closePrice,fee,new Date().toISOString().slice(0,10));
-        save(state); renderInvestments();
+        openDtCloseModal(p,mark);
       };
       tbody.appendChild(tr);
     }
@@ -11121,6 +11235,34 @@
 
   function bindDayTrading(){
     const dt=dayTrading();
+    const capitalForm=document.getElementById('dt-capital-form');
+    if(capitalForm&&!capitalForm._bound){
+      capitalForm._bound=true;
+      const startInput=capitalForm.querySelector('input[name="startingBalance"]');
+      const flowDate=capitalForm.querySelector('input[name="date"]');
+      if(flowDate&&!flowDate.value) flowDate.value=new Date().toISOString().slice(0,10);
+      if(startInput) startInput.addEventListener('change',()=>{dt.startingBalance=Math.abs(num(startInput.value));save(state);renderInvestments();});
+      capitalForm.onsubmit=e=>{
+        e.preventDefault();
+        const f=new FormData(capitalForm);
+        const amount=Math.abs(num(f.get('amountUsd')));
+        if(amount<=0){alert('Kwota przepływu musi być > 0.');return;}
+        dt.capitalFlows.unshift({
+          id:'dt_flow_'+Math.random().toString(36).slice(2),
+          date:String(f.get('date')||new Date().toISOString().slice(0,10)),
+          type:String(f.get('flowType')||'deposit'),
+          amountUsd:amount,
+          note:String(f.get('note')||'').trim()
+        });
+        save(state);
+        capitalForm.reset();
+        if(flowDate) flowDate.value=new Date().toISOString().slice(0,10);
+        renderInvestments();
+      };
+    }
+    const startInput=capitalForm?.querySelector('input[name="startingBalance"]');
+    if(startInput) startInput.value=dt.startingBalance?String(dt.startingBalance).replace('.',','):'';
+
     const form=document.getElementById('dt-plan-form');
     if(form&&!form._bound){
       form._bound=true;
@@ -11134,18 +11276,18 @@
           ticker:String(f.get('ticker')||'').trim().toUpperCase(),
           side:String(f.get('side')||'long'),
           date:String(f.get('date')||new Date().toISOString().slice(0,10)),
-          sizeUsd:Math.abs(num(f.get('sizeUsd'))),
+          sizeQty:Math.abs(num(f.get('sizeQty'))),
           entry:Math.abs(num(f.get('entry'))),
           sl:Math.abs(num(f.get('sl'))),
           tp:Math.abs(num(f.get('tp'))),
           note:String(f.get('note')||'').trim()
         };
-        if(!payload.ticker||payload.sizeUsd<=0||payload.entry<=0||payload.sl<=0||payload.tp<=0){alert('Uzupełnij poprawnie ticker, kapitał, entry, SL i TP.');return;}
+        if(!payload.ticker||payload.sizeQty<=0||payload.entry<=0||payload.sl<=0||payload.tp<=0){alert('Uzupełnij poprawnie ticker, position size, entry, SL i TP.');return;}
         const m=dtComputePlanMetrics(payload);
         dt.positions.unshift({
-          id:'dt_pos_'+Math.random().toString(36).slice(2),ticker:payload.ticker,side:payload.side,openDate:payload.date,sizeUsd:payload.sizeUsd,
+          id:'dt_pos_'+Math.random().toString(36).slice(2),ticker:payload.ticker,side:payload.side,openDate:payload.date,sizeQty:payload.sizeQty,
           entry:payload.entry,sl:payload.sl,tp:payload.tp,note:payload.note,status:'open',
-          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr
+          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr,notionalUsd:m.notionalUsd
         });
         save(state);form.reset();
         if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
@@ -11164,6 +11306,41 @@
     }
     if(dailyInput) dailyInput.value=dt.limits.dailyLoss?String(dt.limits.dailyLoss).replace('.',','):'';
     if(weeklyInput) weeklyInput.value=dt.limits.weeklyLoss?String(dt.limits.weeklyLoss).replace('.',','):'';
+
+    const closeForm=document.getElementById('dt-close-form');
+    if(closeForm && !closeForm._bound){
+      closeForm._bound=true;
+      closeForm.addEventListener('input',renderDtClosePreview);
+      closeForm.onsubmit=e=>{
+        e.preventDefault();
+        if(!dtCloseTargetId) return;
+        const pos=dt.positions.find(p=>p.id===dtCloseTargetId);
+        if(!pos) return;
+        const qty=Math.abs(num(closeForm.closeQty.value));
+        const closePrice=Math.abs(num(closeForm.closePrice.value));
+        const fee=Math.abs(num(closeForm.fee.value));
+        const maxQty=Math.max(0,num(pos.initialQty)-num(pos.closedQty||0));
+        if(qty<=0||closePrice<=0){alert('Podaj poprawną ilość i cenę zamknięcia.');return;}
+        if(qty>maxQty+0.0000001){alert(`Maksymalna ilość do zamknięcia: ${maxQty.toFixed(6)}`);return;}
+        dtRecordClose(pos,qty,closePrice,fee,closeForm.date.value||new Date().toISOString().slice(0,10));
+        save(state);
+        closeDtCloseModal();
+        renderInvestments();
+      };
+      closeForm.querySelectorAll('[data-pct]').forEach(btn=>{
+        btn.onclick=()=>{
+          const pct=num(btn.dataset.pct)/100;
+          const maxQty=num(closeForm.maxQty.value);
+          closeForm.closeQty.value=(maxQty*pct).toFixed(6);
+          renderDtClosePreview();
+        };
+      });
+      document.getElementById('dt-close-cancel')?.addEventListener('click',closeDtCloseModal);
+      document.getElementById('dt-close-cancel-top')?.addEventListener('click',closeDtCloseModal);
+      document.getElementById('dt-close-modal-backdrop')?.addEventListener('click',closeDtCloseModal);
+    }
+
+    renderDayTradingCapitalFlows();
     renderDtPlanPreview();
   }
 
