@@ -912,7 +912,7 @@
                     <div class="soft-panel">
                       <h3 class="title">Sygnał dyscypliny</h3>
                       <div class="big" id="discipline-score">—</div>
-                      <div class="copy" id="discipline-score-note">Ocena oparta o limity ryzyka, checklistę i zachowanie planu.</div>
+                      <div class="copy" id="discipline-score-note">Ocena oparta o limity ryzyka i zachowanie planu.</div>
                       <div style="margin-top:12px;" id="discipline-badge"></div>
                     </div>
                   </section>
@@ -923,7 +923,7 @@
                     <div class="section-heading">
                       <div>
                         <h2 class="title">Risk lab</h2>
-                        <div class="tiny muted">Planer pozycji na sucho — wylicza size, SL, RR, potencjalny PnL i ryzyko depo.</div>
+                        <div class="tiny muted">Kalkulator pozycji: wpisz entry, SL i dźwignię, aby policzyć size pod % depo w SL.</div>
                       </div>
                       <div class="switch-pill" id="planner-mode-switch" role="group" aria-label="Tryb kalkulatora">
                         <button type="button" class="active" data-planner-mode="size">Wylicz size</button>
@@ -936,7 +936,8 @@
                           <div class="form-group"><label class="form-label">Symbol</label><input id="planner-symbol" class="form-input" placeholder="BTCUSDT"></div>
                           <div class="form-group"><label class="form-label">Kierunek</label><select id="planner-side" class="form-select"><option value="long">Long</option><option value="short">Short</option></select></div>
                           <div class="form-group"><label class="form-label">Kapitał bazowy</label><input id="planner-capital" type="number" step="0.01" class="form-input"></div>
-                          <div class="form-group"><label class="form-label">Ryzyko %</label><input id="planner-risk-pct" type="number" step="0.01" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">% depo w SL</label><input id="planner-risk-pct" type="number" step="0.01" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">Dźwignia (max)</label><input id="planner-leverage" type="number" step="1" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Entry</label><input id="planner-entry" type="number" step="0.0001" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Stop loss</label><input id="planner-stop" type="number" step="0.0001" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Qty</label><input id="planner-qty" type="number" step="0.0001" class="form-input"></div>
@@ -966,10 +967,6 @@
                       <article class="rule-card"><h3 class="title">Daily loss</h3><div class="value" id="rule-daily-loss">—</div><div class="note">Po przekroczeniu — koniec sesji.</div></article>
                       <article class="rule-card"><h3 class="title">Max open risk</h3><div class="value" id="rule-open-risk">—</div><div class="note">Łączny risk na otwartych setupach.</div></article>
                     </div>
-                    <div>
-                      <h3 class="title" style="margin-bottom:10px;">Checklista pre-trade</h3>
-                      <div class="check-grid" id="overview-checklist"></div>
-                    </div>
                     <div class="insight-list" id="overview-insights"></div>
                   </section>
                 </div>
@@ -980,7 +977,7 @@
                   <div class="section-heading">
                     <div>
                       <h2 class="title">Dziennik pozycji</h2>
-                      <div class="tiny muted">Filtruj, edytuj i analizuj każdą pozycję wraz z RR, sizingiem, checklistą i błędami procesu.</div>
+                      <div class="tiny muted">Filtruj, edytuj i analizuj każdą pozycję wraz z RR, sizingiem i błędami procesu.</div>
                     </div>
                     <div class="journal-filter-bar" id="journal-filter-bar"></div>
                   </div>
@@ -1068,7 +1065,7 @@
                     <div class="section-heading">
                       <div>
                         <h2 class="title">Co poprawić</h2>
-                        <div class="tiny muted">Syntetyczne wnioski z dziennika i checklisty.</div>
+                        <div class="tiny muted">Syntetyczne wnioski z dziennika i błędów procesu.</div>
                       </div>
                     </div>
                     <div class="stats-mini-grid" id="discipline-notes"></div>
@@ -1111,14 +1108,6 @@
 </script>
 <script>
 const STORAGE_KEY = 'lifeos_trading_v1';
-const DEFAULT_CHECKLIST = [
-  'Bias z HTF jest zgodny z setupem',
-  'Entry ma jasny trigger i invalidation',
-  'RR spełnia minimalne wymaganie',
-  'Size wynika z risku, nie z emocji',
-  'Plan wyjścia i częściowych TP jest zapisany',
-  'Trade nie jest revenge / FOMO'
-];
 const DEFAULT_STRATEGIES = ['Breakout', 'Pullback', 'Range scalp', 'Liquidity sweep', 'Trend continuation'];
 const DEFAULT_SESSIONS = ['Asia', 'London', 'New York', 'Overlap', 'Weekend'];
 
@@ -1132,6 +1121,7 @@ const defaultState = {
     side: 'long',
     capital: 0,
     riskPct: 1,
+    leverage: 100,
     entry: '',
     stop: '',
     qty: '',
@@ -1207,7 +1197,6 @@ function defaultProfile() {
     currency: 'USDT',
     strategies: [...DEFAULT_STRATEGIES],
     sessions: [...DEFAULT_SESSIONS],
-    checklist: [...DEFAULT_CHECKLIST],
     createdAt: new Date().toISOString()
   };
 }
@@ -1245,7 +1234,6 @@ function normalizeTrade(trade) {
     : String(normalized.mistakes || '').split(',').map(t => t.trim()).filter(Boolean);
   normalized.notes = normalized.notes || '';
   normalized.thesis = normalized.thesis || '';
-  normalized.checklistDone = Boolean(normalized.checklistDone);
   normalized.outsidePlan = Boolean(normalized.outsidePlan);
   normalized.revengeTrade = Boolean(normalized.revengeTrade);
   normalized.movedStopAgainstPlan = Boolean(normalized.movedStopAgainstPlan);
@@ -1555,14 +1543,22 @@ function getPlannerDraftAsTrade() {
   const planner = state.planner;
   const capital = n(planner.capital) || getCurrentEquity() || n(state.profile?.startingCapital);
   const riskPct = n(planner.riskPct) || n(state.profile?.riskPerTradePct);
+  const maxLeverage = n(planner.leverage);
   let stop = n(planner.stop);
   let qty = n(planner.qty);
   const entry = n(planner.entry);
   const riskAmount = capital * (riskPct / 100);
+  const riskPerUnit = Math.abs(entry - stop);
 
   if (planner.mode === 'stop' && entry > 0 && qty > 0 && riskAmount > 0) {
     const distance = riskAmount / qty;
     stop = planner.side === 'short' ? entry + distance : entry - distance;
+  }
+
+  if (planner.mode === 'size' && !qty && entry > 0 && stop > 0 && riskPerUnit > 0 && riskAmount > 0) {
+    const qtyFromRisk = riskAmount / riskPerUnit;
+    const qtyFromLeverage = maxLeverage > 0 ? (capital * maxLeverage) / entry : qtyFromRisk;
+    qty = Math.min(qtyFromRisk, qtyFromLeverage);
   }
 
   const targets = [];
@@ -1596,7 +1592,6 @@ function isRuleViolation(trade) {
     if (metrics.weightedRR === 0 && trade.status !== 'cancelled') violations.push('Brak zdefiniowanego TP / RR');
     if (metrics.riskToDepositPct > n(state.profile.riskPerTradePct) + 0.0001) violations.push('Przekroczony % depo w SL');
   }
-  if (!trade.checklistDone) violations.push('Brak checklisty');
   if (trade.outsidePlan) violations.push('Poza planem');
   if (trade.revengeTrade) violations.push('Revenge trade');
   if (trade.movedStopAgainstPlan) violations.push('Przesuwany SL przeciwko planowi');
@@ -1607,13 +1602,12 @@ function getDisciplineSummary() {
   const trades = state.trades;
   const closed = getClosedTrades();
   const violationCount = trades.reduce((sum, trade) => sum + (isRuleViolation(trade).length > 0 ? 1 : 0), 0);
-  const checklistRate = trades.length ? (trades.filter(trade => trade.checklistDone).length / trades.length) * 100 : 0;
   const outsidePlanCount = trades.filter(trade => trade.outsidePlan).length;
   const revengeCount = trades.filter(trade => trade.revengeTrade).length;
   const movedStopCount = trades.filter(trade => trade.movedStopAgainstPlan).length;
   const lowRRCount = trades.filter(trade => calculateTradeMetrics(trade).weightedRR > 0 && calculateTradeMetrics(trade).weightedRR < n(state.profile?.minRR)).length;
   const avgViolationsPerTrade = trades.length ? violationCount / trades.length : 0;
-  const score = clamp(100 - (avgViolationsPerTrade * 30) - ((100 - checklistRate) * 0.35) - outsidePlanCount * 4 - revengeCount * 6 - movedStopCount * 5, 0, 100);
+  const score = clamp(100 - (avgViolationsPerTrade * 34) - outsidePlanCount * 4 - revengeCount * 6 - movedStopCount * 5, 0, 100);
 
   const mistakeMap = new Map();
   trades.forEach((trade) => {
@@ -1627,7 +1621,6 @@ function getDisciplineSummary() {
 
   return {
     score,
-    checklistRate,
     violationCount,
     outsidePlanCount,
     revengeCount,
@@ -1743,7 +1736,7 @@ function renderOverview() {
   $('#rail-week-count-note').textContent = `Closed: ${metrics.closedTrades.filter(trade => monthKey(trade.closedAt || trade.openedAt) === monthKey(new Date().toISOString())).length} w tym miesiącu`;
 
   $('#discipline-score').textContent = `${fmtNum(discipline.score, 0)}/100`;
-  $('#discipline-score-note').textContent = `Checklista ${fmtPct(discipline.checklistRate, 0)} • naruszenia ${discipline.violationCount}`;
+  $('#discipline-score-note').textContent = `Naruszenia ${discipline.violationCount} • revenge ${discipline.revengeCount}`;
   $('#discipline-badge').innerHTML = discipline.score >= 80
     ? '<span class="risk-badge good">Proces stabilny</span>'
     : discipline.score >= 60
@@ -1754,10 +1747,6 @@ function renderOverview() {
   $('#rule-risk-trade').textContent = fmtPct(profile.riskPerTradePct, 1);
   $('#rule-daily-loss').textContent = fmtPct(profile.maxDailyLossPct, 1);
   $('#rule-open-risk').textContent = fmtPct(profile.maxOpenRiskPct, 1);
-
-  $('#overview-checklist').innerHTML = (profile.checklist || []).map(item => `
-    <label class="check-chip"><input type="checkbox" disabled> <span>${item}</span></label>
-  `).join('');
 
   const insightRows = [];
   if (metrics.closedTrades.length === 0) {
@@ -1783,6 +1772,7 @@ function renderPlanner() {
   $('#planner-side').value = state.planner.side || 'long';
   $('#planner-capital').value = state.planner.capital || getCurrentEquity() || n(state.profile.startingCapital);
   $('#planner-risk-pct').value = state.planner.riskPct || n(state.profile.riskPerTradePct);
+  $('#planner-leverage').value = state.planner.leverage || 100;
   $('#planner-entry').value = state.planner.entry || '';
   $('#planner-stop').value = state.planner.stop || '';
   $('#planner-qty').value = state.planner.qty || '';
@@ -1796,14 +1786,17 @@ function renderPlanner() {
 
   const plannerTrade = getPlannerDraftAsTrade();
   const metrics = calculateTradeMetrics(plannerTrade);
+  const rawRiskQty = metrics.riskPerUnit > 0 ? metrics.riskAmount / metrics.riskPerUnit : 0;
+  const leverageQtyCap = plannerTrade.entry > 0 && n(state.planner.leverage) > 0 ? (metrics.capitalBase * n(state.planner.leverage)) / plannerTrade.entry : 0;
+  const leverageLimited = rawRiskQty > 0 && leverageQtyCap > 0 && rawRiskQty > leverageQtyCap + 0.0000001;
   const firstTarget = metrics.targetBreakdown[0];
   const secondTarget = metrics.targetBreakdown[1];
   const stopRecommendation = metrics.riskPerUnit > 0 ? fmtPct(metrics.stopDistancePct, 2) : '—';
   const cards = [
     { label: 'Risk kwotowo', value: fmtMoney(metrics.riskAmount), note: `${fmtPct(metrics.riskPct, 2)} kapitału` },
-    { label: 'Rekomendowany size', value: metrics.qty ? fmtNum(metrics.qty, 4) : '—', note: metrics.qty ? `Notional ${fmtMoney(metrics.notional)}` : 'Podaj entry i SL' },
+    { label: 'Rekomendowany size (BTC)', value: metrics.qty ? fmtNum(metrics.qty, 4) : '—', note: metrics.qty ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Notional ${fmtMoney(metrics.notional)}`) : 'Podaj entry i SL' },
     { label: 'SL distance', value: stopRecommendation, note: plannerTrade.stopLoss > 0 ? `Entry → SL ${fmtNum(Math.abs(plannerTrade.entry - plannerTrade.stopLoss), 4)}` : 'Brak danych' },
-    { label: 'Leverage efektywny', value: metrics.leverage ? `${fmtNum(metrics.leverage, 2)}x` : '—', note: 'Notional / kapitał bazowy' },
+    { label: 'Leverage efektywny', value: metrics.leverage ? `${fmtNum(metrics.leverage, 2)}x` : '—', note: `Limit ustawiony: ${fmtNum(n(state.planner.leverage) || 0, 0)}x` },
     { label: 'Planowane RR', value: metrics.weightedRR ? fmtR(metrics.weightedRR) : '—', note: metrics.weightedNetRR ? `Po fee ~ ${fmtR(metrics.weightedNetRR)}` : 'Dodaj TP' },
     { label: 'Max loss net', value: fmtMoney(metrics.maxLossNet), note: `Fee + slippage ${fmtMoney(metrics.entryFees + metrics.exitFeesAtStop + metrics.slippageCost)}` },
     { label: 'TP1', value: firstTarget ? fmtMoney(firstTarget.net) : '—', note: firstTarget ? `${firstTarget.label} • ${fmtR(firstTarget.rr)}` : 'Brak TP1' },
@@ -1896,9 +1889,9 @@ function renderDiscipline() {
   const todayLossLimit = metrics.equity * (n(state.profile.maxDailyLossPct) / 100);
   const rules = [
     {
-      title: 'Checklist completion',
-      value: fmtPct(discipline.checklistRate, 0),
-      note: `${state.trades.filter(trade => trade.checklistDone).length}/${state.trades.length || 0} pozycji miało pełną checklistę.`
+      title: 'Revenge trades',
+      value: `${discipline.revengeCount}`,
+      note: discipline.revengeCount > 0 ? 'Ogranicz wejścia emocjonalne i overtrading.' : 'Brak oznaczonych wejść emocjonalnych.'
     },
     {
       title: 'Violation density',
@@ -2165,12 +2158,11 @@ function openSetupModal() {
           <div class="form-group"><label class="form-label">Slippage %</label><input id="profile-slippage-pct" type="number" step="0.0001" class="form-input" value="${profile.slippagePct}"></div>
         </div>
         <div class="form-group"><label class="form-label">Strategie (oddziel przecinkami)</label><textarea id="profile-strategies" class="form-textarea">${(profile.strategies || []).join(', ')}</textarea></div>
-        <div class="form-group"><label class="form-label">Checklista (każdy punkt w nowej linii)</label><textarea id="profile-checklist" class="form-textarea">${(profile.checklist || []).join('\n')}</textarea></div>
       </div>
       <div class="modal-side-stack">
         <div class="soft-panel">
           <h3 class="title">Co ustalasz teraz</h3>
-          <div class="copy">Ten profil staje się źródłem prawdy dla kalkulatora i rule engine. Każdy nowy trade domyślnie dziedziczy risk %, fee, minimalne RR i checklistę.</div>
+          <div class="copy">Ten profil staje się źródłem prawdy dla kalkulatora i rule engine. Każdy nowy trade domyślnie dziedziczy risk %, fee i minimalne RR.</div>
         </div>
         <div class="soft-panel">
           <h3 class="title">Tip</h3>
@@ -2199,8 +2191,7 @@ function saveProfile() {
     minRR: n($('#profile-min-rr').value),
     feePct: n($('#profile-fee-pct').value),
     slippagePct: n($('#profile-slippage-pct').value),
-    strategies: $('#profile-strategies').value.split(',').map(item => item.trim()).filter(Boolean),
-    checklist: $('#profile-checklist').value.split('\n').map(item => item.trim()).filter(Boolean)
+    strategies: $('#profile-strategies').value.split(',').map(item => item.trim()).filter(Boolean)
   };
   state.planner.capital = state.planner.capital || state.profile.startingCapital;
   state.planner.riskPct = state.planner.riskPct || state.profile.riskPerTradePct;
@@ -2270,7 +2261,6 @@ function openTradeModal(tradeId = null, seed = null) {
         </div>
 
         <div class="check-grid">
-          <label class="check-chip"><input id="trade-checklist-done" type="checkbox" ${draft.checklistDone ? 'checked' : ''}><span>Checklista kompletna</span></label>
           <label class="check-chip"><input id="trade-outside-plan" type="checkbox" ${draft.outsidePlan ? 'checked' : ''}><span>Trade poza planem</span></label>
           <label class="check-chip"><input id="trade-revenge" type="checkbox" ${draft.revengeTrade ? 'checked' : ''}><span>Revenge / overtrading</span></label>
           <label class="check-chip"><input id="trade-moved-stop" type="checkbox" ${draft.movedStopAgainstPlan ? 'checked' : ''}><span>Przesuwany SL przeciw planowi</span></label>
@@ -2348,7 +2338,6 @@ function collectTradeFromModal(existingId = null) {
     finalExitPrice: $('#trade-final-exit-price').value,
     tags: $('#trade-tags').value.split(',').map(item => item.trim()).filter(Boolean),
     mistakes: $('#trade-mistakes').value.split(',').map(item => item.trim()).filter(Boolean),
-    checklistDone: $('#trade-checklist-done').checked,
     outsidePlan: $('#trade-outside-plan').checked,
     revengeTrade: $('#trade-revenge').checked,
     movedStopAgainstPlan: $('#trade-moved-stop').checked,
@@ -2441,6 +2430,7 @@ function syncPlannerFromInputs() {
     side: $('#planner-side').value,
     capital: n($('#planner-capital').value),
     riskPct: n($('#planner-risk-pct').value),
+    leverage: n($('#planner-leverage').value),
     entry: $('#planner-entry').value,
     stop: $('#planner-stop').value,
     qty: $('#planner-qty').value,
@@ -2510,7 +2500,7 @@ function setupEventListeners() {
     }
   });
 
-  ['planner-symbol','planner-side','planner-capital','planner-risk-pct','planner-entry','planner-stop','planner-qty','planner-tp1','planner-tp2','planner-tp1-share'].forEach(id => {
+  ['planner-symbol','planner-side','planner-capital','planner-risk-pct','planner-leverage','planner-entry','planner-stop','planner-qty','planner-tp1','planner-tp2','planner-tp1-share'].forEach(id => {
     const node = document.getElementById(id);
     if (node) {
       node.addEventListener('input', syncPlannerFromInputs);
