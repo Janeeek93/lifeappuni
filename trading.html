@@ -170,16 +170,33 @@
   /* Today's open trades summary */
   .today-trades { flex: 1; display: flex; flex-direction: column; }
   .today-trade-row {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; flex-direction: column; gap: 6px;
     padding: 6px 0;
     border-bottom: 1px solid var(--line);
     font-size: 12px;
   }
   .today-trade-row:last-child { border-bottom: none; }
+  .today-trade-main { display:flex; align-items:center; justify-content:space-between; width:100%; }
   .tt-ticker { font-weight: 700; color: var(--ink); }
   .tt-dir { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
   .tt-dir.long { color: var(--green); }
   .tt-dir.short { color: var(--red); }
+  .tt-summary {
+    width: 100%;
+    font-size: 10.5px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 4px 7px;
+  }
+  .tt-summary strong {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: var(--ink);
+  }
 
   /* ═══════════════════════════════════════════════════════════
      PLANNER
@@ -1499,21 +1516,34 @@ function renderDashboard() {
 function renderOpenPositionsList() {
   const el = document.getElementById('open-positions-list');
   const open = state.trades.filter(t => getTradeStatus(t) === 'open');
+  const currentCapital = computeKPIs().currentCapital || settings.capital || 1;
   if (open.length === 0) {
     el.innerHTML = '<div class="empty-state" style="padding:16px 8px;"><span class="material-symbols-outlined">candlestick_chart</span>Brak otwartych pozycji</div>';
     return;
   }
   el.innerHTML = open.map(t => {
-    const { realizedPNL } = calcTradePNL(t);
+    const { realizedPNL, totalClosedPct } = calcTradePNL(t);
+    const remainingPct = Math.max(0, 100 - totalClosedPct);
+    const remainingSize = t.size * (remainingPct / 100);
+    const riskUSD = t.sl ? Math.abs(t.entry - t.sl) * remainingSize : null;
+    const rewardUSD = t.tp ? Math.abs(t.tp - t.entry) * remainingSize : null;
+    const riskPctDepo = riskUSD !== null ? (riskUSD / currentCapital) * 100 : null;
+    const rewardPctDepo = rewardUSD !== null ? (rewardUSD / currentCapital) * 100 : null;
     return `<div class="today-trade-row">
-      <div>
-        <span class="tt-ticker">${escHtml(t.ticker)}</span>
-        <span class="tt-dir ${t.direction}" style="margin-left:6px;">${t.direction === 'long' ? '▲ LONG' : '▼ SHORT'}</span>
-        <span style="font-size:10px; color:var(--muted); margin-left:6px;">${t.leverage}×</span>
+      <div class="today-trade-main">
+        <div>
+          <span class="tt-ticker">${escHtml(t.ticker)}</span>
+          <span class="tt-dir ${t.direction}" style="margin-left:6px;">${t.direction === 'long' ? '▲ LONG' : '▼ SHORT'}</span>
+          <span style="font-size:10px; color:var(--muted); margin-left:6px;">${t.leverage}×</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</div>
+          <div style="font-size:10px; color:var(--muted);">entry ${fnum(t.entry,2)}</div>
+        </div>
       </div>
-      <div style="text-align:right;">
-        <div class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</div>
-        <div style="font-size:10px; color:var(--muted);">entry ${fnum(t.entry,2)}</div>
+      <div class="tt-summary">
+        <span><strong>Ryzyko:</strong> ${riskUSD !== null ? `${usd(riskUSD)} (${riskPctDepo.toFixed(2)}%)` : '—'}</span>
+        <span><strong>Zysk:</strong> ${rewardUSD !== null ? `${usd(rewardUSD)} (${rewardPctDepo.toFixed(2)}%)` : '—'}</span>
       </div>
     </div>`;
   }).join('');
