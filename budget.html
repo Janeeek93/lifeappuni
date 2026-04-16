@@ -118,6 +118,40 @@
     .inv-kpi-card.accent .inv-kpi-value { color:#fff; }
     .inv-kpi-card.accent .inv-kpi-sub { color:rgba(255,255,255,.65); }
 
+    .inv-mode-switch { display:inline-flex; gap:4px; padding:4px; border-radius:12px; background:rgba(148,163,184,.14); }
+    .inv-mode-btn { border:none; background:transparent; color:var(--muted); padding:8px 14px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; transition:all .18s; }
+    .inv-mode-btn.is-active { background:#fff; color:var(--ink); box-shadow:0 8px 20px rgba(15,23,42,.12); }
+
+    .dt-grid { display:grid; gap:14px; }
+    .dt-dashboard { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+    .dt-kpi { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:14px; padding:14px 15px; display:flex; flex-direction:column; gap:3px; }
+    .dt-kpi .label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+    .dt-kpi .value { font-size:21px; font-weight:800; color:var(--ink); line-height:1.2; }
+    .dt-kpi .sub { font-size:11px; color:var(--muted); }
+    .dt-kpi.positive .value { color:#16a34a; }
+    .dt-kpi.negative .value { color:#dc2626; }
+    .dt-kpi.alert { border-color:rgba(220,38,38,.35); background:rgba(220,38,38,.05); }
+    .dt-kpi.accent { background:linear-gradient(135deg,#0f172a,#1e293b); border-color:transparent; }
+    .dt-kpi.accent .label,.dt-kpi.accent .sub { color:rgba(255,255,255,.72); }
+    .dt-kpi.accent .value { color:#fff; }
+    .dt-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; align-items:end; }
+    .dt-form-grid label { display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
+    .dt-form-grid input,.dt-form-grid select { height:38px; }
+    .dt-preview { border-radius:12px; border:1px solid rgba(37,99,235,.2); background:rgba(37,99,235,.06); padding:11px 13px; font-size:12px; line-height:1.55; }
+    .dt-preview .neg { color:#dc2626; font-weight:700; }
+    .dt-preview .pos { color:#16a34a; font-weight:700; }
+    .dt-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .dt-table th { text-align:left; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; padding:8px; border-bottom:1px solid rgba(148,163,184,.2); }
+    .dt-table td { padding:8px; border-bottom:1px solid rgba(148,163,184,.1); vertical-align:middle; }
+    .dt-table tr:last-child td { border-bottom:none; }
+    .dt-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:999px; font-size:10px; font-weight:700; }
+    .dt-chip.long { background:rgba(22,163,74,.12); color:#15803d; }
+    .dt-chip.short { background:rgba(239,68,68,.12); color:#dc2626; }
+    .dt-inline-input { width:84px; height:30px; font-size:11px; text-align:right; border:1px solid rgba(148,163,184,.28); border-radius:7px; padding:0 6px; }
+    .dt-inline-input.qty { width:75px; }
+    .dt-chart-box { height:260px; position:relative; }
+    .dt-muted-empty { text-align:center; color:var(--muted); font-size:12px; padding:18px 0; }
+
     .inv-trade-tabs { display:inline-flex; gap:0; border-radius:10px; overflow:hidden; border:1px solid rgba(148,163,184,.3); }
     .inv-trade-tab { border:none; background:transparent; padding:8px 20px; font-weight:600; font-size:13px; cursor:pointer; color:var(--muted); transition:all .2s; }
     .inv-trade-tab.is-active { background:#2563eb; color:#fff; }
@@ -5017,6 +5051,70 @@
             </div>
           </div>
 
+          <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="inv-mode-switch" role="tablist" aria-label="Tryb inwestycji">
+              <button type="button" class="inv-mode-btn is-active" data-inv-mode="longterm">Inwestycje long-term</button>
+              <button type="button" class="inv-mode-btn" data-inv-mode="daytrade">Day trading (krypto)</button>
+            </div>
+            <span class="tiny muted" id="inv-mode-subtitle">Panel planowania i kontroli ryzyka day tradera.</span>
+          </div>
+
+          <div id="inv-daytrade-panel" class="dt-grid" style="display:none">
+            <div class="dt-dashboard" id="dt-dashboard"></div>
+
+            <div class="card stack">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong>Plan pozycji i zarządzanie ryzykiem</strong>
+                <span class="tiny muted">SL/TP, RR i kontrola pozycji w czasie rzeczywistym</span>
+              </div>
+              <form id="dt-plan-form" class="dt-form-grid">
+                <label>Ticker<input name="ticker" placeholder="np. BTC, ETH, SOL" required /></label>
+                <label>Strona<select name="side"><option value="long">Long</option><option value="short">Short</option></select></label>
+                <label>Data<input name="date" type="date" required /></label>
+                <label>Kapitał pozycji (USD)<input name="sizeUsd" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>Entry<input name="entry" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>SL<input name="sl" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>TP planowany<input name="tp" inputmode="decimal" placeholder="0.00" required /></label>
+                <label>Notatka<input name="note" placeholder="setup, bias, konfluencje..." /></label>
+                <button class="btn" type="submit">Dodaj pozycję</button>
+              </form>
+              <div class="dt-preview" id="dt-plan-preview">Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.</div>
+            </div>
+
+            <div class="card stack">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong>Otwarte pozycje</strong>
+                <span class="tiny muted">Partial TP / zamykanie pozycji / prowizje</span>
+              </div>
+              <div class="table-wrapper">
+                <table class="dt-table">
+                  <thead><tr><th>Ticker</th><th>Strona</th><th>Entry</th><th>Akt. cena</th><th>Pozostało</th><th>Niezreal. PnL</th><th>Plan RR</th><th>Partial close qty</th><th>Cena close</th><th>Fee (USD)</th><th></th></tr></thead>
+                  <tbody id="dt-open-rows"></tbody>
+                </table>
+              </div>
+              <div class="dt-muted-empty" id="dt-open-empty" style="display:none">Brak otwartych pozycji.</div>
+            </div>
+
+            <div class="card stack">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong>Statystyki i dyscyplina</strong>
+                <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata dzienna (USD)<input id="dt-max-daily-loss" inputmode="decimal" class="dt-inline-input" /></label>
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata tygodniowa (USD)<input id="dt-max-weekly-loss" inputmode="decimal" class="dt-inline-input" /></label>
+                </div>
+              </div>
+              <div class="dt-chart-box"><canvas id="dt-equity-chart"></canvas></div>
+              <div class="table-wrapper">
+                <table class="dt-table">
+                  <thead><tr><th>Data</th><th>Ticker</th><th>Strona</th><th>Zamknięta ilość</th><th>PnL brutto</th><th>Prowizje</th><th>PnL netto</th><th>RR (real)</th><th>Typ</th></tr></thead>
+                  <tbody id="dt-close-log"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="inv-longterm-panel">
+
           <!-- Dashboard KPIs -->
           <div class="inv-dashboard" id="inv-dashboard">
             <div class="inv-kpi-card accent">
@@ -5366,6 +5464,7 @@
               <!-- =============== /HUB ANALITYCZNY =============== -->
 
             </div>
+          </div>
           </div>
 
         </div>
@@ -6136,9 +6235,15 @@
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
     if(!bud.investments) bud.investments={assets:[], trades:[], groups:[]};
+    if(!bud.dayTrading) bud.dayTrading={positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}};
     if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
     if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
+    if(!Array.isArray(bud.dayTrading.positions)) bud.dayTrading.positions=[];
+    if(!Array.isArray(bud.dayTrading.closes)) bud.dayTrading.closes=[];
+    if(!bud.dayTrading.limits || typeof bud.dayTrading.limits!=='object') bud.dayTrading.limits={dailyLoss:0,weeklyLoss:0};
+    if(!Number.isFinite(Number(bud.dayTrading.limits.dailyLoss))) bud.dayTrading.limits.dailyLoss=0;
+    if(!Number.isFinite(Number(bud.dayTrading.limits.weeklyLoss))) bud.dayTrading.limits.weeklyLoss=0;
     if(!Array.isArray(bud.eomInvestmentBridge)) bud.eomInvestmentBridge=[];
     for(const t of bud.investments.trades){
       if(!t.side) t.side='buy';
@@ -6175,6 +6280,7 @@
         recurringTemplates:[],recurringLog:[],
         fixedTemplates:[],
         investments:{assets:[], trades:[], groups:[]},
+        dayTrading:{positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}},
         eomInvestmentBridge:[]
       }}
     });
@@ -7438,10 +7544,12 @@
   let invSelectedAllocationGroup=null;
   let invModalBound=false;
   let invActivePanel='hub';
+  let invInvestMode='longterm';
   let invTradeMode='buy';
   let invTradeFilter='all';
   let invHoldingsSort={key:'value',dir:'desc'};
   const invCollapsedGroups=new Set();
+  let dtEquityChart=null;
 
   const investments=()=>{
     if(!b().investments) b().investments={assets:[],trades:[],groups:[]};
@@ -10823,11 +10931,277 @@
     });
   }
 
+  // --- Day Trading (crypto) -------------------------------------------------
+  const dayTrading=()=>{
+    if(!b().dayTrading) b().dayTrading={positions:[],closes:[],limits:{dailyLoss:0,weeklyLoss:0}};
+    const dt=b().dayTrading;
+    if(!Array.isArray(dt.positions)) dt.positions=[];
+    if(!Array.isArray(dt.closes)) dt.closes=[];
+    if(!dt.limits) dt.limits={dailyLoss:0,weeklyLoss:0};
+    dt.limits.dailyLoss=num(dt.limits.dailyLoss)||0;
+    dt.limits.weeklyLoss=num(dt.limits.weeklyLoss)||0;
+    return dt;
+  };
+
+  function dtComputePlanMetrics(payload){
+    const entry=num(payload.entry), sl=num(payload.sl), tp=num(payload.tp), sizeUsd=Math.abs(num(payload.sizeUsd));
+    const side=(payload.side||'long')==='short'?'short':'long';
+    if(entry<=0||sizeUsd<=0) return {isValid:false};
+    const qty=sizeUsd/entry;
+    const dir=side==='short'?-1:1;
+    const riskPerUnit=(entry-sl)*dir;
+    const rewardPerUnit=(tp-entry)*dir;
+    const riskUsd=Math.max(0,riskPerUnit*qty);
+    const rewardUsd=Math.max(0,rewardPerUnit*qty);
+    const rr=riskUsd>0?rewardUsd/riskUsd:null;
+    return {isValid:true,qty,dir,riskUsd,rewardUsd,rr};
+  }
+
+  function dtWeekStart(dateStr){
+    const d=new Date(`${dateStr}T00:00:00`);
+    const day=(d.getDay()+6)%7;
+    d.setDate(d.getDate()-day);
+    return d.toISOString().slice(0,10);
+  }
+
+  function dtComputeStats(){
+    const dt=dayTrading();
+    const today=new Date().toISOString().slice(0,10);
+    const weekStart=dtWeekStart(today);
+    let capital=0, realized=0, todayPnl=0, weeklyPnl=0;
+    let win=0,loss=0;
+    const openPositions=[];
+    for(const p of dt.positions){
+      const initQty=num(p.initialQty)||0;
+      const closedQty=num(p.closedQty)||0;
+      const remainingQty=Math.max(0,initQty-closedQty);
+      if((p.status||'open')==='open' && remainingQty>0.0000001){
+        openPositions.push({...p,remainingQty});
+        capital+=num(p.sizeUsd)||0;
+      }
+    }
+    for(const c of dt.closes){
+      const net=num(c.netPnl);
+      const cDate=String(c.date||'');
+      realized+=net;
+      if(net>=0) win++; else loss++;
+      if(cDate===today) todayPnl+=net;
+      if(cDate>=weekStart && cDate<=today) weeklyPnl+=net;
+    }
+    const total=win+loss;
+    const roi=capital>0?(realized/capital)*100:0;
+    const todayPct=capital>0?(todayPnl/capital)*100:0;
+    return {capital,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions};
+  }
+
+  function renderDayTradingDashboard(){
+    const dt=dayTrading();
+    const stats=dtComputeStats();
+    const dash=document.getElementById('dt-dashboard');
+    if(!dash) return;
+    const dailyLimit=Math.abs(num(dt.limits.dailyLoss)||0);
+    const weeklyLimit=Math.abs(num(dt.limits.weeklyLoss)||0);
+    const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
+    const weeklyHit=weeklyLimit>0 && stats.weeklyPnl<=-weeklyLimit;
+    dash.innerHTML=`
+      <div class="dt-kpi accent"><span class="label">Kapitał aktywny USD</span><span class="value">${fmt(stats.capital,'USD')}</span><span class="sub">${stats.openPositions.length} otwartych pozycji</span></div>
+      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI łącznie</span><span class="value">${stats.capital>0?stats.roi.toFixed(2)+'%':'—'}</span><span class="sub">Netto z zamkniętych pozycji</span></div>
+      <div class="dt-kpi ${stats.realized>=0?'positive':'negative'}"><span class="label">PnL zrealizowany</span><span class="value">${fmt(stats.realized,'USD')}</span><span class="sub">Po uwzględnieniu prowizji</span></div>
+      <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiaj PnL</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% kapitału aktywnego</span></div>
+      <div class="dt-kpi ${stats.weeklyPnl>=0?'positive':'negative'} ${weeklyHit?'alert':''}"><span class="label">Tydzień PnL</span><span class="value">${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limit: ${weeklyLimit>0?fmt(-weeklyLimit,'USD'):'nie ustawiono'}</span></div>
+      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss}</span></div>
+    `;
+  }
+
+  function renderDtPlanPreview(){
+    const form=document.getElementById('dt-plan-form');
+    const preview=document.getElementById('dt-plan-preview');
+    if(!form||!preview) return;
+    const f=new FormData(form);
+    const m=dtComputePlanMetrics({
+      side:f.get('side'), entry:f.get('entry'), sl:f.get('sl'), tp:f.get('tp'), sizeUsd:f.get('sizeUsd')
+    });
+    if(!m.isValid){preview.textContent='Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.';return;}
+    preview.innerHTML=`Plan: ilość <b>${m.qty.toFixed(6)}</b> | Ryzyko SL: <span class="neg">${fmt(-m.riskUsd,'USD')}</span> | Potencjał TP: <span class="pos">${fmt(m.rewardUsd,'USD')}</span> | RR: <b>${m.rr?m.rr.toFixed(2):'—'}</b>`;
+  }
+
+  function dtRecordClose(position, qty, closePrice, fee, closeDate){
+    const dir=position.side==='short'?-1:1;
+    const gross=(closePrice-num(position.entry))*qty*dir;
+    const riskPerUnit=(num(position.entry)-num(position.sl))*dir;
+    const riskAbs=Math.max(0,riskPerUnit*qty);
+    const net=gross-fee;
+    const rr=riskAbs>0?net/riskAbs:null;
+    dayTrading().closes.unshift({
+      id:'dt_close_'+Math.random().toString(36).slice(2),
+      positionId:position.id,ticker:position.ticker,side:position.side,date:closeDate,
+      qty,closePrice,fee,grossPnl:gross,netPnl:net,rr,partial:(qty<(num(position.initialQty)-num(position.closedQty||0)-0.0000001))
+    });
+    position.closedQty=(num(position.closedQty)||0)+qty;
+    position.realizedPnl=(num(position.realizedPnl)||0)+net;
+    if(position.closedQty>=num(position.initialQty)-0.0000001){
+      position.status='closed';
+      position.closedDate=closeDate;
+    }
+  }
+
+  function renderDayTradingOpenPositions(){
+    const dt=dayTrading();
+    const tbody=document.getElementById('dt-open-rows');
+    const empty=document.getElementById('dt-open-empty');
+    if(!tbody||!empty) return;
+    tbody.innerHTML='';
+    const opens=(dt.positions||[]).filter(p=>(p.status||'open')==='open' && (num(p.initialQty)-num(p.closedQty||0))>0.0000001);
+    empty.style.display=opens.length?'none':'block';
+    for(const p of opens){
+      const remainingQty=num(p.initialQty)-num(p.closedQty||0);
+      const mark=num(p.markPrice)||num(p.entry);
+      const dir=p.side==='short'?-1:1;
+      const unrl=(mark-num(p.entry))*remainingQty*dir;
+      const risk=Math.max(0,(num(p.entry)-num(p.sl))*dir*remainingQty);
+      const reward=Math.max(0,(num(p.tp)-num(p.entry))*dir*remainingQty);
+      const rr=risk>0?reward/risk:null;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td><strong>${escapeHtml(p.ticker)}</strong><div class="tiny muted">${p.openDate||''}</div></td>
+        <td><span class="dt-chip ${p.side==='short'?'short':'long'}">${p.side==='short'?'SHORT':'LONG'}</span></td>
+        <td>${num(p.entry).toFixed(4)}</td>
+        <td><input class="dt-inline-input" data-k="mark" value="${mark}" /></td>
+        <td>${remainingQty.toFixed(6)}</td>
+        <td class="${unrl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(unrl,'USD')}</td>
+        <td>${rr?rr.toFixed(2):'—'}</td>
+        <td><input class="dt-inline-input qty" data-k="closeQty" value="${remainingQty.toFixed(6)}" /></td>
+        <td><input class="dt-inline-input" data-k="closePrice" value="${mark}" /></td>
+        <td><input class="dt-inline-input" data-k="fee" value="0" /></td>
+        <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij</button></td>
+      `;
+      tr.querySelector('[data-k="mark"]').onchange=e=>{p.markPrice=num(e.target.value)||num(p.entry);save(state);renderInvestments();};
+      tr.querySelector('[data-act="partial"]').onclick=()=>{
+        const qty=Math.abs(num(tr.querySelector('[data-k="closeQty"]').value));
+        const closePrice=Math.abs(num(tr.querySelector('[data-k="closePrice"]').value));
+        const fee=Math.abs(num(tr.querySelector('[data-k="fee"]').value));
+        if(qty<=0||closePrice<=0){alert('Podaj poprawną ilość i cenę zamknięcia.');return;}
+        if(qty>remainingQty+0.0000001){alert(`Maksymalna ilość do zamknięcia: ${remainingQty.toFixed(6)}`);return;}
+        dtRecordClose(p,qty,closePrice,fee,new Date().toISOString().slice(0,10));
+        save(state); renderInvestments();
+      };
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDayTradingCloseLog(){
+    const closes=dayTrading().closes||[];
+    const tbody=document.getElementById('dt-close-log');
+    if(!tbody) return;
+    tbody.innerHTML='';
+    for(const c of closes.slice(0,120)){
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${c.date||''}</td><td>${escapeHtml(c.ticker||'')}</td><td>${(c.side||'').toUpperCase()}</td><td>${num(c.qty).toFixed(6)}</td><td class="${num(c.grossPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.grossPnl),'USD')}</td><td>${fmt(num(c.fee),'USD')}</td><td class="${num(c.netPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.netPnl),'USD')}</td><td>${c.rr!=null?Number(c.rr).toFixed(2):'—'}</td><td>${c.partial?'Partial':'Full'}</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDayTradingChart(){
+    if(dtEquityChart){dtEquityChart.destroy();dtEquityChart=null;}
+    const canvas=document.getElementById('dt-equity-chart');
+    if(!canvas) return;
+    const closes=(dayTrading().closes||[]).slice().sort((a,bb)=>String(a.date).localeCompare(String(bb.date)));
+    if(!closes.length) return;
+    const byDay={};
+    for(const c of closes) byDay[c.date]=(byDay[c.date]||0)+num(c.netPnl);
+    const labels=Object.keys(byDay).sort();
+    let cumul=0;
+    const series=labels.map(d=>{cumul+=byDay[d];return +cumul.toFixed(2);});
+    dtEquityChart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[{label:'Equity curve (PnL netto)',data:series,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.12)',fill:true,tension:.28,pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)}}}}
+    });
+  }
+
+  function bindDayTrading(){
+    const dt=dayTrading();
+    const form=document.getElementById('dt-plan-form');
+    if(form&&!form._bound){
+      form._bound=true;
+      const dateInput=form.querySelector('input[name="date"]');
+      if(dateInput&&!dateInput.value) dateInput.value=new Date().toISOString().slice(0,10);
+      form.addEventListener('input',renderDtPlanPreview);
+      form.onsubmit=e=>{
+        e.preventDefault();
+        const f=new FormData(form);
+        const payload={
+          ticker:String(f.get('ticker')||'').trim().toUpperCase(),
+          side:String(f.get('side')||'long'),
+          date:String(f.get('date')||new Date().toISOString().slice(0,10)),
+          sizeUsd:Math.abs(num(f.get('sizeUsd'))),
+          entry:Math.abs(num(f.get('entry'))),
+          sl:Math.abs(num(f.get('sl'))),
+          tp:Math.abs(num(f.get('tp'))),
+          note:String(f.get('note')||'').trim()
+        };
+        if(!payload.ticker||payload.sizeUsd<=0||payload.entry<=0||payload.sl<=0||payload.tp<=0){alert('Uzupełnij poprawnie ticker, kapitał, entry, SL i TP.');return;}
+        const m=dtComputePlanMetrics(payload);
+        dt.positions.unshift({
+          id:'dt_pos_'+Math.random().toString(36).slice(2),ticker:payload.ticker,side:payload.side,openDate:payload.date,sizeUsd:payload.sizeUsd,
+          entry:payload.entry,sl:payload.sl,tp:payload.tp,note:payload.note,status:'open',
+          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr
+        });
+        save(state);form.reset();
+        if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
+        renderInvestments();
+      };
+    }
+    const dailyInput=document.getElementById('dt-max-daily-loss');
+    const weeklyInput=document.getElementById('dt-max-weekly-loss');
+    if(dailyInput && !dailyInput._bound){
+      dailyInput._bound=true;
+      dailyInput.onchange=()=>{dt.limits.dailyLoss=Math.abs(num(dailyInput.value)||0);save(state);renderInvestments();};
+    }
+    if(weeklyInput && !weeklyInput._bound){
+      weeklyInput._bound=true;
+      weeklyInput.onchange=()=>{dt.limits.weeklyLoss=Math.abs(num(weeklyInput.value)||0);save(state);renderInvestments();};
+    }
+    if(dailyInput) dailyInput.value=dt.limits.dailyLoss?String(dt.limits.dailyLoss).replace('.',','):'';
+    if(weeklyInput) weeklyInput.value=dt.limits.weeklyLoss?String(dt.limits.weeklyLoss).replace('.',','):'';
+    renderDtPlanPreview();
+  }
+
+  function setInvestmentMode(mode){
+    invInvestMode=(mode==='daytrade')?'daytrade':'longterm';
+    const longPanel=document.getElementById('inv-longterm-panel');
+    const dayPanel=document.getElementById('inv-daytrade-panel');
+    const subtitle=document.getElementById('inv-mode-subtitle');
+    document.querySelectorAll('.inv-mode-btn').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.invMode===invInvestMode));
+    if(longPanel) longPanel.style.display=invInvestMode==='longterm'?'block':'none';
+    if(dayPanel) dayPanel.style.display=invInvestMode==='daytrade'?'grid':'none';
+    if(subtitle) subtitle.textContent=invInvestMode==='daytrade'
+      ?'Skupienie na kapitale, ROI, PnL, RR i limitach dyscypliny.'
+      :'Moduł long-term: portfel, analityka, snapshoty i alokacja.';
+  }
+
   // --- Main Render -----------------------------------------------------------
   function renderInvestments(){
     ensureInvestmentCategory();
     const data=investments();
     bindInvestmentModal();
+    bindDayTrading();
+
+    document.querySelectorAll('.inv-mode-btn').forEach(btn=>{
+      if(btn._bound) return; btn._bound=true;
+      btn.onclick=()=>{ setInvestmentMode(btn.dataset.invMode||'longterm'); renderInvestments(); };
+    });
+    setInvestmentMode(invInvestMode);
+    if(invInvestMode==='daytrade'){
+      renderDayTradingDashboard();
+      renderDayTradingOpenPositions();
+      renderDayTradingCloseLog();
+      renderDayTradingChart();
+    }
+    if(invInvestMode!=='longterm'){
+      bindMoneyInputs(document.getElementById('tab-investments'));
+      return;
+    }
     bindInvestmentAnalyticsNav();
 
     // Trade mode tabs
