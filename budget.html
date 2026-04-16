@@ -160,6 +160,21 @@
     .dt-close-pcts { display:flex; gap:6px; flex-wrap:wrap; }
     .dt-close-pct { border:none; border-radius:7px; padding:6px 10px; font-size:11px; font-weight:700; color:var(--muted); background:rgba(148,163,184,.12); cursor:pointer; }
     .dt-close-pct:hover { background:rgba(37,99,235,.12); color:#1d4ed8; }
+    .dt-hub-tabs { display:inline-flex; gap:4px; background:rgba(148,163,184,.12); border-radius:999px; padding:4px; }
+    .dt-hub-tab { border:none; background:transparent; color:var(--muted); font-size:11px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer; }
+    .dt-hub-tab.is-active { background:#fff; color:var(--ink); box-shadow:0 4px 14px rgba(15,23,42,.12); }
+    .dt-hub-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .dt-hub-chart { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:12px; padding:12px; }
+    .dt-hub-chart h4 { margin:0 0 8px; font-size:12px; }
+    .dt-hub-chart .box { height:230px; position:relative; }
+    .dt-cal-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+    .dt-cal-head { font-size:10px; color:var(--muted); text-align:center; font-weight:700; padding:4px 0; }
+    .dt-cal-day { min-height:44px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+    .dt-cal-empty { background:rgba(148,163,184,.08); color:transparent; }
+    .dt-cal-zero { background:rgba(148,163,184,.12); color:var(--muted); }
+    .dt-cal-pos { background:rgba(34,197,94,.22); color:#166534; }
+    .dt-cal-neg { background:rgba(239,68,68,.2); color:#991b1b; }
+    @media(max-width:980px){ .dt-hub-grid{grid-template-columns:1fr;} }
 
     .inv-trade-tabs { display:inline-flex; gap:0; border-radius:10px; overflow:hidden; border:1px solid rgba(148,163,184,.3); }
     .inv-trade-tab { border:none; background:transparent; padding:8px 20px; font-weight:600; font-size:13px; cursor:pointer; color:var(--muted); transition:all .2s; }
@@ -5147,6 +5162,36 @@
                 </table>
               </div>
             </div>
+
+            <div class="card stack dt-span-2">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <strong>Hub analityczny day-trading</strong>
+                <div class="dt-hub-tabs">
+                  <button type="button" class="dt-hub-tab is-active" data-dt-hub-mode="daily">Dzienny</button>
+                  <button type="button" class="dt-hub-tab" data-dt-hub-mode="weekly">Tygodniowy</button>
+                  <button type="button" class="dt-hub-tab" data-dt-hub-mode="monthly">Miesięczny</button>
+                </div>
+              </div>
+              <div class="dt-hub-grid">
+                <div class="dt-hub-chart">
+                  <h4>ROI w czasie</h4>
+                  <div class="box"><canvas id="dt-hub-roi-chart"></canvas></div>
+                </div>
+                <div class="dt-hub-chart">
+                  <h4>PnL w czasie</h4>
+                  <div class="box"><canvas id="dt-hub-pnl-chart"></canvas></div>
+                </div>
+              </div>
+              <div class="row" style="justify-content:space-between;align-items:center;margin-top:6px">
+                <h4 style="margin:0;font-size:12px">Kalendarz zamknięć PnL</h4>
+                <div class="row" style="gap:8px;align-items:center">
+                  <button type="button" class="btn ghost" id="dt-cal-prev" style="font-size:11px">‹</button>
+                  <span class="tiny muted" id="dt-cal-label"></span>
+                  <button type="button" class="btn ghost" id="dt-cal-next" style="font-size:11px">›</button>
+                </div>
+              </div>
+              <div id="dt-cal-grid-wrap"></div>
+            </div>
             </div>
           </div>
           <div id="dt-close-modal-backdrop" class="dt-close-modal-backdrop"></div>
@@ -7614,6 +7659,10 @@
   let invHoldingsSort={key:'value',dir:'desc'};
   const invCollapsedGroups=new Set();
   let dtEquityChart=null;
+  let dtHubRoiChart=null;
+  let dtHubPnlChart=null;
+  let dtHubMode='daily';
+  let dtCalMonth=monthKey();
   let dtCloseTargetId=null;
 
   const investments=()=>{
@@ -11081,16 +11130,15 @@
     const dash=document.getElementById('dt-dashboard');
     if(!dash) return;
     const dailyLimit=Math.abs(num(dt.limits.dailyLoss)||0);
-    const weeklyLimit=Math.abs(num(dt.limits.weeklyLoss)||0);
     const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
-    const weeklyHit=weeklyLimit>0 && stats.weeklyPnl<=-weeklyLimit;
-    const totalPnl=stats.equity-stats.netFlows;
+    const todayCloses=(dt.closes||[]).filter(c=>String(c.date||'')===new Date().toISOString().slice(0,10));
+    const todayFees=todayCloses.reduce((s,c)=>s+Math.abs(num(c.fee)),0);
+    const avgTodayRr=todayCloses.length?todayCloses.reduce((s,c)=>s+(num(c.rr)||0),0)/todayCloses.length:0;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Equity rachunku</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Baza: ${fmt(stats.netFlows,'USD')} | P/L: ${fmt(totalPnl,'USD')}</span></div>
-      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI całkowity</span><span class="value">${stats.roi.toFixed(2)}%</span><span class="sub">Realized: ${fmt(stats.realized,'USD')} | Unrealized: ${fmt(stats.unrealized,'USD')}</span></div>
-      <div class="dt-kpi ${(stats.todayPnl+stats.weeklyPnl)>=0?'positive':'negative'} ${(dailyHit||weeklyHit)?'alert':''}"><span class="label">PnL dzisiaj / tydzień</span><span class="value">${fmt(stats.todayPnl,'USD')} / ${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limity: D ${dailyLimit?fmt(-dailyLimit,'USD'):'—'} | T ${weeklyLimit?fmt(-weeklyLimit,'USD'):'—'}</span></div>
-      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Wallet / Free cash</span><span class="value">${fmt(stats.walletBalance,'USD')} / ${fmt(stats.freeCash,'USD')}</span><span class="sub">Locked margin: ${fmt(stats.lockedMargin,'USD')} | Open: ${stats.openPositions.length}</span></div>
-      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss} | Wpłaty: ${fmt(stats.deposits,'USD')}</span></div>
+      <div class="dt-kpi accent"><span class="label">Dzisiaj: PnL netto</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">Limit dzienny: ${dailyLimit?fmt(-dailyLimit,'USD'):'—'}</span></div>
+      <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiejsze zamknięcia</span><span class="value">${todayCloses.length}</span><span class="sub">Śr. RR: ${todayCloses.length?avgTodayRr.toFixed(2):'—'}</span></div>
+      <div class="dt-kpi"><span class="label">Dzisiaj: prowizje</span><span class="value">${fmt(-todayFees,'USD')}</span><span class="sub">Tydzień PnL: ${fmt(stats.weeklyPnl,'USD')}</span></div>
+      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępny margin</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Locked: ${fmt(stats.lockedMargin,'USD')} | Equity: ${fmt(stats.equity,'USD')}</span></div>
     `;
   }
 
@@ -11264,6 +11312,97 @@
     });
   }
 
+  function dtPeriodKey(dateStr,mode){
+    if(mode==='daily') return dateStr;
+    if(mode==='monthly') return String(dateStr||'').slice(0,7);
+    const ws=dtWeekStart(dateStr);
+    return ws;
+  }
+
+  function dtBuildSeries(mode='daily'){
+    const dt=dayTrading();
+    const closes=[...(dt.closes||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const map={};
+    for(const c of closes){
+      const k=dtPeriodKey(String(c.date||''),mode);
+      if(!k) continue;
+      if(!map[k]) map[k]={pnl:0, fees:0};
+      map[k].pnl+=num(c.netPnl);
+      map[k].fees+=Math.abs(num(c.fee));
+    }
+    const labels=Object.keys(map).sort();
+    let cumulative=0;
+    const base=Math.max(1,Math.abs(dtComputeStats().netFlows));
+    const pnl=labels.map(k=>+map[k].pnl.toFixed(2));
+    const roi=labels.map((k,i)=>{cumulative+=pnl[i]; return +((cumulative/base)*100).toFixed(2);});
+    return {labels,pnl,roi};
+  }
+
+  function renderDtHubCharts(){
+    if(dtHubRoiChart){dtHubRoiChart.destroy();dtHubRoiChart=null;}
+    if(dtHubPnlChart){dtHubPnlChart.destroy();dtHubPnlChart=null;}
+    const roiCanvas=document.getElementById('dt-hub-roi-chart');
+    const pnlCanvas=document.getElementById('dt-hub-pnl-chart');
+    if(!roiCanvas||!pnlCanvas) return;
+    const s=dtBuildSeries(dtHubMode);
+    if(!s.labels.length) return;
+    dtHubRoiChart=new Chart(roiCanvas.getContext('2d'),{
+      type:'line',
+      data:{labels:s.labels,datasets:[{label:'ROI %',data:s.roi,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.12)',fill:true,tension:.25,pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>v+'%'}}}}
+    });
+    dtHubPnlChart=new Chart(pnlCanvas.getContext('2d'),{
+      type:'bar',
+      data:{labels:s.labels,datasets:[{label:'PnL',data:s.pnl,backgroundColor:s.pnl.map(v=>v>=0?'rgba(34,197,94,.72)':'rgba(239,68,68,.72)'),borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)}}}}
+    });
+  }
+
+  function renderDtHubCalendar(){
+    const wrap=document.getElementById('dt-cal-grid-wrap');
+    const label=document.getElementById('dt-cal-label');
+    if(!wrap||!label) return;
+    const closes=dayTrading().closes||[];
+    const byDate={};
+    for(const c of closes){
+      const d=String(c.date||'');
+      byDate[d]=(byDate[d]||0)+num(c.netPnl);
+    }
+    const [y,m]=dtCalMonth.split('-').map(Number);
+    if(!y||!m) return;
+    label.textContent=dtCalMonth;
+    const first=new Date(y,m-1,1);
+    const start=(first.getDay()+6)%7;
+    const days=new Date(y,m,0).getDate();
+    const heads=['Pn','Wt','Śr','Cz','Pt','So','Nd'];
+    let html='<div class="dt-cal-grid">';
+    for(const h of heads) html+=`<div class="dt-cal-head">${h}</div>`;
+    for(let i=0;i<start;i++) html+='<div class="dt-cal-day dt-cal-empty">.</div>';
+    for(let d=1;d<=days;d++){
+      const ds=`${dtCalMonth}-${String(d).padStart(2,'0')}`;
+      const val=byDate[ds]||0;
+      const cls=val===0?'dt-cal-zero':val>0?'dt-cal-pos':'dt-cal-neg';
+      html+=`<div class="dt-cal-day ${cls}" title="${ds}: ${fmt(val,'USD')}">${d}<br>${val!==0?Math.round(val):''}</div>`;
+    }
+    html+='</div>';
+    wrap.innerHTML=html;
+  }
+
+  function bindDtHub(){
+    document.querySelectorAll('[data-dt-hub-mode]').forEach(btn=>{
+      if(btn._bound) return; btn._bound=true;
+      btn.onclick=()=>{
+        dtHubMode=btn.dataset.dtHubMode||'daily';
+        document.querySelectorAll('[data-dt-hub-mode]').forEach(x=>x.classList.toggle('is-active',x===btn));
+        renderDtHubCharts();
+      };
+    });
+    const prev=document.getElementById('dt-cal-prev');
+    const next=document.getElementById('dt-cal-next');
+    if(prev&&!prev._bound){prev._bound=true;prev.onclick=()=>{dtCalMonth=ymAdd(dtCalMonth,-1);renderDtHubCalendar();};}
+    if(next&&!next._bound){next._bound=true;next.onclick=()=>{dtCalMonth=ymAdd(dtCalMonth,1);renderDtHubCalendar();};}
+  }
+
   function bindDayTrading(){
     const dt=dayTrading();
     const capitalForm=document.getElementById('dt-capital-form');
@@ -11430,6 +11569,9 @@
       renderDayTradingOpenPositions();
       renderDayTradingCloseLog();
       renderDayTradingChart();
+      bindDtHub();
+      renderDtHubCharts();
+      renderDtHubCalendar();
     }
     if(invInvestMode!=='longterm'){
       bindMoneyInputs(document.getElementById('tab-investments'));
