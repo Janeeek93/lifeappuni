@@ -1799,6 +1799,10 @@ function renderPlanner() {
   const diffTpPrice = customTp - recommendedTp;
   const diffSlUsd = customSlUsd - recommendedSlUsd;
   const diffTpUsd = customTpUsd - recommendedTpUsd;
+  const riskPerUnit = Math.abs(entry - stop);
+  const recommendedRR = (recommendedTp > 0 && riskPerUnit > 0) ? Math.abs(recommendedTp - entry) / riskPerUnit : 0;
+  const customRR = (customTp > 0 && riskPerUnit > 0) ? Math.abs(customTp - entry) / riskPerUnit : 0;
+  const rrDiff = customRR - recommendedRR;
   const fmtDiff = (value, suffix = '') => {
     if (!Number.isFinite(value) || Math.abs(value) < 0.0000001) return `0${suffix}`;
     const sign = value > 0 ? '+' : '';
@@ -1809,17 +1813,25 @@ function renderPlanner() {
     const sign = value > 0 ? '+' : '';
     return `${sign}${fmtMoney(value)}`;
   };
+  const diffLine = (label, value, color) => `<div style="margin-top:4px; color:${color}; font-weight:700;">${label}: ${value}</div>`;
+  const sizeDiffColor = diffQty <= 0 ? '#059669' : '#dc2626';
+  const tpPriceDiffColor = diffTpPrice >= 0 ? '#059669' : '#d97706';
+  const slDiffColor = diffSlUsd <= 0 ? '#059669' : '#dc2626';
+  const tpUsdDiffColor = diffTpUsd >= 0 ? '#059669' : ((rrDiff > 0 && diffSlUsd < 0) ? '#2563eb' : '#d97706');
+  const rrDiffColor = rrDiff >= 0 ? '#059669' : '#dc2626';
+  const tpUsdContext = diffTpUsd < 0 && rrDiff > 0 && diffSlUsd < 0
+    ? 'Mniej $ TP wynika z mniejszego size — jednocześnie RR wzrósł i SL jest ciaśniejszy.'
+    : 'Porównaj TP USD razem z RR i SL USD, nie osobno.';
   const cards = [
     { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Risk ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo`) : 'Kliknij „Wylicz pozycję”' },
     { label: 'Rekomendowany TP price', value: recommendedTp > 0 ? fmtNum(recommendedTp, 4) : '—', note: 'Target liczony automatycznie jako 2R od SL' },
     { label: 'Rekomendowany SL (USD)', value: recommendedSlUsd > 0 ? fmtMoney(recommendedSlUsd) : '—', note: 'Strata do SL przy rekomendowanym size' },
     { label: 'Rekomendowany TP (USD)', value: recommendedTpUsd > 0 ? fmtMoney(recommendedTpUsd) : '—', note: 'Potencjalny zysk do TP przy rekomendacji' },
-    { label: 'Mój size (BTC)', value: customQty > 0 ? fmtNum(customQty, 4) : '—', note: customQty > 0 ? `Diff vs rekomendacja: ${fmtDiff(diffQty, ' BTC')}` : 'Możesz nadpisać po kalkulacji' },
-    { label: 'Mój TP price', value: customTp > 0 ? fmtNum(customTp, 4) : '—', note: customTp > 0 ? `Diff vs rekomendacja: ${fmtDiff(diffTpPrice)}` : (primaryTarget ? `Planowane RR ${fmtR(primaryTarget.rr)}` : 'Możesz nadpisać po kalkulacji') },
-    { label: 'Mój SL (USD)', value: customSlUsd > 0 ? fmtMoney(customSlUsd) : '—', note: customSlUsd > 0 ? `Diff vs rekomendacja: ${fmtDiffMoney(diffSlUsd)}` : 'Wynika z Twojego size i SL' },
-    { label: 'Mój TP (USD)', value: customTpUsd > 0 ? fmtMoney(customTpUsd) : '—', note: customTpUsd > 0 ? `Diff vs rekomendacja: ${fmtDiffMoney(diffTpUsd)}` : 'Wynika z Twojego size i TP' },
-    { label: 'Leverage efektywny', value: metrics.leverage ? `${fmtNum(metrics.leverage, 2)}x` : '—', note: `Limit ustawiony: ${fmtNum(n(state.planner.leverage) || 0, 0)}x` },
-    { label: 'Max loss net', value: fmtMoney(metrics.maxLossNet), note: `Fee + slippage ${fmtMoney(metrics.entryFees + metrics.exitFeesAtStop + metrics.slippageCost)}` }
+    { label: 'Mój size (BTC)', value: customQty > 0 ? fmtNum(customQty, 4) : '—', note: customQty > 0 ? diffLine('Diff vs rekomendacja', fmtDiff(diffQty, ' BTC'), sizeDiffColor) : 'Możesz nadpisać po kalkulacji' },
+    { label: 'Mój TP price', value: customTp > 0 ? fmtNum(customTp, 4) : '—', note: customTp > 0 ? `${diffLine('Diff vs rekomendacja', fmtDiff(diffTpPrice), tpPriceDiffColor)}${diffLine('RR', fmtNum(customRR, 2), rrDiffColor)}` : (primaryTarget ? `Planowane RR ${fmtR(primaryTarget.rr)}` : 'Możesz nadpisać po kalkulacji') },
+    { label: 'Mój SL (USD)', value: customSlUsd > 0 ? fmtMoney(customSlUsd) : '—', note: customSlUsd > 0 ? diffLine('Diff vs rekomendacja', fmtDiffMoney(diffSlUsd), slDiffColor) : 'Wynika z Twojego size i SL' },
+    { label: 'Mój TP (USD)', value: customTpUsd > 0 ? fmtMoney(customTpUsd) : '—', note: customTpUsd > 0 ? `${diffLine('Diff vs rekomendacja', fmtDiffMoney(diffTpUsd), tpUsdDiffColor)}<div style="margin-top:4px; color:#64748b;">${tpUsdContext}</div>` : 'Wynika z Twojego size i TP' },
+    { label: 'Balans setupu', value: customTp > 0 && customSlUsd > 0 ? 'Porównanie' : '—', note: customTp > 0 && customSlUsd > 0 ? `${diffLine('ΔRR', fmtDiff(rrDiff), rrDiffColor)}${diffLine('ΔSL USD', fmtDiffMoney(diffSlUsd), slDiffColor)}${diffLine('ΔTP USD', fmtDiffMoney(diffTpUsd), tpUsdDiffColor)}` : 'Wpisz własny size/TP aby zobaczyć porównanie.' }
   ];
   $('#planner-results').innerHTML = cards.map(card => `
     <article class="planner-card">
