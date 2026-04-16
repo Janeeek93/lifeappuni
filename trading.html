@@ -197,6 +197,23 @@
     text-underline-offset: 2px;
     color: var(--ink);
   }
+  .today-summary-total {
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .today-summary-total strong {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   /* ═══════════════════════════════════════════════════════════
      PLANNER
@@ -713,6 +730,7 @@
               <!-- Open positions today -->
               <div class="tc" style="flex:1;">
                 <div class="tct" style="margin-bottom:8px;"><span>Otwarte pozycje</span></div>
+                <div id="open-positions-totals" class="today-summary-total" style="display:none;"></div>
                 <div id="open-positions-list">
                   <div class="empty-state" style="padding:16px 8px;">
                     <span class="material-symbols-outlined">candlestick_chart</span>
@@ -1515,18 +1533,24 @@ function renderDashboard() {
 ═══════════════════════════════════════════════════════════ */
 function renderOpenPositionsList() {
   const el = document.getElementById('open-positions-list');
+  const totalEl = document.getElementById('open-positions-totals');
   const open = state.trades.filter(t => getTradeStatus(t) === 'open');
   const currentCapital = computeKPIs().currentCapital || settings.capital || 1;
   if (open.length === 0) {
+    totalEl.style.display = 'none';
     el.innerHTML = '<div class="empty-state" style="padding:16px 8px;"><span class="material-symbols-outlined">candlestick_chart</span>Brak otwartych pozycji</div>';
     return;
   }
+  let totalRiskUSD = 0;
+  let totalRewardUSD = 0;
   el.innerHTML = open.map(t => {
     const { realizedPNL, totalClosedPct } = calcTradePNL(t);
     const remainingPct = Math.max(0, 100 - totalClosedPct);
     const remainingSize = t.size * (remainingPct / 100);
     const riskUSD = t.sl ? Math.abs(t.entry - t.sl) * remainingSize : null;
     const rewardUSD = t.tp ? Math.abs(t.tp - t.entry) * remainingSize : null;
+    if (riskUSD !== null) totalRiskUSD += riskUSD;
+    if (rewardUSD !== null) totalRewardUSD += rewardUSD;
     const riskPctDepo = riskUSD !== null ? (riskUSD / currentCapital) * 100 : null;
     const rewardPctDepo = rewardUSD !== null ? (rewardUSD / currentCapital) * 100 : null;
     return `<div class="today-trade-row">
@@ -1547,6 +1571,10 @@ function renderOpenPositionsList() {
       </div>
     </div>`;
   }).join('');
+  totalEl.innerHTML = `
+    <span><strong>Suma ryzyka:</strong> ${usd(totalRiskUSD)} (${((totalRiskUSD/currentCapital)*100).toFixed(2)}%)</span>
+    <span><strong>Suma zysku:</strong> ${usd(totalRewardUSD)} (${((totalRewardUSD/currentCapital)*100).toFixed(2)}%)</span>`;
+  totalEl.style.display = '';
 }
 
 /* ═══════════════════════════════════════════════════════════
