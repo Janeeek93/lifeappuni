@@ -5116,7 +5116,10 @@
             <div class="card stack dt-span-2">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Otwarte pozycje</strong>
-                <span class="tiny muted">Partial TP / zamykanie pozycji / prowizje</span>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+                  <span class="tiny muted">Partial TP / zamykanie pozycji / prowizje</span>
+                  <button type="button" class="btn ghost" id="dt-clear-open" style="font-size:11px">Usuń wszystkie otwarte</button>
+                </div>
               </div>
               <div class="table-wrapper">
                 <table class="dt-table">
@@ -5133,12 +5136,13 @@
                 <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
                   <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata dzienna (USD)<input id="dt-max-daily-loss" inputmode="decimal" class="dt-inline-input" /></label>
                   <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata tygodniowa (USD)<input id="dt-max-weekly-loss" inputmode="decimal" class="dt-inline-input" /></label>
+                  <button type="button" class="btn ghost" id="dt-clear-closed" style="font-size:11px">Usuń historię zamkniętych</button>
                 </div>
               </div>
               <div class="dt-chart-box"><canvas id="dt-equity-chart"></canvas></div>
               <div class="table-wrapper">
                 <table class="dt-table">
-                  <thead><tr><th>Data</th><th>Ticker</th><th>Strona</th><th>Zamknięta ilość</th><th>PnL brutto</th><th>Prowizje</th><th>PnL netto</th><th>RR (real)</th><th>Typ</th></tr></thead>
+                  <thead><tr><th>Data</th><th>Ticker</th><th>Strona</th><th>Zamknięta ilość</th><th>PnL brutto</th><th>Prowizje</th><th>PnL netto</th><th>RR (real)</th><th>Typ</th><th></th></tr></thead>
                   <tbody id="dt-close-log"></tbody>
                 </table>
               </div>
@@ -11080,16 +11084,13 @@
     const weeklyLimit=Math.abs(num(dt.limits.weeklyLoss)||0);
     const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
     const weeklyHit=weeklyLimit>0 && stats.weeklyPnl<=-weeklyLimit;
+    const totalPnl=stats.equity-stats.netFlows;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Equity rachunku</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Wallet ${fmt(stats.walletBalance,'USD')} | Unrealized ${fmt(stats.unrealized,'USD')}</span></div>
-      <div class="dt-kpi"><span class="label">Wpłaty / wypłaty</span><span class="value">${fmt(stats.deposits,'USD')}</span><span class="sub">Wypłaty: ${fmt(-stats.withdrawals,'USD')} | Net: ${fmt(stats.netFlows,'USD')}</span></div>
-      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI łącznie</span><span class="value">${stats.roi.toFixed(2)}%</span><span class="sub">Liczone od net flow rachunku</span></div>
-      <div class="dt-kpi ${stats.realized>=0?'positive':'negative'}"><span class="label">PnL zrealizowany</span><span class="value">${fmt(stats.realized,'USD')}</span><span class="sub">Po uwzględnieniu prowizji</span></div>
-      <div class="dt-kpi ${stats.unrealized>=0?'positive':'negative'}"><span class="label">PnL niezrealizowany</span><span class="value">${fmt(stats.unrealized,'USD')}</span><span class="sub">Na otwartych pozycjach</span></div>
-      <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiaj PnL</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% względem net flow</span></div>
-      <div class="dt-kpi ${stats.weeklyPnl>=0?'positive':'negative'} ${weeklyHit?'alert':''}"><span class="label">Tydzień PnL</span><span class="value">${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limit: ${weeklyLimit>0?fmt(-weeklyLimit,'USD'):'nie ustawiono'}</span></div>
-      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss} | Open: ${stats.openPositions.length}</span></div>
-      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępne do handlu</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Zablokowany margin: ${fmt(stats.lockedMargin,'USD')}</span></div>
+      <div class="dt-kpi accent"><span class="label">Equity rachunku</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Baza: ${fmt(stats.netFlows,'USD')} | P/L: ${fmt(totalPnl,'USD')}</span></div>
+      <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI całkowity</span><span class="value">${stats.roi.toFixed(2)}%</span><span class="sub">Realized: ${fmt(stats.realized,'USD')} | Unrealized: ${fmt(stats.unrealized,'USD')}</span></div>
+      <div class="dt-kpi ${(stats.todayPnl+stats.weeklyPnl)>=0?'positive':'negative'} ${(dailyHit||weeklyHit)?'alert':''}"><span class="label">PnL dzisiaj / tydzień</span><span class="value">${fmt(stats.todayPnl,'USD')} / ${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limity: D ${dailyLimit?fmt(-dailyLimit,'USD'):'—'} | T ${weeklyLimit?fmt(-weeklyLimit,'USD'):'—'}</span></div>
+      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Wallet / Free cash</span><span class="value">${fmt(stats.walletBalance,'USD')} / ${fmt(stats.freeCash,'USD')}</span><span class="sub">Locked margin: ${fmt(stats.lockedMargin,'USD')} | Open: ${stats.openPositions.length}</span></div>
+      <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss} | Wpłaty: ${fmt(stats.deposits,'USD')}</span></div>
     `;
   }
 
@@ -11218,11 +11219,15 @@
         <td>${fmt(margin,'USD')}</td>
         <td class="${unrl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(unrl,'USD')}</td>
         <td>${rr?rr.toFixed(2):'—'}</td>
-        <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij / partial TP</button></td>
+        <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij / partial TP</button><button class="btn ghost" data-act="delete" style="font-size:10px;padding:2px 7px">Usuń</button></td>
       `;
       tr.querySelector('[data-k="mark"]').onchange=e=>{p.markPrice=num(e.target.value)||num(p.entry);save(state);renderInvestments();};
       tr.querySelector('[data-act="partial"]').onclick=()=>{
         openDtCloseModal(p,mark);
+      };
+      tr.querySelector('[data-act="delete"]').onclick=()=>{
+        dayTrading().positions=dayTrading().positions.filter(x=>x.id!==p.id);
+        save(state);renderInvestments();
       };
       tbody.appendChild(tr);
     }
@@ -11235,7 +11240,8 @@
     tbody.innerHTML='';
     for(const c of closes.slice(0,120)){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${c.date||''}</td><td>${escapeHtml(c.ticker||'')}</td><td>${(c.side||'').toUpperCase()}</td><td>${num(c.qty).toFixed(6)}</td><td class="${num(c.grossPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.grossPnl),'USD')}</td><td>${fmt(num(c.fee),'USD')}</td><td class="${num(c.netPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.netPnl),'USD')}</td><td>${c.rr!=null?Number(c.rr).toFixed(2):'—'}</td><td>${c.partial?'Partial':'Full'}</td>`;
+      tr.innerHTML=`<td>${c.date||''}</td><td>${escapeHtml(c.ticker||'')}</td><td>${(c.side||'').toUpperCase()}</td><td>${num(c.qty).toFixed(6)}</td><td class="${num(c.grossPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.grossPnl),'USD')}</td><td>${fmt(num(c.fee),'USD')}</td><td class="${num(c.netPnl)>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(num(c.netPnl),'USD')}</td><td>${c.rr!=null?Number(c.rr).toFixed(2):'—'}</td><td>${c.partial?'Partial':'Full'}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 7px" data-del="${c.id}">Usuń</button></td>`;
+      tr.querySelector('[data-del]').onclick=()=>{dayTrading().closes=dayTrading().closes.filter(x=>x.id!==c.id);save(state);renderInvestments();};
       tbody.appendChild(tr);
     }
   }
@@ -11337,6 +11343,25 @@
     }
     if(dailyInput) dailyInput.value=dt.limits.dailyLoss?String(dt.limits.dailyLoss).replace('.',','):'';
     if(weeklyInput) weeklyInput.value=dt.limits.weeklyLoss?String(dt.limits.weeklyLoss).replace('.',','):'';
+
+    const clearOpenBtn=document.getElementById('dt-clear-open');
+    if(clearOpenBtn && !clearOpenBtn._bound){
+      clearOpenBtn._bound=true;
+      clearOpenBtn.onclick=()=>{
+        if(!confirm('Usunąć wszystkie otwarte pozycje?')) return;
+        dt.positions=(dt.positions||[]).filter(p=>(p.status||'open')!=='open');
+        save(state);renderInvestments();
+      };
+    }
+    const clearClosedBtn=document.getElementById('dt-clear-closed');
+    if(clearClosedBtn && !clearClosedBtn._bound){
+      clearClosedBtn._bound=true;
+      clearClosedBtn.onclick=()=>{
+        if(!confirm('Usunąć całą historię zamkniętych pozycji?')) return;
+        dt.closes=[];
+        save(state);renderInvestments();
+      };
+    }
 
     const closeForm=document.getElementById('dt-close-form');
     if(closeForm && !closeForm._bound){
