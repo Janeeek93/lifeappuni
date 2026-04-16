@@ -5147,14 +5147,15 @@
 
             <div class="card stack dt-span-2">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <strong>Statystyki i dyscyplina</strong>
+                <strong>Panel sterowania (% kapitału)</strong>
                 <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
-                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata dzienna (USD)<input id="dt-max-daily-loss" inputmode="decimal" class="dt-inline-input" /></label>
-                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata tygodniowa (USD)<input id="dt-max-weekly-loss" inputmode="decimal" class="dt-inline-input" /></label>
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata dzienna (%)<input id="dt-max-daily-loss-pct" inputmode="decimal" class="dt-inline-input" /></label>
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Max strata tygodniowa (%)<input id="dt-max-weekly-loss-pct" inputmode="decimal" class="dt-inline-input" /></label>
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Cel zysku dziennego (%)<input id="dt-target-daily-profit-pct" inputmode="decimal" class="dt-inline-input" /></label>
+                  <label class="tiny muted" style="display:flex;flex-direction:column;gap:4px">Cel zysku tygodniowego (%)<input id="dt-target-weekly-profit-pct" inputmode="decimal" class="dt-inline-input" /></label>
                   <button type="button" class="btn ghost" id="dt-clear-closed" style="font-size:11px">Usuń historię zamkniętych</button>
                 </div>
               </div>
-              <div class="dt-chart-box"><canvas id="dt-equity-chart"></canvas></div>
               <div class="table-wrapper">
                 <table class="dt-table">
                   <thead><tr><th>Data</th><th>Ticker</th><th>Strona</th><th>Zamknięta ilość</th><th>PnL brutto</th><th>Prowizje</th><th>PnL netto</th><th>RR (real)</th><th>Typ</th><th></th></tr></thead>
@@ -6343,16 +6344,18 @@
     // NEW: fixed expense templates
     if(!Array.isArray(bud.fixedTemplates)) bud.fixedTemplates=[];
     if(!bud.investments) bud.investments={assets:[], trades:[], groups:[]};
-    if(!bud.dayTrading) bud.dayTrading={positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}, capitalFlows:[]};
+    if(!bud.dayTrading) bud.dayTrading={positions:[], closes:[], limits:{maxDailyLossPct:0,maxWeeklyLossPct:0,targetDailyProfitPct:0,targetWeeklyProfitPct:0}, capitalFlows:[]};
     if(!Array.isArray(bud.investments.assets)) bud.investments.assets=[];
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
     if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
     if(!Array.isArray(bud.dayTrading.positions)) bud.dayTrading.positions=[];
     if(!Array.isArray(bud.dayTrading.closes)) bud.dayTrading.closes=[];
     if(!Array.isArray(bud.dayTrading.capitalFlows)) bud.dayTrading.capitalFlows=[];
-    if(!bud.dayTrading.limits || typeof bud.dayTrading.limits!=='object') bud.dayTrading.limits={dailyLoss:0,weeklyLoss:0};
-    if(!Number.isFinite(Number(bud.dayTrading.limits.dailyLoss))) bud.dayTrading.limits.dailyLoss=0;
-    if(!Number.isFinite(Number(bud.dayTrading.limits.weeklyLoss))) bud.dayTrading.limits.weeklyLoss=0;
+    if(!bud.dayTrading.limits || typeof bud.dayTrading.limits!=='object') bud.dayTrading.limits={maxDailyLossPct:0,maxWeeklyLossPct:0,targetDailyProfitPct:0,targetWeeklyProfitPct:0};
+    if(!Number.isFinite(Number(bud.dayTrading.limits.maxDailyLossPct))) bud.dayTrading.limits.maxDailyLossPct=Math.abs(num(bud.dayTrading.limits.dailyLoss)||0);
+    if(!Number.isFinite(Number(bud.dayTrading.limits.maxWeeklyLossPct))) bud.dayTrading.limits.maxWeeklyLossPct=Math.abs(num(bud.dayTrading.limits.weeklyLoss)||0);
+    if(!Number.isFinite(Number(bud.dayTrading.limits.targetDailyProfitPct))) bud.dayTrading.limits.targetDailyProfitPct=0;
+    if(!Number.isFinite(Number(bud.dayTrading.limits.targetWeeklyProfitPct))) bud.dayTrading.limits.targetWeeklyProfitPct=0;
     if(!Array.isArray(bud.eomInvestmentBridge)) bud.eomInvestmentBridge=[];
     for(const t of bud.investments.trades){
       if(!t.side) t.side='buy';
@@ -6389,7 +6392,7 @@
         recurringTemplates:[],recurringLog:[],
         fixedTemplates:[],
         investments:{assets:[], trades:[], groups:[]},
-        dayTrading:{positions:[], closes:[], limits:{dailyLoss:0,weeklyLoss:0}, capitalFlows:[]},
+        dayTrading:{positions:[], closes:[], limits:{maxDailyLossPct:0,maxWeeklyLossPct:0,targetDailyProfitPct:0,targetWeeklyProfitPct:0}, capitalFlows:[]},
         eomInvestmentBridge:[]
       }}
     });
@@ -7658,7 +7661,6 @@
   let invTradeFilter='all';
   let invHoldingsSort={key:'value',dir:'desc'};
   const invCollapsedGroups=new Set();
-  let dtEquityChart=null;
   let dtHubRoiChart=null;
   let dtHubPnlChart=null;
   let dtHubMode='daily';
@@ -11047,14 +11049,16 @@
 
   // --- Day Trading (crypto) -------------------------------------------------
   const dayTrading=()=>{
-    if(!b().dayTrading) b().dayTrading={positions:[],closes:[],limits:{dailyLoss:0,weeklyLoss:0},capitalFlows:[]};
+    if(!b().dayTrading) b().dayTrading={positions:[],closes:[],limits:{maxDailyLossPct:0,maxWeeklyLossPct:0,targetDailyProfitPct:0,targetWeeklyProfitPct:0},capitalFlows:[]};
     const dt=b().dayTrading;
     if(!Array.isArray(dt.positions)) dt.positions=[];
     if(!Array.isArray(dt.closes)) dt.closes=[];
     if(!Array.isArray(dt.capitalFlows)) dt.capitalFlows=[];
-    if(!dt.limits) dt.limits={dailyLoss:0,weeklyLoss:0};
-    dt.limits.dailyLoss=num(dt.limits.dailyLoss)||0;
-    dt.limits.weeklyLoss=num(dt.limits.weeklyLoss)||0;
+    if(!dt.limits) dt.limits={maxDailyLossPct:0,maxWeeklyLossPct:0,targetDailyProfitPct:0,targetWeeklyProfitPct:0};
+    dt.limits.maxDailyLossPct=Math.abs(num(dt.limits.maxDailyLossPct)||0);
+    dt.limits.maxWeeklyLossPct=Math.abs(num(dt.limits.maxWeeklyLossPct)||0);
+    dt.limits.targetDailyProfitPct=Math.abs(num(dt.limits.targetDailyProfitPct)||0);
+    dt.limits.targetWeeklyProfitPct=Math.abs(num(dt.limits.targetWeeklyProfitPct)||0);
     return dt;
   };
 
@@ -11121,7 +11125,8 @@
     const baseForRoi=Math.max(1,Math.abs(netFlows));
     const roi=((equity-netFlows)/baseForRoi)*100;
     const todayPct=netFlows!==0?(todayPnl/Math.abs(netFlows))*100:0;
-    return {activeNotional,lockedMargin,unrealized,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,deposits,withdrawals,netFlows,freeCash,walletBalance,equity,canTrade:deposits>0&&freeCash>0};
+    const weeklyPct=netFlows!==0?(weeklyPnl/Math.abs(netFlows))*100:0;
+    return {activeNotional,lockedMargin,unrealized,realized,todayPnl,weeklyPnl,todayPct,weeklyPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,deposits,withdrawals,netFlows,freeCash,walletBalance,equity,canTrade:deposits>0&&freeCash>0};
   }
 
   function renderDayTradingDashboard(){
@@ -11129,16 +11134,22 @@
     const stats=dtComputeStats();
     const dash=document.getElementById('dt-dashboard');
     if(!dash) return;
-    const dailyLimit=Math.abs(num(dt.limits.dailyLoss)||0);
-    const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
+    const dailyLossPct=Math.abs(num(dt.limits.maxDailyLossPct)||0);
+    const weeklyLossPct=Math.abs(num(dt.limits.maxWeeklyLossPct)||0);
+    const dailyTargetPct=Math.abs(num(dt.limits.targetDailyProfitPct)||0);
+    const weeklyTargetPct=Math.abs(num(dt.limits.targetWeeklyProfitPct)||0);
+    const dailyHit=dailyLossPct>0 && stats.todayPct<=-dailyLossPct;
+    const weeklyHit=weeklyLossPct>0 && stats.weeklyPct<=-weeklyLossPct;
+    const dailyTargetHit=dailyTargetPct>0 && stats.todayPct>=dailyTargetPct;
+    const weeklyTargetHit=weeklyTargetPct>0 && stats.weeklyPct>=weeklyTargetPct;
     const todayCloses=(dt.closes||[]).filter(c=>String(c.date||'')===new Date().toISOString().slice(0,10));
     const todayFees=todayCloses.reduce((s,c)=>s+Math.abs(num(c.fee)),0);
     const avgTodayRr=todayCloses.length?todayCloses.reduce((s,c)=>s+(num(c.rr)||0),0)/todayCloses.length:0;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Dzisiaj: PnL netto</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">Limit dzienny: ${dailyLimit?fmt(-dailyLimit,'USD'):'—'}</span></div>
+      <div class="dt-kpi accent"><span class="label">Dzisiaj: PnL netto</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% kapitału</span></div>
       <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiejsze zamknięcia</span><span class="value">${todayCloses.length}</span><span class="sub">Śr. RR: ${todayCloses.length?avgTodayRr.toFixed(2):'—'}</span></div>
-      <div class="dt-kpi"><span class="label">Dzisiaj: prowizje</span><span class="value">${fmt(-todayFees,'USD')}</span><span class="sub">Tydzień PnL: ${fmt(stats.weeklyPnl,'USD')}</span></div>
-      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępny margin</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Locked: ${fmt(stats.lockedMargin,'USD')} | Equity: ${fmt(stats.equity,'USD')}</span></div>
+      <div class="dt-kpi ${(dailyTargetHit||weeklyTargetHit)?'positive':(dailyHit||weeklyHit)?'negative':''} ${dailyHit||weeklyHit?'alert':''}"><span class="label">Rekomendacje % (D/T)</span><span class="value">${stats.todayPct.toFixed(2)}% / ${stats.weeklyPct.toFixed(2)}%</span><span class="sub">Max loss: ${dailyLossPct||0}% / ${weeklyLossPct||0}% • Cel: ${dailyTargetPct||0}% / ${weeklyTargetPct||0}%</span></div>
+      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępny margin</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Prowizje dziś: ${fmt(-todayFees,'USD')} | Equity: ${fmt(stats.equity,'USD')}</span></div>
     `;
   }
 
@@ -11292,24 +11303,6 @@
       tr.querySelector('[data-del]').onclick=()=>{dayTrading().closes=dayTrading().closes.filter(x=>x.id!==c.id);save(state);renderInvestments();};
       tbody.appendChild(tr);
     }
-  }
-
-  function renderDayTradingChart(){
-    if(dtEquityChart){dtEquityChart.destroy();dtEquityChart=null;}
-    const canvas=document.getElementById('dt-equity-chart');
-    if(!canvas) return;
-    const closes=(dayTrading().closes||[]).slice().sort((a,bb)=>String(a.date).localeCompare(String(bb.date)));
-    if(!closes.length) return;
-    const byDay={};
-    for(const c of closes) byDay[c.date]=(byDay[c.date]||0)+num(c.netPnl);
-    const labels=Object.keys(byDay).sort();
-    let cumul=0;
-    const series=labels.map(d=>{cumul+=byDay[d];return +cumul.toFixed(2);});
-    dtEquityChart=new Chart(canvas.getContext('2d'),{
-      type:'line',
-      data:{labels,datasets:[{label:'Equity curve (PnL netto)',data:series,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.12)',fill:true,tension:.28,pointRadius:2}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>currencyTicks(v)}}}}
-    });
   }
 
   function dtPeriodKey(dateStr,mode){
@@ -11470,18 +11463,23 @@
         renderInvestments();
       };
     }
-    const dailyInput=document.getElementById('dt-max-daily-loss');
-    const weeklyInput=document.getElementById('dt-max-weekly-loss');
-    if(dailyInput && !dailyInput._bound){
-      dailyInput._bound=true;
-      dailyInput.onchange=()=>{dt.limits.dailyLoss=Math.abs(num(dailyInput.value)||0);save(state);renderInvestments();};
-    }
-    if(weeklyInput && !weeklyInput._bound){
-      weeklyInput._bound=true;
-      weeklyInput.onchange=()=>{dt.limits.weeklyLoss=Math.abs(num(weeklyInput.value)||0);save(state);renderInvestments();};
-    }
-    if(dailyInput) dailyInput.value=dt.limits.dailyLoss?String(dt.limits.dailyLoss).replace('.',','):'';
-    if(weeklyInput) weeklyInput.value=dt.limits.weeklyLoss?String(dt.limits.weeklyLoss).replace('.',','):'';
+    const dailyLossInput=document.getElementById('dt-max-daily-loss-pct');
+    const weeklyLossInput=document.getElementById('dt-max-weekly-loss-pct');
+    const dailyTargetInput=document.getElementById('dt-target-daily-profit-pct');
+    const weeklyTargetInput=document.getElementById('dt-target-weekly-profit-pct');
+    const bindPct=(el,key)=>{
+      if(!el || el._bound) return;
+      el._bound=true;
+      el.onchange=()=>{dt.limits[key]=Math.abs(num(el.value)||0);save(state);renderInvestments();};
+    };
+    bindPct(dailyLossInput,'maxDailyLossPct');
+    bindPct(weeklyLossInput,'maxWeeklyLossPct');
+    bindPct(dailyTargetInput,'targetDailyProfitPct');
+    bindPct(weeklyTargetInput,'targetWeeklyProfitPct');
+    if(dailyLossInput) dailyLossInput.value=dt.limits.maxDailyLossPct?String(dt.limits.maxDailyLossPct).replace('.',','):'';
+    if(weeklyLossInput) weeklyLossInput.value=dt.limits.maxWeeklyLossPct?String(dt.limits.maxWeeklyLossPct).replace('.',','):'';
+    if(dailyTargetInput) dailyTargetInput.value=dt.limits.targetDailyProfitPct?String(dt.limits.targetDailyProfitPct).replace('.',','):'';
+    if(weeklyTargetInput) weeklyTargetInput.value=dt.limits.targetWeeklyProfitPct?String(dt.limits.targetWeeklyProfitPct).replace('.',','):'';
 
     const clearOpenBtn=document.getElementById('dt-clear-open');
     if(clearOpenBtn && !clearOpenBtn._bound){
@@ -11568,7 +11566,6 @@
       renderDayTradingDashboard();
       renderDayTradingOpenPositions();
       renderDayTradingCloseLog();
-      renderDayTradingChart();
       bindDtHub();
       renderDtHubCharts();
       renderDtHubCalendar();
