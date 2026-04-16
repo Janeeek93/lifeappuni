@@ -256,9 +256,23 @@
     margin-top: 14px;
   }
   .override-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
-  .override-row { display: flex; align-items: center; gap: 8px; }
+  .override-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .override-field { display:flex; flex-direction:column; gap:4px; }
+  .override-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .override-input-wrap { display:flex; align-items:center; gap:8px; }
   .override-row input { flex: 1; font-size: 13px; padding: 7px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 7px; color: var(--ink); }
   .override-row input:focus { outline: none; border-color: #0057c0; box-shadow: 0 0 0 3px rgba(0,87,192,0.12); }
+  .override-compare {
+    margin-top: 10px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+  .override-compare-head { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+  .override-cmp-grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:11px; }
+  .override-cmp-grid > div { background: var(--card); border:1px solid var(--line); border-radius:8px; padding:7px; }
+  .override-cmp-label { color: var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
+  .override-cmp-val { font-weight:700; color:var(--ink); }
+  .override-cmp-delta { margin-top:8px; font-size:11px; color:var(--muted); }
   .diff-indicator {
     padding: 9px 12px;
     border-radius: 8px;
@@ -801,14 +815,44 @@
 
               <!-- Override -->
               <div class="override-box" id="override-box" style="display:none;">
-                <div class="override-title">Twoja wielkość pozycji (override)</div>
+                <div class="override-title">Nadpisanie rekomendacji</div>
                 <div class="override-row">
-                  <input type="number" id="override-size" placeholder="Wpisz swoją wielkość…" step="any" oninput="calcOverrideDiff()">
-                  <span id="pr-size-unit" style="font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap;">BTC</span>
+                  <div class="override-field">
+                    <label>Position size</label>
+                    <div class="override-input-wrap">
+                      <input type="number" id="override-size" placeholder="Twoja wielkość…" step="any" oninput="calcOverrideDiff()">
+                      <span id="pr-size-unit" style="font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap;">BTC</span>
+                    </div>
+                  </div>
+                  <div class="override-field">
+                    <label>TP (cena)</label>
+                    <input type="number" id="override-tp" placeholder="Twój TP…" step="any" oninput="calcOverrideDiff()">
+                  </div>
                 </div>
                 <div class="diff-indicator" id="diff-indicator">
                   <span class="material-symbols-outlined" style="font-size:16px;">info</span>
                   <span id="diff-text">—</span>
+                </div>
+                <div class="override-compare" id="override-compare" style="display:none;">
+                  <div class="override-compare-head">
+                    <span>Panel analityczno-porównawczy</span>
+                    <span>Rekomendacja vs Nadpisanie</span>
+                  </div>
+                  <div class="override-cmp-grid">
+                    <div>
+                      <div class="override-cmp-label">Strata (SL)</div>
+                      <div class="override-cmp-val" id="cmp-loss">—</div>
+                    </div>
+                    <div>
+                      <div class="override-cmp-label">Zysk (TP)</div>
+                      <div class="override-cmp-val" id="cmp-profit">—</div>
+                    </div>
+                    <div>
+                      <div class="override-cmp-label">R:R</div>
+                      <div class="override-cmp-val" id="cmp-rr">—</div>
+                    </div>
+                  </div>
+                  <div class="override-cmp-delta" id="cmp-delta">—</div>
                 </div>
               </div>
 
@@ -1679,7 +1723,8 @@ function calcPlanner() {
   document.getElementById('pr-size-ticker').textContent = ticker;
   document.getElementById('pr-size-unit').textContent   = ticker;
   document.getElementById('pr-tp').textContent         = fnum(tp, 2);
-  document.getElementById('pr-tp-note').textContent    = `+${(tpDist/entry*100).toFixed(2)}% od entry`;
+  const tpPctMove = (tpDist / entry) * 100;
+  document.getElementById('pr-tp-note').textContent    = `${planDirection === 'long' ? '+' : '-'}${tpPctMove.toFixed(2)}% od entry`;
   document.getElementById('pr-risk-usd').textContent   = usd(riskUSD);
   document.getElementById('pr-risk-pct-show').textContent = riskPct + '% kapitału';
   document.getElementById('pr-reward-usd').textContent = usd(rewardUSD);
@@ -1704,7 +1749,10 @@ function calcPlanner() {
   document.getElementById('override-box').style.display = '';
   document.getElementById('plan-add-btn-wrap').style.display = '';
   document.getElementById('override-size').value = '';
+  document.getElementById('override-tp').value = '';
   document.getElementById('diff-indicator').className = 'diff-indicator';
+  document.getElementById('override-compare').style.display = 'none';
+  document.getElementById('cmp-delta').textContent = '—';
 
   // Pre-fill add form
   prefillAddForm(plannerResult);
@@ -1713,12 +1761,17 @@ function calcPlanner() {
 function calcOverrideDiff() {
   if (!plannerResult) return;
   const overrideVal = parseFloat(document.getElementById('override-size').value);
+  const overrideTP  = parseFloat(document.getElementById('override-tp').value);
   const recSize     = plannerResult.size;
+  const recTP       = plannerResult.tp;
+  const compareBox  = document.getElementById('override-compare');
   const ind         = document.getElementById('diff-indicator');
   const txt         = document.getElementById('diff-text');
 
-  if (!overrideVal || isNaN(overrideVal)) {
-    ind.className = 'diff-indicator'; return;
+  if (!overrideVal || isNaN(overrideVal) || overrideVal <= 0) {
+    ind.className = 'diff-indicator';
+    compareBox.style.display = 'none';
+    return;
   }
   const diffPct = ((overrideVal - recSize) / recSize) * 100;
   const absDiff = Math.abs(overrideVal - recSize);
@@ -1733,6 +1786,28 @@ function calcOverrideDiff() {
     ind.className = 'diff-indicator conservative';
     txt.textContent = `BARDZIEJ KONSERWATYWNA: ${diffPct.toFixed(1)}% mniejsza vs rekomendacja (${fnum(absDiff,6)} ${plannerResult.ticker} mniej). Ryzyko niższe niż ${plannerResult.riskPct}%.`;
   }
+
+  const entry = plannerResult.entry;
+  const sl = plannerResult.sl;
+  const chosenTP = (!isNaN(overrideTP) && overrideTP > 0) ? overrideTP : recTP;
+  const recLossUSD = Math.abs(entry - sl) * recSize;
+  const overLossUSD = Math.abs(entry - sl) * overrideVal;
+  const recProfitUSD = Math.abs(recTP - entry) * recSize;
+  const overProfitUSD = Math.abs(chosenTP - entry) * overrideVal;
+  const capital = computeKPIs().currentCapital;
+  const recLossPct = capital > 0 ? (recLossUSD / capital) * 100 : 0;
+  const overLossPct = capital > 0 ? (overLossUSD / capital) * 100 : 0;
+  const recProfitPct = capital > 0 ? (recProfitUSD / capital) * 100 : 0;
+  const overProfitPct = capital > 0 ? (overProfitUSD / capital) * 100 : 0;
+  const overRR = overLossUSD > 0 ? overProfitUSD / overLossUSD : 0;
+  const lossDelta = overLossUSD - recLossUSD;
+  const profitDelta = overProfitUSD - recProfitUSD;
+
+  document.getElementById('cmp-loss').textContent = `${usd(recLossUSD)} (${recLossPct.toFixed(2)}%) → ${usd(overLossUSD)} (${overLossPct.toFixed(2)}%)`;
+  document.getElementById('cmp-profit').textContent = `${usd(recProfitUSD)} (${recProfitPct.toFixed(2)}%) → ${usd(overProfitUSD)} (${overProfitPct.toFixed(2)}%)`;
+  document.getElementById('cmp-rr').textContent = `${plannerResult.minRR.toFixed(2)} → ${overRR.toFixed(2)}`;
+  document.getElementById('cmp-delta').textContent = `Δ Strata: ${usd(lossDelta, true)} | Δ Zysk: ${usd(profitDelta, true)}${(!isNaN(overrideTP) && overrideTP > 0) ? '' : ' (TP bez zmian)'}`;
+  compareBox.style.display = '';
 }
 
 function prefillAddForm(p) {
@@ -1744,11 +1819,18 @@ function prefillAddForm(p) {
   document.getElementById('add-tp').value       = p.tp;
   document.getElementById('add-size').value     = p.size;
   setAddDirection(p.direction);
-  switchTab('trades');
 }
 
 function addTradeFromPlanner() {
-  prefillAddForm(plannerResult);
+  if (!plannerResult) return;
+  const overrideSize = parseFloat(document.getElementById('override-size').value);
+  const overrideTP   = parseFloat(document.getElementById('override-tp').value);
+  const tradeDraft = {
+    ...plannerResult,
+    size: (!isNaN(overrideSize) && overrideSize > 0) ? overrideSize : plannerResult.size,
+    tp: (!isNaN(overrideTP) && overrideTP > 0) ? overrideTP : plannerResult.tp
+  };
+  prefillAddForm(tradeDraft);
   switchTab('trades');
 }
 
