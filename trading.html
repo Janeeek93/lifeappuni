@@ -1582,7 +1582,7 @@ function computePlannerAutoValues(plannerLike = state.planner) {
   if (!(capital > 0 && entry > 0 && leverage > 0 && stop > 0 && riskPerUnit > 0 && riskAmount > 0)) {
     return { qty: 0, tp: 0 };
   }
-  const qty = (riskAmount * leverage) / riskPerUnit;
+  const qty = riskAmount / (riskPerUnit * leverage);
   const tp = plannerLike.side === 'short' ? entry - (riskPerUnit * 2) : entry + (riskPerUnit * 2);
   return { qty, tp };
 }
@@ -1790,10 +1790,10 @@ function renderPlanner() {
   const entry = n(state.planner.entry);
   const stop = n(state.planner.stop);
   const leverageValue = Math.max(n(state.planner.leverage), 1);
-  const recommendedSlUsd = (recommendedQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * recommendedQty) / leverageValue : 0;
-  const recommendedTpUsd = (recommendedQty > 0 && recommendedTp > 0 && entry > 0) ? (Math.abs(recommendedTp - entry) * recommendedQty) / leverageValue : 0;
-  const customSlUsd = (customQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * customQty) / leverageValue : 0;
-  const customTpUsd = (customQty > 0 && customTp > 0 && entry > 0) ? (Math.abs(customTp - entry) * customQty) / leverageValue : 0;
+  const recommendedSlUsd = (recommendedQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * recommendedQty) * leverageValue : 0;
+  const recommendedTpUsd = (recommendedQty > 0 && recommendedTp > 0 && entry > 0) ? (Math.abs(recommendedTp - entry) * recommendedQty) * leverageValue : 0;
+  const customSlUsd = (customQty > 0 && entry > 0 && stop > 0) ? (Math.abs(entry - stop) * customQty) * leverageValue : 0;
+  const customTpUsd = (customQty > 0 && customTp > 0 && entry > 0) ? (Math.abs(customTp - entry) * customQty) * leverageValue : 0;
   const diffQty = customQty - recommendedQty;
   const diffTpPrice = customTp - recommendedTp;
   const diffSlUsd = customSlUsd - recommendedSlUsd;
