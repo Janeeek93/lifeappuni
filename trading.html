@@ -928,18 +928,29 @@
                     </div>
                     <div class="planner-layout">
                       <div>
+                        <div class="soft-panel" style="margin-bottom:12px;">
+                          <h3 class="title" style="margin-bottom:8px;">Twoje wejście</h3>
+                          <div class="copy">Podajesz ticker, kierunek, entry, SL i dźwignię. Kapitał bazowy pobierany jest automatycznie z depozytu.</div>
+                        </div>
                         <div class="planner-form-grid">
                           <div class="form-group"><label class="form-label">Symbol</label><input id="planner-symbol" class="form-input" placeholder="BTCUSDT"></div>
                           <div class="form-group"><label class="form-label">Kierunek</label><select id="planner-side" class="form-select"><option value="long">Long</option><option value="short">Short</option></select></div>
-                          <div class="form-group"><label class="form-label">Kapitał bazowy</label><input id="planner-capital" type="number" step="0.01" class="form-input"></div>
-                          <div class="form-group"><label class="form-label">% depo w SL</label><input id="planner-risk-pct" type="number" step="0.01" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Dźwignia (max)</label><input id="planner-leverage" type="number" step="1" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Entry</label><input id="planner-entry" type="number" step="0.0001" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Stop loss</label><input id="planner-stop" type="number" step="0.0001" class="form-input"></div>
+                        </div>
+                        <div class="row-inline" style="margin-top:8px;">
+                          <button class="btn primary" id="planner-calc-btn" type="button">Wylicz pozycję</button>
+                        </div>
+                        <div class="soft-panel" style="margin-top:12px;">
+                          <h3 class="title" style="margin-bottom:8px;">Twoje ustawienia po zmianach</h3>
+                          <div class="copy" style="margin-bottom:10px;">Po kliknięciu „Wylicz pozycję” te pola wypełnią się rekomendacją i możesz je nadpisać.</div>
+                          <div class="planner-form-grid">
                           <div class="form-group"><label class="form-label">Position size (BTC)</label><input id="planner-qty" type="number" step="0.0001" class="form-input"></div>
                           <div class="form-group"><label class="form-label">TP (2R)</label><input id="planner-tp" type="number" step="0.0001" class="form-input"></div>
+                          </div>
                         </div>
-                        <div class="row-inline" style="margin-top:6px;">
+                        <div class="row-inline" style="margin-top:10px;">
                           <button class="btn soft" id="planner-reset-btn" type="button">Reset planner</button>
                           <button class="btn primary" id="planner-to-trade-btn" type="button">Przenieś do pozycji</button>
                         </div>
@@ -1112,15 +1123,14 @@ const defaultState = {
   planner: {
     symbol: '',
     side: 'long',
-    capital: 0,
-    riskPct: 1,
     leverage: 100,
     entry: '',
     stop: '',
+    recommendedQty: '',
+    recommendedTp: '',
     qty: '',
-    qtyManual: false,
     tp: '',
-    tpManual: false
+    riskPct: 1
   },
   ui: {
     activePageTab: 'overview',
@@ -1247,8 +1257,8 @@ function loadState() {
   state.cashFlows = Array.isArray(state.cashFlows) ? state.cashFlows : [];
   state.planner = { ...deepClone(defaultState).planner, ...(state.planner || {}) };
   if (!state.planner.tp && state.planner.tp1) state.planner.tp = state.planner.tp1;
-  state.planner.qtyManual = Boolean(state.planner.qtyManual);
-  state.planner.tpManual = Boolean(state.planner.tpManual);
+  state.planner.recommendedQty = state.planner.recommendedQty || '';
+  state.planner.recommendedTp = state.planner.recommendedTp || '';
   state.ui = {
     activePageTab: state.ui?.activePageTab || 'overview',
     activeAnalyticsTab: state.ui?.activeAnalyticsTab || 'equity',
@@ -1260,10 +1270,7 @@ function loadState() {
     }
   };
 
-  if (!state.profile && state.planner.capital === 0) {
-    state.planner.capital = defaultProfile().startingCapital;
-    state.planner.riskPct = defaultProfile().riskPerTradePct;
-  }
+  state.planner.riskPct = n(state.planner.riskPct) || n(state.profile?.riskPerTradePct) || defaultProfile().riskPerTradePct;
 }
 
 function saveState() {
@@ -1537,8 +1544,8 @@ function getAnalyticsMetrics() {
 
 function getPlannerDraftAsTrade() {
   const planner = state.planner;
-  const capital = n(planner.capital) || getCurrentEquity() || n(state.profile?.startingCapital);
-  const riskPct = n(planner.riskPct) || n(state.profile?.riskPerTradePct);
+  const capital = getCurrentEquity() || n(state.profile?.startingCapital);
+  const riskPct = n(state.profile?.riskPerTradePct) || n(planner.riskPct);
   const stop = n(planner.stop);
   const qty = n(planner.qty);
   const entry = n(planner.entry);
@@ -1562,8 +1569,8 @@ function getPlannerDraftAsTrade() {
 }
 
 function computePlannerAutoValues(plannerLike = state.planner) {
-  const capital = n(plannerLike.capital) || getCurrentEquity() || n(state.profile?.startingCapital);
-  const riskPct = n(plannerLike.riskPct) || n(state.profile?.riskPerTradePct);
+  const capital = getCurrentEquity() || n(state.profile?.startingCapital);
+  const riskPct = n(state.profile?.riskPerTradePct) || n(plannerLike.riskPct);
   const leverage = n(plannerLike.leverage);
   const entry = n(plannerLike.entry);
   const stop = n(plannerLike.stop);
@@ -1764,14 +1771,8 @@ function renderOverview() {
 
 function renderPlanner() {
   if (!state.profile) return;
-  const auto = computePlannerAutoValues(state.planner);
-  if (!state.planner.qtyManual) state.planner.qty = auto.qty > 0 ? String(auto.qty) : '';
-  if (!state.planner.tpManual) state.planner.tp = auto.tp > 0 ? String(auto.tp) : '';
-
   $('#planner-symbol').value = state.planner.symbol || '';
   $('#planner-side').value = state.planner.side || 'long';
-  $('#planner-capital').value = state.planner.capital || getCurrentEquity() || n(state.profile.startingCapital);
-  $('#planner-risk-pct').value = state.planner.riskPct || n(state.profile.riskPerTradePct);
   $('#planner-leverage').value = state.planner.leverage || 100;
   $('#planner-entry').value = state.planner.entry || '';
   $('#planner-stop').value = state.planner.stop || '';
@@ -1780,20 +1781,21 @@ function renderPlanner() {
 
   const plannerTrade = getPlannerDraftAsTrade();
   const metrics = calculateTradeMetrics(plannerTrade);
-  const rawRiskQty = metrics.riskPerUnit > 0 ? metrics.riskAmount / metrics.riskPerUnit : 0;
+  const recommendedQty = n(state.planner.recommendedQty);
+  const recommendedTp = n(state.planner.recommendedTp);
+  const rawRiskQty = recommendedQty || (metrics.riskPerUnit > 0 ? metrics.riskAmount / metrics.riskPerUnit : 0);
   const leverageQtyCap = plannerTrade.entry > 0 && n(state.planner.leverage) > 0 ? (metrics.capitalBase * n(state.planner.leverage)) / plannerTrade.entry : 0;
   const leverageLimited = rawRiskQty > 0 && leverageQtyCap > 0 && rawRiskQty > leverageQtyCap + 0.0000001;
   const primaryTarget = metrics.targetBreakdown[0];
-  const stopRecommendation = metrics.riskPerUnit > 0 ? fmtPct(metrics.stopDistancePct, 2) : '—';
+  const customQty = n(state.planner.qty);
+  const customTp = n(state.planner.tp);
   const cards = [
-    { label: 'Risk kwotowo', value: fmtMoney(metrics.riskAmount), note: `${fmtPct(metrics.riskPct, 2)} kapitału` },
-    { label: 'Rekomendowany size (BTC)', value: metrics.qty ? fmtNum(metrics.qty, 4) : '—', note: metrics.qty ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Notional ${fmtMoney(metrics.notional)}`) : 'Podaj entry i SL' },
-    { label: 'SL distance', value: stopRecommendation, note: plannerTrade.stopLoss > 0 ? `Entry → SL ${fmtNum(Math.abs(plannerTrade.entry - plannerTrade.stopLoss), 4)}` : 'Brak danych' },
+    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Risk ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo`) : 'Kliknij „Wylicz pozycję”' },
+    { label: 'Rekomendowany TP price', value: recommendedTp > 0 ? fmtNum(recommendedTp, 4) : '—', note: 'Target liczony automatycznie jako 2R od SL' },
+    { label: 'Mój size (BTC)', value: customQty > 0 ? fmtNum(customQty, 4) : '—', note: customQty > 0 ? `Notional ${fmtMoney(metrics.notional)}` : 'Możesz nadpisać po kalkulacji' },
+    { label: 'Mój TP price', value: customTp > 0 ? fmtNum(customTp, 4) : '—', note: primaryTarget ? `Planowane RR ${fmtR(primaryTarget.rr)}` : 'Możesz nadpisać po kalkulacji' },
     { label: 'Leverage efektywny', value: metrics.leverage ? `${fmtNum(metrics.leverage, 2)}x` : '—', note: `Limit ustawiony: ${fmtNum(n(state.planner.leverage) || 0, 0)}x` },
-    { label: 'Planowane RR', value: metrics.weightedRR ? fmtR(metrics.weightedRR) : '—', note: metrics.weightedNetRR ? `Po fee ~ ${fmtR(metrics.weightedNetRR)}` : 'Dodaj TP' },
-    { label: 'Max loss net', value: fmtMoney(metrics.maxLossNet), note: `Fee + slippage ${fmtMoney(metrics.entryFees + metrics.exitFeesAtStop + metrics.slippageCost)}` },
-    { label: 'TP @ 2R', value: n(state.planner.tp) > 0 ? fmtNum(n(state.planner.tp), 4) : '—', note: 'Wyliczany automatycznie z entry i SL (2R).' },
-    { label: 'PnL na TP', value: primaryTarget ? fmtMoney(primaryTarget.net) : '—', note: primaryTarget ? `${primaryTarget.label} • ${fmtR(primaryTarget.rr)}` : 'Brak TP' }
+    { label: 'Max loss net', value: fmtMoney(metrics.maxLossNet), note: `Fee + slippage ${fmtMoney(metrics.entryFees + metrics.exitFeesAtStop + metrics.slippageCost)}` }
   ];
   $('#planner-results').innerHTML = cards.map(card => `
     <article class="planner-card">
@@ -2416,30 +2418,28 @@ function duplicateTrade(tradeId) {
   openTradeModal(null, duplicate);
 }
 
-function syncPlannerFromInputs(event) {
-  const changedId = event?.target?.id || '';
-  const keyInputs = ['planner-side', 'planner-capital', 'planner-risk-pct', 'planner-leverage', 'planner-entry', 'planner-stop'];
+function syncPlannerFromInputs() {
   state.planner = {
     ...state.planner,
     symbol: $('#planner-symbol').value.trim().toUpperCase(),
     side: $('#planner-side').value,
-    capital: n($('#planner-capital').value),
-    riskPct: n($('#planner-risk-pct').value),
     leverage: n($('#planner-leverage').value),
     entry: $('#planner-entry').value,
     stop: $('#planner-stop').value,
     qty: $('#planner-qty').value,
     tp: $('#planner-tp').value
   };
+  saveState();
+  renderPlanner();
+}
 
-  if (changedId === 'planner-qty') state.planner.qtyManual = Boolean($('#planner-qty').value);
-  if (changedId === 'planner-tp') state.planner.tpManual = Boolean($('#planner-tp').value);
-
-  if (!changedId || keyInputs.includes(changedId)) {
-    const auto = computePlannerAutoValues(state.planner);
-    if (!state.planner.qtyManual) state.planner.qty = auto.qty > 0 ? String(auto.qty) : '';
-    if (!state.planner.tpManual) state.planner.tp = auto.tp > 0 ? String(auto.tp) : '';
-  }
+function calculatePlanner() {
+  syncPlannerFromInputs();
+  const auto = computePlannerAutoValues(state.planner);
+  state.planner.recommendedQty = auto.qty > 0 ? String(auto.qty) : '';
+  state.planner.recommendedTp = auto.tp > 0 ? String(auto.tp) : '';
+  state.planner.qty = state.planner.recommendedQty;
+  state.planner.tp = state.planner.recommendedTp;
   saveState();
   renderPlanner();
 }
@@ -2447,7 +2447,6 @@ function syncPlannerFromInputs(event) {
 function resetPlanner() {
   state.planner = {
     ...deepClone(defaultState).planner,
-    capital: getCurrentEquity() || n(state.profile?.startingCapital),
     riskPct: n(state.profile?.riskPerTradePct)
   };
   saveState();
@@ -2496,13 +2495,14 @@ function setupEventListeners() {
 
   });
 
-  ['planner-symbol','planner-side','planner-capital','planner-risk-pct','planner-leverage','planner-entry','planner-stop','planner-qty','planner-tp'].forEach(id => {
+  ['planner-symbol','planner-side','planner-leverage','planner-entry','planner-stop','planner-qty','planner-tp'].forEach(id => {
     const node = document.getElementById(id);
     if (node) {
       node.addEventListener('input', syncPlannerFromInputs);
       node.addEventListener('change', syncPlannerFromInputs);
     }
   });
+  $('#planner-calc-btn').addEventListener('click', calculatePlanner);
   $('#planner-reset-btn').addEventListener('click', resetPlanner);
   $('#planner-to-trade-btn').addEventListener('click', openPlannerAsTrade);
 
