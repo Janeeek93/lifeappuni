@@ -1620,7 +1620,10 @@ importInput.onchange = (e)=>{
       if(data.loan) localStorage.setItem(LOAN_STORAGE_KEY, JSON.stringify(data.loan));
       if(data.settings) localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data.settings));
       if(data.body_metrics) localStorage.setItem(BODY_METRICS_KEY, JSON.stringify(data.body_metrics));
-      if(data.inv_hub_snapshots) localStorage.setItem(INV_HUB_SNAP_KEY, JSON.stringify(data.inv_hub_snapshots));
+      if(Object.prototype.hasOwnProperty.call(data,'inv_hub_snapshots')){
+        if(Array.isArray(data.inv_hub_snapshots)) localStorage.setItem(INV_HUB_SNAP_KEY, JSON.stringify(data.inv_hub_snapshots));
+        else if(data.inv_hub_snapshots===null) localStorage.removeItem(INV_HUB_SNAP_KEY);
+      }
       if(data.kpis) localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(data.kpis));
       if(data.invest_sheet) localStorage.setItem(INVEST_SHEET_KEY, JSON.stringify(data.invest_sheet));
       if(data.budget_filters) localStorage.setItem(BUDGET_FILTERS_KEY, JSON.stringify(data.budget_filters));

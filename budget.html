@@ -105,6 +105,12 @@
     .inv-kpi-card .inv-kpi-label { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
     .inv-kpi-card .inv-kpi-value { font-size:20px; font-weight:700; color:var(--ink); line-height:1.2; }
     .inv-kpi-card .inv-kpi-sub { font-size:11px; color:var(--muted); }
+    .inv-kpi-card .inv-kpi-sub.inv-kpi-sub-split { font-size:10px; line-height:1.2; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .inv-kpi-roi-mini { display:inline-flex; align-items:baseline; gap:4px; white-space:nowrap; }
+    .inv-kpi-roi-mini b { font-size:11px; color:var(--ink); font-weight:700; }
+    .inv-kpi-roi-delta { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:999px; font-size:9px; font-weight:700; line-height:1; }
+    .inv-kpi-roi-delta.up { color:#16a34a; background:rgba(22,163,74,.12); }
+    .inv-kpi-roi-delta.down { color:#dc2626; background:rgba(220,38,38,.12); }
     .inv-kpi-card.positive .inv-kpi-value { color:#16a34a; }
     .inv-kpi-card.negative .inv-kpi-value { color:#dc2626; }
     .inv-kpi-card.accent { background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%); border-color:transparent; }
@@ -5041,7 +5047,7 @@
             <div class="inv-kpi-card" id="inv-kpi-roi-card">
               <span class="inv-kpi-label">Całkowity ROI</span>
               <span class="inv-kpi-value" id="inv-kpi-roi">—</span>
-              <span class="inv-kpi-sub">Zwrot na kapitale z budżetu</span>
+              <span class="inv-kpi-sub inv-kpi-sub-split" id="inv-kpi-roi-sub">Zwrot na kapitale z budżetu</span>
             </div>
           </div>
 
@@ -5349,7 +5355,7 @@
                   </div>
                   <div class="table-wrapper">
                     <table class="inv-hub-table" id="inv-hub-snap-table">
-                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI</th><th></th></tr></thead>
+                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI Total</th><th>ROI ETF</th><th>ROI Rest</th><th></th></tr></thead>
                       <tbody></tbody>
                     </table>
                   </div>
@@ -7531,14 +7537,23 @@
   function computePortfolioStats(){
     const data=investments();
     const holdings=computeHoldingsFIFO();
+    const assetGroupById={};
+    for(const asset of data.assets||[]) assetGroupById[asset.id]=String(asset.group||'Inne').trim().toUpperCase();
     let capitalFromBudget=0, capitalReturned=0, reinvestPool=0;
+    let etfCapitalFromBudget=0, otherCapitalFromBudget=0;
     for(const t of data.trades){
+      const isEtf=assetGroupById[t.assetId]==='ETF';
       if(t.side==='sell'){
         if(t.sellDestination==='budget') capitalReturned+=num(t.amount);
         else reinvestPool+=num(t.amount);
       } else {
         if(t.fundSource==='reinvest') reinvestPool-=num(t.amount);
-        else capitalFromBudget+=num(t.amount);
+        else {
+          const amount=num(t.amount);
+          capitalFromBudget+=amount;
+          if(isEtf) etfCapitalFromBudget+=amount;
+          else otherCapitalFromBudget+=amount;
+        }
       }
     }
     const totalCostBasis=holdings.reduce((s,h)=>s+h.costBasis,0);
@@ -7548,9 +7563,27 @@
     const totalUnrealizedPnl=hasAnyPrice?(totalMarketValue-totalCostBasis):null;
     const totalPnl=totalRealizedPnl+(totalUnrealizedPnl||0);
     const roi=capitalFromBudget>0?((totalPnl/capitalFromBudget)*100):0;
+    const etfHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()==='ETF');
+    const otherHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()!=='ETF');
+    const etfMarketValue=etfHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+    const otherMarketValue=otherHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
+    const etfCostBasis=etfHoldings.reduce((s,h)=>s+h.costBasis,0);
+    const otherCostBasis=otherHoldings.reduce((s,h)=>s+h.costBasis,0);
+    const etfRealizedPnl=etfHoldings.reduce((s,h)=>s+h.realizedPnl,0);
+    const otherRealizedPnl=otherHoldings.reduce((s,h)=>s+h.realizedPnl,0);
+    const etfUnrealizedPnl=etfHoldings.some(h=>h.currentPrice&&h.qty>0)?(etfMarketValue-etfCostBasis):null;
+    const otherUnrealizedPnl=otherHoldings.some(h=>h.currentPrice&&h.qty>0)?(otherMarketValue-otherCostBasis):null;
+    const etfTotalPnl=etfRealizedPnl+(etfUnrealizedPnl||0);
+    const otherTotalPnl=otherRealizedPnl+(otherUnrealizedPnl||0);
+    const etfRoi=etfCapitalFromBudget>0?(etfTotalPnl/etfCapitalFromBudget)*100:null;
+    const otherRoi=otherCapitalFromBudget>0?(otherTotalPnl/otherCapitalFromBudget)*100:null;
     return {holdings,capitalFromBudget,capitalReturned,netFromBudget:capitalFromBudget-capitalReturned,
       reinvestPool:Math.max(0,reinvestPool),totalCostBasis,totalMarketValue,hasAnyPrice,
-      totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi};
+      totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi,
+      roiBreakdown:{
+        etfRoi,otherRoi,etfCapitalFromBudget,otherCapitalFromBudget,
+        etfTotalPnl,otherTotalPnl,etfRealizedPnl,otherRealizedPnl
+      }};
   }
 
   function computeSellCostBasis(assetId,sellQty){
@@ -8086,7 +8119,18 @@
     el('inv-kpi-pool').textContent=fmt(stats.reinvestPool,cur);
 
     const roiCard=el('inv-kpi-roi-card');
+    const roiSub=el('inv-kpi-roi-sub');
     el('inv-kpi-roi').textContent=stats.capitalFromBudget>0?`${stats.roi.toFixed(1)}%`:'—';
+    if(roiSub){
+      const etfTxt=stats.roiBreakdown?.etfRoi===null?'—':`${stats.roiBreakdown.etfRoi.toFixed(1)}%`;
+      const otherTxt=stats.roiBreakdown?.otherRoi===null?'—':`${stats.roiBreakdown.otherRoi.toFixed(1)}%`;
+      let deltaHtml='';
+      if(stats.roiBreakdown?.etfRoi!==null&&stats.roiBreakdown?.otherRoi!==null){
+        if(stats.roiBreakdown.otherRoi>stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta up" title="Rest lepszy od ETF">▲</span>';
+        else if(stats.roiBreakdown.otherRoi<stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta down" title="Rest słabszy od ETF">▼</span>';
+      }
+      roiSub.innerHTML=`<span class="inv-kpi-roi-mini">ETF <b>${etfTxt}</b></span><span class="inv-kpi-roi-mini">Rest <b>${otherTxt}</b></span>${deltaHtml}`;
+    }
     roiCard.className='inv-kpi-card '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
   }
 
@@ -8545,7 +8589,13 @@
       unrealizedPnl:stats.totalUnrealizedPnl||0,
       realizedPnl:stats.totalRealizedPnl,
       roi:stats.roi,
-      costBasis:stats.totalCostBasis
+      costBasis:stats.totalCostBasis,
+      etfRoi:stats.roiBreakdown?.etfRoi??null,
+      restRoi:stats.roiBreakdown?.otherRoi??null,
+      etfCapitalFromBudget:stats.roiBreakdown?.etfCapitalFromBudget??0,
+      restCapitalFromBudget:stats.roiBreakdown?.otherCapitalFromBudget??0,
+      etfTotalPnl:stats.roiBreakdown?.etfTotalPnl??0,
+      restTotalPnl:stats.roiBreakdown?.otherTotalPnl??0
     };
     if(existing>=0) snaps[existing]=snap;
     else snaps.push(snap);
@@ -8915,8 +8965,14 @@
         for(const s of reversed){
           const pnlCls=s.totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg';
           const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
+          const etfRoiNum=Number(s.etfRoi);
+          const restRoiNum=Number(s.restRoi);
+          const hasEtfRoi=Number.isFinite(etfRoiNum);
+          const hasRestRoi=Number.isFinite(restRoiNum);
+          const etfRoiCls=hasEtfRoi?(etfRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+          const restRoiCls=hasRestRoi?(restRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
+          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td class="${etfRoiCls}">${hasEtfRoi?`${etfRoiNum.toFixed(2)}%`:'—'}</td><td class="${restRoiCls}">${hasRestRoi?`${restRoiNum.toFixed(2)}%`:'—'}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
           tr.querySelector('[data-snap-del]').onclick=()=>invHubDeleteSnapshot(s.date);
           snapTbody.appendChild(tr);
         }
@@ -10648,6 +10704,15 @@
     lines.push(`  Zrealizowany P&L: ${fmt(stats.totalRealizedPnl,cur)}`);
     lines.push(`  Łączny P&L: ${fmt(stats.totalPnl,cur)}`);
     lines.push(`  ROI: ${stats.capitalFromBudget>0?stats.roi.toFixed(2)+'%':'—'}`);
+    const etfRoi=stats.roiBreakdown?.etfRoi;
+    const restRoi=stats.roiBreakdown?.otherRoi;
+    const etfRoiTxt=etfRoi===null||etfRoi===undefined?'—':`${etfRoi.toFixed(2)}%`;
+    const restRoiTxt=restRoi===null||restRoi===undefined?'—':`${restRoi.toFixed(2)}%`;
+    let roiCmp='';
+    if(etfRoi!==null&&etfRoi!==undefined&&restRoi!==null&&restRoi!==undefined){
+      roiCmp=restRoi>etfRoi?' ▲':restRoi<etfRoi?' ▼':'';
+    }
+    lines.push(`  ROI ETF / Rest: ${etfRoiTxt} / ${restRoiTxt}${roiCmp}`);
     lines.push(`  Pula reinwestycyjna: ${fmt(stats.reinvestPool,cur)}`);
 
     // --- Holdings ---
@@ -10716,7 +10781,9 @@
       lines.push('');
       lines.push(`SNAPSHOTY (ostatnie ${recentSnaps.length}):`);
       for(const s of [...recentSnaps].reverse()){
-        lines.push(`  ${s.date} | Wartość: ${fmt(s.portfolioValue,cur)} | Kapitał: ${fmt(s.capitalFromBudget,cur)} | P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} | ROI: ${s.roi.toFixed(2)}%`);
+        const sEtf=s.etfRoi===null||s.etfRoi===undefined?'—':`${Number(s.etfRoi).toFixed(2)}%`;
+        const sRest=s.restRoi===null||s.restRoi===undefined?'—':`${Number(s.restRoi).toFixed(2)}%`;
+        lines.push(`  ${s.date} | Wartość: ${fmt(s.portfolioValue,cur)} | Kapitał: ${fmt(s.capitalFromBudget,cur)} | P&L: ${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)} | ROI: ${s.roi.toFixed(2)}% | ETF/Rest: ${sEtf}/${sRest}`);
       }
     }
 
