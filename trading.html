@@ -1578,13 +1578,11 @@ function computePlannerAutoValues(plannerLike = state.planner) {
   const entry = n(plannerLike.entry);
   const stop = n(plannerLike.stop);
   const riskPerUnit = Math.abs(entry - stop);
-  const riskAmount = capital * (riskPct / 100);
-  if (!(capital > 0 && entry > 0 && stop > 0 && riskPerUnit > 0 && riskAmount > 0)) {
+  const marginAllocation = capital * (riskPct / 100);
+  if (!(capital > 0 && entry > 0 && leverage > 0 && stop > 0 && riskPerUnit > 0 && marginAllocation > 0)) {
     return { qty: 0, tp: 0 };
   }
-  const qtyFromRisk = riskAmount / riskPerUnit;
-  const qtyFromLeverage = leverage > 0 ? (capital * leverage) / entry : qtyFromRisk;
-  const qty = Math.min(qtyFromRisk, qtyFromLeverage);
+  const qty = (marginAllocation * leverage) / entry;
   const tp = plannerLike.side === 'short' ? entry - (riskPerUnit * 2) : entry + (riskPerUnit * 2);
   return { qty, tp };
 }
@@ -1786,9 +1784,6 @@ function renderPlanner() {
   const metrics = calculateTradeMetrics(plannerTrade);
   const recommendedQty = n(state.planner.recommendedQty);
   const recommendedTp = n(state.planner.recommendedTp);
-  const rawRiskQty = recommendedQty || (metrics.riskPerUnit > 0 ? metrics.riskAmount / metrics.riskPerUnit : 0);
-  const leverageQtyCap = plannerTrade.entry > 0 && n(state.planner.leverage) > 0 ? (metrics.capitalBase * n(state.planner.leverage)) / plannerTrade.entry : 0;
-  const leverageLimited = rawRiskQty > 0 && leverageQtyCap > 0 && rawRiskQty > leverageQtyCap + 0.0000001;
   const primaryTarget = metrics.targetBreakdown[0];
   const customQty = n(state.planner.qty);
   const customTp = n(state.planner.tp);
@@ -1832,7 +1827,7 @@ function renderPlanner() {
       : 'Pozycja mieszana — poprawa jednego parametru kosztem drugiego.';
   const balanceLine = `ΔRR ${fmtDiff(rrDiff)} • ΔSL ${fmtDiffMoney(diffSlUsd)} • ΔTP ${fmtDiffMoney(diffTpUsd)}`;
   const cards = [
-    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Risk ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo • limit lewaru ${fmtNum(leverageQtyCap, 4)} BTC`) : 'Kliknij „Wylicz pozycję”' },
+    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? `Size liczony dynamicznie z dźwigni ${fmtNum(n(state.planner.leverage), 0)}x` : 'Kliknij „Wylicz pozycję”' },
     { label: 'Rekomendowany TP price', value: recommendedTp > 0 ? fmtNum(recommendedTp, 4) : '—', note: 'Target liczony automatycznie jako 2R od SL' },
     { label: 'Rekomendowany SL (USD)', value: recommendedSlUsd > 0 ? fmtMoney(recommendedSlUsd) : '—', note: 'Strata do SL przy rekomendowanym size' },
     { label: 'Rekomendowany TP (USD)', value: recommendedTpUsd > 0 ? fmtMoney(recommendedTpUsd) : '—', note: 'Potencjalny zysk do TP przy rekomendacji' },
