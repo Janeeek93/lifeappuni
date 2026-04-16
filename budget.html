@@ -123,6 +123,17 @@
     .inv-mode-btn.is-active { background:#fff; color:var(--ink); box-shadow:0 8px 20px rgba(15,23,42,.12); }
 
     .dt-grid { display:grid; gap:14px; }
+    .dt-hero { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .dt-hero .dt-kpi { min-height:96px; }
+    .dt-limit-wrap { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:12px; padding:10px 12px; }
+    .dt-limit-head { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted); margin-bottom:6px; }
+    .dt-limit-track { height:10px; border-radius:999px; background:rgba(148,163,184,.2); overflow:hidden; }
+    .dt-limit-fill { height:100%; width:0%; background:#2563eb; transition:width .25s ease, background-color .25s ease; }
+    .dt-limit-meta { margin-top:6px; font-size:11px; color:var(--muted); }
+    .dt-active-cockpit { display:grid; grid-template-columns:2fr 1fr; gap:20px; align-items:start; }
+    .dt-cockpit-open { order:1; }
+    .dt-cockpit-plan { order:2; }
+    @media(max-width:1120px){ .dt-hero{grid-template-columns:repeat(2,minmax(0,1fr));} .dt-active-cockpit{grid-template-columns:1fr;} }
     .dt-layout { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
     .dt-span-2 { grid-column:1 / -1; }
     @media(max-width:980px){ .dt-layout{grid-template-columns:1fr;} .dt-span-2{grid-column:auto;} }
@@ -5084,10 +5095,18 @@
           </div>
 
           <div id="inv-daytrade-panel" class="dt-grid" style="display:none">
-            <div class="dt-dashboard" id="dt-dashboard"></div>
+            <div class="dt-dashboard dt-hero" id="dt-dashboard"></div>
+            <div class="dt-limit-wrap">
+              <div class="dt-limit-head">
+                <strong>Daily Limit Monitor</strong>
+                <span id="dt-limit-label">—</span>
+              </div>
+              <div class="dt-limit-track"><div class="dt-limit-fill" id="dt-limit-fill"></div></div>
+              <div class="dt-limit-meta" id="dt-limit-meta">Skonfiguruj limity dzienne w panelu sterowania.</div>
+            </div>
             <div class="dt-layout">
 
-            <div class="card stack">
+            <div class="card stack dt-cockpit-plan">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Rachunek tradingowy</strong>
                 <span class="tiny muted">Najpierw zasil konto, potem otwieraj pozycje</span>
@@ -5108,7 +5127,8 @@
               </div>
             </div>
 
-            <div class="card stack">
+            <div class="dt-active-cockpit dt-span-2">
+            <div class="card stack dt-cockpit-open">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Plan pozycji i zarządzanie ryzykiem</strong>
                 <span class="tiny muted">SL/TP, RR i kontrola pozycji w czasie rzeczywistym</span>
@@ -5128,7 +5148,7 @@
               <div class="dt-preview" id="dt-plan-preview">Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.</div>
             </div>
 
-            <div class="card stack dt-span-2">
+            <div class="card stack">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Otwarte pozycje</strong>
                 <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
@@ -5143,6 +5163,7 @@
                 </table>
               </div>
               <div class="dt-muted-empty" id="dt-open-empty" style="display:none">Brak otwartych pozycji.</div>
+            </div>
             </div>
 
             <div class="card stack dt-span-2">
@@ -11162,22 +11183,28 @@
     const stats=dtComputeStats();
     const dash=document.getElementById('dt-dashboard');
     if(!dash) return;
-    const dailyLossPct=Math.abs(num(dt.limits.maxDailyLossPct)||0);
-    const weeklyLossPct=Math.abs(num(dt.limits.maxWeeklyLossPct)||0);
     const dailyTargetPct=Math.abs(num(dt.limits.targetDailyProfitPct)||0);
-    const weeklyTargetPct=Math.abs(num(dt.limits.targetWeeklyProfitPct)||0);
+    const dailyLossPct=Math.abs(num(dt.limits.maxDailyLossPct)||0);
     const dailyHit=dailyLossPct>0 && stats.todayPct<=-dailyLossPct;
-    const weeklyHit=weeklyLossPct>0 && stats.weeklyPct<=-weeklyLossPct;
-    const dailyTargetHit=dailyTargetPct>0 && stats.todayPct>=dailyTargetPct;
-    const weeklyTargetHit=weeklyTargetPct>0 && stats.weeklyPct>=weeklyTargetPct;
-    const todayCloses=(dt.closes||[]).filter(c=>String(c.date||'')===new Date().toISOString().slice(0,10));
-    const todayFees=todayCloses.reduce((s,c)=>s+Math.abs(num(c.fee)),0);
-    const avgTodayRr=todayCloses.length?todayCloses.reduce((s,c)=>s+(num(c.rr)||0),0)/todayCloses.length:0;
+    const nearLoss=dailyLossPct>0 && stats.todayPct<=-(dailyLossPct*0.8);
+    const limitFill=document.getElementById('dt-limit-fill');
+    const limitLabel=document.getElementById('dt-limit-label');
+    const limitMeta=document.getElementById('dt-limit-meta');
+    const minPct=dailyLossPct>0?-dailyLossPct:Math.min(-5,stats.todayPct,0);
+    const maxPct=dailyTargetPct>0?dailyTargetPct:Math.max(5,stats.todayPct,0);
+    const ratio=maxPct===minPct?50:((stats.todayPct-minPct)/(maxPct-minPct))*100;
+    const clamped=Math.max(0,Math.min(100,ratio));
+    if(limitFill){
+      limitFill.style.width=`${clamped}%`;
+      limitFill.style.background=(dailyHit||nearLoss)?'#dc2626':(stats.todayPct>=dailyTargetPct&&dailyTargetPct>0?'#16a34a':'#2563eb');
+    }
+    if(limitLabel) limitLabel.textContent=`Today ${stats.todayPct.toFixed(2)}%`;
+    if(limitMeta) limitMeta.textContent=`Zakres: ${minPct.toFixed(2)}% → ${maxPct.toFixed(2)}% | Max loss ${dailyLossPct||0}% | Target ${dailyTargetPct||0}%`;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Dzisiaj: PnL netto</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% kapitału</span></div>
-      <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiejsze zamknięcia</span><span class="value">${todayCloses.length}</span><span class="sub">Śr. RR: ${todayCloses.length?avgTodayRr.toFixed(2):'—'}</span></div>
-      <div class="dt-kpi ${(dailyTargetHit||weeklyTargetHit)?'positive':(dailyHit||weeklyHit)?'negative':''} ${dailyHit||weeklyHit?'alert':''}"><span class="label">Rekomendacje % (D/T)</span><span class="value">${stats.todayPct.toFixed(2)}% / ${stats.weeklyPct.toFixed(2)}%</span><span class="sub">Max loss: ${dailyLossPct||0}% / ${weeklyLossPct||0}% • Cel: ${dailyTargetPct||0}% / ${weeklyTargetPct||0}%</span></div>
-      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępny margin</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Prowizje dziś: ${fmt(-todayFees,'USD')} | Equity: ${fmt(stats.equity,'USD')}</span></div>
+      <div class="dt-kpi accent ${stats.todayPnl>=0?'positive':'negative'}"><span class="label">PnL (Dziś)</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% kapitału</span></div>
+      <div class="dt-kpi"><span class="label">Win Rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss}</span></div>
+      <div class="dt-kpi ${Number.isFinite(stats.profitFactor)&&stats.profitFactor>=1?'positive':'negative'}"><span class="label">Profit Factor</span><span class="value">${Number.isFinite(stats.profitFactor)?(stats.profitFactor===Infinity?'∞':stats.profitFactor.toFixed(2)):'—'}</span><span class="sub">Expectancy: ${fmt(stats.expectancy,'USD')}</span></div>
+      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępny Margin</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">DD: ${fmt(-stats.currentDrawdown,'USD')} | Fees: ${fmt(-stats.totalFees,'USD')}</span></div>
     `;
   }
 
