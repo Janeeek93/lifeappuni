@@ -2076,8 +2076,14 @@ function updateClosePNLPreview() {
     : (t.entry - price) * closedSize;
   const net = gross - comm;
   const netPct = (net / settings.capital) * 100;
+  let rrPreview = 'R:R —';
+  if (t.sl && !isNaN(t.sl) && Math.abs(t.entry - t.sl) > 0) {
+    const riskPerUnit = Math.abs(t.entry - t.sl);
+    const rMultiple = (t.direction === 'long' ? (price - t.entry) : (t.entry - price)) / riskPerUnit;
+    rrPreview = `R:R ${rMultiple.toFixed(2)}R`;
+  }
 
-  prev.innerHTML = `Podgląd: Gross ${usd(gross, true)} | Prowizja -${usd(comm)} | <strong>Net: ${usd(net, true)} (${pct(netPct)})</strong>`;
+  prev.innerHTML = `Podgląd: Gross ${usd(gross, true)} | Prowizja -${usd(comm)} | <strong>Net: ${usd(net, true)} (${pct(netPct)})</strong> | <strong>${rrPreview}</strong>`;
   prev.style.borderLeftColor = net >= 0 ? 'var(--green)' : 'var(--red)';
 }
 
