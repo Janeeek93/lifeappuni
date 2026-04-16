@@ -439,6 +439,7 @@
     }
     .planner-card .value { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; }
     .planner-card .note { font-size: 12px; color: var(--muted); }
+    .planner-card--wide { grid-column: span 2; }
 
     .form-group { margin-bottom: 14px; }
     .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
@@ -932,10 +933,12 @@
                           <h3 class="title" style="margin-bottom:8px;">Twoje wejście</h3>
                           <div class="copy">Podajesz ticker, kierunek, entry, SL i dźwignię. Kapitał bazowy pobierany jest automatycznie z depozytu.</div>
                         </div>
-                        <div class="planner-form-grid">
+                        <div class="planner-form-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
                           <div class="form-group"><label class="form-label">Symbol</label><input id="planner-symbol" class="form-input" placeholder="BTCUSDT"></div>
                           <div class="form-group"><label class="form-label">Kierunek</label><select id="planner-side" class="form-select"><option value="long">Long</option><option value="short">Short</option></select></div>
                           <div class="form-group"><label class="form-label">Dźwignia (max)</label><input id="planner-leverage" type="number" step="1" class="form-input"></div>
+                        </div>
+                        <div class="planner-form-grid" style="grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:8px;">
                           <div class="form-group"><label class="form-label">Entry</label><input id="planner-entry" type="number" step="0.0001" class="form-input"></div>
                           <div class="form-group"><label class="form-label">Stop loss</label><input id="planner-stop" type="number" step="0.0001" class="form-input"></div>
                         </div>
@@ -1822,8 +1825,14 @@ function renderPlanner() {
   const tpUsdContext = diffTpUsd < 0 && rrDiff > 0 && diffSlUsd < 0
     ? 'Mniej $ TP wynika z mniejszego size — jednocześnie RR wzrósł i SL jest ciaśniejszy.'
     : 'Porównaj TP USD razem z RR i SL USD, nie osobno.';
+  const setupComment = diffSlUsd < 0 && rrDiff >= 0
+    ? 'Pozycja bezpieczniejsza niż sugerowana (niższy SL i nie gorszy RR).'
+    : diffSlUsd > 0 && rrDiff <= 0
+      ? 'Pozycja bardziej agresywna niż sugerowana (większy SL i słabszy RR).'
+      : 'Pozycja mieszana — poprawa jednego parametru kosztem drugiego.';
+  const balanceLine = `ΔRR ${fmtDiff(rrDiff)} • ΔSL ${fmtDiffMoney(diffSlUsd)} • ΔTP ${fmtDiffMoney(diffTpUsd)}`;
   const cards = [
-    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Risk ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo`) : 'Kliknij „Wylicz pozycję”' },
+    { label: 'Rekomendowany size (BTC)', value: recommendedQty > 0 ? fmtNum(recommendedQty, 4) : '—', note: recommendedQty > 0 ? (leverageLimited ? `Limit dźwigni ucina size (max ${fmtNum(leverageQtyCap, 4)} BTC)` : `Risk ${fmtPct(n(state.profile?.riskPerTradePct), 2)} depo • limit lewaru ${fmtNum(leverageQtyCap, 4)} BTC`) : 'Kliknij „Wylicz pozycję”' },
     { label: 'Rekomendowany TP price', value: recommendedTp > 0 ? fmtNum(recommendedTp, 4) : '—', note: 'Target liczony automatycznie jako 2R od SL' },
     { label: 'Rekomendowany SL (USD)', value: recommendedSlUsd > 0 ? fmtMoney(recommendedSlUsd) : '—', note: 'Strata do SL przy rekomendowanym size' },
     { label: 'Rekomendowany TP (USD)', value: recommendedTpUsd > 0 ? fmtMoney(recommendedTpUsd) : '—', note: 'Potencjalny zysk do TP przy rekomendacji' },
@@ -1831,10 +1840,10 @@ function renderPlanner() {
     { label: 'Mój TP price', value: customTp > 0 ? fmtNum(customTp, 4) : '—', note: customTp > 0 ? `${diffLine('Diff vs rekomendacja', fmtDiff(diffTpPrice), tpPriceDiffColor)}${diffLine('RR', fmtNum(customRR, 2), rrDiffColor)}` : (primaryTarget ? `Planowane RR ${fmtR(primaryTarget.rr)}` : 'Możesz nadpisać po kalkulacji') },
     { label: 'Mój SL (USD)', value: customSlUsd > 0 ? fmtMoney(customSlUsd) : '—', note: customSlUsd > 0 ? diffLine('Diff vs rekomendacja', fmtDiffMoney(diffSlUsd), slDiffColor) : 'Wynika z Twojego size i SL' },
     { label: 'Mój TP (USD)', value: customTpUsd > 0 ? fmtMoney(customTpUsd) : '—', note: customTpUsd > 0 ? `${diffLine('Diff vs rekomendacja', fmtDiffMoney(diffTpUsd), tpUsdDiffColor)}<div style="margin-top:4px; color:#64748b;">${tpUsdContext}</div>` : 'Wynika z Twojego size i TP' },
-    { label: 'Balans setupu', value: customTp > 0 && customSlUsd > 0 ? 'Porównanie' : '—', note: customTp > 0 && customSlUsd > 0 ? `${diffLine('ΔRR', fmtDiff(rrDiff), rrDiffColor)}${diffLine('ΔSL USD', fmtDiffMoney(diffSlUsd), slDiffColor)}${diffLine('ΔTP USD', fmtDiffMoney(diffTpUsd), tpUsdDiffColor)}` : 'Wpisz własny size/TP aby zobaczyć porównanie.' }
+    { label: 'Balans setupu', value: customTp > 0 && customSlUsd > 0 ? balanceLine : '—', note: customTp > 0 && customSlUsd > 0 ? `<div style="margin-top:4px; color:${(diffSlUsd < 0 && rrDiff >= 0) ? '#059669' : (diffSlUsd > 0 && rrDiff <= 0) ? '#dc2626' : '#d97706'}; font-weight:700;">${setupComment}</div>` : 'Wpisz własny size/TP aby zobaczyć porównanie.', wide: true }
   ];
   $('#planner-results').innerHTML = cards.map(card => `
-    <article class="planner-card">
+    <article class="planner-card ${card.wide ? 'planner-card--wide' : ''}">
       <span class="label">${card.label}</span>
       <strong class="value">${card.value}</strong>
       <span class="note">${card.note}</span>
@@ -2455,6 +2464,7 @@ function duplicateTrade(tradeId) {
 }
 
 function syncPlannerFromInputs() {
+  const hadRecommendation = Boolean(state.planner.recommendedQty || state.planner.recommendedTp);
   state.planner = {
     ...state.planner,
     symbol: $('#planner-symbol').value.trim().toUpperCase(),
@@ -2465,6 +2475,11 @@ function syncPlannerFromInputs() {
     qty: $('#planner-qty').value,
     tp: $('#planner-tp').value
   };
+  if (hadRecommendation) {
+    const auto = computePlannerAutoValues(state.planner);
+    state.planner.recommendedQty = auto.qty > 0 ? String(auto.qty) : '';
+    state.planner.recommendedTp = auto.tp > 0 ? String(auto.tp) : '';
+  }
   saveState();
   renderPlanner();
 }
