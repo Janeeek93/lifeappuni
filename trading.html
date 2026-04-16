@@ -302,7 +302,7 @@
   ═══════════════════════════════════════════════════════════ */
   .trades-layout {
     display: grid;
-    grid-template-columns: 1fr 370px;
+    grid-template-columns: minmax(0, 1fr) 560px;
     gap: 16px;
     align-items: start;
   }
@@ -341,7 +341,7 @@
   .pnl-zero { color: var(--muted); font-weight: 600; }
 
   /* Right panel (add + close) */
-  .trades-right { display: flex; flex-direction: column; gap: 12px; }
+  .trades-right { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .trade-panel {
     background: var(--card);
     border: 1px solid var(--line);
@@ -467,6 +467,7 @@
     .td-right > * { flex: 1 1 260px; }
     .planner-grid { grid-template-columns: 1fr; }
     .trades-layout { grid-template-columns: 1fr; }
+    .trades-right { grid-template-columns: 1fr; }
     .analytics-grid { grid-template-columns: 1fr 1fr; }
     .ag-full { grid-column: 1/-1; }
     .ag-two { grid-column: span 2; }
@@ -1830,6 +1831,7 @@ function calcOverrideDiff() {
 
 function prefillAddForm(p) {
   if (!p) return;
+  resetAddEditState();
   document.getElementById('add-ticker').value   = p.ticker;
   document.getElementById('add-leverage').value = p.leverage;
   document.getElementById('add-entry').value    = p.entry;
@@ -1859,6 +1861,12 @@ function setAddDirection(dir) {
   addDirection = dir;
   document.getElementById('add-long-btn').classList.toggle('active', dir === 'long');
   document.getElementById('add-short-btn').classList.toggle('active', dir === 'short');
+}
+
+function resetAddEditState() {
+  document.getElementById('edit-trade-id').value = '';
+  document.getElementById('add-form-title').textContent = 'Nowa pozycja';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
 }
 
 function saveTrade() {
@@ -1918,14 +1926,21 @@ function editTrade(id) {
 }
 
 function cancelEdit() {
-  document.getElementById('edit-trade-id').value  = '';
-  document.getElementById('add-form-title').textContent = 'Nowa pozycja';
-  document.getElementById('cancel-edit-btn').style.display = 'none';
+  resetAddEditState();
   ['add-ticker','add-leverage','add-entry','add-sl','add-tp','add-size','add-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('add-date').value = today();
   setAddDirection('long');
+}
+
+function selectTradeForClose(id) {
+  const sel = document.getElementById('close-select');
+  if (!sel) return;
+  switchTab('trades');
+  sel.value = id;
+  sel.dispatchEvent(new Event('change'));
+  document.getElementById('close-price').focus();
 }
 
 function deleteTrade(id) {
@@ -2066,7 +2081,7 @@ function renderOpenTradesTable() {
       const { realizedPNL, totalClosedPct } = calcTradePNL(t);
       const remaining = (100 - totalClosedPct).toFixed(0);
       const rr = getEffectiveRR(t);
-      return `<tr onclick="editTrade('${t.id}')">
+      return `<tr onclick="selectTradeForClose('${t.id}')">
         <td style="color:var(--muted);">${t.date}</td>
         <td><strong>${escHtml(t.ticker)}</strong></td>
         <td><span class="badge badge-${t.direction}">${t.direction === 'long' ? '▲ L' : '▼ S'}</span></td>
@@ -2077,7 +2092,8 @@ function renderOpenTradesTable() {
         <td>${fnum(t.size,6)}</td>
         <td class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</td>
         <td><span class="badge badge-open">${remaining}%</span></td>
-        <td onclick="event.stopPropagation();">
+        <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+          <button class="btn soft" style="padding:3px 8px; font-size:11px;" onclick="editTrade('${t.id}')">Edytuj</button>
           <button class="btn soft" style="padding:3px 8px; font-size:11px;" onclick="deleteTrade('${t.id}')">✕</button>
         </td>
       </tr>`;
