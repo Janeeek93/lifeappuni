@@ -123,6 +123,9 @@
     .inv-mode-btn.is-active { background:#fff; color:var(--ink); box-shadow:0 8px 20px rgba(15,23,42,.12); }
 
     .dt-grid { display:grid; gap:14px; }
+    .dt-layout { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .dt-span-2 { grid-column:1 / -1; }
+    @media(max-width:980px){ .dt-layout{grid-template-columns:1fr;} .dt-span-2{grid-column:auto;} }
     .dt-dashboard { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
     .dt-kpi { background:var(--surface); border:1px solid rgba(148,163,184,.2); border-radius:14px; padding:14px 15px; display:flex; flex-direction:column; gap:3px; }
     .dt-kpi .label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
@@ -5067,6 +5070,7 @@
 
           <div id="inv-daytrade-panel" class="dt-grid" style="display:none">
             <div class="dt-dashboard" id="dt-dashboard"></div>
+            <div class="dt-layout">
 
             <div class="card stack">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
@@ -5099,6 +5103,7 @@
                 <label>Strona<select name="side"><option value="long">Long</option><option value="short">Short</option></select></label>
                 <label>Data<input name="date" type="date" required /></label>
                 <label>Position size (krypto)<input name="sizeQty" inputmode="decimal" placeholder="np. 0.02" required /></label>
+                <label>Dźwignia<input name="leverage" type="number" min="1" max="125" step="1" value="1" required /></label>
                 <label>Entry<input name="entry" inputmode="decimal" placeholder="0.00" required /></label>
                 <label>SL<input name="sl" inputmode="decimal" placeholder="0.00" required /></label>
                 <label>TP planowany<input name="tp" inputmode="decimal" placeholder="0.00" required /></label>
@@ -5108,21 +5113,21 @@
               <div class="dt-preview" id="dt-plan-preview">Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.</div>
             </div>
 
-            <div class="card stack">
+            <div class="card stack dt-span-2">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Otwarte pozycje</strong>
                 <span class="tiny muted">Partial TP / zamykanie pozycji / prowizje</span>
               </div>
               <div class="table-wrapper">
                 <table class="dt-table">
-                  <thead><tr><th>Ticker</th><th>Strona</th><th>Entry</th><th>Akt. cena</th><th>Pozostało</th><th>Nominał (USD)</th><th>Niezreal. PnL</th><th>Plan RR</th><th></th></tr></thead>
+                  <thead><tr><th>Ticker</th><th>Strona</th><th>Entry</th><th>Akt. cena</th><th>Pozostało</th><th>Lev</th><th>Margin</th><th>Niezreal. PnL</th><th>Plan RR</th><th></th></tr></thead>
                   <tbody id="dt-open-rows"></tbody>
                 </table>
               </div>
               <div class="dt-muted-empty" id="dt-open-empty" style="display:none">Brak otwartych pozycji.</div>
             </div>
 
-            <div class="card stack">
+            <div class="card stack dt-span-2">
               <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <strong>Statystyki i dyscyplina</strong>
                 <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
@@ -5137,6 +5142,7 @@
                   <tbody id="dt-close-log"></tbody>
                 </table>
               </div>
+            </div>
             </div>
           </div>
           <div id="dt-close-modal-backdrop" class="dt-close-modal-backdrop"></div>
@@ -11001,6 +11007,7 @@
 
   function dtComputePlanMetrics(payload){
     const entry=num(payload.entry), sl=num(payload.sl), tp=num(payload.tp), sizeQty=Math.abs(num(payload.sizeQty));
+    const leverage=Math.max(1,num(payload.leverage)||1);
     const side=(payload.side||'long')==='short'?'short':'long';
     if(entry<=0||sizeQty<=0) return {isValid:false};
     const qty=sizeQty;
@@ -11010,7 +11017,9 @@
     const riskUsd=Math.max(0,riskPerUnit*qty);
     const rewardUsd=Math.max(0,rewardPerUnit*qty);
     const rr=riskUsd>0?rewardUsd/riskUsd:null;
-    return {isValid:true,qty,dir,riskUsd,rewardUsd,rr,notionalUsd:qty*entry};
+    const notionalUsd=qty*entry;
+    const marginRequired=notionalUsd/leverage;
+    return {isValid:true,qty,dir,riskUsd,rewardUsd,rr,notionalUsd,marginRequired,leverage};
   }
 
   function dtWeekStart(dateStr){
@@ -11024,7 +11033,7 @@
     const dt=dayTrading();
     const today=new Date().toISOString().slice(0,10);
     const weekStart=dtWeekStart(today);
-    let activeNotional=0, openedCostTotal=0, unrealized=0, realized=0, todayPnl=0, weeklyPnl=0;
+    let activeNotional=0, lockedMargin=0, unrealized=0, realized=0, todayPnl=0, weeklyPnl=0;
     let win=0,loss=0;
     const deposits=(dt.capitalFlows||[]).reduce((sum,f)=>sum+(f.type==='deposit'?Math.abs(num(f.amountUsd)):0),0);
     const withdrawals=(dt.capitalFlows||[]).reduce((sum,f)=>sum+(f.type==='withdrawal'?Math.abs(num(f.amountUsd)):0),0);
@@ -11034,12 +11043,13 @@
       const initQty=num(p.initialQty)||0;
       const closedQty=num(p.closedQty)||0;
       const remainingQty=Math.max(0,initQty-closedQty);
-      openedCostTotal+=initQty*num(p.entry);
+      const lev=Math.max(1,num(p.leverage)||1);
       if((p.status||'open')==='open' && remainingQty>0.0000001){
         openPositions.push({...p,remainingQty});
         const mark=num(p.markPrice)||num(p.entry);
         const dir=p.side==='short'?-1:1;
         activeNotional+=remainingQty*num(p.entry);
+        lockedMargin+=(remainingQty*num(p.entry))/lev;
         unrealized+=(mark-num(p.entry))*remainingQty*dir;
       }
     }
@@ -11052,14 +11062,13 @@
       if(cDate>=weekStart && cDate<=today) weeklyPnl+=net;
     }
     const total=win+loss;
-    const cashFromClosed=(dt.closes||[]).reduce((sum,c)=>sum+((num(c.closePrice)*num(c.qty))-Math.abs(num(c.fee))),0);
-    const freeCash=netFlows-openedCostTotal+cashFromClosed;
-    const marketValueOpen=openPositions.reduce((sum,p)=>sum+((num(p.markPrice)||num(p.entry))*num(p.remainingQty)),0);
-    const equity=freeCash+marketValueOpen;
+    const walletBalance=netFlows+realized;
+    const freeCash=walletBalance-lockedMargin;
+    const equity=walletBalance+unrealized;
     const baseForRoi=Math.max(1,Math.abs(netFlows));
     const roi=((equity-netFlows)/baseForRoi)*100;
     const todayPct=netFlows!==0?(todayPnl/Math.abs(netFlows))*100:0;
-    return {activeNotional,unrealized,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,deposits,withdrawals,netFlows,freeCash,marketValueOpen,equity,canTrade:deposits>0&&freeCash>0};
+    return {activeNotional,lockedMargin,unrealized,realized,todayPnl,weeklyPnl,todayPct,roi,win,loss,winRate:total?((win/total)*100):0,openPositions,deposits,withdrawals,netFlows,freeCash,walletBalance,equity,canTrade:deposits>0&&freeCash>0};
   }
 
   function renderDayTradingDashboard(){
@@ -11072,7 +11081,7 @@
     const dailyHit=dailyLimit>0 && stats.todayPnl<=-dailyLimit;
     const weeklyHit=weeklyLimit>0 && stats.weeklyPnl<=-weeklyLimit;
     dash.innerHTML=`
-      <div class="dt-kpi accent"><span class="label">Equity rachunku</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Cash ${fmt(stats.freeCash,'USD')} + Open MV ${fmt(stats.marketValueOpen,'USD')}</span></div>
+      <div class="dt-kpi accent"><span class="label">Equity rachunku</span><span class="value">${fmt(stats.equity,'USD')}</span><span class="sub">Wallet ${fmt(stats.walletBalance,'USD')} | Unrealized ${fmt(stats.unrealized,'USD')}</span></div>
       <div class="dt-kpi"><span class="label">Wpłaty / wypłaty</span><span class="value">${fmt(stats.deposits,'USD')}</span><span class="sub">Wypłaty: ${fmt(-stats.withdrawals,'USD')} | Net: ${fmt(stats.netFlows,'USD')}</span></div>
       <div class="dt-kpi ${stats.roi>=0?'positive':'negative'}"><span class="label">ROI łącznie</span><span class="value">${stats.roi.toFixed(2)}%</span><span class="sub">Liczone od net flow rachunku</span></div>
       <div class="dt-kpi ${stats.realized>=0?'positive':'negative'}"><span class="label">PnL zrealizowany</span><span class="value">${fmt(stats.realized,'USD')}</span><span class="sub">Po uwzględnieniu prowizji</span></div>
@@ -11080,7 +11089,7 @@
       <div class="dt-kpi ${stats.todayPnl>=0?'positive':'negative'} ${dailyHit?'alert':''}"><span class="label">Dzisiaj PnL</span><span class="value">${fmt(stats.todayPnl,'USD')}</span><span class="sub">${stats.todayPct.toFixed(2)}% względem net flow</span></div>
       <div class="dt-kpi ${stats.weeklyPnl>=0?'positive':'negative'} ${weeklyHit?'alert':''}"><span class="label">Tydzień PnL</span><span class="value">${fmt(stats.weeklyPnl,'USD')}</span><span class="sub">Limit: ${weeklyLimit>0?fmt(-weeklyLimit,'USD'):'nie ustawiono'}</span></div>
       <div class="dt-kpi"><span class="label">Win rate</span><span class="value">${stats.winRate.toFixed(1)}%</span><span class="sub">W: ${stats.win} | L: ${stats.loss} | Open: ${stats.openPositions.length}</span></div>
-      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępne do handlu</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">${stats.canTrade?'Gotowe do wejścia':'Najpierw zasil konto'}</span></div>
+      <div class="dt-kpi ${stats.freeCash>=0?'positive':'negative'}"><span class="label">Dostępne do handlu</span><span class="value">${fmt(stats.freeCash,'USD')}</span><span class="sub">Zablokowany margin: ${fmt(stats.lockedMargin,'USD')}</span></div>
     `;
   }
 
@@ -11090,14 +11099,15 @@
     if(!form||!preview) return;
     const f=new FormData(form);
     const m=dtComputePlanMetrics({
-      side:f.get('side'), entry:f.get('entry'), sl:f.get('sl'), tp:f.get('tp'), sizeQty:f.get('sizeQty')
+      side:f.get('side'), entry:f.get('entry'), sl:f.get('sl'), tp:f.get('tp'), sizeQty:f.get('sizeQty'), leverage:f.get('leverage')
     });
     if(!m.isValid){preview.textContent='Wypełnij formularz, aby zobaczyć planowaną stratę, zysk i RR.';return;}
-    preview.innerHTML=`Plan: ilość <b>${m.qty.toFixed(6)}</b> | Nominał: <b>${fmt(m.notionalUsd,'USD')}</b> | Ryzyko SL: <span class="neg">${fmt(-m.riskUsd,'USD')}</span> | Potencjał TP: <span class="pos">${fmt(m.rewardUsd,'USD')}</span> | RR: <b>${m.rr?m.rr.toFixed(2):'—'}</b>`;
+    preview.innerHTML=`Plan: ilość <b>${m.qty.toFixed(6)}</b> | Nominał: <b>${fmt(m.notionalUsd,'USD')}</b> | Leverage: <b>x${m.leverage.toFixed(0)}</b> | Margin: <b>${fmt(m.marginRequired,'USD')}</b> | Ryzyko SL: <span class="neg">${fmt(-m.riskUsd,'USD')}</span> | Potencjał TP: <span class="pos">${fmt(m.rewardUsd,'USD')}</span> | RR: <b>${m.rr?m.rr.toFixed(2):'—'}</b>`;
   }
 
   function dtRecordClose(position, qty, closePrice, fee, closeDate){
     const dir=position.side==='short'?-1:1;
+    const lev=Math.max(1,num(position.leverage)||1);
     const gross=(closePrice-num(position.entry))*qty*dir;
     const riskPerUnit=(num(position.entry)-num(position.sl))*dir;
     const riskAbs=Math.max(0,riskPerUnit*qty);
@@ -11106,7 +11116,7 @@
     dayTrading().closes.unshift({
       id:'dt_close_'+Math.random().toString(36).slice(2),
       positionId:position.id,ticker:position.ticker,side:position.side,date:closeDate,
-      qty,closePrice,fee,grossPnl:gross,netPnl:net,rr,partial:(qty<(num(position.initialQty)-num(position.closedQty||0)-0.0000001))
+      qty,closePrice,fee,grossPnl:gross,netPnl:net,rr,releasedMargin:(num(position.entry)*qty)/lev,partial:(qty<(num(position.initialQty)-num(position.closedQty||0)-0.0000001))
     });
     position.closedQty=(num(position.closedQty)||0)+qty;
     position.realizedPnl=(num(position.realizedPnl)||0)+net;
@@ -11126,7 +11136,7 @@
     if(summary){
       summary.innerHTML=stats.deposits<=0
         ?'Brak zasileń rachunku — dodaj pierwszą wpłatę, aby otwierać pozycje.'
-        :`Net flow: <b>${fmt(stats.netFlows,'USD')}</b> | Dostępne cash: <b>${fmt(stats.freeCash,'USD')}</b> | Equity: <b>${fmt(stats.equity,'USD')}</b>`;
+        :`Net flow: <b>${fmt(stats.netFlows,'USD')}</b> | Dostępne cash: <b>${fmt(stats.freeCash,'USD')}</b> | Locked margin: <b>${fmt(stats.lockedMargin,'USD')}</b> | Equity: <b>${fmt(stats.equity,'USD')}</b>`;
     }
     for(const flow of (dt.capitalFlows||[])){
       const tr=document.createElement('tr');
@@ -11191,10 +11201,12 @@
       const remainingQty=num(p.initialQty)-num(p.closedQty||0);
       const mark=num(p.markPrice)||num(p.entry);
       const dir=p.side==='short'?-1:1;
+      const lev=Math.max(1,num(p.leverage)||1);
       const unrl=(mark-num(p.entry))*remainingQty*dir;
       const risk=Math.max(0,(num(p.entry)-num(p.sl))*dir*remainingQty);
       const reward=Math.max(0,(num(p.tp)-num(p.entry))*dir*remainingQty);
       const rr=risk>0?reward/risk:null;
+      const margin=(remainingQty*num(p.entry))/lev;
       const tr=document.createElement('tr');
       tr.innerHTML=`
         <td><strong>${escapeHtml(p.ticker)}</strong><div class="tiny muted">${p.openDate||''}</div></td>
@@ -11202,7 +11214,8 @@
         <td>${num(p.entry).toFixed(4)}</td>
         <td><input class="dt-inline-input" data-k="mark" value="${mark}" /></td>
         <td>${remainingQty.toFixed(6)}</td>
-        <td>${fmt(remainingQty*num(p.entry),'USD')}</td>
+        <td>x${lev.toFixed(0)}</td>
+        <td>${fmt(margin,'USD')}</td>
         <td class="${unrl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${fmt(unrl,'USD')}</td>
         <td>${rr?rr.toFixed(2):'—'}</td>
         <td class="row" style="gap:6px"><button class="btn soft" data-act="partial">Zamknij / partial TP</button></td>
@@ -11291,6 +11304,7 @@
           side:String(f.get('side')||'long'),
           date:String(f.get('date')||new Date().toISOString().slice(0,10)),
           sizeQty:Math.abs(num(f.get('sizeQty'))),
+          leverage:Math.max(1,num(f.get('leverage'))||1),
           entry:Math.abs(num(f.get('entry'))),
           sl:Math.abs(num(f.get('sl'))),
           tp:Math.abs(num(f.get('tp'))),
@@ -11300,11 +11314,11 @@
         const m=dtComputePlanMetrics(payload);
         const wallet=dtComputeStats();
         if(wallet.deposits<=0){alert('Najpierw dodaj pierwszą wpłatę w sekcji „Rachunek tradingowy”.');return;}
-        if(m.notionalUsd>wallet.freeCash+0.0001){alert(`Za mało dostępnego cash. Potrzebujesz ${fmt(m.notionalUsd,'USD')}, masz ${fmt(wallet.freeCash,'USD')}.`);return;}
+        if(m.marginRequired>wallet.freeCash+0.0001){alert(`Za mało dostępnego marginu. Potrzebujesz ${fmt(m.marginRequired,'USD')} (x${m.leverage.toFixed(0)}), masz ${fmt(wallet.freeCash,'USD')}.`);return;}
         dt.positions.unshift({
           id:'dt_pos_'+Math.random().toString(36).slice(2),ticker:payload.ticker,side:payload.side,openDate:payload.date,sizeQty:payload.sizeQty,
-          entry:payload.entry,sl:payload.sl,tp:payload.tp,note:payload.note,status:'open',
-          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr,notionalUsd:m.notionalUsd
+          entry:payload.entry,sl:payload.sl,tp:payload.tp,note:payload.note,status:'open',leverage:payload.leverage,
+          initialQty:m.qty,closedQty:0,realizedPnl:0,markPrice:payload.entry,plannedRisk:m.riskUsd,plannedReward:m.rewardUsd,plannedRr:m.rr,notionalUsd:m.notionalUsd,marginRequired:m.marginRequired
         });
         save(state);form.reset();
         if(dateInput) dateInput.value=new Date().toISOString().slice(0,10);
