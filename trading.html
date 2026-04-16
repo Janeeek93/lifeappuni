@@ -1,0 +1,2552 @@
+<!doctype html>
+<html lang="pl" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LifeOS — Trading</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <style>
+    .grid { display: grid; gap: 14px; }
+    .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 900px) {
+      .g-2 { grid-template-columns: 1fr; }
+      .g-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .g-3 { grid-template-columns: 1fr; }
+    }
+
+    body[data-page="trading"] {
+      --blue: #0057c0;
+      --blue-soft: #dbeafe;
+      --green: #059669;
+      --green-soft: #dcfce7;
+      --orange: #ea580c;
+      --orange-soft: #ffedd5;
+      --red: #dc2626;
+      --red-soft: #fee2e2;
+      --purple: #7c3aed;
+      --purple-soft: #ede9fe;
+      --ink: #2c2f31;
+      --muted: #595c5e;
+      --line: #dadde0;
+      --card: #ffffff;
+      --surface: #eff1f3;
+      --accent: #0057c0;
+      --accent-weak: hsl(214 70% 94%);
+      color: var(--ink);
+      background: #f5f6f8;
+    }
+
+    body[data-page="trading"] .main { background: transparent; }
+    body[data-page="trading"] .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(245, 246, 248, 0.88);
+      border-bottom: 1px solid var(--line);
+      height: var(--topbar-height);
+      padding: 0 32px;
+    }
+    body[data-page="trading"] .site-header__title {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #2c2f31;
+    }
+    body[data-page="trading"] .content { display: block; }
+    body[data-page="trading"] .content > .stack.tight {
+      padding: 20px 28px 36px;
+      gap: 24px;
+    }
+    body[data-page="trading"] .stack.tight { gap: 24px; }
+    body[data-page="trading"] .card,
+    body[data-page="trading"] .kpi-compact {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,248,255,0.96));
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 20px 44px rgba(15, 23, 42, 0.06);
+      border-radius: 28px;
+    }
+    body[data-page="trading"] .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .trading-page-tabs {
+      display: none;
+      gap: 2px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .trading-page-tabs::-webkit-scrollbar { height: 3px; }
+    .trading-page-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 13px 16px 11px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all .2s ease;
+      white-space: nowrap;
+    }
+    .trading-page-tab:hover { color: var(--ink); }
+    .trading-page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .trading-page-tab .material-symbols-outlined { font-size: 18px; }
+
+    .trading-page-panel { display: none; flex-direction: column; gap: 24px; }
+    .trading-page-panel.active { display: flex; }
+
+    .trading-setup-card {
+      text-align: center;
+      padding: 56px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      border-radius: 30px;
+      background: radial-gradient(circle at top left, rgba(37,99,235,0.10), transparent 22%), linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,255,0.96));
+    }
+    .setup-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(15,159,110,0.12));
+    }
+
+    .trading-overview-split {
+      display: grid;
+      grid-template-columns: minmax(0, 4fr) minmax(280px, 1.08fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+    .trading-overview-split > .card { height: 100%; }
+
+    .fintech-overview-card { overflow: hidden; position: relative; }
+    .fintech-overview-card::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 180px;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.15), transparent 40%),
+        radial-gradient(circle at 82% 8%, rgba(15, 159, 110, 0.12), transparent 28%);
+      pointer-events: none;
+    }
+    .fintech-overview-card,
+    .trading-rail-card,
+    .trading-planner-card,
+    .trading-discipline-card,
+    .trading-journal-card,
+    .trading-analytics-card,
+    .trading-rules-card,
+    .trading-table-card,
+    .trading-notes-card { padding: 26px; }
+    .fintech-overview-header,
+    .fintech-summary-grid,
+    .fintech-inline-metrics { position: relative; z-index: 1; }
+    .fintech-overview-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .fintech-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #2754d7;
+      background: rgba(37, 99, 235, 0.1);
+    }
+    .fintech-overview-title {
+      margin: 10px 0 8px;
+      font-size: clamp(1.7rem, 2vw, 2.3rem);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+      color: var(--ink);
+    }
+    .fintech-overview-subtitle {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .fintech-overview-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+      max-width: 420px;
+    }
+    .fintech-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .fintech-chip .material-symbols-outlined { font-size: 18px; color: var(--accent); }
+
+    .fintech-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .fintech-summary-card {
+      min-height: 188px;
+      padding: 20px;
+      border-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    }
+    .fintech-summary-card--gradient {
+      color: #fff;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #1f5eff 0%, #4178ff 55%, #2eb7ff 100%);
+      border-color: rgba(37, 99, 235, 0.1);
+      box-shadow: 0 24px 50px rgba(37, 99, 235, 0.28);
+    }
+    .fintech-card-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #64748b;
+    }
+    .fintech-card-label--inverse { color: rgba(255,255,255,0.72); }
+    .fintech-card-value {
+      font-size: clamp(1.6rem, 2vw, 2.1rem);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+      color: var(--ink);
+    }
+    .fintech-card-value--success { color: #047857; }
+    .fintech-card-value--danger { color: #dc2626; }
+    .fintech-card-note { color: var(--muted); font-size: 13px; line-height: 1.45; min-height: 36px; }
+    .fintech-card-note--inverse { color: rgba(255,255,255,0.78); }
+    .fintech-card-meta,
+    .fintech-card-trend {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .fintech-card-trend--danger { color: #dc2626; }
+    .fintech-card-trend--success { color: #047857; }
+    .fintech-card-meta .material-symbols-outlined,
+    .fintech-card-trend .material-symbols-outlined { font-size: 18px; }
+    .fintech-linear-progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(37, 99, 235, 0.1);
+      margin-top: auto;
+    }
+    .fintech-linear-progress__fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #2d6bff 0%, #57a3ff 100%);
+      transition: width 0.4s ease;
+    }
+    .fintech-progress-caption { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .fintech-progress-hero {
+      display: block;
+      margin-top: 6px;
+      font-size: clamp(2rem, 3vw, 2.7rem);
+      line-height: 1;
+      letter-spacing: -0.06em;
+    }
+    .fintech-progress-visual {
+      align-self: flex-end;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      padding: 8px;
+      background: conic-gradient(rgba(255,255,255,0.96) 28%, rgba(255,255,255,0.18) 0);
+      display: grid;
+      place-items: center;
+    }
+    .fintech-progress-visual__inner {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: rgba(14, 27, 81, 0.18);
+      display: grid; place-items: center; backdrop-filter: blur(10px);
+    }
+    .fintech-progress-visual .material-symbols-outlined { font-size: 30px; color: #fff; font-variation-settings: 'FILL' 1; }
+
+    .fintech-inline-metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .fintech-inline-metric {
+      min-width: 0;
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(241, 245, 255, 0.86);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .fintech-inline-metric__label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #64748b;
+    }
+    .fintech-inline-metric__value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      line-height: 1.15;
+    }
+    .fintech-inline-metric__note { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+    .trading-rail-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,248,255,0.94));
+    }
+    .trading-rail-list { display: grid; gap: 14px; }
+    .trading-rail-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(148,163,184,0.14);
+    }
+    .trading-rail-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .trading-rail-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: #64748b;
+    }
+    .trading-rail-value {
+      font-size: 1.35rem;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .trading-rail-note { font-size: 11px; font-weight: 700; color: #475569; text-align: right; }
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .risk-badge.good { background: var(--green-soft); color: var(--green); }
+    .risk-badge.warn { background: var(--orange-soft); color: var(--orange); }
+    .risk-badge.bad { background: var(--red-soft); color: var(--red); }
+    .risk-badge.info { background: var(--blue-soft); color: var(--blue); }
+
+    .trading-two-col { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr); gap: 18px; }
+
+    .trading-planner-card,
+    .trading-discipline-card,
+    .trading-journal-card,
+    .trading-analytics-card,
+    .trading-rules-card,
+    .trading-table-card,
+    .trading-notes-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .planner-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.9fr); gap: 18px; }
+    .planner-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .planner-results-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .planner-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(148,163,184,0.14);
+      background: rgba(255,255,255,0.82);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .planner-card .label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+    }
+    .planner-card .value { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; }
+    .planner-card .note { font-size: 12px; color: var(--muted); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      box-sizing: border-box;
+    }
+    .form-textarea { min-height: 110px; resize: vertical; }
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: rgba(37,99,235,0.45);
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+    }
+    .field-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .row-inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .switch-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(255,255,255,0.82);
+    }
+    .switch-pill button {
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .switch-pill button.active { background: var(--blue-soft); color: var(--blue); }
+
+    .check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .check-chip {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(148,163,184,0.14);
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .check-chip input { margin-top: 2px; }
+
+    .trading-journal-toolbar,
+    .analytics-tab-nav,
+    .journal-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .analytics-tab-nav {
+      gap: 10px;
+      padding: 8px 0 12px;
+      border-bottom: 1px solid var(--line);
+      justify-content: center;
+    }
+    .analytics-tab-btn,
+    .filter-pill {
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, border-color .2s ease;
+    }
+    .analytics-tab-btn.active,
+    .filter-pill.active {
+      color: var(--ink);
+      background: var(--card);
+      border-color: var(--line);
+      box-shadow: 0 10px 22px rgba(15,23,42,0.05);
+    }
+    .analytics-tab-btn:hover,
+    .filter-pill:hover { background: var(--surface); color: var(--ink); }
+
+    .chart-panel { display: none; }
+    .chart-panel.active { display: block; }
+    .chart-area {
+      padding: 18px 18px 10px;
+      min-height: 380px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.92) 100%);
+      border: 1px solid rgba(226,232,240,0.9);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-area canvas { width: 100%; height: 320px; }
+    .chart-placeholder {
+      display: none;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      padding: 32px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+    }
+
+    .table-wrapper.scrollable {
+      max-height: 440px;
+      overflow: auto;
+      border-radius: 20px;
+      border: 1px solid rgba(148,163,184,0.12);
+      background: rgba(255,255,255,0.78);
+    }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(244, 247, 255, 0.96);
+      backdrop-filter: blur(12px);
+      color: #64748b;
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    tbody tr:hover { background: rgba(37, 99, 235, 0.04); }
+
+    .status-pill,
+    .tag-pill,
+    .quality-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .status-pill.closed { background: var(--green-soft); color: var(--green); }
+    .status-pill.open { background: var(--blue-soft); color: var(--blue); }
+    .status-pill.planned { background: var(--surface); color: var(--muted); }
+    .status-pill.cancelled { background: var(--red-soft); color: var(--red); }
+    .quality-pill.a { background: var(--green-soft); color: var(--green); }
+    .quality-pill.b { background: var(--blue-soft); color: var(--blue); }
+    .quality-pill.c { background: var(--orange-soft); color: var(--orange); }
+    .quality-pill.d { background: var(--red-soft); color: var(--red); }
+    .tag-pill { background: rgba(124, 58, 237, 0.1); color: var(--purple); }
+
+    .rules-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .rule-card {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(148,163,184,0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rule-card .title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; color: #64748b; margin: 0; }
+    .rule-card .value { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+    .rule-card .note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    .mistake-list,
+    .insight-list,
+    .target-editor,
+    .stats-mini-grid { display: grid; gap: 12px; }
+    .mistake-row,
+    .insight-row,
+    .target-row,
+    .mini-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(148,163,184,0.14);
+    }
+    .mistake-row strong,
+    .insight-row strong,
+    .mini-stat strong { font-size: 14px; color: var(--ink); }
+    .mistake-row span,
+    .insight-row span,
+    .mini-stat span { font-size: 12px; color: var(--muted); }
+    .target-row { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr auto; }
+    .target-row .tiny-switch { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 5vh;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out;
+      overflow-y: auto;
+    }
+    .modal-overlay.visible { opacity: 1; pointer-events: all; }
+    .modal-card {
+      background: var(--card);
+      padding: 0;
+      border-radius: 16px;
+      box-shadow: 0 30px 80px rgba(15,23,42,0.25);
+      max-width: 880px;
+      width: 94%;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      margin-bottom: 5vh;
+    }
+    .modal-overlay.visible .modal-card { transform: scale(1); }
+    .modal-header { padding: 20px; border-bottom: 1px solid var(--line); }
+    .modal-title { font-size: 18px; font-weight: 700; margin: 0; }
+    .modal-body { padding: 20px; }
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 18px; }
+    .modal-side-stack { display: grid; gap: 16px; }
+    .soft-panel {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(239,244,255,0.9);
+      border: 1px solid rgba(148,163,184,0.14);
+    }
+    .soft-panel .title {
+      margin: 0 0 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+      font-weight: 800;
+    }
+    .soft-panel .big {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink);
+    }
+    .soft-panel .copy { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+    .inline-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .inline-kpi {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(148,163,184,0.14);
+    }
+    .inline-kpi .label {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .inline-kpi .value { font-size: 16px; font-weight: 800; color: var(--ink); }
+
+    .empty-state {
+      padding: 30px 18px;
+      border-radius: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(255,255,255,0.68);
+      border: 1px dashed rgba(148,163,184,0.22);
+    }
+
+    @media (max-width: 1260px) {
+      .trading-overview-split,
+      .trading-two-col,
+      .planner-layout,
+      .modal-grid { grid-template-columns: 1fr; }
+      .fintech-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .fintech-inline-metrics,
+      .rules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 860px) {
+      body[data-page="trading"] .content > .stack.tight { padding: 16px; }
+      .planner-form-grid,
+      .planner-results-grid,
+      .check-grid,
+      .rules-grid,
+      .fintech-inline-metrics { grid-template-columns: 1fr; }
+      .fintech-summary-grid { grid-template-columns: 1fr; }
+      .fintech-overview-header { flex-direction: column; }
+      .fintech-overview-chips { justify-content: flex-start; max-width: none; }
+      .target-row { grid-template-columns: 1fr; }
+      .trading-page-tabs { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body data-page="trading">
+  <div class="layout">
+    <aside class="sidebar" aria-label="Główna nawigacja">
+      <div class="sidebar__header">
+        <span class="sidebar__emoji">🧭</span>
+        <span class="sidebar__brand">LifeOS</span>
+      </div>
+      <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+        <ul class="sidebar__list">
+          <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span class="sidebar__label">Dashboard</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="material-symbols-outlined">payments</span><span class="sidebar__label">Budżet</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="material-symbols-outlined">assignment</span><span class="sidebar__label">Zadania</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="material-symbols-outlined">trending_up</span><span class="sidebar__label">Progres</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="trading.html" data-page="trading"><span class="material-symbols-outlined">candlestick_chart</span><span class="sidebar__label">Trading</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="material-symbols-outlined">local_gas_station</span><span class="sidebar__label">Paliwo</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="material-symbols-outlined">credit_card</span><span class="sidebar__label">Kredyt</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="material-symbols-outlined">inventory_2</span><span class="sidebar__label">Magazyn</span></a></li>
+          <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="material-symbols-outlined">construction</span><span class="sidebar__label">Budowa</span></a></li>
+        </ul>
+      </nav>
+      <div class="sidebar__footer"><strong>Twoje centrum dowodzenia życiem.</strong></div>
+    </aside>
+
+    <div class="main">
+      <header class="site-header" role="banner">
+        <div class="site-header__left">
+          <div class="site-header__greeting">
+            <h1 class="site-header__title">Trading</h1>
+          </div>
+        </div>
+        <div class="site-header__right" aria-label="Akcje strony">
+          <button class="btn soft" id="settings-btn" style="display:none;">⚙️ Ustawienia</button>
+          <button class="btn soft" id="open-planner-btn" style="display:none;">🧮 Risk lab</button>
+          <button class="btn primary" id="add-trade-btn" style="display:none;">+ Dodaj pozycję</button>
+        </div>
+      </header>
+
+      <nav class="trading-page-tabs" id="trading-page-tabs">
+        <button class="trading-page-tab active" data-trading-tab="overview"><span class="material-symbols-outlined">home</span>Przegląd</button>
+        <button class="trading-page-tab" data-trading-tab="journal"><span class="material-symbols-outlined">list_alt</span>Dziennik</button>
+        <button class="trading-page-tab" data-trading-tab="analytics"><span class="material-symbols-outlined">analytics</span>Analityka</button>
+        <button class="trading-page-tab" data-trading-tab="discipline"><span class="material-symbols-outlined">gpp_good</span>Dyscyplina</button>
+      </nav>
+
+      <div class="content">
+        <main class="stack tight">
+          <div id="app-container" class="stack tight">
+            <section id="setup-container" class="card trading-setup-card" style="display:none;">
+              <div class="setup-icon">📈</div>
+              <h2 class="title">Witaj w module tradingowym</h2>
+              <p class="muted" style="max-width:480px; margin:0 auto;">Skonfiguruj swój profil konta, zasady ryzyka i domyślne parametry. Moduł policzy RR, sizing, PnL, ROI, equity curve i wskaźniki dyscypliny na podstawie każdej pozycji.</p>
+              <button class="btn primary" id="setup-trading-btn">Skonfiguruj desk</button>
+            </section>
+
+            <div id="dashboard-container" class="stack tight" style="display:none;">
+              <div class="trading-page-panel active" data-trading-tab-panel="overview">
+                <div class="trading-overview-split">
+                  <section class="card fintech-overview-card">
+                    <div class="fintech-overview-header">
+                      <div class="fintech-overview-copy">
+                        <span class="fintech-eyebrow">Trading desk</span>
+                        <h2 class="fintech-overview-title">Crypto day-trading performance</h2>
+                        <p id="hero-subtitle" class="fintech-overview-subtitle">Pełny cockpit do planowania, realizacji i rozliczania setupów z naciskiem na RR, sizing i dyscyplinę procesu.</p>
+                      </div>
+                      <div class="fintech-overview-chips">
+                        <span class="fintech-chip"><span class="material-symbols-outlined">savings</span><span id="hero-capital">—</span></span>
+                        <span class="fintech-chip"><span class="material-symbols-outlined">warning</span><span id="hero-risk">—</span></span>
+                        <span class="fintech-chip"><span class="material-symbols-outlined">shield</span><span id="hero-loss-limit">—</span></span>
+                      </div>
+                    </div>
+
+                    <div class="fintech-summary-grid">
+                      <article class="fintech-summary-card">
+                        <span class="fintech-card-label">Bieżący equity</span>
+                        <strong class="fintech-card-value" id="overview-equity">—</strong>
+                        <span class="fintech-card-note" id="overview-equity-note">Stan kapitału po zrealizowanych pozycjach i cash-flow.</span>
+                        <div class="fintech-card-trend" id="overview-equity-trend"><span class="material-symbols-outlined">finance</span><span>Monitoring depo</span></div>
+                      </article>
+
+                      <article class="fintech-summary-card">
+                        <span class="fintech-card-label">Net PnL</span>
+                        <strong class="fintech-card-value" id="overview-pnl">—</strong>
+                        <span class="fintech-card-note" id="overview-pnl-note">Zrealizowany wynik po prowizjach.</span>
+                        <div class="fintech-card-trend" id="overview-pnl-trend"><span class="material-symbols-outlined">insights</span><span>Śledzenie edge</span></div>
+                      </article>
+
+                      <article class="fintech-summary-card">
+                        <span class="fintech-card-label">Win rate / Profit factor</span>
+                        <strong class="fintech-card-value" id="overview-winrate">—</strong>
+                        <span class="fintech-card-note" id="overview-winrate-note">Balans skuteczności i relacji zysków do strat.</span>
+                        <div class="fintech-linear-progress"><div id="profit-progress" class="fintech-linear-progress__fill"></div></div>
+                        <div class="fintech-progress-caption" id="profit-progress-text"></div>
+                      </article>
+
+                      <article class="fintech-summary-card fintech-summary-card--gradient">
+                        <div>
+                          <span class="fintech-card-label fintech-card-label--inverse">ROI od startu</span>
+                          <strong class="fintech-progress-hero" id="overview-roi">0%</strong>
+                          <span class="fintech-card-note fintech-card-note--inverse">Zmiana względem kapitału początkowego.</span>
+                        </div>
+                        <div class="fintech-progress-visual" id="roi-orb"><div class="fintech-progress-visual__inner"><span class="material-symbols-outlined">trending_up</span></div></div>
+                      </article>
+                    </div>
+
+                    <div class="fintech-inline-metrics">
+                      <div class="fintech-inline-metric"><span class="fintech-inline-metric__label">Śr. R-multiple</span><span class="fintech-inline-metric__value" id="metric-r">—</span><span class="fintech-inline-metric__note">Expectancy na trade</span></div>
+                      <div class="fintech-inline-metric"><span class="fintech-inline-metric__label">Najlepszy dzień</span><span class="fintech-inline-metric__value" id="metric-best-day">—</span><span class="fintech-inline-metric__note" id="metric-best-day-note"></span></div>
+                      <div class="fintech-inline-metric"><span class="fintech-inline-metric__label">Najgorszy dzień</span><span class="fintech-inline-metric__value" id="metric-worst-day">—</span><span class="fintech-inline-metric__note" id="metric-worst-day-note"></span></div>
+                      <div class="fintech-inline-metric"><span class="fintech-inline-metric__label">Max drawdown</span><span class="fintech-inline-metric__value" id="metric-dd">—</span><span class="fintech-inline-metric__note">Peak-to-trough na equity</span></div>
+                      <div class="fintech-inline-metric"><span class="fintech-inline-metric__label">Open risk</span><span class="fintech-inline-metric__value" id="metric-open-risk">—</span><span class="fintech-inline-metric__note" id="metric-open-risk-note"></span></div>
+                    </div>
+                  </section>
+
+                  <section class="card trading-rail-card">
+                    <div class="section-heading">
+                      <h2 class="title">Risk monitor</h2>
+                      <span class="tiny muted">Stan sesji i reguł</span>
+                    </div>
+                    <div class="trading-rail-list">
+                      <div class="trading-rail-row">
+                        <div><span class="trading-rail-label">Dzisiejszy PnL</span><strong class="trading-rail-value" id="rail-today-pnl">—</strong></div>
+                        <span class="trading-rail-note" id="rail-today-note"></span>
+                      </div>
+                      <div class="trading-rail-row">
+                        <div><span class="trading-rail-label">Pozostały daily loss</span><strong class="trading-rail-value" id="rail-daily-room">—</strong></div>
+                        <span class="trading-rail-note" id="rail-daily-room-note"></span>
+                      </div>
+                      <div class="trading-rail-row">
+                        <div><span class="trading-rail-label">Otwarte ryzyko</span><strong class="trading-rail-value" id="rail-open-risk">—</strong></div>
+                        <span class="trading-rail-note" id="rail-open-risk-note"></span>
+                      </div>
+                      <div class="trading-rail-row">
+                        <div><span class="trading-rail-label">Trade'y w tygodniu</span><strong class="trading-rail-value" id="rail-week-count">—</strong></div>
+                        <span class="trading-rail-note" id="rail-week-count-note"></span>
+                      </div>
+                    </div>
+                    <div class="soft-panel">
+                      <h3 class="title">Sygnał dyscypliny</h3>
+                      <div class="big" id="discipline-score">—</div>
+                      <div class="copy" id="discipline-score-note">Ocena oparta o limity ryzyka, checklistę i zachowanie planu.</div>
+                      <div style="margin-top:12px;" id="discipline-badge"></div>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="trading-two-col">
+                  <section class="card trading-planner-card">
+                    <div class="section-heading">
+                      <div>
+                        <h2 class="title">Risk lab</h2>
+                        <div class="tiny muted">Planer pozycji na sucho — wylicza size, SL, RR, potencjalny PnL i ryzyko depo.</div>
+                      </div>
+                      <div class="switch-pill" id="planner-mode-switch" role="group" aria-label="Tryb kalkulatora">
+                        <button type="button" class="active" data-planner-mode="size">Wylicz size</button>
+                        <button type="button" data-planner-mode="stop">Wylicz SL</button>
+                      </div>
+                    </div>
+                    <div class="planner-layout">
+                      <div>
+                        <div class="planner-form-grid">
+                          <div class="form-group"><label class="form-label">Symbol</label><input id="planner-symbol" class="form-input" placeholder="BTCUSDT"></div>
+                          <div class="form-group"><label class="form-label">Kierunek</label><select id="planner-side" class="form-select"><option value="long">Long</option><option value="short">Short</option></select></div>
+                          <div class="form-group"><label class="form-label">Kapitał bazowy</label><input id="planner-capital" type="number" step="0.01" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">Ryzyko %</label><input id="planner-risk-pct" type="number" step="0.01" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">Entry</label><input id="planner-entry" type="number" step="0.0001" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">Stop loss</label><input id="planner-stop" type="number" step="0.0001" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">Qty</label><input id="planner-qty" type="number" step="0.0001" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">TP1</label><input id="planner-tp1" type="number" step="0.0001" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">TP2</label><input id="planner-tp2" type="number" step="0.0001" class="form-input"></div>
+                          <div class="form-group"><label class="form-label">TP1 udział %</label><input id="planner-tp1-share" type="number" step="0.01" class="form-input"></div>
+                        </div>
+                        <div class="row-inline" style="margin-top:6px;">
+                          <button class="btn soft" id="planner-reset-btn" type="button">Reset planner</button>
+                          <button class="btn primary" id="planner-to-trade-btn" type="button">Przenieś do pozycji</button>
+                        </div>
+                      </div>
+                      <div class="planner-results-grid" id="planner-results"></div>
+                    </div>
+                  </section>
+
+                  <section class="card trading-discipline-card">
+                    <div class="section-heading">
+                      <div>
+                        <h2 class="title">Proces i higiena</h2>
+                        <div class="tiny muted">Najważniejsze szyny, które mają trzymać ręce z dala od głupich trade'ów.</div>
+                      </div>
+                    </div>
+                    <div class="rules-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                      <article class="rule-card"><h3 class="title">Min RR</h3><div class="value" id="rule-min-rr">—</div><div class="note">Default wymagany przez profil.</div></article>
+                      <article class="rule-card"><h3 class="title">Risk / trade</h3><div class="value" id="rule-risk-trade">—</div><div class="note">Maksymalne ryzyko pojedynczej pozycji.</div></article>
+                      <article class="rule-card"><h3 class="title">Daily loss</h3><div class="value" id="rule-daily-loss">—</div><div class="note">Po przekroczeniu — koniec sesji.</div></article>
+                      <article class="rule-card"><h3 class="title">Max open risk</h3><div class="value" id="rule-open-risk">—</div><div class="note">Łączny risk na otwartych setupach.</div></article>
+                    </div>
+                    <div>
+                      <h3 class="title" style="margin-bottom:10px;">Checklista pre-trade</h3>
+                      <div class="check-grid" id="overview-checklist"></div>
+                    </div>
+                    <div class="insight-list" id="overview-insights"></div>
+                  </section>
+                </div>
+              </div>
+
+              <div class="trading-page-panel" data-trading-tab-panel="journal">
+                <section class="card trading-journal-card">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="title">Dziennik pozycji</h2>
+                      <div class="tiny muted">Filtruj, edytuj i analizuj każdą pozycję wraz z RR, sizingiem, checklistą i błędami procesu.</div>
+                    </div>
+                    <div class="journal-filter-bar" id="journal-filter-bar"></div>
+                  </div>
+                  <div class="row-inline" style="justify-content:space-between; align-items:flex-end;">
+                    <div class="row-inline" style="gap:12px;">
+                      <div class="form-group" style="margin:0;"><label class="form-label">Szukaj</label><input id="filter-search" class="form-input" style="min-width:220px;" placeholder="BTC, breakout, London..."></div>
+                      <div class="form-group" style="margin:0;"><label class="form-label">Strategia</label><select id="filter-strategy" class="form-select" style="min-width:180px;"></select></div>
+                      <div class="form-group" style="margin:0;"><label class="form-label">Status</label><select id="filter-status" class="form-select" style="min-width:160px;"></select></div>
+                    </div>
+                    <div class="row-inline" id="journal-kpis"></div>
+                  </div>
+                </section>
+
+                <section class="card trading-table-card">
+                  <div class="section-heading">
+                    <h2 class="title">Lista transakcji</h2>
+                    <span class="tiny muted">Kliknij edytuj, aby poprawić setup lub outcome.</span>
+                  </div>
+                  <div class="table-wrapper scrollable">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Data</th>
+                          <th>Symbol</th>
+                          <th>Side</th>
+                          <th>Status</th>
+                          <th>Wejście / SL</th>
+                          <th>Size</th>
+                          <th>Risk</th>
+                          <th>RR</th>
+                          <th>PnL</th>
+                          <th>Setup</th>
+                          <th>Akcje</th>
+                        </tr>
+                      </thead>
+                      <tbody id="trade-table-body"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+
+              <div class="trading-page-panel" data-trading-tab-panel="analytics">
+                <section class="card trading-analytics-card">
+                  <div class="section-heading">
+                    <div>
+                      <h2 class="title">Hub analityczny</h2>
+                      <div class="tiny muted">Equity, rozkład R, przewagi po strategiach, sesjach i dniach tygodnia.</div>
+                    </div>
+                  </div>
+                  <div class="analytics-tab-nav" id="analytics-tab-nav">
+                    <button class="analytics-tab-btn active" data-analytics-tab="equity">Equity</button>
+                    <button class="analytics-tab-btn" data-analytics-tab="daily">Dzienne PnL</button>
+                    <button class="analytics-tab-btn" data-analytics-tab="strategy">Strategie</button>
+                    <button class="analytics-tab-btn" data-analytics-tab="session">Sesje</button>
+                    <button class="analytics-tab-btn" data-analytics-tab="weekday">Dni tygodnia</button>
+                    <button class="analytics-tab-btn" data-analytics-tab="rmultiple">R-multiple</button>
+                  </div>
+                  <div id="analytics-placeholder" class="chart-placeholder">Dodaj zamknięte pozycje, aby zobaczyć wykresy performance.</div>
+                  <div class="chart-panel active" data-analytics-panel="equity"><div class="chart-area"><canvas id="equity-chart"></canvas></div></div>
+                  <div class="chart-panel" data-analytics-panel="daily"><div class="chart-area"><canvas id="daily-chart"></canvas></div></div>
+                  <div class="chart-panel" data-analytics-panel="strategy"><div class="chart-area"><canvas id="strategy-chart"></canvas></div></div>
+                  <div class="chart-panel" data-analytics-panel="session"><div class="chart-area"><canvas id="session-chart"></canvas></div></div>
+                  <div class="chart-panel" data-analytics-panel="weekday"><div class="chart-area"><canvas id="weekday-chart"></canvas></div></div>
+                  <div class="chart-panel" data-analytics-panel="rmultiple"><div class="chart-area"><canvas id="rmultiple-chart"></canvas></div></div>
+                </section>
+              </div>
+
+              <div class="trading-page-panel" data-trading-tab-panel="discipline">
+                <div class="trading-two-col">
+                  <section class="card trading-rules-card">
+                    <div class="section-heading">
+                      <div>
+                        <h2 class="title">Rule engine</h2>
+                        <div class="tiny muted">Statystyki naruszeń i rekomendacje tam, gdzie najczęściej oddajesz edge.</div>
+                      </div>
+                    </div>
+                    <div class="rules-grid" id="discipline-rules-grid"></div>
+                    <div>
+                      <h3 class="title" style="margin-bottom:10px;">Najczęstsze błędy</h3>
+                      <div class="mistake-list" id="mistake-list"></div>
+                    </div>
+                  </section>
+
+                  <section class="card trading-notes-card">
+                    <div class="section-heading">
+                      <div>
+                        <h2 class="title">Co poprawić</h2>
+                        <div class="tiny muted">Syntetyczne wnioski z dziennika i checklisty.</div>
+                      </div>
+                    </div>
+                    <div class="stats-mini-grid" id="discipline-notes"></div>
+                    <div>
+                      <h3 class="title" style="margin-bottom:10px;">Ostatnie notatki</h3>
+                      <div id="recent-notes"></div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card" id="modal-card">
+      <div class="modal-header"><h3 id="modal-title" class="modal-title"></h3></div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+
+<script>
+  (function activateSidebarLink() {
+    const currentPage = document.body.dataset.page;
+    if (!currentPage) return;
+    document.querySelectorAll('.sidebar__link[data-page]').forEach((link) => {
+      if (link.dataset.page === currentPage) {
+        link.classList.add('sidebar__link--active');
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.classList.remove('sidebar__link--active');
+        link.removeAttribute('aria-current');
+      }
+    });
+  })();
+</script>
+<script>
+const STORAGE_KEY = 'lifeos_trading_v1';
+const DEFAULT_CHECKLIST = [
+  'Bias z HTF jest zgodny z setupem',
+  'Entry ma jasny trigger i invalidation',
+  'RR spełnia minimalne wymaganie',
+  'Size wynika z risku, nie z emocji',
+  'Plan wyjścia i częściowych TP jest zapisany',
+  'Trade nie jest revenge / FOMO'
+];
+const DEFAULT_STRATEGIES = ['Breakout', 'Pullback', 'Range scalp', 'Liquidity sweep', 'Trend continuation'];
+const DEFAULT_SESSIONS = ['Asia', 'London', 'New York', 'Overlap', 'Weekend'];
+
+const defaultState = {
+  profile: null,
+  trades: [],
+  cashFlows: [],
+  planner: {
+    mode: 'size',
+    symbol: '',
+    side: 'long',
+    capital: 0,
+    riskPct: 1,
+    entry: '',
+    stop: '',
+    qty: '',
+    tp1: '',
+    tp2: '',
+    tp1Share: 50
+  },
+  ui: {
+    activePageTab: 'overview',
+    activeAnalyticsTab: 'equity',
+    filters: {
+      search: '',
+      strategy: 'all',
+      status: 'all',
+      quick: 'all'
+    }
+  }
+};
+
+let state = {};
+let charts = {};
+
+function $(selector) { return document.querySelector(selector); }
+function $$(selector) { return document.querySelectorAll(selector); }
+function uid(prefix = 'id') { return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`; }
+function n(value) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+function fmtNum(value, digits = 2) {
+  const val = Number(value || 0);
+  return new Intl.NumberFormat('pl-PL', { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: 'always' }).format(val).replace(/\u00a0/g, ' ');
+}
+function fmtMoney(value, currency) {
+  return `${fmtNum(value, 2)} ${currency || getCurrency()}`;
+}
+function fmtPct(value, digits = 2) {
+  return `${fmtNum(value, digits)}%`;
+}
+function fmtR(value) {
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${fmtNum(value, 2)}R`;
+}
+function dateOnly(dateValue) {
+  if (!dateValue) return '';
+  return String(dateValue).slice(0, 10);
+}
+function humanDate(dateValue) {
+  if (!dateValue) return '—';
+  try {
+    return new Date(dateValue).toLocaleDateString('pl-PL');
+  } catch {
+    return dateValue;
+  }
+}
+function monthKey(dateValue) {
+  if (!dateValue) return '';
+  return String(dateValue).slice(0, 7);
+}
+function getCurrency() { return state.profile?.currency || 'USDT'; }
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+function defaultProfile() {
+  return {
+    startingCapital: 10000,
+    riskPerTradePct: 1,
+    maxDailyLossPct: 3,
+    maxOpenRiskPct: 4,
+    minRR: 2,
+    feePct: 0.05,
+    slippagePct: 0.02,
+    currency: 'USDT',
+    strategies: [...DEFAULT_STRATEGIES],
+    sessions: [...DEFAULT_SESSIONS],
+    checklist: [...DEFAULT_CHECKLIST],
+    createdAt: new Date().toISOString()
+  };
+}
+
+function normalizeTrade(trade) {
+  const normalized = { ...trade };
+  normalized.id = normalized.id || uid('trade');
+  normalized.symbol = normalized.symbol || '';
+  normalized.side = normalized.side || 'long';
+  normalized.status = normalized.status || 'planned';
+  normalized.strategy = normalized.strategy || '';
+  normalized.session = normalized.session || '';
+  normalized.setupGrade = (normalized.setupGrade || 'B').toUpperCase();
+  normalized.openedAt = normalized.openedAt || dateOnly(new Date().toISOString());
+  normalized.closedAt = normalized.closedAt || '';
+  normalized.entry = n(normalized.entry);
+  normalized.stopLoss = n(normalized.stopLoss);
+  normalized.capitalBase = n(normalized.capitalBase);
+  normalized.riskPct = n(normalized.riskPct);
+  normalized.qty = n(normalized.qty);
+  normalized.markPrice = normalized.markPrice === '' || normalized.markPrice == null ? '' : n(normalized.markPrice);
+  normalized.finalExitPrice = normalized.finalExitPrice === '' || normalized.finalExitPrice == null ? '' : n(normalized.finalExitPrice);
+  normalized.targets = Array.isArray(normalized.targets) ? normalized.targets.map((target, idx) => ({
+    id: target.id || uid(`tp${idx + 1}`),
+    label: target.label || `TP${idx + 1}`,
+    price: n(target.price),
+    sharePct: n(target.sharePct),
+    hit: Boolean(target.hit)
+  })) : [];
+  normalized.tags = Array.isArray(normalized.tags)
+    ? normalized.tags.filter(Boolean)
+    : String(normalized.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  normalized.mistakes = Array.isArray(normalized.mistakes)
+    ? normalized.mistakes.filter(Boolean)
+    : String(normalized.mistakes || '').split(',').map(t => t.trim()).filter(Boolean);
+  normalized.notes = normalized.notes || '';
+  normalized.thesis = normalized.thesis || '';
+  normalized.checklistDone = Boolean(normalized.checklistDone);
+  normalized.outsidePlan = Boolean(normalized.outsidePlan);
+  normalized.revengeTrade = Boolean(normalized.revengeTrade);
+  normalized.movedStopAgainstPlan = Boolean(normalized.movedStopAgainstPlan);
+  normalized.createdAt = normalized.createdAt || new Date().toISOString();
+  return normalized;
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    state = saved ? JSON.parse(saved) : deepClone(defaultState);
+  } catch {
+    state = deepClone(defaultState);
+  }
+
+  state.profile = state.profile ? { ...defaultProfile(), ...state.profile } : null;
+  state.trades = Array.isArray(state.trades) ? state.trades.map(normalizeTrade) : [];
+  state.cashFlows = Array.isArray(state.cashFlows) ? state.cashFlows : [];
+  state.planner = { ...deepClone(defaultState).planner, ...(state.planner || {}) };
+  state.ui = {
+    activePageTab: state.ui?.activePageTab || 'overview',
+    activeAnalyticsTab: state.ui?.activeAnalyticsTab || 'equity',
+    filters: {
+      search: state.ui?.filters?.search || '',
+      strategy: state.ui?.filters?.strategy || 'all',
+      status: state.ui?.filters?.status || 'all',
+      quick: state.ui?.filters?.quick || 'all'
+    }
+  };
+
+  if (!state.profile && state.planner.capital === 0) {
+    state.planner.capital = defaultProfile().startingCapital;
+    state.planner.riskPct = defaultProfile().riskPerTradePct;
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function openModal(title, body, footer) {
+  $('#modal-title').textContent = title;
+  $('#modal-body').innerHTML = body;
+  $('#modal-footer').innerHTML = footer;
+  $('#modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+  $('#modal-overlay').classList.remove('visible');
+}
+
+function getSignedMove(side, fromPrice, toPrice) {
+  const sign = side === 'short' ? -1 : 1;
+  return (n(toPrice) - n(fromPrice)) * sign;
+}
+
+function calculateTradeMetrics(tradeLike) {
+  const trade = normalizeTrade({ ...tradeLike });
+  const feeRate = n(state.profile?.feePct) / 100;
+  const slippageRate = n(state.profile?.slippagePct) / 100;
+  const capitalBase = trade.capitalBase || getCurrentEquity();
+  const riskPct = trade.riskPct || n(state.profile?.riskPerTradePct);
+  const riskAmount = capitalBase * (riskPct / 100);
+  const riskPerUnit = Math.abs(n(trade.entry) - n(trade.stopLoss));
+  const stopDistancePct = trade.entry ? (riskPerUnit / trade.entry) * 100 : 0;
+  let qty = n(trade.qty);
+
+  if (!qty && trade.entry && trade.stopLoss && riskPerUnit > 0 && riskAmount > 0) {
+    qty = riskAmount / riskPerUnit;
+  }
+
+  const notional = qty * n(trade.entry);
+  const leverage = capitalBase > 0 ? notional / capitalBase : 0;
+  const entryFees = notional * feeRate;
+  const expectedStopNotional = qty * n(trade.stopLoss || trade.entry);
+  const exitFeesAtStop = expectedStopNotional * feeRate;
+  const slippageCost = notional * slippageRate;
+  const maxLossNet = riskAmount + entryFees + exitFeesAtStop + slippageCost;
+
+  const targets = (trade.targets || []).filter(t => t.price > 0 && t.sharePct > 0);
+  const totalTargetShare = targets.reduce((sum, t) => sum + n(t.sharePct), 0);
+  const normalizedTargets = targets.map((target) => ({
+    ...target,
+    sharePctNorm: totalTargetShare > 0 ? (n(target.sharePct) / totalTargetShare) * 100 : 0
+  }));
+
+  const targetBreakdown = normalizedTargets.map((target) => {
+    const qtyPart = qty * (target.sharePctNorm / 100);
+    const gross = getSignedMove(trade.side, trade.entry, target.price) * qtyPart;
+    const exitFee = target.price * qtyPart * feeRate;
+    const rr = riskAmount > 0 ? gross / riskAmount : 0;
+    return {
+      ...target,
+      qtyPart,
+      gross,
+      net: gross - exitFee,
+      rr
+    };
+  });
+
+  const weightedGrossReward = targetBreakdown.reduce((sum, item) => sum + item.gross, 0);
+  const weightedNetReward = targetBreakdown.reduce((sum, item) => sum + item.net, -entryFees - slippageCost);
+  const weightedRR = riskAmount > 0 ? weightedGrossReward / riskAmount : 0;
+  const weightedNetRR = riskAmount > 0 ? weightedNetReward / riskAmount : 0;
+
+  let realizedGross = 0;
+  let realizedNet = -entryFees - slippageCost;
+  let realizedShare = 0;
+
+  targetBreakdown.filter(item => item.hit).forEach((item) => {
+    const exitFee = item.price * item.qtyPart * feeRate;
+    realizedGross += item.gross;
+    realizedNet += item.gross - exitFee;
+    realizedShare += item.sharePctNorm;
+  });
+
+  const remainingShare = clamp(100 - realizedShare, 0, 100);
+  if ((trade.status === 'closed' || trade.finalExitPrice) && remainingShare > 0 && trade.finalExitPrice) {
+    const qtyPart = qty * (remainingShare / 100);
+    const gross = getSignedMove(trade.side, trade.entry, trade.finalExitPrice) * qtyPart;
+    const exitFee = trade.finalExitPrice * qtyPart * feeRate;
+    realizedGross += gross;
+    realizedNet += gross - exitFee;
+  }
+
+  const unrealizedPrice = trade.status === 'open' && trade.markPrice ? n(trade.markPrice) : 0;
+  let unrealizedGross = 0;
+  let unrealizedNet = 0;
+  if (trade.status === 'open' && unrealizedPrice > 0 && qty > 0) {
+    const gross = getSignedMove(trade.side, trade.entry, unrealizedPrice) * qty;
+    const exitFee = unrealizedPrice * qty * feeRate;
+    unrealizedGross = gross;
+    unrealizedNet = gross - entryFees - exitFee - slippageCost;
+  }
+
+  const riskToDepositPct = capitalBase > 0 ? (riskAmount / capitalBase) * 100 : 0;
+
+  return {
+    capitalBase,
+    riskPct,
+    riskAmount,
+    riskPerUnit,
+    stopDistancePct,
+    qty,
+    notional,
+    leverage,
+    entryFees,
+    exitFeesAtStop,
+    slippageCost,
+    maxLossNet,
+    weightedGrossReward,
+    weightedNetReward,
+    weightedRR,
+    weightedNetRR,
+    targetBreakdown,
+    realizedGross,
+    realizedNet,
+    realizedR: riskAmount > 0 ? realizedNet / riskAmount : 0,
+    unrealizedGross,
+    unrealizedNet,
+    unrealizedR: riskAmount > 0 ? unrealizedNet / riskAmount : 0,
+    riskToDepositPct,
+    remainingShare,
+    totalTargetShare
+  };
+}
+
+function getClosedTrades() {
+  return state.trades.filter(trade => trade.status === 'closed');
+}
+
+function getCurrentEquity() {
+  const starting = n(state.profile?.startingCapital);
+  const cashFlow = state.cashFlows.reduce((sum, item) => sum + n(item.amount), 0);
+  const closedPnl = getClosedTrades().reduce((sum, trade) => sum + calculateTradeMetrics(trade).realizedNet, 0);
+  return starting + cashFlow + closedPnl;
+}
+
+function getOpenRiskAmount() {
+  return state.trades.filter(trade => trade.status === 'open' || trade.status === 'planned').reduce((sum, trade) => {
+    const metrics = calculateTradeMetrics(trade);
+    return sum + metrics.riskAmount;
+  }, 0);
+}
+
+function getQuickFilteredTrades() {
+  let trades = [...state.trades];
+  const filter = state.ui.filters.quick;
+  if (filter === 'open') trades = trades.filter(t => t.status === 'open');
+  if (filter === 'closed') trades = trades.filter(t => t.status === 'closed');
+  if (filter === 'planned') trades = trades.filter(t => t.status === 'planned');
+  if (filter === 'violations') trades = trades.filter(t => isRuleViolation(t).length > 0);
+  return trades;
+}
+
+function getFilteredTrades() {
+  const search = (state.ui.filters.search || '').toLowerCase().trim();
+  return getQuickFilteredTrades().filter((trade) => {
+    const strategyOk = state.ui.filters.strategy === 'all' || trade.strategy === state.ui.filters.strategy;
+    const statusOk = state.ui.filters.status === 'all' || trade.status === state.ui.filters.status;
+    const hay = [trade.symbol, trade.strategy, trade.session, trade.notes, trade.thesis, ...(trade.tags || [])].join(' ').toLowerCase();
+    const searchOk = !search || hay.includes(search);
+    return strategyOk && statusOk && searchOk;
+  }).sort((a, b) => (b.openedAt || '').localeCompare(a.openedAt || ''));
+}
+
+function getDailyPnlSeries() {
+  const series = new Map();
+  getClosedTrades().forEach((trade) => {
+    const metrics = calculateTradeMetrics(trade);
+    const key = dateOnly(trade.closedAt || trade.openedAt);
+    series.set(key, (series.get(key) || 0) + metrics.realizedNet);
+  });
+  return Array.from(series.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function getWeekCount() {
+  const now = new Date();
+  const start = new Date(now);
+  const day = (now.getDay() + 6) % 7;
+  start.setDate(now.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return state.trades.filter(trade => {
+    const date = new Date(trade.openedAt || trade.createdAt);
+    return date >= start;
+  }).length;
+}
+
+function getTodayPnl() {
+  const today = dateOnly(new Date().toISOString());
+  return getClosedTrades().reduce((sum, trade) => {
+    const key = dateOnly(trade.closedAt || trade.openedAt);
+    return key === today ? sum + calculateTradeMetrics(trade).realizedNet : sum;
+  }, 0);
+}
+
+function getAnalyticsMetrics() {
+  const closedTrades = getClosedTrades();
+  const startingCapital = n(state.profile?.startingCapital);
+  const equity = getCurrentEquity();
+  const netPnl = closedTrades.reduce((sum, trade) => sum + calculateTradeMetrics(trade).realizedNet, 0);
+  const grossProfit = closedTrades.reduce((sum, trade) => {
+    const pnl = calculateTradeMetrics(trade).realizedNet;
+    return pnl > 0 ? sum + pnl : sum;
+  }, 0);
+  const grossLoss = Math.abs(closedTrades.reduce((sum, trade) => {
+    const pnl = calculateTradeMetrics(trade).realizedNet;
+    return pnl < 0 ? sum + pnl : sum;
+  }, 0));
+  const wins = closedTrades.filter(trade => calculateTradeMetrics(trade).realizedNet > 0).length;
+  const losses = closedTrades.filter(trade => calculateTradeMetrics(trade).realizedNet < 0).length;
+  const winRate = closedTrades.length ? (wins / closedTrades.length) * 100 : 0;
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 99 : 0);
+  const avgR = closedTrades.length ? closedTrades.reduce((sum, trade) => sum + calculateTradeMetrics(trade).realizedR, 0) / closedTrades.length : 0;
+  const roi = startingCapital > 0 ? (netPnl / startingCapital) * 100 : 0;
+
+  const dailySeries = getDailyPnlSeries();
+  let bestDay = { date: '', value: 0 };
+  let worstDay = { date: '', value: 0 };
+  dailySeries.forEach(([date, value], idx) => {
+    if (idx === 0 || value > bestDay.value) bestDay = { date, value };
+    if (idx === 0 || value < worstDay.value) worstDay = { date, value };
+  });
+
+  const equityPoints = [];
+  let running = startingCapital + state.cashFlows.reduce((sum, cf) => sum + n(cf.amount), 0);
+  let peak = running;
+  let maxDrawdown = 0;
+  [...closedTrades].sort((a, b) => (a.closedAt || a.openedAt).localeCompare(b.closedAt || b.openedAt)).forEach((trade) => {
+    running += calculateTradeMetrics(trade).realizedNet;
+    peak = Math.max(peak, running);
+    const dd = peak > 0 ? ((running - peak) / peak) * 100 : 0;
+    maxDrawdown = Math.min(maxDrawdown, dd);
+    equityPoints.push({
+      label: humanDate(trade.closedAt || trade.openedAt),
+      equity: running,
+      pnl: calculateTradeMetrics(trade).realizedNet,
+      drawdown: dd
+    });
+  });
+
+  return {
+    startingCapital,
+    equity,
+    netPnl,
+    grossProfit,
+    grossLoss,
+    closedTrades,
+    wins,
+    losses,
+    winRate,
+    profitFactor,
+    avgR,
+    roi,
+    dailySeries,
+    bestDay,
+    worstDay,
+    maxDrawdown,
+    equityPoints,
+    openRiskAmount: getOpenRiskAmount(),
+    openRiskPct: getCurrentEquity() > 0 ? (getOpenRiskAmount() / getCurrentEquity()) * 100 : 0,
+    todayPnl: getTodayPnl()
+  };
+}
+
+function getPlannerDraftAsTrade() {
+  const planner = state.planner;
+  const capital = n(planner.capital) || getCurrentEquity() || n(state.profile?.startingCapital);
+  const riskPct = n(planner.riskPct) || n(state.profile?.riskPerTradePct);
+  let stop = n(planner.stop);
+  let qty = n(planner.qty);
+  const entry = n(planner.entry);
+  const riskAmount = capital * (riskPct / 100);
+
+  if (planner.mode === 'stop' && entry > 0 && qty > 0 && riskAmount > 0) {
+    const distance = riskAmount / qty;
+    stop = planner.side === 'short' ? entry + distance : entry - distance;
+  }
+
+  const targets = [];
+  if (n(planner.tp1) > 0) {
+    targets.push({ label: 'TP1', price: n(planner.tp1), sharePct: n(planner.tp1Share) || 50, hit: false });
+  }
+  if (n(planner.tp2) > 0) {
+    targets.push({ label: 'TP2', price: n(planner.tp2), sharePct: 100 - (n(planner.tp1Share) || 50), hit: false });
+  }
+
+  return normalizeTrade({
+    symbol: planner.symbol || '',
+    side: planner.side || 'long',
+    status: 'planned',
+    openedAt: dateOnly(new Date().toISOString()),
+    capitalBase: capital,
+    riskPct,
+    entry,
+    stopLoss: stop,
+    qty,
+    targets
+  });
+}
+
+function isRuleViolation(trade) {
+  const metrics = calculateTradeMetrics(trade);
+  const violations = [];
+  if (state.profile) {
+    if (metrics.riskPct > n(state.profile.riskPerTradePct) + 0.0001) violations.push('Za duże ryzyko na trade');
+    if (metrics.weightedRR > 0 && metrics.weightedRR < n(state.profile.minRR) - 0.0001) violations.push('RR poniżej minimum');
+    if (metrics.weightedRR === 0 && trade.status !== 'cancelled') violations.push('Brak zdefiniowanego TP / RR');
+    if (metrics.riskToDepositPct > n(state.profile.riskPerTradePct) + 0.0001) violations.push('Przekroczony % depo w SL');
+  }
+  if (!trade.checklistDone) violations.push('Brak checklisty');
+  if (trade.outsidePlan) violations.push('Poza planem');
+  if (trade.revengeTrade) violations.push('Revenge trade');
+  if (trade.movedStopAgainstPlan) violations.push('Przesuwany SL przeciwko planowi');
+  return violations;
+}
+
+function getDisciplineSummary() {
+  const trades = state.trades;
+  const closed = getClosedTrades();
+  const violationCount = trades.reduce((sum, trade) => sum + (isRuleViolation(trade).length > 0 ? 1 : 0), 0);
+  const checklistRate = trades.length ? (trades.filter(trade => trade.checklistDone).length / trades.length) * 100 : 0;
+  const outsidePlanCount = trades.filter(trade => trade.outsidePlan).length;
+  const revengeCount = trades.filter(trade => trade.revengeTrade).length;
+  const movedStopCount = trades.filter(trade => trade.movedStopAgainstPlan).length;
+  const lowRRCount = trades.filter(trade => calculateTradeMetrics(trade).weightedRR > 0 && calculateTradeMetrics(trade).weightedRR < n(state.profile?.minRR)).length;
+  const avgViolationsPerTrade = trades.length ? violationCount / trades.length : 0;
+  const score = clamp(100 - (avgViolationsPerTrade * 30) - ((100 - checklistRate) * 0.35) - outsidePlanCount * 4 - revengeCount * 6 - movedStopCount * 5, 0, 100);
+
+  const mistakeMap = new Map();
+  trades.forEach((trade) => {
+    isRuleViolation(trade).forEach((mistake) => {
+      mistakeMap.set(mistake, (mistakeMap.get(mistake) || 0) + 1);
+    });
+    (trade.mistakes || []).forEach((mistake) => {
+      mistakeMap.set(mistake, (mistakeMap.get(mistake) || 0) + 1);
+    });
+  });
+
+  return {
+    score,
+    checklistRate,
+    violationCount,
+    outsidePlanCount,
+    revengeCount,
+    movedStopCount,
+    lowRRCount,
+    mistakeRows: Array.from(mistakeMap.entries()).sort((a, b) => b[1] - a[1]),
+    notes: closed.filter(t => t.notes).slice().sort((a, b) => (b.closedAt || b.openedAt).localeCompare(a.closedAt || a.openedAt)).slice(0, 5)
+  };
+}
+
+function getStrategyOptions() {
+  const base = state.profile?.strategies || [];
+  const dynamic = Array.from(new Set(state.trades.map(t => t.strategy).filter(Boolean)));
+  return Array.from(new Set([...base, ...dynamic]));
+}
+
+function getSessionOptions() {
+  const base = state.profile?.sessions || [];
+  const dynamic = Array.from(new Set(state.trades.map(t => t.session).filter(Boolean)));
+  return Array.from(new Set([...base, ...dynamic]));
+}
+
+function render() {
+  const pageTabs = $('#trading-page-tabs');
+  if (!state.profile) {
+    $('#setup-container').style.display = 'block';
+    $('#dashboard-container').style.display = 'none';
+    if (pageTabs) pageTabs.style.display = 'none';
+    $('#settings-btn').style.display = 'none';
+    $('#open-planner-btn').style.display = 'none';
+    $('#add-trade-btn').style.display = 'none';
+  } else {
+    $('#setup-container').style.display = 'none';
+    $('#dashboard-container').style.display = 'flex';
+    if (pageTabs) pageTabs.style.display = 'flex';
+    $('#settings-btn').style.display = 'inline-flex';
+    $('#open-planner-btn').style.display = 'inline-flex';
+    $('#add-trade-btn').style.display = 'inline-flex';
+  }
+
+  setActivePageTab(state.ui.activePageTab || 'overview');
+  renderOverview();
+  renderPlanner();
+  renderJournalFilters();
+  renderJournal();
+  renderDiscipline();
+  renderAnalytics();
+  saveState();
+}
+
+function setActivePageTab(tab) {
+  state.ui.activePageTab = tab;
+  $$('[data-trading-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.tradingTab === tab));
+  $$('[data-trading-tab-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.tradingTabPanel === tab));
+}
+
+function setActiveAnalyticsTab(tab) {
+  state.ui.activeAnalyticsTab = tab;
+  $$('[data-analytics-tab]').forEach(btn => btn.classList.toggle('active', btn.dataset.analyticsTab === tab));
+  $$('[data-analytics-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.analyticsPanel === tab));
+  renderAnalytics();
+}
+
+function renderOverview() {
+  if (!state.profile) return;
+  const metrics = getAnalyticsMetrics();
+  const discipline = getDisciplineSummary();
+  const currentEquity = metrics.equity;
+  const profile = state.profile;
+  const dailyLossLimitValue = currentEquity * (n(profile.maxDailyLossPct) / 100);
+  const dailyRoom = dailyLossLimitValue + Math.min(metrics.todayPnl, 0);
+
+  $('#hero-capital').textContent = `Start ${fmtMoney(profile.startingCapital)}`;
+  $('#hero-risk').textContent = `Risk / trade ${fmtPct(profile.riskPerTradePct)}`;
+  $('#hero-loss-limit').textContent = `Daily loss ${fmtPct(profile.maxDailyLossPct)}`;
+
+  $('#overview-equity').textContent = fmtMoney(currentEquity);
+  $('#overview-equity-note').textContent = `${metrics.closedTrades.length} zamkniętych pozycji • ${state.trades.length} łącznie`;
+  const pnlIsPos = metrics.netPnl >= 0;
+  $('#overview-equity-trend').innerHTML = `<span class="material-symbols-outlined">${pnlIsPos ? 'north_east' : 'south_east'}</span><span>${pnlIsPos ? 'Kapitał rośnie' : 'Kapitał pod presją'}</span>`;
+  $('#overview-equity-trend').className = `fintech-card-trend ${pnlIsPos ? 'fintech-card-trend--success' : 'fintech-card-trend--danger'}`;
+
+  $('#overview-pnl').textContent = fmtMoney(metrics.netPnl);
+  $('#overview-pnl').className = `fintech-card-value ${metrics.netPnl >= 0 ? 'fintech-card-value--success' : 'fintech-card-value--danger'}`;
+  $('#overview-pnl-note').textContent = `Gross profit ${fmtMoney(metrics.grossProfit)} vs gross loss ${fmtMoney(metrics.grossLoss)}`;
+  $('#overview-pnl-trend').innerHTML = `<span class="material-symbols-outlined">${metrics.avgR >= 0 ? 'track_changes' : 'error'}</span><span>Śr. expectancy ${fmtR(metrics.avgR)}</span>`;
+  $('#overview-pnl-trend').className = `fintech-card-trend ${metrics.avgR >= 0 ? 'fintech-card-trend--success' : 'fintech-card-trend--danger'}`;
+
+  $('#overview-winrate').textContent = `${fmtPct(metrics.winRate, 1)} • PF ${fmtNum(metrics.profitFactor, 2)}`;
+  $('#overview-winrate-note').textContent = `${metrics.wins} W / ${metrics.losses} L na ${metrics.closedTrades.length} closed trades`;
+  $('#profit-progress').style.width = `${clamp(metrics.winRate, 0, 100)}%`;
+  $('#profit-progress-text').textContent = `Target win rate dla RR ${fmtNum(profile.minRR, 1)} to około ${fmtPct(100 / (1 + n(profile.minRR)), 1)}`;
+
+  $('#overview-roi').textContent = fmtPct(metrics.roi, 1);
+  $('#roi-orb').style.background = `conic-gradient(rgba(255,255,255,0.96) ${clamp(Math.abs(metrics.roi), 8, 92)}%, rgba(255,255,255,0.18) 0)`;
+
+  $('#metric-r').textContent = fmtR(metrics.avgR);
+  $('#metric-best-day').textContent = fmtMoney(metrics.bestDay.value || 0);
+  $('#metric-best-day-note').textContent = metrics.bestDay.date ? humanDate(metrics.bestDay.date) : 'Brak danych';
+  $('#metric-worst-day').textContent = fmtMoney(metrics.worstDay.value || 0);
+  $('#metric-worst-day-note').textContent = metrics.worstDay.date ? humanDate(metrics.worstDay.date) : 'Brak danych';
+  $('#metric-dd').textContent = fmtPct(metrics.maxDrawdown, 1);
+  $('#metric-open-risk').textContent = fmtMoney(metrics.openRiskAmount);
+  $('#metric-open-risk-note').textContent = `${fmtPct(metrics.openRiskPct, 1)} equity w grze`;
+
+  $('#rail-today-pnl').textContent = fmtMoney(metrics.todayPnl);
+  $('#rail-today-note').innerHTML = metrics.todayPnl >= 0 ? '<span class="risk-badge good">flow OK</span>' : '<span class="risk-badge warn">uważaj</span>';
+  $('#rail-daily-room').textContent = fmtMoney(dailyRoom);
+  $('#rail-daily-room-note').innerHTML = dailyRoom > 0 ? '<span class="risk-badge info">mieścisz się</span>' : '<span class="risk-badge bad">stop trading</span>';
+  $('#rail-open-risk').textContent = fmtMoney(metrics.openRiskAmount);
+  $('#rail-open-risk-note').innerHTML = metrics.openRiskPct <= n(profile.maxOpenRiskPct) ? '<span class="risk-badge good">w normie</span>' : '<span class="risk-badge bad">za wysoko</span>';
+  $('#rail-week-count').textContent = String(getWeekCount());
+  $('#rail-week-count-note').textContent = `Closed: ${metrics.closedTrades.filter(trade => monthKey(trade.closedAt || trade.openedAt) === monthKey(new Date().toISOString())).length} w tym miesiącu`;
+
+  $('#discipline-score').textContent = `${fmtNum(discipline.score, 0)}/100`;
+  $('#discipline-score-note').textContent = `Checklista ${fmtPct(discipline.checklistRate, 0)} • naruszenia ${discipline.violationCount}`;
+  $('#discipline-badge').innerHTML = discipline.score >= 80
+    ? '<span class="risk-badge good">Proces stabilny</span>'
+    : discipline.score >= 60
+      ? '<span class="risk-badge warn">Wymaga uwagi</span>'
+      : '<span class="risk-badge bad">Za dużo odchyleń</span>';
+
+  $('#rule-min-rr').textContent = `${fmtNum(profile.minRR, 1)}R`;
+  $('#rule-risk-trade').textContent = fmtPct(profile.riskPerTradePct, 1);
+  $('#rule-daily-loss').textContent = fmtPct(profile.maxDailyLossPct, 1);
+  $('#rule-open-risk').textContent = fmtPct(profile.maxOpenRiskPct, 1);
+
+  $('#overview-checklist').innerHTML = (profile.checklist || []).map(item => `
+    <label class="check-chip"><input type="checkbox" disabled> <span>${item}</span></label>
+  `).join('');
+
+  const insightRows = [];
+  if (metrics.closedTrades.length === 0) {
+    insightRows.push({ title: 'Brak historii', note: 'Zacznij od zapisania pierwszej pozycji z planem wejścia i wyjścia.' });
+  } else {
+    insightRows.push({ title: 'RR vs win rate', note: `Przy min RR ${fmtNum(profile.minRR, 1)} wystarczy ~${fmtPct(100 / (1 + n(profile.minRR)), 1)} trafności do BE.` });
+    if (discipline.lowRRCount > 0) {
+      insightRows.push({ title: 'Za niskie RR', note: `${discipline.lowRRCount} pozycji zeszło poniżej Twojego minimum.` });
+    }
+    if (metrics.openRiskPct > n(profile.maxOpenRiskPct)) {
+      insightRows.push({ title: 'Open risk za wysoki', note: `Masz wystawione ${fmtPct(metrics.openRiskPct, 1)} equity vs limit ${fmtPct(profile.maxOpenRiskPct, 1)}.` });
+    }
+    if (discipline.revengeCount > 0) {
+      insightRows.push({ title: 'Emocjonalne wejścia', note: `Zaznaczyłeś revenge trade ${discipline.revengeCount}x — to zwykle kasuje edge.` });
+    }
+  }
+  $('#overview-insights').innerHTML = insightRows.map(row => `<div class="insight-row"><div><strong>${row.title}</strong><span>${row.note}</span></div></div>`).join('');
+}
+
+function renderPlanner() {
+  if (!state.profile) return;
+  $('#planner-symbol').value = state.planner.symbol || '';
+  $('#planner-side').value = state.planner.side || 'long';
+  $('#planner-capital').value = state.planner.capital || getCurrentEquity() || n(state.profile.startingCapital);
+  $('#planner-risk-pct').value = state.planner.riskPct || n(state.profile.riskPerTradePct);
+  $('#planner-entry').value = state.planner.entry || '';
+  $('#planner-stop').value = state.planner.stop || '';
+  $('#planner-qty').value = state.planner.qty || '';
+  $('#planner-tp1').value = state.planner.tp1 || '';
+  $('#planner-tp2').value = state.planner.tp2 || '';
+  $('#planner-tp1-share').value = state.planner.tp1Share || 50;
+
+  $$('#planner-mode-switch button').forEach(btn => btn.classList.toggle('active', btn.dataset.plannerMode === state.planner.mode));
+  $('#planner-stop').closest('.form-group').style.opacity = state.planner.mode === 'size' ? '1' : '0.88';
+  $('#planner-qty').closest('.form-group').style.opacity = state.planner.mode === 'stop' ? '1' : '0.88';
+
+  const plannerTrade = getPlannerDraftAsTrade();
+  const metrics = calculateTradeMetrics(plannerTrade);
+  const firstTarget = metrics.targetBreakdown[0];
+  const secondTarget = metrics.targetBreakdown[1];
+  const stopRecommendation = metrics.riskPerUnit > 0 ? fmtPct(metrics.stopDistancePct, 2) : '—';
+  const cards = [
+    { label: 'Risk kwotowo', value: fmtMoney(metrics.riskAmount), note: `${fmtPct(metrics.riskPct, 2)} kapitału` },
+    { label: 'Rekomendowany size', value: metrics.qty ? fmtNum(metrics.qty, 4) : '—', note: metrics.qty ? `Notional ${fmtMoney(metrics.notional)}` : 'Podaj entry i SL' },
+    { label: 'SL distance', value: stopRecommendation, note: plannerTrade.stopLoss > 0 ? `Entry → SL ${fmtNum(Math.abs(plannerTrade.entry - plannerTrade.stopLoss), 4)}` : 'Brak danych' },
+    { label: 'Leverage efektywny', value: metrics.leverage ? `${fmtNum(metrics.leverage, 2)}x` : '—', note: 'Notional / kapitał bazowy' },
+    { label: 'Planowane RR', value: metrics.weightedRR ? fmtR(metrics.weightedRR) : '—', note: metrics.weightedNetRR ? `Po fee ~ ${fmtR(metrics.weightedNetRR)}` : 'Dodaj TP' },
+    { label: 'Max loss net', value: fmtMoney(metrics.maxLossNet), note: `Fee + slippage ${fmtMoney(metrics.entryFees + metrics.exitFeesAtStop + metrics.slippageCost)}` },
+    { label: 'TP1', value: firstTarget ? fmtMoney(firstTarget.net) : '—', note: firstTarget ? `${firstTarget.label} • ${fmtR(firstTarget.rr)}` : 'Brak TP1' },
+    { label: 'TP2', value: secondTarget ? fmtMoney(secondTarget.net) : '—', note: secondTarget ? `${secondTarget.label} • ${fmtR(secondTarget.rr)}` : 'Brak TP2' }
+  ];
+  $('#planner-results').innerHTML = cards.map(card => `
+    <article class="planner-card">
+      <span class="label">${card.label}</span>
+      <strong class="value">${card.value}</strong>
+      <span class="note">${card.note}</span>
+    </article>
+  `).join('');
+}
+
+function renderJournalFilters() {
+  if (!state.profile) return;
+  const quickFilters = [
+    { key: 'all', label: 'Wszystkie' },
+    { key: 'open', label: 'Otwarte' },
+    { key: 'closed', label: 'Zamknięte' },
+    { key: 'planned', label: 'Planowane' },
+    { key: 'violations', label: 'Naruszenia' }
+  ];
+  $('#journal-filter-bar').innerHTML = quickFilters.map(item => `
+    <button class="filter-pill ${state.ui.filters.quick === item.key ? 'active' : ''}" data-quick-filter="${item.key}">${item.label}</button>
+  `).join('');
+
+  const strategies = ['all', ...getStrategyOptions()];
+  $('#filter-strategy').innerHTML = strategies.map(option => `<option value="${option}">${option === 'all' ? 'Wszystkie strategie' : option}</option>`).join('');
+  $('#filter-strategy').value = state.ui.filters.strategy;
+  const statuses = ['all', 'planned', 'open', 'closed', 'cancelled'];
+  $('#filter-status').innerHTML = statuses.map(option => `<option value="${option}">${option === 'all' ? 'Wszystkie statusy' : option}</option>`).join('');
+  $('#filter-status').value = state.ui.filters.status;
+  $('#filter-search').value = state.ui.filters.search || '';
+}
+
+function renderJournal() {
+  if (!state.profile) return;
+  const rows = getFilteredTrades();
+  const metrics = getAnalyticsMetrics();
+  $('#journal-kpis').innerHTML = `
+    <span class="risk-badge ${rows.length ? 'info' : 'warn'}">${rows.length} pozycji w widoku</span>
+    <span class="risk-badge ${metrics.netPnl >= 0 ? 'good' : 'bad'}">Net ${fmtMoney(metrics.netPnl)}</span>
+    <span class="risk-badge ${metrics.avgR >= 0 ? 'good' : 'warn'}">Expectancy ${fmtR(metrics.avgR)}</span>
+  `;
+
+  if (!rows.length) {
+    $('#trade-table-body').innerHTML = `<tr><td colspan="11"><div class="empty-state">Brak pozycji dla bieżącego filtra.</div></td></tr>`;
+    return;
+  }
+
+  $('#trade-table-body').innerHTML = rows.map((trade) => {
+    const metrics = calculateTradeMetrics(trade);
+    const violations = isRuleViolation(trade);
+    const pnl = trade.status === 'closed' ? metrics.realizedNet : trade.status === 'open' ? metrics.unrealizedNet : 0;
+    const rrDisplay = trade.status === 'closed' ? fmtR(metrics.realizedR) : (metrics.weightedRR ? fmtR(metrics.weightedRR) : '—');
+    return `
+      <tr>
+        <td>${humanDate(trade.openedAt)}</td>
+        <td><strong>${trade.symbol || '—'}</strong><div class="tiny muted">${trade.session || '—'}</div></td>
+        <td><span class="tag-pill">${trade.side === 'short' ? 'Short' : 'Long'}</span></td>
+        <td><span class="status-pill ${trade.status}">${trade.status}</span></td>
+        <td>${fmtNum(trade.entry, 4)}<div class="tiny muted">SL ${fmtNum(trade.stopLoss, 4)}</div></td>
+        <td>${metrics.qty ? fmtNum(metrics.qty, 4) : '—'}<div class="tiny muted">${metrics.leverage ? fmtNum(metrics.leverage, 2) + 'x' : '—'}</div></td>
+        <td>${fmtMoney(metrics.riskAmount)}<div class="tiny muted">${fmtPct(metrics.riskPct, 2)}</div></td>
+        <td>${rrDisplay}<div class="tiny muted">plan ${metrics.weightedRR ? fmtR(metrics.weightedRR) : '—'}</div></td>
+        <td>${fmtMoney(pnl)}<div class="tiny muted">${trade.status === 'closed' ? fmtPct(metrics.capitalBase > 0 ? (pnl / metrics.capitalBase) * 100 : 0, 2) : (trade.status === 'open' ? 'MTM' : 'plan')}</div></td>
+        <td>
+          <span class="quality-pill ${String(trade.setupGrade || 'B').toLowerCase()}">${trade.setupGrade || 'B'}</span>
+          <div class="tiny muted">${trade.strategy || '—'}</div>
+          ${violations.length ? `<div class="tiny" style="color:#dc2626; margin-top:6px;">${violations.length} naruszeń</div>` : '<div class="tiny" style="color:#047857; margin-top:6px;">OK</div>'}
+        </td>
+        <td>
+          <div class="row-inline">
+            <button class="btn tiny soft" onclick="openTradeModal('${trade.id}')">Edytuj</button>
+            <button class="btn tiny" onclick="duplicateTrade('${trade.id}')">Duplikuj</button>
+            <button class="btn tiny danger" onclick="deleteTrade('${trade.id}')">Usuń</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderDiscipline() {
+  if (!state.profile) return;
+  const discipline = getDisciplineSummary();
+  const metrics = getAnalyticsMetrics();
+  const maxOpenRisk = n(state.profile.maxOpenRiskPct);
+  const todayLossLimit = metrics.equity * (n(state.profile.maxDailyLossPct) / 100);
+  const rules = [
+    {
+      title: 'Checklist completion',
+      value: fmtPct(discipline.checklistRate, 0),
+      note: `${state.trades.filter(trade => trade.checklistDone).length}/${state.trades.length || 0} pozycji miało pełną checklistę.`
+    },
+    {
+      title: 'Violation density',
+      value: `${discipline.violationCount}`,
+      note: 'Ile pozycji miało co najmniej jedno odchylenie od planu.'
+    },
+    {
+      title: 'Open risk vs cap',
+      value: `${fmtPct(metrics.openRiskPct, 1)} / ${fmtPct(maxOpenRisk, 1)}`,
+      note: metrics.openRiskPct > maxOpenRisk ? 'Masz za dużo wystawionego risku.' : 'Jesteś w limicie.'
+    },
+    {
+      title: 'Today vs stop',
+      value: `${fmtMoney(metrics.todayPnl)} / ${fmtMoney(-todayLossLimit)}`,
+      note: metrics.todayPnl <= -todayLossLimit ? 'Sesja powinna być zakończona.' : 'Masz jeszcze bufor.'
+    }
+  ];
+  $('#discipline-rules-grid').innerHTML = rules.map(rule => `
+    <article class="rule-card">
+      <h3 class="title">${rule.title}</h3>
+      <div class="value">${rule.value}</div>
+      <div class="note">${rule.note}</div>
+    </article>
+  `).join('');
+
+  const mistakes = discipline.mistakeRows.length ? discipline.mistakeRows : [['Brak powtarzalnych błędów', 0]];
+  $('#mistake-list').innerHTML = mistakes.map(([label, count]) => `
+    <div class="mistake-row"><div><strong>${label}</strong><span>${count ? `Wystąpienia: ${count}` : 'Na razie czysto'}</span></div><span class="risk-badge ${count > 2 ? 'bad' : count > 0 ? 'warn' : 'good'}">${count}</span></div>
+  `).join('');
+
+  const notes = [];
+  notes.push({ label: 'Proces score', value: `${fmtNum(discipline.score, 0)}/100`, note: discipline.score >= 80 ? 'Nie psuj tego.' : 'Najpierw popraw proces, potem zwiększaj size.' });
+  notes.push({ label: 'Min RR adherence', value: `${Math.max(state.trades.length - discipline.lowRRCount, 0)}/${state.trades.length || 0}`, note: `${discipline.lowRRCount} pozycji zeszło poniżej progu.` });
+  notes.push({ label: 'Revenge / outside plan', value: `${discipline.revengeCount + discipline.outsidePlanCount}`, note: 'To zwykle nie jest problem analityczny, tylko behawioralny.' });
+  notes.push({ label: 'Best leverage control', value: fmtPct(metrics.openRiskPct, 1), note: `Pilnuj aby łączne open risk nie przekraczało ${fmtPct(state.profile.maxOpenRiskPct, 1)}.` });
+  $('#discipline-notes').innerHTML = notes.map(item => `
+    <div class="mini-stat"><div><strong>${item.label}</strong><span>${item.note}</span></div><strong>${item.value}</strong></div>
+  `).join('');
+
+  const recent = discipline.notes;
+  $('#recent-notes').innerHTML = recent.length ? recent.map(trade => `
+    <div class="insight-row"><div><strong>${trade.symbol || 'Trade'} • ${humanDate(trade.closedAt || trade.openedAt)}</strong><span>${trade.notes}</span></div></div>
+  `).join('') : '<div class="empty-state">Dodawaj notatki po trade, a tutaj pojawią się najświeższe wnioski.</div>';
+}
+
+function ensureChart(id, config) {
+  if (charts[id]) {
+    charts[id].data = config.data;
+    charts[id].options = config.options;
+    charts[id].update();
+    return charts[id];
+  }
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, { ...config, plugins: [ChartDataLabels] });
+  return charts[id];
+}
+
+function destroyAllCharts() {
+  Object.values(charts).forEach(chart => chart.destroy());
+  charts = {};
+}
+
+function axisOptions(tickCallback) {
+  return {
+    grid: { color: 'rgba(148, 163, 184, 0.14)' },
+    border: { display: false },
+    ticks: { color: '#64748b', font: { family: 'Inter', size: 11, weight: '600' }, callback: tickCallback }
+  };
+}
+
+function commonChartOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 10, boxHeight: 10, padding: 18, color: '#475569', font: { family: 'Inter', size: 12, weight: '600' } }
+      },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        titleColor: '#fff',
+        bodyColor: '#e2e8f0',
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        padding: 14,
+        cornerRadius: 16,
+        displayColors: true,
+        boxPadding: 6,
+        usePointStyle: true
+      },
+      datalabels: { display: false }
+    },
+    scales: {
+      x: axisOptions(),
+      y: axisOptions(value => fmtNum(value, 0))
+    }
+  };
+}
+
+function renderAnalytics() {
+  if (!state.profile) return;
+  const metrics = getAnalyticsMetrics();
+  const closed = metrics.closedTrades;
+  const placeholder = $('#analytics-placeholder');
+  const panels = $$('[data-analytics-panel]');
+  if (!closed.length) {
+    placeholder.style.display = 'flex';
+    panels.forEach(panel => panel.style.display = 'none');
+    destroyAllCharts();
+    return;
+  }
+  placeholder.style.display = 'none';
+  panels.forEach(panel => panel.style.display = panel.dataset.analyticsPanel === state.ui.activeAnalyticsTab ? 'block' : 'none');
+
+  const baseOptions = commonChartOptions();
+  const equityLabels = metrics.equityPoints.map(point => point.label);
+  ensureChart('equity-chart', {
+    type: 'line',
+    data: {
+      labels: equityLabels,
+      datasets: [
+        {
+          label: 'Equity',
+          data: metrics.equityPoints.map(point => point.equity),
+          borderColor: 'rgba(37,99,235,0.94)',
+          backgroundColor: 'rgba(37,99,235,0.12)',
+          tension: 0.28,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Drawdown %',
+          data: metrics.equityPoints.map(point => point.drawdown),
+          borderColor: 'rgba(220,38,38,0.85)',
+          backgroundColor: 'rgba(220,38,38,0.10)',
+          tension: 0.22,
+          pointRadius: 0,
+          fill: false,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      ...baseOptions,
+      scales: {
+        x: axisOptions(),
+        y: axisOptions(value => fmtMoney(value, getCurrency())),
+        y1: {
+          position: 'right',
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: '#dc2626', callback: value => `${fmtNum(value, 1)}%` }
+        }
+      }
+    }
+  });
+
+  const dailyLabels = metrics.dailySeries.map(([date]) => humanDate(date));
+  ensureChart('daily-chart', {
+    type: 'bar',
+    data: {
+      labels: dailyLabels,
+      datasets: [{
+        label: 'Dzienne PnL',
+        data: metrics.dailySeries.map(([, value]) => value),
+        backgroundColor: metrics.dailySeries.map(([, value]) => value >= 0 ? 'rgba(5,150,105,0.72)' : 'rgba(220,38,38,0.72)'),
+        borderRadius: 12,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      ...baseOptions,
+      scales: { x: axisOptions(), y: axisOptions(value => fmtMoney(value, getCurrency())) }
+    }
+  });
+
+  const strategyMap = new Map();
+  closed.forEach((trade) => strategyMap.set(trade.strategy || 'Bez strategii', (strategyMap.get(trade.strategy || 'Bez strategii') || 0) + calculateTradeMetrics(trade).realizedNet));
+  const strategyEntries = Array.from(strategyMap.entries()).sort((a, b) => b[1] - a[1]);
+  ensureChart('strategy-chart', {
+    type: 'bar',
+    data: {
+      labels: strategyEntries.map(([label]) => label),
+      datasets: [{
+        label: 'PnL wg strategii',
+        data: strategyEntries.map(([, value]) => value),
+        backgroundColor: strategyEntries.map(([, value]) => value >= 0 ? 'rgba(37,99,235,0.72)' : 'rgba(234,88,12,0.72)'),
+        borderRadius: 12,
+        borderSkipped: false
+      }]
+    },
+    options: { ...baseOptions, scales: { x: axisOptions(), y: axisOptions(value => fmtMoney(value, getCurrency())) } }
+  });
+
+  const sessionMap = new Map();
+  closed.forEach((trade) => sessionMap.set(trade.session || 'Brak sesji', (sessionMap.get(trade.session || 'Brak sesji') || 0) + calculateTradeMetrics(trade).realizedNet));
+  const sessionEntries = Array.from(sessionMap.entries());
+  ensureChart('session-chart', {
+    type: 'doughnut',
+    data: {
+      labels: sessionEntries.map(([label]) => label),
+      datasets: [{
+        label: 'PnL wg sesji',
+        data: sessionEntries.map(([, value]) => Math.abs(value)),
+        backgroundColor: ['rgba(37,99,235,0.78)','rgba(5,150,105,0.74)','rgba(124,58,237,0.72)','rgba(234,88,12,0.72)','rgba(220,38,38,0.72)'],
+        borderWidth: 0
+      }]
+    },
+    options: { ...baseOptions, scales: {} }
+  });
+
+  const weekdays = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'];
+  const weekdayMap = new Map(weekdays.map(day => [day, 0]));
+  closed.forEach((trade) => {
+    const date = new Date(trade.closedAt || trade.openedAt);
+    const idx = (date.getDay() + 6) % 7;
+    weekdayMap.set(weekdays[idx], (weekdayMap.get(weekdays[idx]) || 0) + calculateTradeMetrics(trade).realizedNet);
+  });
+  ensureChart('weekday-chart', {
+    type: 'bar',
+    data: {
+      labels: weekdays,
+      datasets: [{
+        label: 'PnL wg dnia tygodnia',
+        data: weekdays.map(day => weekdayMap.get(day) || 0),
+        backgroundColor: weekdays.map(day => (weekdayMap.get(day) || 0) >= 0 ? 'rgba(5,150,105,0.72)' : 'rgba(220,38,38,0.72)'),
+        borderRadius: 12,
+        borderSkipped: false
+      }]
+    },
+    options: { ...baseOptions, scales: { x: axisOptions(), y: axisOptions(value => fmtMoney(value, getCurrency())) } }
+  });
+
+  ensureChart('rmultiple-chart', {
+    type: 'bar',
+    data: {
+      labels: closed.map(trade => `${trade.symbol || 'Trade'} • ${humanDate(trade.closedAt || trade.openedAt)}`),
+      datasets: [{
+        label: 'Realized R',
+        data: closed.map(trade => calculateTradeMetrics(trade).realizedR),
+        backgroundColor: closed.map(trade => calculateTradeMetrics(trade).realizedR >= 0 ? 'rgba(5,150,105,0.72)' : 'rgba(220,38,38,0.72)'),
+        borderRadius: 12,
+        borderSkipped: false
+      }]
+    },
+    options: { ...baseOptions, scales: { x: axisOptions(), y: axisOptions(value => `${fmtNum(value, 2)}R`) } }
+  });
+}
+
+function openSetupModal() {
+  const profile = state.profile || defaultProfile();
+  const body = `
+    <div class="modal-grid">
+      <div>
+        <div class="planner-form-grid">
+          <div class="form-group"><label class="form-label">Kapitał początkowy</label><input id="profile-starting-capital" type="number" step="0.01" class="form-input" value="${profile.startingCapital}"></div>
+          <div class="form-group"><label class="form-label">Waluta konta</label><input id="profile-currency" class="form-input" value="${profile.currency}"></div>
+          <div class="form-group"><label class="form-label">Risk na trade %</label><input id="profile-risk-per-trade" type="number" step="0.01" class="form-input" value="${profile.riskPerTradePct}"></div>
+          <div class="form-group"><label class="form-label">Max daily loss %</label><input id="profile-max-daily-loss" type="number" step="0.01" class="form-input" value="${profile.maxDailyLossPct}"></div>
+          <div class="form-group"><label class="form-label">Max open risk %</label><input id="profile-max-open-risk" type="number" step="0.01" class="form-input" value="${profile.maxOpenRiskPct}"></div>
+          <div class="form-group"><label class="form-label">Min RR</label><input id="profile-min-rr" type="number" step="0.01" class="form-input" value="${profile.minRR}"></div>
+          <div class="form-group"><label class="form-label">Fee % (round trip liczony z wejścia/wyjścia)</label><input id="profile-fee-pct" type="number" step="0.0001" class="form-input" value="${profile.feePct}"></div>
+          <div class="form-group"><label class="form-label">Slippage %</label><input id="profile-slippage-pct" type="number" step="0.0001" class="form-input" value="${profile.slippagePct}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Strategie (oddziel przecinkami)</label><textarea id="profile-strategies" class="form-textarea">${(profile.strategies || []).join(', ')}</textarea></div>
+        <div class="form-group"><label class="form-label">Checklista (każdy punkt w nowej linii)</label><textarea id="profile-checklist" class="form-textarea">${(profile.checklist || []).join('\n')}</textarea></div>
+      </div>
+      <div class="modal-side-stack">
+        <div class="soft-panel">
+          <h3 class="title">Co ustalasz teraz</h3>
+          <div class="copy">Ten profil staje się źródłem prawdy dla kalkulatora i rule engine. Każdy nowy trade domyślnie dziedziczy risk %, fee, minimalne RR i checklistę.</div>
+        </div>
+        <div class="soft-panel">
+          <h3 class="title">Tip</h3>
+          <div class="big">Najpierw ryzyko, potem entry</div>
+          <div class="copy">Jeżeli chcesz trzymać dyscyplinę, najważniejsze pola to: kapitał, risk / trade, daily loss i min RR. Reszta jest po to, aby mierzyć edge.</div>
+        </div>
+      </div>
+    </div>
+  `;
+  const footer = `
+    <button class="btn" onclick="closeModal()">Anuluj</button>
+    <button class="btn primary" onclick="saveProfile()">Zapisz ustawienia</button>
+  `;
+  openModal('Ustawienia trading desk', body, footer);
+}
+
+function saveProfile() {
+  state.profile = {
+    ...defaultProfile(),
+    ...state.profile,
+    startingCapital: n($('#profile-starting-capital').value),
+    currency: ($('#profile-currency').value || 'USDT').trim().toUpperCase(),
+    riskPerTradePct: n($('#profile-risk-per-trade').value),
+    maxDailyLossPct: n($('#profile-max-daily-loss').value),
+    maxOpenRiskPct: n($('#profile-max-open-risk').value),
+    minRR: n($('#profile-min-rr').value),
+    feePct: n($('#profile-fee-pct').value),
+    slippagePct: n($('#profile-slippage-pct').value),
+    strategies: $('#profile-strategies').value.split(',').map(item => item.trim()).filter(Boolean),
+    checklist: $('#profile-checklist').value.split('\n').map(item => item.trim()).filter(Boolean)
+  };
+  state.planner.capital = state.planner.capital || state.profile.startingCapital;
+  state.planner.riskPct = state.planner.riskPct || state.profile.riskPerTradePct;
+  saveState();
+  closeModal();
+  render();
+}
+
+function buildTargetRows(targets = []) {
+  const safeTargets = targets.length ? targets : [
+    { id: uid('tp1'), label: 'TP1', price: '', sharePct: 50, hit: false },
+    { id: uid('tp2'), label: 'TP2', price: '', sharePct: 50, hit: false }
+  ];
+  return safeTargets.map((target, idx) => `
+    <div class="target-row" data-target-row>
+      <input class="form-input" data-target-label value="${target.label || `TP${idx + 1}`}" placeholder="TP${idx + 1}">
+      <input class="form-input" data-target-price type="number" step="0.0001" value="${target.price || ''}" placeholder="Cena TP">
+      <input class="form-input" data-target-share type="number" step="0.01" value="${target.sharePct || ''}" placeholder="Udział %">
+      <label class="tiny-switch"><input type="checkbox" data-target-hit ${target.hit ? 'checked' : ''}> hit</label>
+    </div>
+  `).join('');
+}
+
+function openTradeModal(tradeId = null, seed = null) {
+  const original = tradeId ? state.trades.find(trade => trade.id === tradeId) : null;
+  const draft = normalizeTrade(original ? deepClone(original) : {
+    ...(seed || {}),
+    status: seed?.status || 'planned',
+    setupGrade: seed?.setupGrade || 'B',
+    capitalBase: seed?.capitalBase || getCurrentEquity() || n(state.profile?.startingCapital),
+    riskPct: seed?.riskPct || n(state.profile?.riskPerTradePct),
+    openedAt: seed?.openedAt || dateOnly(new Date().toISOString()),
+    targets: seed?.targets || [
+      { id: uid('tp1'), label: 'TP1', price: '', sharePct: 50, hit: false },
+      { id: uid('tp2'), label: 'TP2', price: '', sharePct: 50, hit: false }
+    ]
+  });
+
+  const strategies = getStrategyOptions();
+  const sessions = getSessionOptions();
+  const body = `
+    <div class="modal-grid">
+      <div>
+        <div class="planner-form-grid">
+          <div class="form-group"><label class="form-label">Symbol</label><input id="trade-symbol" class="form-input" value="${draft.symbol || ''}" placeholder="BTCUSDT"></div>
+          <div class="form-group"><label class="form-label">Status</label><select id="trade-status" class="form-select"><option value="planned" ${draft.status === 'planned' ? 'selected' : ''}>Planned</option><option value="open" ${draft.status === 'open' ? 'selected' : ''}>Open</option><option value="closed" ${draft.status === 'closed' ? 'selected' : ''}>Closed</option><option value="cancelled" ${draft.status === 'cancelled' ? 'selected' : ''}>Cancelled</option></select></div>
+          <div class="form-group"><label class="form-label">Kierunek</label><select id="trade-side" class="form-select"><option value="long" ${draft.side === 'long' ? 'selected' : ''}>Long</option><option value="short" ${draft.side === 'short' ? 'selected' : ''}>Short</option></select></div>
+          <div class="form-group"><label class="form-label">Ocena setupu</label><select id="trade-grade" class="form-select"><option value="A" ${draft.setupGrade === 'A' ? 'selected' : ''}>A</option><option value="B" ${draft.setupGrade === 'B' ? 'selected' : ''}>B</option><option value="C" ${draft.setupGrade === 'C' ? 'selected' : ''}>C</option><option value="D" ${draft.setupGrade === 'D' ? 'selected' : ''}>D</option></select></div>
+          <div class="form-group"><label class="form-label">Strategia</label><input id="trade-strategy" list="trade-strategies" class="form-input" value="${draft.strategy || ''}" placeholder="Breakout"><datalist id="trade-strategies">${strategies.map(s => `<option value="${s}">`).join('')}</datalist></div>
+          <div class="form-group"><label class="form-label">Sesja</label><input id="trade-session" list="trade-sessions" class="form-input" value="${draft.session || ''}" placeholder="London"><datalist id="trade-sessions">${sessions.map(s => `<option value="${s}">`).join('')}</datalist></div>
+          <div class="form-group"><label class="form-label">Open date</label><input id="trade-opened-at" type="date" class="form-input" value="${draft.openedAt || ''}"></div>
+          <div class="form-group"><label class="form-label">Close date</label><input id="trade-closed-at" type="date" class="form-input" value="${draft.closedAt || ''}"></div>
+          <div class="form-group"><label class="form-label">Kapitał bazowy</label><input id="trade-capital-base" type="number" step="0.01" class="form-input" value="${draft.capitalBase || ''}"></div>
+          <div class="form-group"><label class="form-label">Risk %</label><input id="trade-risk-pct" type="number" step="0.01" class="form-input" value="${draft.riskPct || ''}"></div>
+          <div class="form-group"><label class="form-label">Entry</label><input id="trade-entry" type="number" step="0.0001" class="form-input" value="${draft.entry || ''}"></div>
+          <div class="form-group"><label class="form-label">SL</label><input id="trade-stop-loss" type="number" step="0.0001" class="form-input" value="${draft.stopLoss || ''}"></div>
+          <div class="form-group"><label class="form-label">Qty</label><input id="trade-qty" type="number" step="0.0001" class="form-input" value="${draft.qty || ''}"></div>
+          <div class="form-group"><label class="form-label">Mark price</label><input id="trade-mark-price" type="number" step="0.0001" class="form-input" value="${draft.markPrice || ''}"></div>
+          <div class="form-group"><label class="form-label">Final exit price</label><input id="trade-final-exit-price" type="number" step="0.0001" class="form-input" value="${draft.finalExitPrice || ''}"></div>
+          <div class="form-group"><label class="form-label">Tagi (przecinki)</label><input id="trade-tags" class="form-input" value="${(draft.tags || []).join(', ')}" placeholder="momentum, breakdown"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Częściowe TP</label>
+          <div id="trade-target-editor" class="target-editor">${buildTargetRows(draft.targets || [])}</div>
+          <div class="row-inline" style="margin-top:10px;"><button class="btn soft" type="button" onclick="appendTargetRow()">+ Dodaj TP</button></div>
+        </div>
+
+        <div class="check-grid">
+          <label class="check-chip"><input id="trade-checklist-done" type="checkbox" ${draft.checklistDone ? 'checked' : ''}><span>Checklista kompletna</span></label>
+          <label class="check-chip"><input id="trade-outside-plan" type="checkbox" ${draft.outsidePlan ? 'checked' : ''}><span>Trade poza planem</span></label>
+          <label class="check-chip"><input id="trade-revenge" type="checkbox" ${draft.revengeTrade ? 'checked' : ''}><span>Revenge / overtrading</span></label>
+          <label class="check-chip"><input id="trade-moved-stop" type="checkbox" ${draft.movedStopAgainstPlan ? 'checked' : ''}><span>Przesuwany SL przeciw planowi</span></label>
+        </div>
+
+        <div class="form-group" style="margin-top:14px;"><label class="form-label">Custom mistakes (przecinki)</label><input id="trade-mistakes" class="form-input" value="${(draft.mistakes || []).join(', ')}" placeholder="late entry, chop, no context"></div>
+        <div class="form-group"><label class="form-label">Teza / plan</label><textarea id="trade-thesis" class="form-textarea" placeholder="Dlaczego ten trade ma sens?">${draft.thesis || ''}</textarea></div>
+        <div class="form-group"><label class="form-label">Notatka po trade</label><textarea id="trade-notes" class="form-textarea" placeholder="Co poszło dobrze, co źle, co poprawić?">${draft.notes || ''}</textarea></div>
+      </div>
+      <div class="modal-side-stack">
+        <div class="soft-panel">
+          <h3 class="title">Live preview</h3>
+          <div class="big" id="trade-preview-pnl">—</div>
+          <div class="copy" id="trade-preview-note">Wprowadzaj dane, a kalkulator od razu pokaże RR, risk i sizing.</div>
+          <div class="inline-kpis" id="trade-preview-kpis"></div>
+        </div>
+        <div class="soft-panel">
+          <h3 class="title">Szyny bezpieczeństwa</h3>
+          <div id="trade-preview-flags" class="copy">—</div>
+        </div>
+      </div>
+    </div>
+  `;
+  const footer = `
+    <button class="btn" onclick="closeModal()">Anuluj</button>
+    ${tradeId ? `<button class="btn danger" onclick="deleteTrade('${tradeId}')">Usuń</button>` : ''}
+    <button class="btn primary" onclick="saveTrade('${tradeId || ''}')">Zapisz pozycję</button>
+  `;
+  openModal(tradeId ? 'Edytuj pozycję' : 'Nowa pozycja', body, footer);
+  bindTradeModalPreview();
+  updateTradeModalPreview();
+}
+
+function appendTargetRow() {
+  const editor = $('#trade-target-editor');
+  const nextIndex = editor.querySelectorAll('[data-target-row]').length + 1;
+  editor.insertAdjacentHTML('beforeend', `
+    <div class="target-row" data-target-row>
+      <input class="form-input" data-target-label value="TP${nextIndex}" placeholder="TP${nextIndex}">
+      <input class="form-input" data-target-price type="number" step="0.0001" placeholder="Cena TP">
+      <input class="form-input" data-target-share type="number" step="0.01" value="0" placeholder="Udział %">
+      <label class="tiny-switch"><input type="checkbox" data-target-hit> hit</label>
+    </div>
+  `);
+  bindTradeModalPreview();
+}
+
+function collectTargetsFromModal() {
+  return Array.from(document.querySelectorAll('[data-target-row]')).map((row, idx) => ({
+    id: uid(`tp${idx + 1}`),
+    label: row.querySelector('[data-target-label]').value || `TP${idx + 1}`,
+    price: n(row.querySelector('[data-target-price]').value),
+    sharePct: n(row.querySelector('[data-target-share]').value),
+    hit: row.querySelector('[data-target-hit]').checked
+  })).filter(target => target.price > 0 || target.sharePct > 0);
+}
+
+function collectTradeFromModal(existingId = null) {
+  return normalizeTrade({
+    id: existingId || uid('trade'),
+    symbol: $('#trade-symbol').value.trim().toUpperCase(),
+    status: $('#trade-status').value,
+    side: $('#trade-side').value,
+    setupGrade: $('#trade-grade').value,
+    strategy: $('#trade-strategy').value.trim(),
+    session: $('#trade-session').value.trim(),
+    openedAt: $('#trade-opened-at').value,
+    closedAt: $('#trade-closed-at').value,
+    capitalBase: n($('#trade-capital-base').value),
+    riskPct: n($('#trade-risk-pct').value),
+    entry: n($('#trade-entry').value),
+    stopLoss: n($('#trade-stop-loss').value),
+    qty: n($('#trade-qty').value),
+    markPrice: $('#trade-mark-price').value,
+    finalExitPrice: $('#trade-final-exit-price').value,
+    tags: $('#trade-tags').value.split(',').map(item => item.trim()).filter(Boolean),
+    mistakes: $('#trade-mistakes').value.split(',').map(item => item.trim()).filter(Boolean),
+    checklistDone: $('#trade-checklist-done').checked,
+    outsidePlan: $('#trade-outside-plan').checked,
+    revengeTrade: $('#trade-revenge').checked,
+    movedStopAgainstPlan: $('#trade-moved-stop').checked,
+    thesis: $('#trade-thesis').value.trim(),
+    notes: $('#trade-notes').value.trim(),
+    targets: collectTargetsFromModal()
+  });
+}
+
+function bindTradeModalPreview() {
+  document.querySelectorAll('#modal-body input, #modal-body select, #modal-body textarea').forEach((input) => {
+    input.addEventListener('input', updateTradeModalPreview);
+    input.addEventListener('change', updateTradeModalPreview);
+  });
+}
+
+function updateTradeModalPreview() {
+  const draft = collectTradeFromModal();
+  const metrics = calculateTradeMetrics(draft);
+  const violations = isRuleViolation(draft);
+  const livePnl = draft.status === 'closed' ? metrics.realizedNet : draft.status === 'open' ? metrics.unrealizedNet : metrics.weightedNetReward;
+  $('#trade-preview-pnl').textContent = fmtMoney(livePnl);
+  $('#trade-preview-note').textContent = draft.status === 'closed'
+    ? `Realized ${fmtR(metrics.realizedR)} • ROI ${fmtPct(metrics.capitalBase ? (metrics.realizedNet / metrics.capitalBase) * 100 : 0, 2)}`
+    : draft.status === 'open'
+      ? `MTM ${fmtR(metrics.unrealizedR)} • planned RR ${fmtR(metrics.weightedRR)}`
+      : `Planowany wynik dla TP basket po fee ~ ${fmtR(metrics.weightedNetRR)}`;
+  $('#trade-preview-kpis').innerHTML = `
+    <div class="inline-kpi"><span class="label">Risk</span><span class="value">${fmtMoney(metrics.riskAmount)}</span></div>
+    <div class="inline-kpi"><span class="label">Qty</span><span class="value">${metrics.qty ? fmtNum(metrics.qty, 4) : '—'}</span></div>
+    <div class="inline-kpi"><span class="label">Notional</span><span class="value">${fmtMoney(metrics.notional)}</span></div>
+    <div class="inline-kpi"><span class="label">Leverage</span><span class="value">${metrics.leverage ? fmtNum(metrics.leverage, 2) + 'x' : '—'}</span></div>
+  `;
+  $('#trade-preview-flags').innerHTML = violations.length
+    ? violations.map(item => `<div style="margin-bottom:8px;"><span class="risk-badge bad">flag</span> ${item}</div>`).join('')
+    : '<span class="risk-badge good">OK</span> Plan mieści się w zdefiniowanych regułach.';
+}
+
+function saveTrade(existingId = '') {
+  const trade = collectTradeFromModal(existingId || null);
+  if (!trade.symbol || !trade.openedAt || !trade.entry || !trade.stopLoss) {
+    alert('Uzupełnij przynajmniej symbol, datę, entry i stop loss.');
+    return;
+  }
+  if (trade.side === 'long' && trade.stopLoss >= trade.entry) {
+    alert('Dla longa SL musi być poniżej entry.');
+    return;
+  }
+  if (trade.side === 'short' && trade.stopLoss <= trade.entry) {
+    alert('Dla shorta SL musi być powyżej entry.');
+    return;
+  }
+  const index = state.trades.findIndex(item => item.id === trade.id);
+  if (index > -1) state.trades[index] = trade;
+  else state.trades.push(trade);
+  state.trades.sort((a, b) => (b.openedAt || '').localeCompare(a.openedAt || ''));
+  saveState();
+  closeModal();
+  render();
+}
+
+function deleteTrade(tradeId) {
+  if (!tradeId) return;
+  if (confirm('Czy na pewno chcesz usunąć tę pozycję?')) {
+    state.trades = state.trades.filter(trade => trade.id !== tradeId);
+    saveState();
+    closeModal();
+    render();
+  }
+}
+
+function duplicateTrade(tradeId) {
+  const trade = state.trades.find(item => item.id === tradeId);
+  if (!trade) return;
+  const duplicate = deepClone(trade);
+  duplicate.id = uid('trade');
+  duplicate.status = 'planned';
+  duplicate.openedAt = dateOnly(new Date().toISOString());
+  duplicate.closedAt = '';
+  duplicate.markPrice = '';
+  duplicate.finalExitPrice = '';
+  duplicate.targets = (duplicate.targets || []).map(target => ({ ...target, hit: false }));
+  openTradeModal(null, duplicate);
+}
+
+function syncPlannerFromInputs() {
+  state.planner = {
+    ...state.planner,
+    symbol: $('#planner-symbol').value.trim().toUpperCase(),
+    side: $('#planner-side').value,
+    capital: n($('#planner-capital').value),
+    riskPct: n($('#planner-risk-pct').value),
+    entry: $('#planner-entry').value,
+    stop: $('#planner-stop').value,
+    qty: $('#planner-qty').value,
+    tp1: $('#planner-tp1').value,
+    tp2: $('#planner-tp2').value,
+    tp1Share: n($('#planner-tp1-share').value),
+  };
+  saveState();
+  renderPlanner();
+}
+
+function resetPlanner() {
+  state.planner = {
+    ...deepClone(defaultState).planner,
+    capital: getCurrentEquity() || n(state.profile?.startingCapital),
+    riskPct: n(state.profile?.riskPerTradePct)
+  };
+  saveState();
+  renderPlanner();
+}
+
+function openPlannerAsTrade() {
+  const draft = getPlannerDraftAsTrade();
+  if (!draft.entry || !draft.stopLoss) {
+    alert('Najpierw podaj entry i stop loss w plannerze.');
+    return;
+  }
+  openTradeModal(null, draft);
+}
+
+function setupEventListeners() {
+  $('#setup-trading-btn').addEventListener('click', openSetupModal);
+  $('#settings-btn').addEventListener('click', openSetupModal);
+  $('#add-trade-btn').addEventListener('click', () => openTradeModal());
+  $('#open-planner-btn').addEventListener('click', () => setActivePageTab('overview'));
+
+  $('#modal-overlay').addEventListener('click', (event) => {
+    if (event.target.id === 'modal-overlay') closeModal();
+  });
+
+  $$('[data-trading-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      setActivePageTab(button.dataset.tradingTab);
+      saveState();
+      if (button.dataset.tradingTab === 'analytics') renderAnalytics();
+    });
+  });
+
+  $$('[data-analytics-tab]').forEach(button => {
+    button.addEventListener('click', () => setActiveAnalyticsTab(button.dataset.analyticsTab));
+  });
+
+  document.addEventListener('click', (event) => {
+    const quickBtn = event.target.closest('[data-quick-filter]');
+    if (quickBtn) {
+      state.ui.filters.quick = quickBtn.dataset.quickFilter;
+      saveState();
+      renderJournalFilters();
+      renderJournal();
+    }
+
+    const modeBtn = event.target.closest('[data-planner-mode]');
+    if (modeBtn) {
+      state.planner.mode = modeBtn.dataset.plannerMode;
+      saveState();
+      renderPlanner();
+    }
+  });
+
+  ['planner-symbol','planner-side','planner-capital','planner-risk-pct','planner-entry','planner-stop','planner-qty','planner-tp1','planner-tp2','planner-tp1-share'].forEach(id => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.addEventListener('input', syncPlannerFromInputs);
+      node.addEventListener('change', syncPlannerFromInputs);
+    }
+  });
+  $('#planner-reset-btn').addEventListener('click', resetPlanner);
+  $('#planner-to-trade-btn').addEventListener('click', openPlannerAsTrade);
+
+  $('#filter-search').addEventListener('input', (event) => {
+    state.ui.filters.search = event.target.value;
+    saveState();
+    renderJournal();
+  });
+  $('#filter-strategy').addEventListener('change', (event) => {
+    state.ui.filters.strategy = event.target.value;
+    saveState();
+    renderJournal();
+  });
+  $('#filter-status').addEventListener('change', (event) => {
+    state.ui.filters.status = event.target.value;
+    saveState();
+    renderJournal();
+  });
+}
+
+loadState();
+window.openTradeModal = openTradeModal;
+window.deleteTrade = deleteTrade;
+window.duplicateTrade = duplicateTrade;
+window.closeModal = closeModal;
+window.saveProfile = saveProfile;
+window.saveTrade = saveTrade;
+window.appendTargetRow = appendTargetRow;
+setupEventListeners();
+render();
+</script>
+</body>
+</html>
