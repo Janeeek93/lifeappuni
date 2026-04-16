@@ -170,16 +170,50 @@
   /* Today's open trades summary */
   .today-trades { flex: 1; display: flex; flex-direction: column; }
   .today-trade-row {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; flex-direction: column; gap: 6px;
     padding: 6px 0;
     border-bottom: 1px solid var(--line);
     font-size: 12px;
   }
   .today-trade-row:last-child { border-bottom: none; }
+  .today-trade-main { display:flex; align-items:center; justify-content:space-between; width:100%; }
   .tt-ticker { font-weight: 700; color: var(--ink); }
   .tt-dir { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
   .tt-dir.long { color: var(--green); }
   .tt-dir.short { color: var(--red); }
+  .tt-summary {
+    width: 100%;
+    font-size: 10.5px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 4px 7px;
+  }
+  .tt-summary strong {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: var(--ink);
+  }
+  .today-summary-total {
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 8px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .today-summary-total strong {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   /* ═══════════════════════════════════════════════════════════
      PLANNER
@@ -256,9 +290,23 @@
     margin-top: 14px;
   }
   .override-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
-  .override-row { display: flex; align-items: center; gap: 8px; }
+  .override-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .override-field { display:flex; flex-direction:column; gap:4px; }
+  .override-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .override-input-wrap { display:flex; align-items:center; gap:8px; }
   .override-row input { flex: 1; font-size: 13px; padding: 7px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 7px; color: var(--ink); }
   .override-row input:focus { outline: none; border-color: #0057c0; box-shadow: 0 0 0 3px rgba(0,87,192,0.12); }
+  .override-compare {
+    margin-top: 10px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+  .override-compare-head { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+  .override-cmp-grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:11px; }
+  .override-cmp-grid > div { background: var(--card); border:1px solid var(--line); border-radius:8px; padding:7px; }
+  .override-cmp-label { color: var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
+  .override-cmp-val { font-weight:700; color:var(--ink); }
+  .override-cmp-delta { margin-top:8px; font-size:11px; color:var(--muted); }
   .diff-indicator {
     padding: 9px 12px;
     border-radius: 8px;
@@ -288,7 +336,7 @@
   ═══════════════════════════════════════════════════════════ */
   .trades-layout {
     display: grid;
-    grid-template-columns: 1fr 370px;
+    grid-template-columns: minmax(0, 1fr) 560px;
     gap: 16px;
     align-items: start;
   }
@@ -327,7 +375,7 @@
   .pnl-zero { color: var(--muted); font-weight: 600; }
 
   /* Right panel (add + close) */
-  .trades-right { display: flex; flex-direction: column; gap: 12px; }
+  .trades-right { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .trade-panel {
     background: var(--card);
     border: 1px solid var(--line);
@@ -360,6 +408,20 @@
     background: var(--surface); color: var(--ink); transition: all 0.12s;
   }
   .pct-btn:hover, .pct-btn.active { border-color: #0057c0; color: #0057c0; background: rgba(0,87,192,0.08); }
+  .hit-quick { display: flex; gap: 6px; margin-top: 6px; }
+  .hit-btn {
+    padding: 4px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.12s;
+  }
+  .hit-btn.tp:hover, .hit-btn.tp.active { border-color: var(--green); color: var(--green); background: rgba(16,185,129,0.08); }
+  .hit-btn.sl:hover, .hit-btn.sl.active { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
   .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 
   /* ═══════════════════════════════════════════════════════════
@@ -439,6 +501,7 @@
     .td-right > * { flex: 1 1 260px; }
     .planner-grid { grid-template-columns: 1fr; }
     .trades-layout { grid-template-columns: 1fr; }
+    .trades-right { grid-template-columns: 1fr; }
     .analytics-grid { grid-template-columns: 1fr 1fr; }
     .ag-full { grid-column: 1/-1; }
     .ag-two { grid-column: span 2; }
@@ -667,6 +730,7 @@
               <!-- Open positions today -->
               <div class="tc" style="flex:1;">
                 <div class="tct" style="margin-bottom:8px;"><span>Otwarte pozycje</span></div>
+                <div id="open-positions-totals" class="today-summary-total" style="display:none;"></div>
                 <div id="open-positions-list">
                   <div class="empty-state" style="padding:16px 8px;">
                     <span class="material-symbols-outlined">candlestick_chart</span>
@@ -759,7 +823,7 @@
                   <span class="pr-note" id="pr-size-ticker">—</span>
                 </div>
                 <div class="pr-item">
-                  <span class="pr-label">Take Profit (cena)</span>
+                  <span class="pr-label">TP (cena)</span>
                   <span class="pr-value up" id="pr-tp">—</span>
                   <span class="pr-note" id="pr-tp-note">—</span>
                 </div>
@@ -801,14 +865,44 @@
 
               <!-- Override -->
               <div class="override-box" id="override-box" style="display:none;">
-                <div class="override-title">Twoja wielkość pozycji (override)</div>
+                <div class="override-title">Nadpisanie rekomendacji</div>
                 <div class="override-row">
-                  <input type="number" id="override-size" placeholder="Wpisz swoją wielkość…" step="any" oninput="calcOverrideDiff()">
-                  <span id="pr-size-unit" style="font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap;">BTC</span>
+                  <div class="override-field">
+                    <label>Position size</label>
+                    <div class="override-input-wrap">
+                      <input type="number" id="override-size" placeholder="Twoja wielkość…" step="any" oninput="calcOverrideDiff()">
+                      <span id="pr-size-unit" style="font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap;">BTC</span>
+                    </div>
+                  </div>
+                  <div class="override-field">
+                    <label>TP (cena)</label>
+                    <input type="number" id="override-tp" placeholder="Twój TP…" step="any" oninput="calcOverrideDiff()">
+                  </div>
                 </div>
                 <div class="diff-indicator" id="diff-indicator">
                   <span class="material-symbols-outlined" style="font-size:16px;">info</span>
                   <span id="diff-text">—</span>
+                </div>
+                <div class="override-compare" id="override-compare" style="display:none;">
+                  <div class="override-compare-head">
+                    <span>Panel analityczno-porównawczy</span>
+                    <span>Rekomendacja vs Nadpisanie</span>
+                  </div>
+                  <div class="override-cmp-grid">
+                    <div>
+                      <div class="override-cmp-label">Strata (SL)</div>
+                      <div class="override-cmp-val" id="cmp-loss">—</div>
+                    </div>
+                    <div>
+                      <div class="override-cmp-label">Zysk (TP)</div>
+                      <div class="override-cmp-val" id="cmp-profit">—</div>
+                    </div>
+                    <div>
+                      <div class="override-cmp-label">R:R</div>
+                      <div class="override-cmp-val" id="cmp-rr">—</div>
+                    </div>
+                  </div>
+                  <div class="override-cmp-delta" id="cmp-delta">—</div>
                 </div>
               </div>
 
@@ -907,7 +1001,7 @@
                 </div>
                 <div class="fg2">
                   <div class="ff">
-                    <label>Take Profit (cena)</label>
+                    <label>TP (cena)</label>
                     <input type="number" id="add-tp" placeholder="0.00 (opt.)" step="any">
                   </div>
                   <div class="ff">
@@ -946,6 +1040,10 @@
                   <div class="ff">
                     <label>Cena zamknięcia</label>
                     <input type="number" id="close-price" placeholder="0.00" step="any" oninput="updateClosePNLPreview()">
+                    <div class="hit-quick">
+                      <button class="hit-btn tp" id="close-hit-tp" onclick="setClosePriceFromLevel('tp')">TP hit</button>
+                      <button class="hit-btn sl" id="close-hit-sl" onclick="setClosePriceFromLevel('sl')">SL hit</button>
+                    </div>
                   </div>
 
                   <div class="ff">
@@ -961,7 +1059,7 @@
 
                   <div class="fg2">
                     <div class="ff">
-                      <label>Prowizja (USD)</label>
+                      <label>Prowizja $</label>
                       <input type="number" id="close-commission" placeholder="0.00" step="any" oninput="updateClosePNLPreview()">
                     </div>
                     <div class="ff">
@@ -1435,25 +1533,48 @@ function renderDashboard() {
 ═══════════════════════════════════════════════════════════ */
 function renderOpenPositionsList() {
   const el = document.getElementById('open-positions-list');
+  const totalEl = document.getElementById('open-positions-totals');
   const open = state.trades.filter(t => getTradeStatus(t) === 'open');
+  const currentCapital = computeKPIs().currentCapital || settings.capital || 1;
   if (open.length === 0) {
+    totalEl.style.display = 'none';
     el.innerHTML = '<div class="empty-state" style="padding:16px 8px;"><span class="material-symbols-outlined">candlestick_chart</span>Brak otwartych pozycji</div>';
     return;
   }
+  let totalRiskUSD = 0;
+  let totalRewardUSD = 0;
   el.innerHTML = open.map(t => {
-    const { realizedPNL } = calcTradePNL(t);
+    const { realizedPNL, totalClosedPct } = calcTradePNL(t);
+    const remainingPct = Math.max(0, 100 - totalClosedPct);
+    const remainingSize = t.size * (remainingPct / 100);
+    const riskUSD = t.sl ? Math.abs(t.entry - t.sl) * remainingSize : null;
+    const rewardUSD = t.tp ? Math.abs(t.tp - t.entry) * remainingSize : null;
+    if (riskUSD !== null) totalRiskUSD += riskUSD;
+    if (rewardUSD !== null) totalRewardUSD += rewardUSD;
+    const riskPctDepo = riskUSD !== null ? (riskUSD / currentCapital) * 100 : null;
+    const rewardPctDepo = rewardUSD !== null ? (rewardUSD / currentCapital) * 100 : null;
     return `<div class="today-trade-row">
-      <div>
-        <span class="tt-ticker">${escHtml(t.ticker)}</span>
-        <span class="tt-dir ${t.direction}" style="margin-left:6px;">${t.direction === 'long' ? '▲ LONG' : '▼ SHORT'}</span>
-        <span style="font-size:10px; color:var(--muted); margin-left:6px;">${t.leverage}×</span>
+      <div class="today-trade-main">
+        <div>
+          <span class="tt-ticker">${escHtml(t.ticker)}</span>
+          <span class="tt-dir ${t.direction}" style="margin-left:6px;">${t.direction === 'long' ? '▲ LONG' : '▼ SHORT'}</span>
+          <span style="font-size:10px; color:var(--muted); margin-left:6px;">${t.leverage}×</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</div>
+          <div style="font-size:10px; color:var(--muted);">entry ${fnum(t.entry,2)}</div>
+        </div>
       </div>
-      <div style="text-align:right;">
-        <div class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</div>
-        <div style="font-size:10px; color:var(--muted);">entry ${fnum(t.entry,2)}</div>
+      <div class="tt-summary">
+        <span><strong>Ryzyko:</strong> ${riskUSD !== null ? `${usd(riskUSD)} (${riskPctDepo.toFixed(2)}%)` : '—'}</span>
+        <span><strong>Zysk:</strong> ${rewardUSD !== null ? `${usd(rewardUSD)} (${rewardPctDepo.toFixed(2)}%)` : '—'}</span>
       </div>
     </div>`;
   }).join('');
+  totalEl.innerHTML = `
+    <span><strong>Suma ryzyka:</strong> ${usd(totalRiskUSD)} (${((totalRiskUSD/currentCapital)*100).toFixed(2)}%)</span>
+    <span><strong>Suma zysku:</strong> ${usd(totalRewardUSD)} (${((totalRewardUSD/currentCapital)*100).toFixed(2)}%)</span>`;
+  totalEl.style.display = '';
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1679,7 +1800,8 @@ function calcPlanner() {
   document.getElementById('pr-size-ticker').textContent = ticker;
   document.getElementById('pr-size-unit').textContent   = ticker;
   document.getElementById('pr-tp').textContent         = fnum(tp, 2);
-  document.getElementById('pr-tp-note').textContent    = `+${(tpDist/entry*100).toFixed(2)}% od entry`;
+  const tpPctMove = (tpDist / entry) * 100;
+  document.getElementById('pr-tp-note').textContent    = `${planDirection === 'long' ? '+' : '-'}${tpPctMove.toFixed(2)}% od entry`;
   document.getElementById('pr-risk-usd').textContent   = usd(riskUSD);
   document.getElementById('pr-risk-pct-show').textContent = riskPct + '% kapitału';
   document.getElementById('pr-reward-usd').textContent = usd(rewardUSD);
@@ -1704,7 +1826,10 @@ function calcPlanner() {
   document.getElementById('override-box').style.display = '';
   document.getElementById('plan-add-btn-wrap').style.display = '';
   document.getElementById('override-size').value = '';
+  document.getElementById('override-tp').value = '';
   document.getElementById('diff-indicator').className = 'diff-indicator';
+  document.getElementById('override-compare').style.display = 'none';
+  document.getElementById('cmp-delta').textContent = '—';
 
   // Pre-fill add form
   prefillAddForm(plannerResult);
@@ -1713,12 +1838,17 @@ function calcPlanner() {
 function calcOverrideDiff() {
   if (!plannerResult) return;
   const overrideVal = parseFloat(document.getElementById('override-size').value);
+  const overrideTP  = parseFloat(document.getElementById('override-tp').value);
   const recSize     = plannerResult.size;
+  const recTP       = plannerResult.tp;
+  const compareBox  = document.getElementById('override-compare');
   const ind         = document.getElementById('diff-indicator');
   const txt         = document.getElementById('diff-text');
 
-  if (!overrideVal || isNaN(overrideVal)) {
-    ind.className = 'diff-indicator'; return;
+  if (!overrideVal || isNaN(overrideVal) || overrideVal <= 0) {
+    ind.className = 'diff-indicator';
+    compareBox.style.display = 'none';
+    return;
   }
   const diffPct = ((overrideVal - recSize) / recSize) * 100;
   const absDiff = Math.abs(overrideVal - recSize);
@@ -1733,10 +1863,33 @@ function calcOverrideDiff() {
     ind.className = 'diff-indicator conservative';
     txt.textContent = `BARDZIEJ KONSERWATYWNA: ${diffPct.toFixed(1)}% mniejsza vs rekomendacja (${fnum(absDiff,6)} ${plannerResult.ticker} mniej). Ryzyko niższe niż ${plannerResult.riskPct}%.`;
   }
+
+  const entry = plannerResult.entry;
+  const sl = plannerResult.sl;
+  const chosenTP = (!isNaN(overrideTP) && overrideTP > 0) ? overrideTP : recTP;
+  const recLossUSD = Math.abs(entry - sl) * recSize;
+  const overLossUSD = Math.abs(entry - sl) * overrideVal;
+  const recProfitUSD = Math.abs(recTP - entry) * recSize;
+  const overProfitUSD = Math.abs(chosenTP - entry) * overrideVal;
+  const capital = computeKPIs().currentCapital;
+  const recLossPct = capital > 0 ? (recLossUSD / capital) * 100 : 0;
+  const overLossPct = capital > 0 ? (overLossUSD / capital) * 100 : 0;
+  const recProfitPct = capital > 0 ? (recProfitUSD / capital) * 100 : 0;
+  const overProfitPct = capital > 0 ? (overProfitUSD / capital) * 100 : 0;
+  const overRR = overLossUSD > 0 ? overProfitUSD / overLossUSD : 0;
+  const lossDelta = overLossUSD - recLossUSD;
+  const profitDelta = overProfitUSD - recProfitUSD;
+
+  document.getElementById('cmp-loss').textContent = `${usd(recLossUSD)} (${recLossPct.toFixed(2)}%) → ${usd(overLossUSD)} (${overLossPct.toFixed(2)}%)`;
+  document.getElementById('cmp-profit').textContent = `${usd(recProfitUSD)} (${recProfitPct.toFixed(2)}%) → ${usd(overProfitUSD)} (${overProfitPct.toFixed(2)}%)`;
+  document.getElementById('cmp-rr').textContent = `${plannerResult.minRR.toFixed(2)} → ${overRR.toFixed(2)}`;
+  document.getElementById('cmp-delta').textContent = `Δ Strata: ${usd(lossDelta, true)} | Δ Zysk: ${usd(profitDelta, true)}${(!isNaN(overrideTP) && overrideTP > 0) ? '' : ' (TP bez zmian)'}`;
+  compareBox.style.display = '';
 }
 
 function prefillAddForm(p) {
   if (!p) return;
+  resetAddEditState();
   document.getElementById('add-ticker').value   = p.ticker;
   document.getElementById('add-leverage').value = p.leverage;
   document.getElementById('add-entry').value    = p.entry;
@@ -1744,11 +1897,18 @@ function prefillAddForm(p) {
   document.getElementById('add-tp').value       = p.tp;
   document.getElementById('add-size').value     = p.size;
   setAddDirection(p.direction);
-  switchTab('trades');
 }
 
 function addTradeFromPlanner() {
-  prefillAddForm(plannerResult);
+  if (!plannerResult) return;
+  const overrideSize = parseFloat(document.getElementById('override-size').value);
+  const overrideTP   = parseFloat(document.getElementById('override-tp').value);
+  const tradeDraft = {
+    ...plannerResult,
+    size: (!isNaN(overrideSize) && overrideSize > 0) ? overrideSize : plannerResult.size,
+    tp: (!isNaN(overrideTP) && overrideTP > 0) ? overrideTP : plannerResult.tp
+  };
+  prefillAddForm(tradeDraft);
   switchTab('trades');
 }
 
@@ -1759,6 +1919,12 @@ function setAddDirection(dir) {
   addDirection = dir;
   document.getElementById('add-long-btn').classList.toggle('active', dir === 'long');
   document.getElementById('add-short-btn').classList.toggle('active', dir === 'short');
+}
+
+function resetAddEditState() {
+  document.getElementById('edit-trade-id').value = '';
+  document.getElementById('add-form-title').textContent = 'Nowa pozycja';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
 }
 
 function saveTrade() {
@@ -1818,14 +1984,21 @@ function editTrade(id) {
 }
 
 function cancelEdit() {
-  document.getElementById('edit-trade-id').value  = '';
-  document.getElementById('add-form-title').textContent = 'Nowa pozycja';
-  document.getElementById('cancel-edit-btn').style.display = 'none';
+  resetAddEditState();
   ['add-ticker','add-leverage','add-entry','add-sl','add-tp','add-size','add-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('add-date').value = today();
   setAddDirection('long');
+}
+
+function selectTradeForClose(id) {
+  const sel = document.getElementById('close-select');
+  if (!sel) return;
+  switchTab('trades');
+  sel.value = id;
+  sel.dispatchEvent(new Event('change'));
+  document.getElementById('close-price').focus();
 }
 
 function deleteTrade(id) {
@@ -1839,7 +2012,7 @@ function deleteTrade(id) {
 document.getElementById('close-select').addEventListener('change', function() {
   const id = this.value;
   const body = document.getElementById('close-form-body');
-  if (!id) { body.style.display = 'none'; return; }
+  if (!id) { body.style.display = 'none'; clearHitBtnActive(); return; }
   body.style.display = '';
   const t = state.trades.find(t => t.id === id);
   if (!t) return;
@@ -1850,6 +2023,7 @@ document.getElementById('close-select').addEventListener('change', function() {
     `Entry: ${fnum(t.entry,2)} | Size: ${fnum(t.size,6)} | ` +
     `Pozostało: <strong>${remaining.toFixed(0)}%</strong> | zrealizowany PNL: ${usd(realizedPNL, true)}`;
   document.getElementById('close-date').value = today();
+  clearHitBtnActive();
 });
 
 function setClosePct(val) {
@@ -1860,6 +2034,25 @@ function setClosePct(val) {
 }
 function clearPctBtnActive() {
   document.querySelectorAll('.pct-btn').forEach(b => b.classList.remove('active'));
+}
+function clearHitBtnActive() {
+  document.querySelectorAll('.hit-btn').forEach(b => b.classList.remove('active'));
+}
+function setClosePriceFromLevel(type) {
+  const id = document.getElementById('close-select').value;
+  if (!id) return;
+  const t = state.trades.find(tr => tr.id === id);
+  if (!t) return;
+  const level = type === 'tp' ? t.tp : t.sl;
+  if (!level || isNaN(level)) {
+    alert(`Ta pozycja nie ma ustawionego ${type.toUpperCase()}.`);
+    return;
+  }
+  document.getElementById('close-price').value = level;
+  clearHitBtnActive();
+  const btnId = type === 'tp' ? 'close-hit-tp' : 'close-hit-sl';
+  document.getElementById(btnId).classList.add('active');
+  updateClosePNLPreview();
 }
 
 function updateClosePNLPreview() {
@@ -1883,8 +2076,14 @@ function updateClosePNLPreview() {
     : (t.entry - price) * closedSize;
   const net = gross - comm;
   const netPct = (net / settings.capital) * 100;
+  let rrPreview = 'R:R —';
+  if (t.sl && !isNaN(t.sl) && Math.abs(t.entry - t.sl) > 0) {
+    const riskPerUnit = Math.abs(t.entry - t.sl);
+    const rMultiple = (t.direction === 'long' ? (price - t.entry) : (t.entry - price)) / riskPerUnit;
+    rrPreview = `R:R ${rMultiple.toFixed(2)}R`;
+  }
 
-  prev.innerHTML = `Podgląd: Gross ${usd(gross, true)} | Prowizja -${usd(comm)} | <strong>Net: ${usd(net, true)} (${pct(netPct)})</strong>`;
+  prev.innerHTML = `Podgląd:<br>Gross: ${usd(gross, true)}<br>Prowizja: -${usd(comm)}<br><strong>Net: ${usd(net, true)} (${pct(netPct)})</strong><br><strong>${rrPreview}</strong>`;
   prev.style.borderLeftColor = net >= 0 ? 'var(--green)' : 'var(--red)';
 }
 
@@ -1917,6 +2116,7 @@ function closePosition() {
   document.getElementById('close-pct').value = '';
   document.getElementById('close-commission').value = '';
   clearPctBtnActive();
+  clearHitBtnActive();
 
   render();
 }
@@ -1945,7 +2145,7 @@ function renderOpenTradesTable() {
       const { realizedPNL, totalClosedPct } = calcTradePNL(t);
       const remaining = (100 - totalClosedPct).toFixed(0);
       const rr = getEffectiveRR(t);
-      return `<tr onclick="editTrade('${t.id}')">
+      return `<tr onclick="selectTradeForClose('${t.id}')">
         <td style="color:var(--muted);">${t.date}</td>
         <td><strong>${escHtml(t.ticker)}</strong></td>
         <td><span class="badge badge-${t.direction}">${t.direction === 'long' ? '▲ L' : '▼ S'}</span></td>
@@ -1956,7 +2156,8 @@ function renderOpenTradesTable() {
         <td>${fnum(t.size,6)}</td>
         <td class="${realizedPNL >= 0 ? 'pnl-pos' : 'pnl-neg'}">${usd(realizedPNL, true)}</td>
         <td><span class="badge badge-open">${remaining}%</span></td>
-        <td onclick="event.stopPropagation();">
+        <td onclick="event.stopPropagation();" style="white-space:nowrap;">
+          <button class="btn soft" style="padding:3px 8px; font-size:11px;" onclick="editTrade('${t.id}')">Edytuj</button>
           <button class="btn soft" style="padding:3px 8px; font-size:11px;" onclick="deleteTrade('${t.id}')">✕</button>
         </td>
       </tr>`;
