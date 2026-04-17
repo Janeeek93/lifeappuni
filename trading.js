@@ -629,8 +629,14 @@ function updatePlanner() {
   if (entry !== null && sl !== null) riskPerUnit = Math.abs(entry - sl);
 
   const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
-  const size = (entry && sizeUsdOverride && sizeUsdOverride > 0) ? sizeUsdOverride / entry : calcSize;
-  const sizeSource = (entry && sizeUsdOverride && sizeUsdOverride > 0) ? 'manual ($)' : 'auto (risk %)';
+  const riskBasedNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
+  const maxNotionalByLeverage = capital * lev;
+  const cappedAutoNotional = riskBasedNotional !== null ? Math.min(riskBasedNotional, maxNotionalByLeverage) : null;
+  const autoSize = (cappedAutoNotional !== null && entry !== null && entry > 0) ? cappedAutoNotional / entry : null;
+  const size = (entry && sizeUsdOverride && sizeUsdOverride > 0) ? sizeUsdOverride / entry : autoSize;
+  let sizeSource = 'auto (risk %)';
+  if (entry && sizeUsdOverride && sizeUsdOverride > 0) sizeSource = 'manual ($)';
+  else if (riskBasedNotional !== null && riskBasedNotional > maxNotionalByLeverage) sizeSource = 'auto (cap: leverage)';
 
   const minTp = (entry !== null && riskPerUnit !== null)
     ? (planDir === 'long' ? entry + (riskPerUnit * settings.minRR) : entry - (riskPerUnit * settings.minRR))
@@ -731,6 +737,9 @@ function updatePlanner() {
   if (effectiveRiskPct !== null && effectiveRiskPct > settings.maxRiskPct) {
     score -= 10;
     issues.push({ k: 'warn', m: `Po nadpisaniu size realne ryzyko to ${effectiveRiskPct.toFixed(2)}% (limit ${settings.maxRiskPct}%)` });
+  }
+  if (riskBasedNotional !== null && riskBasedNotional > maxNotionalByLeverage) {
+    issues.push({ k: 'warn', m: `Dźwignia ${lev}× ogranicza size: max notional ${fmtUSD(maxNotionalByLeverage)}.` });
   }
   if (sizeUsdOverride !== null && sizeUsdOverride <= 0) issues.push({ k: 'bad', m: 'Nadpisanie size w $ musi być większe od zera' });
   if (margin !== null && margin > capital * 0.5) { score -= 10; issues.push({ k: 'warn', m: 'Margin > 50% kapitału – wysoka ekspozycja' }); }
