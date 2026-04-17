@@ -683,12 +683,12 @@ function updatePlanner() {
     suggestPill.textContent = 'Sugerowany TP pojawi się po ustawieniu Entry + SL';
   }
 
-  // Summary cells
+  // Summary cells (base = auto-kalkulacja bez nadpisania)
   el('p-rpu').textContent = riskPerUnit !== null ? fmtNum(riskPerUnit, riskPerUnit < 1 ? 6 : 2) : '—';
   el('p-wpu').textContent = rewardPerUnit !== null ? fmtNum(rewardPerUnit, rewardPerUnit < 1 ? 6 : 2) : '—';
   el('p-rr').textContent = rr !== null ? rr.toFixed(2) : '—';
-  el('p-size').textContent = effSize !== null ? fmtQty(effSize) : '—';
-  el('p-notional').textContent = effNotional !== null ? fmtUSD(effNotional) : '—';
+  el('p-size').textContent = calcSize !== null ? fmtQty(calcSize) : '—';
+  el('p-notional').textContent = calcNotional !== null ? fmtUSD(calcNotional) : '—';
   el('p-margin').textContent = margin !== null ? fmtUSD(margin) : '—';
   el('p-riskusd').textContent = actualRiskUSD !== null ? fmtUSD(-actualRiskUSD) : '—';
   el('p-rewardusd').textContent = rewardUSD !== null ? fmtUSD(rewardUSD, true) : '—';
@@ -1343,7 +1343,9 @@ function init() {
 
   // Planner listeners
   ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updatePlanner);
+    const node = document.getElementById(id);
+    node.addEventListener('input', updatePlanner);
+    node.addEventListener('change', updatePlanner);
   });
   document.getElementById('p-date').value = today();
 
