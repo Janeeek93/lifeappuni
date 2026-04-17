@@ -208,17 +208,34 @@
                 <div class="ff-grid cols-3">
                   <div class="ff"><label>Entry</label><input id="p-entry" type="number" step="any" placeholder="0.00"></div>
                   <div class="ff"><label>Stop Loss</label><input id="p-sl" type="number" step="any" placeholder="0.00"></div>
-                  <div class="ff"><label>Take Profit</label><input id="p-tp" type="number" step="any" placeholder="opcjonalnie"></div>
+                  <div class="ff"><label>Ryzyko % kapitału</label><input id="p-riskpct" type="number" step="0.01" placeholder="1.00"></div>
                 </div>
                 <div class="ff-grid cols-3" style="margin-top:10px;">
-                  <div class="ff"><label>Ryzyko % kapitału</label><input id="p-riskpct" type="number" step="0.01" placeholder="1.00"></div>
                   <div class="ff"><label>Dźwignia (×)</label><input id="p-lev" type="number" min="1" step="1" value="1"></div>
                   <div class="ff"><label>Data</label><input id="p-date" type="date"></div>
+                  <div class="ff"><label>&nbsp;</label><div id="p-suggest-tp" class="plan-pill neutral">Sugerowany TP pojawi się po ustawieniu Entry + SL</div></div>
                 </div>
                 <div class="ff" style="margin-top:10px;">
                   <label>Notatka setupu</label>
                   <input id="p-note" type="text" placeholder="Setup, trigger, invalidation…">
                 </div>
+              </div>
+
+              <div class="plan-section">
+                <div class="plan-section-title">Nadpisanie (opcjonalne) — trafia do logu transakcji</div>
+                <div class="ff-grid">
+                  <div class="ff">
+                    <label>Position size (USD, notional)</label>
+                    <input id="p-size-override" type="number" step="any" placeholder="auto">
+                    <div id="p-size-hint" class="plan-hint">Zostaw puste, aby użyć wartości obliczonej przez aplikację.</div>
+                  </div>
+                  <div class="ff">
+                    <label>Final TP</label>
+                    <input id="p-tp" type="number" step="any" placeholder="auto (sugerowany)">
+                    <div id="p-tp-hint" class="plan-hint">Puste = TP jak sugerowany (min RR z ustawień).</div>
+                  </div>
+                </div>
+                <div id="p-override-impact" class="plan-impact" style="margin-top:10px;"></div>
               </div>
             </section>
 
@@ -246,6 +263,11 @@
                 <div class="cell"><div class="k">Risk $</div><div class="v mono" id="p-riskusd">—</div></div>
                 <div class="cell"><div class="k">Reward $</div><div class="v mono" id="p-rewardusd">—</div></div>
                 <div class="cell"><div class="k">Breakeven po prowizji</div><div class="v mono" id="p-be">—</div></div>
+              </div>
+              <div class="plan-summary plan-final">
+                <div class="cell"><div class="k">Final TP → log</div><div class="v mono" id="p-final-tp">—</div></div>
+                <div class="cell"><div class="k">Final size (base) → log</div><div class="v mono" id="p-final-size">—</div></div>
+                <div class="cell"><div class="k">Final notional → log</div><div class="v mono" id="p-final-notional">—</div></div>
               </div>
 
               <div class="plan-verdict">
