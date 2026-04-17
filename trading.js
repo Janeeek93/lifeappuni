@@ -56,8 +56,8 @@ function fmtQty(v) {
   if (v === null || v === undefined || !Number.isFinite(Number(v))) return '—';
   v = Number(v);
   if (Math.abs(v) >= 1000) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (Math.abs(v) >= 1) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  if (Math.abs(v) >= 1) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 });
 }
 function posClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : ''; }
 
@@ -651,8 +651,8 @@ function updatePlanner() {
     return { ok: true };
   })();
 
-  // Calculated (auto) position sizing from risk at SL scaled by leverage
-  const calcSize = (riskPerUnit && riskPerUnit > 0) ? (riskUSD * lev) / riskPerUnit : null;
+  // Calculated (auto) position sizing from risk at SL (qty does not depend on leverage)
+  const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
   const calcNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
 
   // Effective size / notional: use quantity override if provided, else computed
@@ -701,7 +701,7 @@ function updatePlanner() {
 
   // Hint text under override inputs
   el('p-size-hint').innerHTML = calcNotional !== null
-    ? `Auto: <strong>${fmtQty(calcSize)}</strong> szt. · <strong>${fmtUSD(calcNotional)}</strong> notional (ryzyko bazowe: ${fmtUSD(riskUSD)} = ${riskPct.toFixed(2)}% kapitału, dźwignia ${lev}×)`
+    ? `Auto: <strong>${fmtQty(calcSize)}</strong> szt. · <strong>${fmtUSD(calcNotional)}</strong> notional (ryzyko do SL: ${fmtUSD(riskUSD)} = ${riskPct.toFixed(2)}% kapitału, bez fee/slippage)`
     : 'Zostaw puste, aby użyć wartości obliczonej przez aplikację.';
   el('p-tp-hint').innerHTML = suggestedTP !== null
     ? `Auto: <strong>${fmtNum(suggestedTP, suggestedTP < 1 ? 6 : 2)}</strong> (min ${settings.minRR}R)`
