@@ -615,17 +615,36 @@ function updatePlanner() {
   const entry = numberNullable(el('p-entry').value);
   const sl = numberNullable(el('p-sl').value);
   const tp = numberNullable(el('p-tp').value);
+  const finalTpOverride = numberNullable(el('p-finaltp').value);
+  const sizeUsdOverride = numberNullable(el('p-sizeusd').value);
   const lev = Math.max(1, numberOr(el('p-lev').value, 1));
   const riskPctRaw = numberNullable(el('p-riskpct').value);
   const riskPct = riskPctRaw !== null ? riskPctRaw : settings.maxRiskPct;
   if (!el('p-riskpct').value) el('p-riskpct').placeholder = settings.maxRiskPct.toFixed(2);
 
-  const capital = settings.capital; // equity-based? use capital for planner simplicity
+  const capital = settings.capital;
   const riskUSD = capital * (riskPct / 100);
 
-  let riskPerUnit = null, rewardPerUnit = null;
+  let riskPerUnit = null;
   if (entry !== null && sl !== null) riskPerUnit = Math.abs(entry - sl);
-  if (entry !== null && tp !== null) rewardPerUnit = Math.abs(tp - entry);
+
+  const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
+  const riskBasedNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
+  const leverageBudgetNotional = riskUSD * lev;
+  const cappedAutoNotional = riskBasedNotional !== null ? Math.min(riskBasedNotional, leverageBudgetNotional) : null;
+  const autoSize = (cappedAutoNotional !== null && entry !== null && entry > 0) ? cappedAutoNotional / entry : null;
+  const size = (entry && sizeUsdOverride && sizeUsdOverride > 0) ? sizeUsdOverride / entry : autoSize;
+  let sizeSource = 'auto (risk %)';
+  if (entry && sizeUsdOverride && sizeUsdOverride > 0) sizeSource = 'manual ($)';
+  else if (riskBasedNotional !== null && riskBasedNotional > leverageBudgetNotional) sizeSource = 'auto (cap: lewar)';
+
+  const minTp = (entry !== null && riskPerUnit !== null)
+    ? (planDir === 'long' ? entry + (riskPerUnit * settings.minRR) : entry - (riskPerUnit * settings.minRR))
+    : null;
+  const activeTp = finalTpOverride ?? tp ?? minTp;
+
+  let rewardPerUnit = null;
+  if (entry !== null && activeTp !== null) rewardPerUnit = Math.abs(activeTp - entry);
 
   // Direction sanity
   const dirValid = (() => {
@@ -636,15 +655,19 @@ function updatePlanner() {
       if (planDir === 'long' && tp <= entry) return { ok: false, msg: 'Dla LONG, TP musi być powyżej entry' };
       if (planDir === 'short' && tp >= entry) return { ok: false, msg: 'Dla SHORT, TP musi być poniżej entry' };
     }
+    if (finalTpOverride !== null) {
+      if (planDir === 'long' && finalTpOverride <= entry) return { ok: false, msg: 'Final TP dla LONG musi być powyżej entry' };
+      if (planDir === 'short' && finalTpOverride >= entry) return { ok: false, msg: 'Final TP dla SHORT musi być poniżej entry' };
+    }
     return { ok: true };
   })();
 
-  const size = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
   const rr = (riskPerUnit && rewardPerUnit && riskPerUnit > 0) ? rewardPerUnit / riskPerUnit : null;
   const notional = (size !== null && entry !== null) ? size * entry : null;
   const margin = (notional !== null) ? notional / lev : null;
   const rewardUSD = (size !== null && rewardPerUnit !== null) ? size * rewardPerUnit : null;
   const actualRiskUSD = (size !== null && riskPerUnit !== null) ? size * riskPerUnit : null;
+  const effectiveRiskPct = actualRiskUSD !== null && capital > 0 ? (actualRiskUSD / capital) * 100 : null;
 
   el('p-rpu').textContent = riskPerUnit !== null ? fmtNum(riskPerUnit, riskPerUnit < 1 ? 6 : 2) : '—';
   el('p-wpu').textContent = rewardPerUnit !== null ? fmtNum(rewardPerUnit, rewardPerUnit < 1 ? 6 : 2) : '—';
@@ -655,21 +678,25 @@ function updatePlanner() {
   el('p-riskusd').textContent = actualRiskUSD !== null ? fmtUSD(-actualRiskUSD) : '—';
   el('p-rewardusd').textContent = rewardUSD !== null ? fmtUSD(rewardUSD, true) : '—';
   el('p-be').textContent = entry !== null ? fmtNum(entry, entry < 1 ? 6 : 2) : '—';
+  el('p-minrrtp').textContent = minTp !== null ? fmtNum(minTp, minTp < 1 ? 6 : 2) : '—';
+  el('p-activetp').textContent = activeTp !== null ? fmtNum(activeTp, activeTp < 1 ? 6 : 2) : '—';
+  el('p-sizesrc').textContent = size !== null ? sizeSource : '—';
 
   // Price track
   const ptWrap = el('p-price-track');
   if (entry !== null && sl !== null) {
     const vals = [entry, sl];
-    if (tp !== null) vals.push(tp);
+    if (activeTp !== null) vals.push(activeTp);
+    if (minTp !== null) vals.push(minTp);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = (hi - lo) * 0.25 || entry * 0.01;
     const a = lo - pad, b = hi + pad, span = b - a || 1;
     const pos = x => ((x - a) / span) * 100;
-    const entryPos = pos(entry), slPos = pos(sl), tpPos = tp !== null ? pos(tp) : null;
-    const slIsBelow = sl < entry;
+    const entryPos = pos(entry), slPos = pos(sl), tpPos = activeTp !== null ? pos(activeTp) : null;
+    const minTpPos = minTp !== null ? pos(minTp) : null;
     const slLeft = Math.min(slPos, entryPos), slWidth = Math.abs(entryPos - slPos);
     let tpHtml = '';
-    if (tp !== null) {
+    if (activeTp !== null) {
       const tpLeft = Math.min(tpPos, entryPos);
       const tpWidth = Math.abs(entryPos - tpPos);
       tpHtml = `<div class="tp" style="left:${tpLeft}%; width:${tpWidth}%;"></div>`;
@@ -682,13 +709,15 @@ function updatePlanner() {
         </div>
         <div class="marker sl" style="left:${slPos}%;"></div>
         <div class="marker entry" style="left:${entryPos}%;"></div>
-        ${tp !== null ? `<div class="marker tp" style="left:${tpPos}%;"></div>` : ''}
-        <div class="label lt sl" style="left:${slPos}%;">SL ${fmtNum(sl, sl < 1 ? 4 : 2)}</div>
-        <div class="label lt entry" style="left:${entryPos}%;">ENTRY ${fmtNum(entry, entry < 1 ? 4 : 2)}</div>
-        ${tp !== null ? `<div class="label lt tp" style="left:${tpPos}%;">TP ${fmtNum(tp, tp < 1 ? 4 : 2)}</div>` : ''}
-        <div class="label" style="left:${slPos}%;">-${fmtNum(Math.abs(entry - sl) / entry * 100)}%</div>
-        <div class="label" style="left:${entryPos}%;">0%</div>
-        ${tp !== null ? `<div class="label" style="left:${tpPos}%;">+${fmtNum(Math.abs(tp - entry) / entry * 100)}%</div>` : ''}
+        ${activeTp !== null ? `<div class="marker tp" style="left:${tpPos}%;"></div>` : ''}
+        ${minTp !== null ? `<div class="marker minrr" style="left:${minTpPos}%;"></div>` : ''}
+        <div class="label lt sl" style="left:${slPos}%">SL ${fmtNum(sl, sl < 1 ? 4 : 2)}</div>
+        <div class="label lt entry" style="left:${entryPos}%">ENTRY ${fmtNum(entry, entry < 1 ? 4 : 2)}</div>
+        ${activeTp !== null ? `<div class="label lt tp" style="left:${tpPos}%">TP aktywny ${fmtNum(activeTp, activeTp < 1 ? 4 : 2)}</div>` : ''}
+        ${minTp !== null ? `<div class="label lt minrr" style="left:${minTpPos}%">TP min RR ${fmtNum(minTp, minTp < 1 ? 4 : 2)}</div>` : ''}
+        <div class="label" style="left:${slPos}%">-${fmtNum(Math.abs(entry - sl) / entry * 100)}%</div>
+        <div class="label" style="left:${entryPos}%">0%</div>
+        ${activeTp !== null ? `<div class="label" style="left:${tpPos}%">+${fmtNum(Math.abs(activeTp - entry) / entry * 100)}%</div>` : ''}
       </div>`;
   } else {
     ptWrap.innerHTML = `<div style="height:56px; background:var(--tc-surface); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--tc-muted-2); font-size:12px;">Uzupełnij Entry + SL aby zobaczyć wizualizację</div>`;
@@ -705,8 +734,18 @@ function updatePlanner() {
   }
   if (riskPct > settings.maxRiskPct) { score -= 20; issues.push({ k: 'bad', m: `Ryzyko ${riskPct.toFixed(2)}% przekracza limit ${settings.maxRiskPct}%` }); }
   else if (riskPct <= settings.maxRiskPct) { score += 10; }
+  if (effectiveRiskPct !== null && effectiveRiskPct > settings.maxRiskPct) {
+    score -= 10;
+    issues.push({ k: 'warn', m: `Po nadpisaniu size realne ryzyko to ${effectiveRiskPct.toFixed(2)}% (limit ${settings.maxRiskPct}%)` });
+  }
+  if (riskBasedNotional !== null && riskBasedNotional > leverageBudgetNotional) {
+    issues.push({ k: 'warn', m: `Dźwignia ${lev}× ogranicza size: budżet notional ${fmtUSD(leverageBudgetNotional)} (risk% × lewar).` });
+  }
+  if (sizeUsdOverride !== null && sizeUsdOverride <= 0) issues.push({ k: 'bad', m: 'Nadpisanie size w $ musi być większe od zera' });
   if (margin !== null && margin > capital * 0.5) { score -= 10; issues.push({ k: 'warn', m: 'Margin > 50% kapitału – wysoka ekspozycja' }); }
   if (lev > 10) { score -= 10; issues.push({ k: 'warn', m: `Dźwignia ${lev}× – uważaj na liquidation` }); }
+  if (finalTpOverride !== null) issues.push({ k: 'warn', m: 'Final TP nadpisany ręcznie — ten poziom zostanie zapisany do logu' });
+  if (size !== null) issues.push({ k: 'good', m: `Size źródło: ${sizeSource}. Jeśli pole nadpisania puste, używany jest size automatyczny.` });
   score = clamp(Math.round(score), 0, 100);
 
   el('p-score').textContent = score + '/100';
@@ -723,13 +762,14 @@ function updatePlanner() {
   }
 
   // Add button
-  const canAdd = dirValid.ok && entry !== null && sl !== null && size !== null && size > 0 && el('p-ticker').value.trim();
+  const canAdd = dirValid.ok && entry !== null && sl !== null && size !== null && size > 0 && activeTp !== null && el('p-ticker').value.trim();
   el('p-add-btn').disabled = !canAdd;
   el('p-add-btn').dataset.size = size !== null ? size : '';
+  el('p-add-btn').dataset.tp = activeTp !== null ? activeTp : '';
 }
 
 function clearPlanner() {
-  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-note'].forEach(id => document.getElementById(id).value = '');
+  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-finaltp', 'p-sizeusd', 'p-riskpct', 'p-note'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-lev').value = 1;
   document.getElementById('p-date').value = today();
   setPlanDir('long');
@@ -746,7 +786,7 @@ function addTradeFromPlanner() {
     direction: planDir,
     leverage: numberOr(el('p-lev').value, 1),
     entry, sl,
-    tp: numberNullable(el('p-tp').value),
+    tp: numberNullable(el('p-add-btn').dataset.tp),
     size,
     date: el('p-date').value || today(),
     note: el('p-note').value.trim()
@@ -1251,7 +1291,7 @@ function init() {
   document.getElementById('filter-search').addEventListener('input', e => { tradeFilters.q = e.target.value; renderTradesTable(); });
 
   // Planner listeners
-  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note'].forEach(id => {
+  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-finaltp', 'p-sizeusd', 'p-riskpct', 'p-lev', 'p-date', 'p-note'].forEach(id => {
     document.getElementById(id).addEventListener('input', updatePlanner);
   });
   document.getElementById('p-date').value = today();
