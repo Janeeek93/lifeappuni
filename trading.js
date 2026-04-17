@@ -241,6 +241,10 @@ function aggregate() {
   };
 }
 
+function getCurrentEquity() {
+  return aggregate().equity;
+}
+
 // ============================================================
 // RENDER — Dashboard
 // ============================================================
@@ -618,11 +622,11 @@ function updatePlanner() {
   const sizeQtyOverride = numberNullable(el('p-size-override').value);
   const lev = Math.max(1, numberOr(el('p-lev').value, 1));
   const riskPctRaw = numberNullable(el('p-riskpct').value);
-  const riskPct = riskPctRaw !== null ? riskPctRaw : settings.maxRiskPct;
-  if (!el('p-riskpct').value) el('p-riskpct').placeholder = settings.maxRiskPct.toFixed(2);
+  const riskPct = riskPctRaw !== null ? riskPctRaw : 1;
+  if (!el('p-riskpct').value) el('p-riskpct').placeholder = '1.00';
 
-  const capital = settings.capital; // equity-based? use capital for planner simplicity
-  const marginBudget = capital * (riskPct / 100);
+  const capital = getCurrentEquity();
+  const riskUSD = capital * (riskPct / 100);
 
   const riskPerUnit = (entry !== null && sl !== null) ? Math.abs(entry - sl) : null;
 
@@ -647,9 +651,9 @@ function updatePlanner() {
     return { ok: true };
   })();
 
-  // Calculated (auto) position sizing from margin budget + leverage
-  const calcNotional = entry !== null ? marginBudget * lev : null;
-  const calcSize = (calcNotional !== null && entry !== null && entry > 0) ? calcNotional / entry : null;
+  // Calculated (auto) position sizing from risk at SL only
+  const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
+  const calcNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
 
   // Effective size / notional: use quantity override if provided, else computed
   let effSize = calcSize;
@@ -697,7 +701,7 @@ function updatePlanner() {
 
   // Hint text under override inputs
   el('p-size-hint').innerHTML = calcNotional !== null
-    ? `Auto: <strong>${fmtQty(calcSize)}</strong> szt. · <strong>${fmtUSD(calcNotional)}</strong> notional (margin ${fmtUSD(marginBudget)} = ${riskPct.toFixed(2)}% kapitału, dźwignia ${lev}×)`
+    ? `Auto: <strong>${fmtQty(calcSize)}</strong> szt. · <strong>${fmtUSD(calcNotional)}</strong> notional (ryzyko do SL: ${fmtUSD(riskUSD)} = ${riskPct.toFixed(2)}% aktualnego kapitału)`
     : 'Zostaw puste, aby użyć wartości obliczonej przez aplikację.';
   el('p-tp-hint').innerHTML = suggestedTP !== null
     ? `Auto: <strong>${fmtNum(suggestedTP, suggestedTP < 1 ? 6 : 2)}</strong> (min ${settings.minRR}R)`
@@ -726,13 +730,7 @@ function updatePlanner() {
       impact.push({ k: 'warn', m: 'Nadpisana ilość aktywna — dodaj SL, aby policzyć realne ryzyko pozycji.' });
     }
     if (margin !== null && capital > 0) {
-      impact.push({ k: margin > capital ? 'bad' : 'warn', m: `Wymagana margin: ${fmtUSD(margin)} (${marginUsagePct.toFixed(1)}% kapitału) przy dźwigni ${lev}×` });
-    }
-  } else if (margin !== null && capital > 0) {
-    if (Math.abs((marginUsagePct || 0) - riskPct) > 0.01) {
-      impact.push({ k: 'warn', m: `Margin używa ${marginUsagePct.toFixed(2)}% kapitału (cel: ${riskPct.toFixed(2)}%).` });
-    } else {
-      impact.push({ k: 'good', m: `Margin używa ${marginUsagePct.toFixed(2)}% kapitału zgodnie z celem.` });
+      impact.push({ k: margin > capital ? 'bad' : 'warn', m: `Margin informacyjnie: ${fmtUSD(margin)} (${marginUsagePct.toFixed(1)}% kapitału) przy dźwigni ${lev}×` });
     }
   }
   const impactEl = el('p-override-impact');
@@ -790,17 +788,10 @@ function updatePlanner() {
     else if (rr >= settings.minRR * 0.7) { score += 10; issues.push({ k: 'warn', m: `RR ${rr.toFixed(2)} poniżej minimum (${settings.minRR})` }); }
     else { score -= 15; issues.push({ k: 'bad', m: `RR ${rr.toFixed(2)} znacznie poniżej min. ${settings.minRR}` }); }
   }
-  if (marginUsagePct !== null) {
-    if (marginUsagePct > settings.maxRiskPct + 1e-9) {
-      score -= 20;
-      issues.push({ k: 'bad', m: `Użycie margin ${marginUsagePct.toFixed(2)}% przekracza limit ${settings.maxRiskPct}%` });
-    } else {
-      score += 10;
-      issues.push({ k: 'good', m: `Użycie margin ${marginUsagePct.toFixed(2)}% mieści się w limicie.` });
-    }
-  }
   if (actualRiskPct !== null && riskPerUnit !== null && riskPerUnit > 0) {
-    issues.push({ k: actualRiskPct > settings.maxRiskPct + 1e-9 ? 'warn' : 'good', m: `Ryzyko do SL: ${actualRiskPct.toFixed(2)}% kapitału.` });
+    const riskDelta = Math.abs(actualRiskPct - riskPct);
+    issues.push({ k: riskDelta > 0.01 ? 'warn' : 'good', m: `Ryzyko do SL: ${actualRiskPct.toFixed(2)}% kapitału (cel: ${riskPct.toFixed(2)}%).` });
+    if (riskDelta <= 0.01) score += 10;
   }
   if (margin !== null && margin > capital * 0.5) { score -= 10; issues.push({ k: 'warn', m: 'Margin > 50% kapitału – wysoka ekspozycja' }); }
   if (lev > 10) { score -= 10; issues.push({ k: 'warn', m: `Dźwignia ${lev}× – uważaj na liquidation` }); }
