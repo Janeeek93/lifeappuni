@@ -614,7 +614,8 @@ function updatePlanner() {
   const el = id => document.getElementById(id);
   const entry = numberNullable(el('p-entry').value);
   const sl = numberNullable(el('p-sl').value);
-  const tp = numberNullable(el('p-tp').value);
+  const tpOverride = numberNullable(el('p-tp').value);
+  const sizeUsdOverride = numberNullable(el('p-size-override').value);
   const lev = Math.max(1, numberOr(el('p-lev').value, 1));
   const riskPctRaw = numberNullable(el('p-riskpct').value);
   const riskPct = riskPctRaw !== null ? riskPctRaw : settings.maxRiskPct;
@@ -623,57 +624,132 @@ function updatePlanner() {
   const capital = settings.capital; // equity-based? use capital for planner simplicity
   const riskUSD = capital * (riskPct / 100);
 
-  let riskPerUnit = null, rewardPerUnit = null;
-  if (entry !== null && sl !== null) riskPerUnit = Math.abs(entry - sl);
-  if (entry !== null && tp !== null) rewardPerUnit = Math.abs(tp - entry);
+  const riskPerUnit = (entry !== null && sl !== null) ? Math.abs(entry - sl) : null;
 
-  // Direction sanity
+  // Suggested TP from minRR setting
+  const suggestedTP = (entry !== null && sl !== null && riskPerUnit !== null && riskPerUnit > 0)
+    ? (planDir === 'long' ? entry + riskPerUnit * settings.minRR : entry - riskPerUnit * settings.minRR)
+    : null;
+
+  // Effective TP = override or suggested
+  const effectiveTP = tpOverride !== null ? tpOverride : suggestedTP;
+  const rewardPerUnit = (entry !== null && effectiveTP !== null) ? Math.abs(effectiveTP - entry) : null;
+
+  // Direction sanity (uses override TP if provided, otherwise don't flag the suggestion)
   const dirValid = (() => {
     if (entry === null || sl === null) return { ok: true };
     if (planDir === 'long' && sl >= entry) return { ok: false, msg: 'Dla LONG, SL musi być poniżej entry' };
     if (planDir === 'short' && sl <= entry) return { ok: false, msg: 'Dla SHORT, SL musi być powyżej entry' };
-    if (tp !== null) {
-      if (planDir === 'long' && tp <= entry) return { ok: false, msg: 'Dla LONG, TP musi być powyżej entry' };
-      if (planDir === 'short' && tp >= entry) return { ok: false, msg: 'Dla SHORT, TP musi być poniżej entry' };
+    if (tpOverride !== null) {
+      if (planDir === 'long' && tpOverride <= entry) return { ok: false, msg: 'Dla LONG, TP musi być powyżej entry' };
+      if (planDir === 'short' && tpOverride >= entry) return { ok: false, msg: 'Dla SHORT, TP musi być poniżej entry' };
     }
     return { ok: true };
   })();
 
-  const size = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
-  const rr = (riskPerUnit && rewardPerUnit && riskPerUnit > 0) ? rewardPerUnit / riskPerUnit : null;
-  const notional = (size !== null && entry !== null) ? size * entry : null;
-  const margin = (notional !== null) ? notional / lev : null;
-  const rewardUSD = (size !== null && rewardPerUnit !== null) ? size * rewardPerUnit : null;
-  const actualRiskUSD = (size !== null && riskPerUnit !== null) ? size * riskPerUnit : null;
+  // Calculated (auto) position sizing from risk% + SL distance
+  const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
+  const calcNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
 
+  // Effective size / notional: use USD override if provided, else computed
+  let effSize = calcSize;
+  let effNotional = calcNotional;
+  if (sizeUsdOverride !== null && sizeUsdOverride > 0 && entry !== null) {
+    effNotional = sizeUsdOverride;
+    effSize = sizeUsdOverride / entry;
+  }
+
+  const rr = (riskPerUnit && rewardPerUnit && riskPerUnit > 0) ? rewardPerUnit / riskPerUnit : null;
+  const margin = (effNotional !== null) ? effNotional / lev : null;
+  const rewardUSD = (effSize !== null && rewardPerUnit !== null) ? effSize * rewardPerUnit : null;
+  const actualRiskUSD = (effSize !== null && riskPerUnit !== null) ? effSize * riskPerUnit : null;
+  const actualRiskPct = (actualRiskUSD !== null && capital > 0) ? (actualRiskUSD / capital) * 100 : null;
+
+  // Suggested TP pill
+  const suggestPill = el('p-suggest-tp');
+  if (suggestedTP !== null && dirValid.ok) {
+    suggestPill.className = 'plan-pill good';
+    suggestPill.innerHTML = `Sugerowany TP (min ${settings.minRR}R): <strong>${fmtNum(suggestedTP, suggestedTP < 1 ? 6 : 2)}</strong>`;
+  } else if (!dirValid.ok) {
+    suggestPill.className = 'plan-pill bad';
+    suggestPill.textContent = dirValid.msg;
+  } else {
+    suggestPill.className = 'plan-pill neutral';
+    suggestPill.textContent = 'Sugerowany TP pojawi się po ustawieniu Entry + SL';
+  }
+
+  // Summary cells
   el('p-rpu').textContent = riskPerUnit !== null ? fmtNum(riskPerUnit, riskPerUnit < 1 ? 6 : 2) : '—';
   el('p-wpu').textContent = rewardPerUnit !== null ? fmtNum(rewardPerUnit, rewardPerUnit < 1 ? 6 : 2) : '—';
   el('p-rr').textContent = rr !== null ? rr.toFixed(2) : '—';
-  el('p-size').textContent = size !== null ? fmtQty(size) : '—';
-  el('p-notional').textContent = notional !== null ? fmtUSD(notional) : '—';
+  el('p-size').textContent = effSize !== null ? fmtQty(effSize) : '—';
+  el('p-notional').textContent = effNotional !== null ? fmtUSD(effNotional) : '—';
   el('p-margin').textContent = margin !== null ? fmtUSD(margin) : '—';
   el('p-riskusd').textContent = actualRiskUSD !== null ? fmtUSD(-actualRiskUSD) : '—';
   el('p-rewardusd').textContent = rewardUSD !== null ? fmtUSD(rewardUSD, true) : '—';
   el('p-be').textContent = entry !== null ? fmtNum(entry, entry < 1 ? 6 : 2) : '—';
 
+  // Final values that will go to the trade log
+  el('p-final-tp').textContent = effectiveTP !== null ? fmtNum(effectiveTP, effectiveTP < 1 ? 6 : 2) : '—';
+  el('p-final-size').textContent = effSize !== null ? fmtQty(effSize) : '—';
+  el('p-final-notional').textContent = effNotional !== null ? fmtUSD(effNotional) : '—';
+
+  // Hint text under override inputs
+  el('p-size-hint').innerHTML = calcNotional !== null
+    ? `Auto: <strong>${fmtUSD(calcNotional)}</strong> notional · <strong>${fmtQty(calcSize)}</strong> szt. (z ${riskPct.toFixed(2)}% kapitału w SL, dźwignia ${lev}×)`
+    : 'Zostaw puste, aby użyć wartości obliczonej przez aplikację.';
+  el('p-tp-hint').innerHTML = suggestedTP !== null
+    ? `Auto: <strong>${fmtNum(suggestedTP, suggestedTP < 1 ? 6 : 2)}</strong> (min ${settings.minRR}R)`
+    : 'Puste = TP jak sugerowany (min RR z ustawień).';
+
+  // Override impact messages
+  const impact = [];
+  if (tpOverride !== null && rr !== null) {
+    if (rr + 1e-9 < settings.minRR) {
+      impact.push({ k: 'bad', m: `Nadpisany TP daje RR ${rr.toFixed(2)} — poniżej celu ${settings.minRR}R` });
+    } else {
+      impact.push({ k: 'good', m: `Nadpisany TP daje RR ${rr.toFixed(2)} — spełnia min. ${settings.minRR}R` });
+    }
+  }
+  if (sizeUsdOverride !== null && actualRiskPct !== null) {
+    const deltaPct = actualRiskPct - riskPct;
+    if (actualRiskPct > settings.maxRiskPct + 1e-9) {
+      impact.push({ k: 'bad', m: `Nadpisany size = ryzyko ${actualRiskPct.toFixed(2)}% kapitału — łamie limit ${settings.maxRiskPct}%` });
+    } else if (Math.abs(deltaPct) > 0.001) {
+      impact.push({ k: 'warn', m: `Nadpisany size = ryzyko ${actualRiskPct.toFixed(2)}% kapitału (cel: ${riskPct.toFixed(2)}%)` });
+    } else {
+      impact.push({ k: 'good', m: `Nadpisany size zgadza się z celem ryzyka (${actualRiskPct.toFixed(2)}%)` });
+    }
+    if (margin !== null && capital > 0) {
+      impact.push({ k: margin > capital ? 'bad' : 'warn', m: `Wymagana margin: ${fmtUSD(margin)} (${((margin / capital) * 100).toFixed(1)}% kapitału) przy dźwigni ${lev}×` });
+    }
+  }
+  const impactEl = el('p-override-impact');
+  if (impact.length) {
+    impactEl.innerHTML = impact.map(i => `<div class="plan-impact-item ${i.k}">${esc(i.m)}</div>`).join('');
+  } else {
+    impactEl.innerHTML = '<div class="plan-impact-item neutral">Brak nadpisań — używane będą wartości z auto-kalkulacji.</div>';
+  }
+
   // Price track
   const ptWrap = el('p-price-track');
+  const tpForTrack = effectiveTP;
   if (entry !== null && sl !== null) {
     const vals = [entry, sl];
-    if (tp !== null) vals.push(tp);
+    if (tpForTrack !== null) vals.push(tpForTrack);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const pad = (hi - lo) * 0.25 || entry * 0.01;
     const a = lo - pad, b = hi + pad, span = b - a || 1;
     const pos = x => ((x - a) / span) * 100;
-    const entryPos = pos(entry), slPos = pos(sl), tpPos = tp !== null ? pos(tp) : null;
-    const slIsBelow = sl < entry;
+    const entryPos = pos(entry), slPos = pos(sl), tpPos = tpForTrack !== null ? pos(tpForTrack) : null;
     const slLeft = Math.min(slPos, entryPos), slWidth = Math.abs(entryPos - slPos);
     let tpHtml = '';
-    if (tp !== null) {
+    if (tpForTrack !== null) {
       const tpLeft = Math.min(tpPos, entryPos);
       const tpWidth = Math.abs(entryPos - tpPos);
       tpHtml = `<div class="tp" style="left:${tpLeft}%; width:${tpWidth}%;"></div>`;
     }
+    const tpKind = tpOverride !== null ? 'override' : 'sugerowany';
     ptWrap.innerHTML = `
       <div class="price-track">
         <div class="axis">
@@ -682,29 +758,30 @@ function updatePlanner() {
         </div>
         <div class="marker sl" style="left:${slPos}%;"></div>
         <div class="marker entry" style="left:${entryPos}%;"></div>
-        ${tp !== null ? `<div class="marker tp" style="left:${tpPos}%;"></div>` : ''}
+        ${tpForTrack !== null ? `<div class="marker tp" style="left:${tpPos}%;"></div>` : ''}
         <div class="label lt sl" style="left:${slPos}%;">SL ${fmtNum(sl, sl < 1 ? 4 : 2)}</div>
         <div class="label lt entry" style="left:${entryPos}%;">ENTRY ${fmtNum(entry, entry < 1 ? 4 : 2)}</div>
-        ${tp !== null ? `<div class="label lt tp" style="left:${tpPos}%;">TP ${fmtNum(tp, tp < 1 ? 4 : 2)}</div>` : ''}
+        ${tpForTrack !== null ? `<div class="label lt tp" style="left:${tpPos}%;">TP ${fmtNum(tpForTrack, tpForTrack < 1 ? 4 : 2)} (${tpKind})</div>` : ''}
         <div class="label" style="left:${slPos}%;">-${fmtNum(Math.abs(entry - sl) / entry * 100)}%</div>
         <div class="label" style="left:${entryPos}%;">0%</div>
-        ${tp !== null ? `<div class="label" style="left:${tpPos}%;">+${fmtNum(Math.abs(tp - entry) / entry * 100)}%</div>` : ''}
+        ${tpForTrack !== null ? `<div class="label" style="left:${tpPos}%;">+${fmtNum(Math.abs(tpForTrack - entry) / entry * 100)}%</div>` : ''}
       </div>`;
   } else {
     ptWrap.innerHTML = `<div style="height:56px; background:var(--tc-surface); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--tc-muted-2); font-size:12px;">Uzupełnij Entry + SL aby zobaczyć wizualizację</div>`;
   }
 
-  // Score
+  // Score + issues
   const issues = [];
   if (!dirValid.ok) issues.push({ k: 'bad', m: dirValid.msg });
   let score = 50;
   if (rr !== null) {
-    if (rr >= settings.minRR) { score += 25; issues.push({ k: 'good', m: `RR ${rr.toFixed(2)} spełnia minimum ${settings.minRR}` }); }
+    if (rr + 1e-9 >= settings.minRR) { score += 25; issues.push({ k: 'good', m: `RR ${rr.toFixed(2)} spełnia minimum ${settings.minRR}` }); }
     else if (rr >= settings.minRR * 0.7) { score += 10; issues.push({ k: 'warn', m: `RR ${rr.toFixed(2)} poniżej minimum (${settings.minRR})` }); }
     else { score -= 15; issues.push({ k: 'bad', m: `RR ${rr.toFixed(2)} znacznie poniżej min. ${settings.minRR}` }); }
   }
-  if (riskPct > settings.maxRiskPct) { score -= 20; issues.push({ k: 'bad', m: `Ryzyko ${riskPct.toFixed(2)}% przekracza limit ${settings.maxRiskPct}%` }); }
-  else if (riskPct <= settings.maxRiskPct) { score += 10; }
+  const effRiskPctForScore = actualRiskPct !== null ? actualRiskPct : riskPct;
+  if (effRiskPctForScore > settings.maxRiskPct + 1e-9) { score -= 20; issues.push({ k: 'bad', m: `Ryzyko ${effRiskPctForScore.toFixed(2)}% przekracza limit ${settings.maxRiskPct}%` }); }
+  else { score += 10; }
   if (margin !== null && margin > capital * 0.5) { score -= 10; issues.push({ k: 'warn', m: 'Margin > 50% kapitału – wysoka ekspozycja' }); }
   if (lev > 10) { score -= 10; issues.push({ k: 'warn', m: `Dźwignia ${lev}× – uważaj na liquidation` }); }
   score = clamp(Math.round(score), 0, 100);
@@ -722,14 +799,15 @@ function updatePlanner() {
     notesEl.textContent = 'Uzupełnij entry, stop i TP aby zobaczyć kalkulację i walidację setupu.';
   }
 
-  // Add button
-  const canAdd = dirValid.ok && entry !== null && sl !== null && size !== null && size > 0 && el('p-ticker').value.trim();
+  // Add button — store final size and final TP for submission
+  const canAdd = dirValid.ok && entry !== null && sl !== null && effSize !== null && effSize > 0 && el('p-ticker').value.trim();
   el('p-add-btn').disabled = !canAdd;
-  el('p-add-btn').dataset.size = size !== null ? size : '';
+  el('p-add-btn').dataset.size = effSize !== null ? effSize : '';
+  el('p-add-btn').dataset.tp = effectiveTP !== null ? effectiveTP : '';
 }
 
 function clearPlanner() {
-  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-note'].forEach(id => document.getElementById(id).value = '');
+  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-note', 'p-size-override'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('p-lev').value = 1;
   document.getElementById('p-date').value = today();
   setPlanDir('long');
@@ -740,13 +818,15 @@ function addTradeFromPlanner() {
   const entry = numberNullable(el('p-entry').value);
   const sl = numberNullable(el('p-sl').value);
   const size = Number(el('p-add-btn').dataset.size);
+  const tpDs = el('p-add-btn').dataset.tp;
+  const tp = tpDs ? Number(tpDs) : null;
   if (!entry || !sl || !size) return;
   const t = normalizeTrade({
     ticker: el('p-ticker').value.trim(),
     direction: planDir,
     leverage: numberOr(el('p-lev').value, 1),
     entry, sl,
-    tp: numberNullable(el('p-tp').value),
+    tp: Number.isFinite(tp) ? tp : null,
     size,
     date: el('p-date').value || today(),
     note: el('p-note').value.trim()
@@ -1251,7 +1331,7 @@ function init() {
   document.getElementById('filter-search').addEventListener('input', e => { tradeFilters.q = e.target.value; renderTradesTable(); });
 
   // Planner listeners
-  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note'].forEach(id => {
+  ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {
     document.getElementById(id).addEventListener('input', updatePlanner);
   });
   document.getElementById('p-date').value = today();
