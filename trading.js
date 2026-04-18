@@ -1337,7 +1337,7 @@ function renderCalendarBuckets(days, monthStats, metric) {
   const wrap = document.getElementById('cal-buckets');
   const ranges = [[1,7],[8,14],[15,21],[22,28],[29,days],['all','all']];
   wrap.innerHTML = ranges.map(r => {
-    const stats = r[0] === 'all'
+    const statsRaw = r[0] === 'all'
       ? Object.values(monthStats)
       : Object.keys(monthStats)
           .filter(k => {
@@ -1345,6 +1345,7 @@ function renderCalendarBuckets(days, monthStats, metric) {
             return d >= r[0] && d <= r[1];
           })
           .map(k => monthStats[k]);
+    const stats = statsRaw.filter(s => !s.isFuture);
     const aggStat = {
       pnl: stats.reduce((a, s) => a + s.pnl, 0),
       roi: settings.capital > 0 ? (stats.reduce((a, s) => a + s.pnl, 0) / settings.capital) * 100 : 0,
@@ -1377,6 +1378,7 @@ function renderCalendarView() {
   const firstDay = (new Date(year, mon - 1, 1).getDay() + 6) % 7; // monday=0
   const grid = document.getElementById('cal-grid');
   const monthStartKey = `${year}-${String(mon).padStart(2, '0')}-01`;
+  const todayKey = today();
 
   const monthStats = {};
   const pnlBeforeMonth = Object.entries(agg.byDay)
@@ -1386,8 +1388,11 @@ function renderCalendarView() {
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const day = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
-    runningDepo += day.pnl;
-    monthStats[key] = { ...day, depo: runningDepo };
+    const isFuture = key > todayKey;
+    if (!isFuture) runningDepo += day.pnl;
+    monthStats[key] = isFuture
+      ? { pnl: null, roi: null, rr: null, depo: null, trades: 0, wins: 0, losses: 0, wr: null, isFuture: true }
+      : { ...day, depo: runningDepo, isFuture: false };
   }
   renderCalendarBuckets(daysInMonth, monthStats, metric);
 
@@ -1396,6 +1401,13 @@ function renderCalendarView() {
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const st = monthStats[key];
+    if (st.isFuture) {
+      cells.push(`
+        <div class="cal-cell empty">
+          <div class="d">${d}</div>
+        </div>`);
+      continue;
+    }
     cells.push(`
       <div class="cal-cell ${getMetricClass(metric, st)}">
         <div class="d">${d}</div>
