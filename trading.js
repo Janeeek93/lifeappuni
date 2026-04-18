@@ -1285,7 +1285,22 @@ function fmtMetricValue(metric, stat) {
 
 function getMetricClass(metric, stat) {
   if (!stat) return '';
-  const v = metric === 'pnl' ? stat.pnl : metric === 'roi' ? stat.roi : metric === 'rr' ? (stat.rr ?? 0) : metric === 'wr' ? (stat.wr ?? 0) - 50 : 0;
+  if (metric === 'trades') {
+    if (!Number.isFinite(stat.trades) || stat.trades <= 0) return '';
+    if (stat.trades <= 3) return 'pos';
+    return 'neg';
+  }
+  if (metric === 'wr') {
+    if (stat.wr === null || stat.wr === undefined || !Number.isFinite(stat.wr)) return '';
+    return stat.wr > 50 ? 'pos' : 'neg';
+  }
+  const v = metric === 'pnl'
+    ? stat.pnl
+    : metric === 'roi'
+      ? stat.roi
+      : metric === 'rr'
+        ? (stat.rr ?? 0)
+        : 0;
   return v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 }
 
