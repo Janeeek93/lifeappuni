@@ -20,8 +20,10 @@ let state = { trades: [] };
 let planDir = 'long';
 let modalDir = 'long';
 let eqRange = '90';
-let tradeFilters = { status: 'all', dir: 'all', q: '' };
+let tradeFilters = { status: 'all', dir: 'all', q: '', closedGrouping: 'month' };
+let calendarState = { month: today().slice(0, 7), metric: 'pnl' };
 let expandedRows = new Set();
+let expandedClosedGroups = new Set();
 let charts = {};
 
 // ---------- Utilities ----------
@@ -504,7 +506,54 @@ function renderTradesTable() {
     return;
   }
 
-  const rowsHtml = list.map(t => {
+  const openTrades = list.filter(t => !tradeMetrics(t).isClosed);
+  const closedTrades = list.filter(t => tradeMetrics(t).isClosed);
+
+  const openSection = tradeFilters.status === 'closed'
+    ? ''
+    : renderTradesSection('Otwarte pozycje', openTrades, 'Brak otwartych pozycji dla aktywnych filtrów.');
+
+  let closedSection = '';
+  if (tradeFilters.status !== 'open') {
+    if (tradeFilters.closedGrouping === 'none') {
+      closedSection = renderTradesSection('Zamknięte pozycje', closedTrades, 'Brak zamkniętych pozycji dla aktywnych filtrów.');
+    } else {
+      closedSection = renderGroupedClosedSection(closedTrades, tradeFilters.closedGrouping);
+    }
+  }
+
+  wrap.innerHTML = `
+    <div class="trades-sections">
+      ${openSection}
+      ${closedSection}
+    </div>`;
+}
+
+function renderTradesSection(title, trades, emptyMessage) {
+  if (!trades.length) {
+    return `<section class="trade-list-section">
+      <div class="trade-list-head"><h4>${esc(title)}</h4><span class="muted mono">0</span></div>
+      <div class="tc-empty"><span class="material-symbols-outlined">inbox</span><h4>Brak danych</h4><p>${esc(emptyMessage)}</p></div>
+    </section>`;
+  }
+  const rowsHtml = renderTradeRows(trades);
+  return `
+    <section class="trade-list-section">
+      <div class="trade-list-head"><h4>${esc(title)}</h4><span class="muted mono">${trades.length}</span></div>
+      <table class="tc-tbl">
+        <thead><tr>
+          <th></th><th>Data</th><th>Ticker</th><th>Dir</th><th>Status</th>
+          <th class="num">Entry</th><th class="num">SL</th><th class="num">TP</th>
+          <th class="num">Size</th><th class="num">RR plan</th>
+          <th class="num">P&L</th><th>R</th><th class="num">R-mult</th><th></th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </section>`;
+}
+
+function renderTradeRows(list) {
+  return list.map(t => {
     const m = tradeMetrics(t);
     const status = m.isClosed ? 'closed' : 'open';
     const isOpen = expandedRows.has(t.id);
@@ -543,17 +592,74 @@ function renderTradesTable() {
     const expanded = isOpen ? renderExpandedRow(t, m) : '';
     return mainRow + expanded;
   }).join('');
+}
 
-  wrap.innerHTML = `
-    <table class="tc-tbl">
-      <thead><tr>
-        <th></th><th>Data</th><th>Ticker</th><th>Dir</th><th>Status</th>
-        <th class="num">Entry</th><th class="num">SL</th><th class="num">TP</th>
-        <th class="num">Size</th><th class="num">RR plan</th>
-        <th class="num">P&L</th><th>R</th><th class="num">R-mult</th><th></th>
-      </tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>`;
+function getIsoWeek(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day + 3);
+  const firstThursday = new Date(d.getFullYear(), 0, 4);
+  const ftDay = (firstThursday.getDay() + 6) % 7;
+  firstThursday.setDate(firstThursday.getDate() - ftDay + 3);
+  const week = 1 + Math.round((d - firstThursday) / (7 * 24 * 60 * 60 * 1000));
+  return { year: d.getFullYear(), week };
+}
+
+function getClosedGroupMeta(date, grouping) {
+  if (grouping === 'day') return { key: date, label: date };
+  if (grouping === 'week') {
+    const { year, week } = getIsoWeek(date);
+    const wk = `W${String(week).padStart(2, '0')}`;
+    return { key: `${year}-${wk}`, label: `${year} · tydzień ${String(week).padStart(2, '0')}` };
+  }
+  const month = date.slice(0, 7);
+  return { key: month, label: month };
+}
+
+function renderGroupedClosedSection(trades, grouping) {
+  const groups = {};
+  for (const t of trades) {
+    const lastCloseDate = (t.closings && t.closings[t.closings.length - 1]?.date) || t.date || today();
+    const meta = getClosedGroupMeta(lastCloseDate, grouping);
+    if (!groups[meta.key]) groups[meta.key] = { key: meta.key, label: meta.label, trades: [], pnl: 0, wins: 0, losses: 0 };
+    const pnl = tradeMetrics(t).realized;
+    groups[meta.key].trades.push(t);
+    groups[meta.key].pnl += pnl;
+    if (pnl > 0) groups[meta.key].wins++;
+    if (pnl < 0) groups[meta.key].losses++;
+  }
+  const ordered = Object.values(groups).sort((a, b) => b.key.localeCompare(a.key));
+
+  if (!ordered.length) {
+    return `<section class="trade-list-section">
+      <div class="trade-list-head"><h4>Zamknięte pozycje</h4><span class="muted mono">0</span></div>
+      <div class="tc-empty"><span class="material-symbols-outlined">inbox</span><h4>Brak danych</h4><p>Brak zamkniętych pozycji dla aktywnych filtrów.</p></div>
+    </section>`;
+  }
+
+  const body = ordered.map(g => {
+    const isOpen = expandedClosedGroups.has(g.key);
+    const tradesCount = g.trades.length;
+    const wr = tradesCount ? (g.wins / tradesCount) * 100 : 0;
+    return `
+      <article class="closed-group ${isOpen ? 'open' : ''}">
+        <button class="closed-group-head" onclick='toggleClosedGroup(${JSON.stringify(g.key)})'>
+          <span class="left"><span class="material-symbols-outlined chev">chevron_right</span><strong>${esc(g.label)}</strong></span>
+          <span class="meta mono">${tradesCount} trans. · WR ${wr.toFixed(0)}% · P&L ${fmtUSD(g.pnl, true)}</span>
+        </button>
+        ${isOpen ? `<div class="closed-group-body"><table class="tc-tbl"><thead><tr>
+          <th></th><th>Data</th><th>Ticker</th><th>Dir</th><th>Status</th>
+          <th class="num">Entry</th><th class="num">SL</th><th class="num">TP</th>
+          <th class="num">Size</th><th class="num">RR plan</th>
+          <th class="num">P&L</th><th>R</th><th class="num">R-mult</th><th></th>
+        </tr></thead><tbody>${renderTradeRows(g.trades)}</tbody></table></div>` : ''}
+      </article>`;
+  }).join('');
+
+  return `<section class="trade-list-section">
+    <div class="trade-list-head"><h4>Zamknięte pozycje (grupowane)</h4><span class="muted mono">${trades.length}</span></div>
+    <div class="closed-groups">${body}</div>
+  </section>`;
 }
 
 function renderExpandedRow(t, m) {
@@ -977,6 +1083,24 @@ function openCloseModal(id) {
   el('close-price').value = '';
   el('close-pct').value = Math.round(m.remainingPct);
   el('close-comm').value = 0;
+  const tpBtn = el('close-use-tp');
+  const slBtn = el('close-use-sl');
+  const beBtn = el('close-use-be');
+  if (tpBtn) {
+    tpBtn.disabled = (t.tp === null);
+    tpBtn.title = t.tp === null ? 'Brak ustawionego TP' : `Ustaw cenę na TP (${fmtNum(t.tp, t.tp < 1 ? 6 : 2)})`;
+    tpBtn.textContent = t.tp === null ? 'TP —' : `TP ${fmtNum(t.tp, t.tp < 1 ? 4 : 2)}`;
+  }
+  if (slBtn) {
+    slBtn.disabled = (t.sl === null);
+    slBtn.title = t.sl === null ? 'Brak ustawionego SL' : `Ustaw cenę na SL (${fmtNum(t.sl, t.sl < 1 ? 6 : 2)})`;
+    slBtn.textContent = t.sl === null ? 'SL —' : `SL ${fmtNum(t.sl, t.sl < 1 ? 4 : 2)}`;
+  }
+  if (beBtn) {
+    beBtn.disabled = !Number.isFinite(Number(t.entry));
+    beBtn.title = `Ustaw cenę na break-even (entry: ${fmtNum(t.entry, t.entry < 1 ? 6 : 2)})`;
+    beBtn.textContent = `BE ${fmtNum(t.entry, t.entry < 1 ? 4 : 2)}`;
+  }
   el('close-info').innerHTML = `
     <div><b>${esc(t.ticker)}</b> <span class="dir-tag ${t.direction}">${t.direction === 'long' ? 'LONG' : 'SHORT'}</span> · Entry: <span class="mono">${fmtNum(t.entry, t.entry < 1 ? 6 : 2)}</span> · Size: <span class="mono">${fmtQty(t.size)}</span></div>
     <div class="muted" style="margin-top:4px;">Pozostało do zamknięcia: <span class="mono" style="color:var(--tc-ink);">${m.remainingPct.toFixed(1)}%</span> (${fmtQty(m.remainingSize)})</div>
@@ -986,6 +1110,19 @@ function openCloseModal(id) {
   setTimeout(() => el('close-price').focus(), 50);
 }
 function closeCloseModal() { document.getElementById('close-modal').classList.remove('on'); activeCloseTrade = null; }
+function setClosePricePreset(kind) {
+  if (!activeCloseTrade) return;
+  const t = activeCloseTrade;
+  const preset = kind === 'tp' ? t.tp : kind === 'sl' ? t.sl : t.entry;
+  if (preset === null) {
+    toast(kind === 'tp' ? 'Ta pozycja nie ma ustawionego TP' : 'Ta pozycja nie ma ustawionego SL', 'err');
+    return;
+  }
+  const input = document.getElementById('close-price');
+  input.value = preset;
+  updateClosePreview();
+  input.focus();
+}
 function updateClosePreview() {
   if (!activeCloseTrade) return;
   const t = activeCloseTrade;
@@ -1066,12 +1203,17 @@ function toggleRow(id) {
   if (expandedRows.has(id)) expandedRows.delete(id); else expandedRows.add(id);
   renderTradesTable();
 }
+function toggleClosedGroup(key) {
+  if (expandedClosedGroups.has(key)) expandedClosedGroups.delete(key); else expandedClosedGroups.add(key);
+  renderTradesTable();
+}
 
 // Tabs
 function switchTab(name) {
   document.querySelectorAll('.trade-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'analytics') setTimeout(renderAnalytics, 30);
+  if (name === 'calendar') setTimeout(renderCalendarView, 30);
   if (name === 'planner') setTimeout(updatePlanner, 30);
 }
 
@@ -1096,6 +1238,172 @@ function exportCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = 'trades_' + today() + '.csv';
   a.click();
+}
+
+// ============================================================
+// Calendar tab
+// ============================================================
+function shiftCalendarMonth(delta) {
+  const [y, m] = calendarState.month.split('-').map(Number);
+  const d = new Date(y, (m - 1) + delta, 1);
+  calendarState.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  renderCalendarView();
+}
+
+function getDailyCalendarStats(agg) {
+  const byDate = {};
+  for (const e of agg.events) {
+    if (!byDate[e.date]) byDate[e.date] = { pnl: 0, rrSum: 0, rrCount: 0, trades: 0, wins: 0, losses: 0 };
+    byDate[e.date].pnl += e.pnl;
+    byDate[e.date].trades += 1;
+    if (e.pnl > 0) byDate[e.date].wins += 1;
+    if (e.pnl < 0) byDate[e.date].losses += 1;
+    if (e.realizedR !== null && Number.isFinite(e.realizedR)) {
+      byDate[e.date].rrSum += e.realizedR;
+      byDate[e.date].rrCount += 1;
+    }
+  }
+  for (const k of Object.keys(byDate)) {
+    const d = byDate[k];
+    d.roi = settings.capital > 0 ? (d.pnl / settings.capital) * 100 : 0;
+    d.rr = d.rrCount > 0 ? d.rrSum / d.rrCount : null;
+    const dec = d.wins + d.losses;
+    d.wr = dec > 0 ? (d.wins / dec) * 100 : null;
+  }
+  return byDate;
+}
+
+function fmtMetricValue(metric, stat) {
+  if (!stat) return '—';
+  if (metric === 'pnl') return fmtUSD(stat.pnl, true);
+  if (metric === 'roi') return fmtPct(stat.roi, true, 2);
+  if (metric === 'rr') return fmtR(stat.rr, true, 2);
+  if (metric === 'depo') return fmtUSD(stat.depo);
+  if (metric === 'trades') return String(stat.trades);
+  if (metric === 'wr') return stat.wr === null ? '—' : stat.wr.toFixed(0) + '%';
+  return '—';
+}
+
+function getMetricClass(metric, stat) {
+  if (!stat) return '';
+  if (metric === 'depo') {
+    if (!Number.isFinite(stat.depo)) return '';
+    if (stat.depo > settings.capital) return 'pos';
+    if (stat.depo < settings.capital) return 'neg';
+    return '';
+  }
+  if (metric === 'trades') {
+    if (!Number.isFinite(stat.trades) || stat.trades <= 0) return '';
+    if (stat.trades <= 3) return 'pos';
+    return 'neg';
+  }
+  if (metric === 'wr') {
+    if (stat.wr === null || stat.wr === undefined || !Number.isFinite(stat.wr)) return '';
+    return stat.wr > 50 ? 'pos' : 'neg';
+  }
+  const v = metric === 'pnl'
+    ? stat.pnl
+    : metric === 'roi'
+      ? stat.roi
+      : metric === 'rr'
+        ? (stat.rr ?? 0)
+        : 0;
+  return v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+}
+
+function calcBucketMetric(metric, stats) {
+  if (!stats.length) return '—';
+  if (metric === 'pnl') return fmtUSD(stats.reduce((a, s) => a + s.pnl, 0), true);
+  if (metric === 'roi') return fmtPct(stats.reduce((a, s) => a + s.pnl, 0) / Math.max(settings.capital, 0.01) * 100, true, 2);
+  if (metric === 'rr') {
+    const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
+    return vals.length ? fmtR(vals.reduce((a, b) => a + b, 0) / vals.length, true, 2) : '—';
+  }
+  if (metric === 'depo') {
+    const last = stats[stats.length - 1];
+    return last && Number.isFinite(last.depo) ? fmtUSD(last.depo) : '—';
+  }
+  if (metric === 'trades') return String(stats.reduce((a, s) => a + s.trades, 0));
+  if (metric === 'wr') {
+    const w = stats.reduce((a, s) => a + s.wins, 0);
+    const l = stats.reduce((a, s) => a + s.losses, 0);
+    const dec = w + l;
+    return dec > 0 ? ((w / dec) * 100).toFixed(0) + '%' : '—';
+  }
+  return '—';
+}
+
+function renderCalendarBuckets(days, monthStats, metric) {
+  const wrap = document.getElementById('cal-buckets');
+  const ranges = [[1,7],[8,14],[15,21],[22,28],[29,days],['all','all']];
+  wrap.innerHTML = ranges.map(r => {
+    const stats = r[0] === 'all'
+      ? Object.values(monthStats)
+      : Object.keys(monthStats)
+          .filter(k => {
+            const d = Number(k.slice(8, 10));
+            return d >= r[0] && d <= r[1];
+          })
+          .map(k => monthStats[k]);
+    const aggStat = {
+      pnl: stats.reduce((a, s) => a + s.pnl, 0),
+      roi: settings.capital > 0 ? (stats.reduce((a, s) => a + s.pnl, 0) / settings.capital) * 100 : 0,
+      depo: stats.length ? stats[stats.length - 1].depo : null,
+      rr: (() => {
+        const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      })(),
+      wr: (() => {
+        const w = stats.reduce((a, s) => a + s.wins, 0);
+        const l = stats.reduce((a, s) => a + s.losses, 0);
+        return (w + l) > 0 ? (w / (w + l)) * 100 : null;
+      })()
+    };
+    const label = r[0] === 'all' ? 'Full Month' : `${r[0]}-${r[1]} dzień`;
+    return `<div class="cal-bucket"><div class="k">${label}</div><div class="v ${getMetricClass(metric, aggStat)}">${calcBucketMetric(metric, stats)}</div></div>`;
+  }).join('');
+}
+
+function renderCalendarView() {
+  const agg = aggregate();
+  const metric = calendarState.metric;
+  const month = calendarState.month;
+  const [year, mon] = month.split('-').map(Number);
+  const monthName = new Date(year, mon - 1, 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-month-label').textContent = monthName;
+
+  const daily = getDailyCalendarStats(agg);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const firstDay = (new Date(year, mon - 1, 1).getDay() + 6) % 7; // monday=0
+  const grid = document.getElementById('cal-grid');
+  const monthStartKey = `${year}-${String(mon).padStart(2, '0')}-01`;
+
+  const monthStats = {};
+  const pnlBeforeMonth = Object.entries(agg.byDay)
+    .filter(([k]) => k < monthStartKey)
+    .reduce((a, [, v]) => a + v, 0);
+  let runningDepo = settings.capital + pnlBeforeMonth;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const day = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
+    runningDepo += day.pnl;
+    monthStats[key] = { ...day, depo: runningDepo };
+  }
+  renderCalendarBuckets(daysInMonth, monthStats, metric);
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(`<div class="cal-cell empty"></div>`);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const st = monthStats[key];
+    cells.push(`
+      <div class="cal-cell ${getMetricClass(metric, st)}">
+        <div class="d">${d}</div>
+        <div class="m">${fmtMetricValue(metric, st)}</div>
+        <div class="s">${st.trades} zamknięć</div>
+      </div>`);
+  }
+  grid.innerHTML = cells.join('');
 }
 
 // ============================================================
@@ -1308,6 +1616,7 @@ function renderAll() {
   renderTradesTable();
   // Only redraw analytics if tab visible
   if (document.getElementById('tab-analytics').classList.contains('active')) renderAnalytics();
+  if (document.getElementById('tab-calendar').classList.contains('active')) renderCalendarView();
 }
 
 // ============================================================
@@ -1339,7 +1648,19 @@ function init() {
     document.querySelectorAll('#filter-dir .filter-chip').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); tradeFilters.dir = b.dataset.d; renderTradesTable();
   }));
+  document.querySelectorAll('#filter-closed-group .filter-chip').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#filter-closed-group .filter-chip').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); tradeFilters.closedGrouping = b.dataset.g; renderTradesTable();
+  }));
   document.getElementById('filter-search').addEventListener('input', e => { tradeFilters.q = e.target.value; renderTradesTable(); });
+  document.querySelectorAll('#cal-metric-toggle .filter-chip').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#cal-metric-toggle .filter-chip').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    calendarState.metric = b.dataset.m;
+    renderCalendarView();
+  }));
+  document.getElementById('cal-prev').addEventListener('click', () => shiftCalendarMonth(-1));
+  document.getElementById('cal-next').addEventListener('click', () => shiftCalendarMonth(1));
 
   // Planner listeners
   ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {

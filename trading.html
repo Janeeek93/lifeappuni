@@ -67,6 +67,7 @@
           <button class="trade-tab" data-tab="planner"><span class="material-symbols-outlined">calculate</span>Planer pozycji</button>
           <button class="trade-tab" data-tab="trades"><span class="material-symbols-outlined">receipt_long</span>Transakcje</button>
           <button class="trade-tab" data-tab="analytics"><span class="material-symbols-outlined">bar_chart</span>Analityka</button>
+          <button class="trade-tab" data-tab="calendar"><span class="material-symbols-outlined">calendar_month</span>Kalendarz</button>
         </div>
 
         <!-- ========== DASHBOARD ========== -->
@@ -305,6 +306,12 @@
                   <button class="filter-chip" data-d="long">Long</button>
                   <button class="filter-chip" data-d="short">Short</button>
                 </div>
+                <div class="filter-chip-grp" id="filter-closed-group" title="Agregacja zamkniętych pozycji">
+                  <button class="filter-chip" data-g="none">Bez grup</button>
+                  <button class="filter-chip" data-g="day">Dni</button>
+                  <button class="filter-chip" data-g="week">Tygodnie</button>
+                  <button class="filter-chip active" data-g="month">Miesiące</button>
+                </div>
                 <input class="filter-input" id="filter-search" type="search" placeholder="Ticker lub notatka…">
               </div>
               <div class="tc-inline-actions">
@@ -339,32 +346,32 @@
             <div class="analytics-grid">
               <section class="tc-card an-chart wide">
                 <div class="tc-card-head"><h3>Daily P&L</h3><span class="sub">Realized per day</span></div>
-                <div class="an-body"><canvas id="chart-daily"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-daily"></canvas></div>
               </section>
 
               <section class="tc-card an-chart half">
                 <div class="tc-card-head"><h3>Rozkład R-multiple</h3><span class="sub">Wszystkie zamknięcia</span></div>
-                <div class="an-body"><canvas id="chart-rdist"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-rdist"></canvas></div>
               </section>
 
               <section class="tc-card an-chart half">
                 <div class="tc-card-head"><h3>Wyniki miesięczne</h3><span class="sub">P&L by month</span></div>
-                <div class="an-body"><canvas id="chart-monthly"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-monthly"></canvas></div>
               </section>
 
               <section class="tc-card an-chart third">
                 <div class="tc-card-head"><h3>Long vs Short</h3><span class="sub">P&L</span></div>
-                <div class="an-body"><canvas id="chart-dir"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-dir"></canvas></div>
               </section>
 
               <section class="tc-card an-chart third">
                 <div class="tc-card-head"><h3>Win / Loss ratio</h3><span class="sub">Zamknięte</span></div>
-                <div class="an-body"><canvas id="chart-wr"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-wr"></canvas></div>
               </section>
 
               <section class="tc-card an-chart third">
                 <div class="tc-card-head"><h3>Day of week</h3><span class="sub">Avg P&L</span></div>
-                <div class="an-body"><canvas id="chart-dow"></canvas></div>
+                <div class="an-body an-chart-body"><canvas id="chart-dow"></canvas></div>
               </section>
 
               <section class="tc-card an-chart wide">
@@ -374,6 +381,34 @@
             </div>
 
           </div>
+        </div>
+
+        <!-- ========== CALENDAR ========== -->
+        <div class="tab-panel" id="tab-calendar">
+          <section class="tc-card cal-card">
+            <div class="tc-card-head cal-head">
+              <div class="cal-month-nav">
+                <button class="btn-small ghost" id="cal-prev"><span class="material-symbols-outlined">chevron_left</span></button>
+                <h3 id="cal-month-label">—</h3>
+                <button class="btn-small ghost" id="cal-next"><span class="material-symbols-outlined">chevron_right</span></button>
+              </div>
+              <div class="filter-chip-grp" id="cal-metric-toggle">
+                <button class="filter-chip active" data-m="pnl">PnL</button>
+                <button class="filter-chip" data-m="roi">ROI</button>
+                <button class="filter-chip" data-m="rr">RR</button>
+                <button class="filter-chip" data-m="depo">Depo</button>
+                <button class="filter-chip" data-m="trades">Trades</button>
+                <button class="filter-chip" data-m="wr">WR</button>
+              </div>
+            </div>
+            <div class="cal-buckets" id="cal-buckets"></div>
+            <div class="cal-grid-wrap">
+              <div class="cal-weekdays">
+                <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
+              </div>
+              <div class="cal-grid" id="cal-grid"></div>
+            </div>
+          </section>
         </div>
 
       </main>
@@ -431,7 +466,15 @@
       <input type="hidden" id="close-trade-id">
       <div class="ff-grid cols-3">
         <div class="ff"><label>Data</label><input id="close-date" type="date"></div>
-        <div class="ff"><label>Cena</label><input id="close-price" type="number" step="any"></div>
+        <div class="ff">
+          <label>Cena</label>
+          <input id="close-price" type="number" step="any">
+          <div class="close-quick-actions">
+            <button type="button" class="btn-small ghost" id="close-use-tp" onclick="setClosePricePreset('tp')">TP</button>
+            <button type="button" class="btn-small ghost" id="close-use-sl" onclick="setClosePricePreset('sl')">SL</button>
+            <button type="button" class="btn-small ghost" id="close-use-be" onclick="setClosePricePreset('be')">Break-even</button>
+          </div>
+        </div>
         <div class="ff"><label>% pozycji</label><input id="close-pct" type="number" min="0" max="100" value="100"></div>
       </div>
       <div class="ff"><label>Prowizja (opcjonalnie)</label><input id="close-comm" type="number" step="any" value="0"></div>
