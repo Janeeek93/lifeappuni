@@ -56,8 +56,8 @@ function fmtQty(v) {
   if (v === null || v === undefined || !Number.isFinite(Number(v))) return '—';
   v = Number(v);
   if (Math.abs(v) >= 1000) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (Math.abs(v) >= 1) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  if (Math.abs(v) >= 1) return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 });
 }
 function posClass(v) { return v > 0 ? 'pos' : v < 0 ? 'neg' : ''; }
 
@@ -239,6 +239,10 @@ function aggregate() {
     maxWin, maxLoss, currentStreak: lastKind === 'w' ? curWin : (lastKind === 'l' ? -curLoss : 0),
     bySym: Object.values(bySym)
   };
+}
+
+function getCurrentEquity() {
+  return aggregate().equity;
 }
 
 // ============================================================
@@ -615,13 +619,13 @@ function updatePlanner() {
   const entry = numberNullable(el('p-entry').value);
   const sl = numberNullable(el('p-sl').value);
   const tpOverride = numberNullable(el('p-tp').value);
-  const sizeUsdOverride = numberNullable(el('p-size-override').value);
+  const sizeQtyOverride = numberNullable(el('p-size-override').value);
   const lev = Math.max(1, numberOr(el('p-lev').value, 1));
   const riskPctRaw = numberNullable(el('p-riskpct').value);
-  const riskPct = riskPctRaw !== null ? riskPctRaw : settings.maxRiskPct;
-  if (!el('p-riskpct').value) el('p-riskpct').placeholder = settings.maxRiskPct.toFixed(2);
+  const riskPct = riskPctRaw !== null ? riskPctRaw : 1;
+  if (!el('p-riskpct').value) el('p-riskpct').placeholder = '1.00';
 
-  const capital = settings.capital; // equity-based? use capital for planner simplicity
+  const capital = getCurrentEquity();
   const riskUSD = capital * (riskPct / 100);
 
   const riskPerUnit = (entry !== null && sl !== null) ? Math.abs(entry - sl) : null;
@@ -647,16 +651,16 @@ function updatePlanner() {
     return { ok: true };
   })();
 
-  // Calculated (auto) position sizing from risk% + SL distance
+  // Calculated (auto) position sizing from risk at SL (qty does not depend on leverage)
   const calcSize = (riskPerUnit && riskPerUnit > 0) ? riskUSD / riskPerUnit : null;
   const calcNotional = (calcSize !== null && entry !== null) ? calcSize * entry : null;
 
-  // Effective size / notional: use USD override if provided, else computed
+  // Effective size / notional: use quantity override if provided, else computed
   let effSize = calcSize;
   let effNotional = calcNotional;
-  if (sizeUsdOverride !== null && sizeUsdOverride > 0 && entry !== null) {
-    effNotional = sizeUsdOverride;
-    effSize = sizeUsdOverride / entry;
+  if (sizeQtyOverride !== null && sizeQtyOverride > 0 && entry !== null) {
+    effSize = sizeQtyOverride;
+    effNotional = sizeQtyOverride * entry;
   }
 
   const rr = (riskPerUnit && rewardPerUnit && riskPerUnit > 0) ? rewardPerUnit / riskPerUnit : null;
@@ -664,6 +668,7 @@ function updatePlanner() {
   const rewardUSD = (effSize !== null && rewardPerUnit !== null) ? effSize * rewardPerUnit : null;
   const actualRiskUSD = (effSize !== null && riskPerUnit !== null) ? effSize * riskPerUnit : null;
   const actualRiskPct = (actualRiskUSD !== null && capital > 0) ? (actualRiskUSD / capital) * 100 : null;
+  const marginUsagePct = (margin !== null && capital > 0) ? (margin / capital) * 100 : null;
 
   // Suggested TP pill
   const suggestPill = el('p-suggest-tp');
@@ -678,12 +683,12 @@ function updatePlanner() {
     suggestPill.textContent = 'Sugerowany TP pojawi się po ustawieniu Entry + SL';
   }
 
-  // Summary cells
+  // Summary cells (base = auto-kalkulacja bez nadpisania)
   el('p-rpu').textContent = riskPerUnit !== null ? fmtNum(riskPerUnit, riskPerUnit < 1 ? 6 : 2) : '—';
   el('p-wpu').textContent = rewardPerUnit !== null ? fmtNum(rewardPerUnit, rewardPerUnit < 1 ? 6 : 2) : '—';
   el('p-rr').textContent = rr !== null ? rr.toFixed(2) : '—';
-  el('p-size').textContent = effSize !== null ? fmtQty(effSize) : '—';
-  el('p-notional').textContent = effNotional !== null ? fmtUSD(effNotional) : '—';
+  el('p-size').textContent = calcSize !== null ? fmtQty(calcSize) : '—';
+  el('p-notional').textContent = calcNotional !== null ? fmtUSD(calcNotional) : '—';
   el('p-margin').textContent = margin !== null ? fmtUSD(margin) : '—';
   el('p-riskusd').textContent = actualRiskUSD !== null ? fmtUSD(-actualRiskUSD) : '—';
   el('p-rewardusd').textContent = rewardUSD !== null ? fmtUSD(rewardUSD, true) : '—';
@@ -696,7 +701,7 @@ function updatePlanner() {
 
   // Hint text under override inputs
   el('p-size-hint').innerHTML = calcNotional !== null
-    ? `Auto: <strong>${fmtUSD(calcNotional)}</strong> notional · <strong>${fmtQty(calcSize)}</strong> szt. (z ${riskPct.toFixed(2)}% kapitału w SL, dźwignia ${lev}×)`
+    ? `Auto: <strong>${fmtQty(calcSize)}</strong> szt. · <strong>${fmtUSD(calcNotional)}</strong> notional (ryzyko do SL: ${fmtUSD(riskUSD)} = ${riskPct.toFixed(2)}% kapitału, bez fee/slippage)`
     : 'Zostaw puste, aby użyć wartości obliczonej przez aplikację.';
   el('p-tp-hint').innerHTML = suggestedTP !== null
     ? `Auto: <strong>${fmtNum(suggestedTP, suggestedTP < 1 ? 6 : 2)}</strong> (min ${settings.minRR}R)`
@@ -711,17 +716,21 @@ function updatePlanner() {
       impact.push({ k: 'good', m: `Nadpisany TP daje RR ${rr.toFixed(2)} — spełnia min. ${settings.minRR}R` });
     }
   }
-  if (sizeUsdOverride !== null && actualRiskPct !== null) {
-    const deltaPct = actualRiskPct - riskPct;
-    if (actualRiskPct > settings.maxRiskPct + 1e-9) {
-      impact.push({ k: 'bad', m: `Nadpisany size = ryzyko ${actualRiskPct.toFixed(2)}% kapitału — łamie limit ${settings.maxRiskPct}%` });
-    } else if (Math.abs(deltaPct) > 0.001) {
-      impact.push({ k: 'warn', m: `Nadpisany size = ryzyko ${actualRiskPct.toFixed(2)}% kapitału (cel: ${riskPct.toFixed(2)}%)` });
+  if (sizeQtyOverride !== null && sizeQtyOverride > 0) {
+    if (actualRiskPct !== null && riskPerUnit !== null && riskPerUnit > 0) {
+      const deltaPct = actualRiskPct - riskPct;
+      if (actualRiskPct > settings.maxRiskPct + 1e-9) {
+        impact.push({ k: 'bad', m: `Nadpisana ilość = ryzyko ${actualRiskPct.toFixed(2)}% kapitału przy SL — łamie limit ${settings.maxRiskPct}%` });
+      } else if (Math.abs(deltaPct) > 0.001) {
+        impact.push({ k: 'warn', m: `Nadpisana ilość = ryzyko ${actualRiskPct.toFixed(2)}% kapitału przy SL (cel: ${riskPct.toFixed(2)}%)` });
+      } else {
+        impact.push({ k: 'good', m: `Nadpisana ilość zgadza się z celem ryzyka przy SL (${actualRiskPct.toFixed(2)}%)` });
+      }
     } else {
-      impact.push({ k: 'good', m: `Nadpisany size zgadza się z celem ryzyka (${actualRiskPct.toFixed(2)}%)` });
+      impact.push({ k: 'warn', m: 'Nadpisana ilość aktywna — dodaj SL, aby policzyć realne ryzyko pozycji.' });
     }
     if (margin !== null && capital > 0) {
-      impact.push({ k: margin > capital ? 'bad' : 'warn', m: `Wymagana margin: ${fmtUSD(margin)} (${((margin / capital) * 100).toFixed(1)}% kapitału) przy dźwigni ${lev}×` });
+      impact.push({ k: margin > capital ? 'bad' : 'warn', m: `Margin informacyjnie: ${fmtUSD(margin)} (${marginUsagePct.toFixed(1)}% kapitału) przy dźwigni ${lev}×` });
     }
   }
   const impactEl = el('p-override-impact');
@@ -779,9 +788,11 @@ function updatePlanner() {
     else if (rr >= settings.minRR * 0.7) { score += 10; issues.push({ k: 'warn', m: `RR ${rr.toFixed(2)} poniżej minimum (${settings.minRR})` }); }
     else { score -= 15; issues.push({ k: 'bad', m: `RR ${rr.toFixed(2)} znacznie poniżej min. ${settings.minRR}` }); }
   }
-  const effRiskPctForScore = actualRiskPct !== null ? actualRiskPct : riskPct;
-  if (effRiskPctForScore > settings.maxRiskPct + 1e-9) { score -= 20; issues.push({ k: 'bad', m: `Ryzyko ${effRiskPctForScore.toFixed(2)}% przekracza limit ${settings.maxRiskPct}%` }); }
-  else { score += 10; }
+  if (actualRiskPct !== null && riskPerUnit !== null && riskPerUnit > 0) {
+    const riskDelta = Math.abs(actualRiskPct - riskPct);
+    issues.push({ k: riskDelta > 0.01 ? 'warn' : 'good', m: `Ryzyko do SL: ${actualRiskPct.toFixed(2)}% kapitału (cel: ${riskPct.toFixed(2)}%).` });
+    if (riskDelta <= 0.01) score += 10;
+  }
   if (margin !== null && margin > capital * 0.5) { score -= 10; issues.push({ k: 'warn', m: 'Margin > 50% kapitału – wysoka ekspozycja' }); }
   if (lev > 10) { score -= 10; issues.push({ k: 'warn', m: `Dźwignia ${lev}× – uważaj na liquidation` }); }
   score = clamp(Math.round(score), 0, 100);
@@ -1332,7 +1343,9 @@ function init() {
 
   // Planner listeners
   ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updatePlanner);
+    const node = document.getElementById(id);
+    node.addEventListener('input', updatePlanner);
+    node.addEventListener('change', updatePlanner);
   });
   document.getElementById('p-date').value = today();
 
