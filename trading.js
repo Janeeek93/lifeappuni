@@ -21,6 +21,7 @@ let planDir = 'long';
 let modalDir = 'long';
 let eqRange = '90';
 let tradeFilters = { status: 'all', dir: 'all', q: '', closedGrouping: 'month' };
+let calendarState = { month: today().slice(0, 7), metric: 'pnl' };
 let expandedRows = new Set();
 let expandedClosedGroups = new Set();
 let charts = {};
@@ -1212,6 +1213,7 @@ function switchTab(name) {
   document.querySelectorAll('.trade-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'analytics') setTimeout(renderAnalytics, 30);
+  if (name === 'calendar') setTimeout(renderCalendarView, 30);
   if (name === 'planner') setTimeout(updatePlanner, 30);
 }
 
@@ -1236,6 +1238,138 @@ function exportCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = 'trades_' + today() + '.csv';
   a.click();
+}
+
+// ============================================================
+// Calendar tab
+// ============================================================
+function shiftCalendarMonth(delta) {
+  const [y, m] = calendarState.month.split('-').map(Number);
+  const d = new Date(y, (m - 1) + delta, 1);
+  calendarState.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  renderCalendarView();
+}
+
+function getDailyCalendarStats(agg) {
+  const byDate = {};
+  for (const e of agg.events) {
+    if (!byDate[e.date]) byDate[e.date] = { pnl: 0, rrSum: 0, rrCount: 0, trades: 0, wins: 0, losses: 0 };
+    byDate[e.date].pnl += e.pnl;
+    byDate[e.date].trades += 1;
+    if (e.pnl > 0) byDate[e.date].wins += 1;
+    if (e.pnl < 0) byDate[e.date].losses += 1;
+    if (e.realizedR !== null && Number.isFinite(e.realizedR)) {
+      byDate[e.date].rrSum += e.realizedR;
+      byDate[e.date].rrCount += 1;
+    }
+  }
+  for (const k of Object.keys(byDate)) {
+    const d = byDate[k];
+    d.roi = settings.capital > 0 ? (d.pnl / settings.capital) * 100 : 0;
+    d.rr = d.rrCount > 0 ? d.rrSum / d.rrCount : null;
+    const dec = d.wins + d.losses;
+    d.wr = dec > 0 ? (d.wins / dec) * 100 : null;
+  }
+  return byDate;
+}
+
+function fmtMetricValue(metric, stat) {
+  if (!stat) return '—';
+  if (metric === 'pnl') return fmtUSD(stat.pnl, true);
+  if (metric === 'roi') return fmtPct(stat.roi, true, 2);
+  if (metric === 'rr') return fmtR(stat.rr, true, 2);
+  if (metric === 'trades') return String(stat.trades);
+  if (metric === 'wr') return stat.wr === null ? '—' : stat.wr.toFixed(0) + '%';
+  return '—';
+}
+
+function getMetricClass(metric, stat) {
+  if (!stat) return '';
+  const v = metric === 'pnl' ? stat.pnl : metric === 'roi' ? stat.roi : metric === 'rr' ? (stat.rr ?? 0) : metric === 'wr' ? (stat.wr ?? 0) - 50 : 0;
+  return v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+}
+
+function calcBucketMetric(metric, stats) {
+  if (!stats.length) return '—';
+  if (metric === 'pnl') return fmtUSD(stats.reduce((a, s) => a + s.pnl, 0), true);
+  if (metric === 'roi') return fmtPct(stats.reduce((a, s) => a + s.pnl, 0) / Math.max(settings.capital, 0.01) * 100, true, 2);
+  if (metric === 'rr') {
+    const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
+    return vals.length ? fmtR(vals.reduce((a, b) => a + b, 0) / vals.length, true, 2) : '—';
+  }
+  if (metric === 'trades') return String(stats.reduce((a, s) => a + s.trades, 0));
+  if (metric === 'wr') {
+    const w = stats.reduce((a, s) => a + s.wins, 0);
+    const l = stats.reduce((a, s) => a + s.losses, 0);
+    const dec = w + l;
+    return dec > 0 ? ((w / dec) * 100).toFixed(0) + '%' : '—';
+  }
+  return '—';
+}
+
+function renderCalendarBuckets(days, monthStats, metric) {
+  const wrap = document.getElementById('cal-buckets');
+  const ranges = [[1,7],[8,14],[15,21],[22,28],[29,days],['all','all']];
+  wrap.innerHTML = ranges.map(r => {
+    const stats = r[0] === 'all'
+      ? Object.values(monthStats)
+      : Object.keys(monthStats)
+          .filter(k => {
+            const d = Number(k.slice(8, 10));
+            return d >= r[0] && d <= r[1];
+          })
+          .map(k => monthStats[k]);
+    const aggStat = {
+      pnl: stats.reduce((a, s) => a + s.pnl, 0),
+      roi: settings.capital > 0 ? (stats.reduce((a, s) => a + s.pnl, 0) / settings.capital) * 100 : 0,
+      rr: (() => {
+        const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      })(),
+      wr: (() => {
+        const w = stats.reduce((a, s) => a + s.wins, 0);
+        const l = stats.reduce((a, s) => a + s.losses, 0);
+        return (w + l) > 0 ? (w / (w + l)) * 100 : null;
+      })()
+    };
+    const label = r[0] === 'all' ? 'Full Month' : `${r[0]}-${r[1]} dzień`;
+    return `<div class="cal-bucket"><div class="k">${label}</div><div class="v ${getMetricClass(metric, aggStat)}">${calcBucketMetric(metric, stats)}</div></div>`;
+  }).join('');
+}
+
+function renderCalendarView() {
+  const agg = aggregate();
+  const metric = calendarState.metric;
+  const month = calendarState.month;
+  const [year, mon] = month.split('-').map(Number);
+  const monthName = new Date(year, mon - 1, 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-month-label').textContent = monthName;
+
+  const daily = getDailyCalendarStats(agg);
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const firstDay = (new Date(year, mon - 1, 1).getDay() + 6) % 7; // monday=0
+  const grid = document.getElementById('cal-grid');
+
+  const monthStats = {};
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    monthStats[key] = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
+  }
+  renderCalendarBuckets(daysInMonth, monthStats, metric);
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(`<div class="cal-cell empty"></div>`);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const st = monthStats[key];
+    cells.push(`
+      <div class="cal-cell ${getMetricClass(metric, st)}">
+        <div class="d">${d}</div>
+        <div class="m">${fmtMetricValue(metric, st)}</div>
+        <div class="s">${st.trades} zamknięć</div>
+      </div>`);
+  }
+  grid.innerHTML = cells.join('');
 }
 
 // ============================================================
@@ -1448,6 +1582,7 @@ function renderAll() {
   renderTradesTable();
   // Only redraw analytics if tab visible
   if (document.getElementById('tab-analytics').classList.contains('active')) renderAnalytics();
+  if (document.getElementById('tab-calendar').classList.contains('active')) renderCalendarView();
 }
 
 // ============================================================
@@ -1484,6 +1619,14 @@ function init() {
     b.classList.add('active'); tradeFilters.closedGrouping = b.dataset.g; renderTradesTable();
   }));
   document.getElementById('filter-search').addEventListener('input', e => { tradeFilters.q = e.target.value; renderTradesTable(); });
+  document.querySelectorAll('#cal-metric-toggle .filter-chip').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#cal-metric-toggle .filter-chip').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    calendarState.metric = b.dataset.m;
+    renderCalendarView();
+  }));
+  document.getElementById('cal-prev').addEventListener('click', () => shiftCalendarMonth(-1));
+  document.getElementById('cal-next').addEventListener('click', () => shiftCalendarMonth(1));
 
   // Planner listeners
   ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {
