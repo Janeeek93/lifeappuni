@@ -1082,6 +1082,18 @@ function openCloseModal(id) {
   el('close-price').value = '';
   el('close-pct').value = Math.round(m.remainingPct);
   el('close-comm').value = 0;
+  const tpBtn = el('close-use-tp');
+  const slBtn = el('close-use-sl');
+  if (tpBtn) {
+    tpBtn.disabled = (t.tp === null);
+    tpBtn.title = t.tp === null ? 'Brak ustawionego TP' : `Ustaw cenę na TP (${fmtNum(t.tp, t.tp < 1 ? 6 : 2)})`;
+    tpBtn.textContent = t.tp === null ? 'TP —' : `TP ${fmtNum(t.tp, t.tp < 1 ? 4 : 2)}`;
+  }
+  if (slBtn) {
+    slBtn.disabled = (t.sl === null);
+    slBtn.title = t.sl === null ? 'Brak ustawionego SL' : `Ustaw cenę na SL (${fmtNum(t.sl, t.sl < 1 ? 6 : 2)})`;
+    slBtn.textContent = t.sl === null ? 'SL —' : `SL ${fmtNum(t.sl, t.sl < 1 ? 4 : 2)}`;
+  }
   el('close-info').innerHTML = `
     <div><b>${esc(t.ticker)}</b> <span class="dir-tag ${t.direction}">${t.direction === 'long' ? 'LONG' : 'SHORT'}</span> · Entry: <span class="mono">${fmtNum(t.entry, t.entry < 1 ? 6 : 2)}</span> · Size: <span class="mono">${fmtQty(t.size)}</span></div>
     <div class="muted" style="margin-top:4px;">Pozostało do zamknięcia: <span class="mono" style="color:var(--tc-ink);">${m.remainingPct.toFixed(1)}%</span> (${fmtQty(m.remainingSize)})</div>
@@ -1091,6 +1103,19 @@ function openCloseModal(id) {
   setTimeout(() => el('close-price').focus(), 50);
 }
 function closeCloseModal() { document.getElementById('close-modal').classList.remove('on'); activeCloseTrade = null; }
+function setClosePricePreset(kind) {
+  if (!activeCloseTrade) return;
+  const t = activeCloseTrade;
+  const preset = kind === 'tp' ? t.tp : t.sl;
+  if (preset === null) {
+    toast(kind === 'tp' ? 'Ta pozycja nie ma ustawionego TP' : 'Ta pozycja nie ma ustawionego SL', 'err');
+    return;
+  }
+  const input = document.getElementById('close-price');
+  input.value = preset;
+  updateClosePreview();
+  input.focus();
+}
 function updateClosePreview() {
   if (!activeCloseTrade) return;
   const t = activeCloseTrade;
