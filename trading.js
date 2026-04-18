@@ -1084,6 +1084,7 @@ function openCloseModal(id) {
   el('close-comm').value = 0;
   const tpBtn = el('close-use-tp');
   const slBtn = el('close-use-sl');
+  const beBtn = el('close-use-be');
   if (tpBtn) {
     tpBtn.disabled = (t.tp === null);
     tpBtn.title = t.tp === null ? 'Brak ustawionego TP' : `Ustaw cenę na TP (${fmtNum(t.tp, t.tp < 1 ? 6 : 2)})`;
@@ -1093,6 +1094,11 @@ function openCloseModal(id) {
     slBtn.disabled = (t.sl === null);
     slBtn.title = t.sl === null ? 'Brak ustawionego SL' : `Ustaw cenę na SL (${fmtNum(t.sl, t.sl < 1 ? 6 : 2)})`;
     slBtn.textContent = t.sl === null ? 'SL —' : `SL ${fmtNum(t.sl, t.sl < 1 ? 4 : 2)}`;
+  }
+  if (beBtn) {
+    beBtn.disabled = !Number.isFinite(Number(t.entry));
+    beBtn.title = `Ustaw cenę na break-even (entry: ${fmtNum(t.entry, t.entry < 1 ? 6 : 2)})`;
+    beBtn.textContent = `BE ${fmtNum(t.entry, t.entry < 1 ? 4 : 2)}`;
   }
   el('close-info').innerHTML = `
     <div><b>${esc(t.ticker)}</b> <span class="dir-tag ${t.direction}">${t.direction === 'long' ? 'LONG' : 'SHORT'}</span> · Entry: <span class="mono">${fmtNum(t.entry, t.entry < 1 ? 6 : 2)}</span> · Size: <span class="mono">${fmtQty(t.size)}</span></div>
@@ -1106,7 +1112,7 @@ function closeCloseModal() { document.getElementById('close-modal').classList.re
 function setClosePricePreset(kind) {
   if (!activeCloseTrade) return;
   const t = activeCloseTrade;
-  const preset = kind === 'tp' ? t.tp : t.sl;
+  const preset = kind === 'tp' ? t.tp : kind === 'sl' ? t.sl : t.entry;
   if (preset === null) {
     toast(kind === 'tp' ? 'Ta pozycja nie ma ustawionego TP' : 'Ta pozycja nie ma ustawionego SL', 'err');
     return;
