@@ -1278,6 +1278,7 @@ function fmtMetricValue(metric, stat) {
   if (metric === 'pnl') return fmtUSD(stat.pnl, true);
   if (metric === 'roi') return fmtPct(stat.roi, true, 2);
   if (metric === 'rr') return fmtR(stat.rr, true, 2);
+  if (metric === 'depo') return fmtUSD(stat.depo);
   if (metric === 'trades') return String(stat.trades);
   if (metric === 'wr') return stat.wr === null ? '—' : stat.wr.toFixed(0) + '%';
   return '—';
@@ -1285,6 +1286,12 @@ function fmtMetricValue(metric, stat) {
 
 function getMetricClass(metric, stat) {
   if (!stat) return '';
+  if (metric === 'depo') {
+    if (!Number.isFinite(stat.depo)) return '';
+    if (stat.depo > settings.capital) return 'pos';
+    if (stat.depo < settings.capital) return 'neg';
+    return '';
+  }
   if (metric === 'trades') {
     if (!Number.isFinite(stat.trades) || stat.trades <= 0) return '';
     if (stat.trades <= 3) return 'pos';
@@ -1312,6 +1319,10 @@ function calcBucketMetric(metric, stats) {
     const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
     return vals.length ? fmtR(vals.reduce((a, b) => a + b, 0) / vals.length, true, 2) : '—';
   }
+  if (metric === 'depo') {
+    const last = stats[stats.length - 1];
+    return last && Number.isFinite(last.depo) ? fmtUSD(last.depo) : '—';
+  }
   if (metric === 'trades') return String(stats.reduce((a, s) => a + s.trades, 0));
   if (metric === 'wr') {
     const w = stats.reduce((a, s) => a + s.wins, 0);
@@ -1337,6 +1348,7 @@ function renderCalendarBuckets(days, monthStats, metric) {
     const aggStat = {
       pnl: stats.reduce((a, s) => a + s.pnl, 0),
       roi: settings.capital > 0 ? (stats.reduce((a, s) => a + s.pnl, 0) / settings.capital) * 100 : 0,
+      depo: stats.length ? stats[stats.length - 1].depo : null,
       rr: (() => {
         const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
         return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
@@ -1364,11 +1376,18 @@ function renderCalendarView() {
   const daysInMonth = new Date(year, mon, 0).getDate();
   const firstDay = (new Date(year, mon - 1, 1).getDay() + 6) % 7; // monday=0
   const grid = document.getElementById('cal-grid');
+  const monthStartKey = `${year}-${String(mon).padStart(2, '0')}-01`;
 
   const monthStats = {};
+  const pnlBeforeMonth = Object.entries(agg.byDay)
+    .filter(([k]) => k < monthStartKey)
+    .reduce((a, [, v]) => a + v, 0);
+  let runningDepo = settings.capital + pnlBeforeMonth;
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    monthStats[key] = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
+    const day = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
+    runningDepo += day.pnl;
+    monthStats[key] = { ...day, depo: runningDepo };
   }
   renderCalendarBuckets(daysInMonth, monthStats, metric);
 
