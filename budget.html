@@ -5356,7 +5356,7 @@
                   </div>
                   <div class="table-wrapper">
                     <table class="inv-hub-table" id="inv-hub-snap-table">
-                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI Total</th><th>ROI ETF</th><th>ROI Rest</th><th></th></tr></thead>
+                      <thead><tr><th>Data</th><th>Wartość portfela</th><th>Zainwestowano</th><th>P&amp;L</th><th>ROI Total</th><th>ROI ETF</th><th>ROI Rest</th><th>ROI Trading</th><th></th></tr></thead>
                       <tbody></tbody>
                     </table>
                   </div>
@@ -7434,7 +7434,8 @@
 
   // --- Investments v2 ----------------------------------------------------------
   const invPalette=['#2563eb','#22c55e','#f59e0b','#0ea5e9','#8b5cf6','#ef4444','#ec4899','#14b8a6'];
-  const invGroupOptions=['Akcje','Dywidenda','Krypto','Metal','Waluta','Inne'];
+  const invGroupOptions=['Akcje','Dywidenda','Krypto','Metal','Waluta','Day Trading','Inne'];
+  const INV_TRADING_KEY='lifeos_trading_v2';
   let invCapitalChart=null, invCumulativeChart=null, invAllocationChart=null, invAllocationDetailChart=null, invPnlChart=null;
   let invSelectedAllocationGroup=null;
   let invModalBound=false;
@@ -7472,6 +7473,42 @@
     return gc!==0?gc:(a.name||'').localeCompare(bb.name||'');
   });
 
+  function isDayTradingGroup(groupName){
+    return String(groupName||'').trim().toUpperCase()==='DAY TRADING';
+  }
+
+  function normalizeTradingTrade(t){
+    return {
+      entry:num(t?.entry),
+      size:Math.max(num(t?.size),0),
+      direction:t?.direction==='short'?'short':'long',
+      closings:Array.isArray(t?.closings)?t.closings:[]
+    };
+  }
+
+  function getTradingModulePnlRaw(){
+    try{
+      const parsed=JSON.parse(localStorage.getItem(INV_TRADING_KEY)||'{}');
+      const trades=Array.isArray(parsed?.trades)?parsed.trades:[];
+      let total=0;
+      for(const rawTrade of trades){
+        const trade=normalizeTradingTrade(rawTrade);
+        for(const c of trade.closings){
+          const pct=Math.max(0,Math.min(100,num(c?.pct)));
+          const closingSize=trade.size*(pct/100);
+          if(closingSize<=0) continue;
+          const closePrice=num(c?.price);
+          const commission=num(c?.commission);
+          const gross=trade.direction==='short'?(trade.entry-closePrice)*closingSize:(closePrice-trade.entry)*closingSize;
+          total+=(gross-commission);
+        }
+      }
+      return total;
+    }catch(_err){
+      return 0;
+    }
+  }
+
   function populateAssetGroupSelect(select,current){
     if(!select) return;
     const cv=current||select.value||'';
@@ -7493,6 +7530,23 @@
     const id='c_invest';
     b().categories.push({id,name:'Inwestycje',type:'saving',emoji:'📈',budget:0});
     return id;
+  }
+
+  function ensureDayTradingAsset(){
+    const data=investments();
+    const exists=(data.assets||[]).some(a=>isDayTradingGroup(a.group));
+    if(exists) return;
+    data.assets.push({
+      id:'inv_asset_day_trading',
+      name:'Day Trading',
+      group:'Day Trading',
+      currentPrice:null,
+      priceDate:null,
+      priceProvider:'nbp',
+      priceSymbol:'USD',
+      priceCurrency:'USD'
+    });
+    save(state);
   }
 
   // --- FIFO Holdings Engine --------------------------------------------------
@@ -7540,10 +7594,13 @@
     const holdings=computeHoldingsFIFO();
     const assetGroupById={};
     for(const asset of data.assets||[]) assetGroupById[asset.id]=String(asset.group||'Inne').trim().toUpperCase();
+    const dayTradingAssets=(data.assets||[]).filter(a=>isDayTradingGroup(a.group));
+    const dayTradingAssetIds=new Set(dayTradingAssets.map(a=>a.id));
     let capitalFromBudget=0, capitalReturned=0, reinvestPool=0;
-    let etfCapitalFromBudget=0, otherCapitalFromBudget=0;
+    let etfCapitalFromBudget=0, otherCapitalFromBudget=0, tradingCapitalFromBudget=0;
     for(const t of data.trades){
       const isEtf=assetGroupById[t.assetId]==='ETF';
+      const isTrading=dayTradingAssetIds.has(t.assetId);
       if(t.side==='sell'){
         if(t.sellDestination==='budget') capitalReturned+=num(t.amount);
         else reinvestPool+=num(t.amount);
@@ -7552,38 +7609,65 @@
         else {
           const amount=num(t.amount);
           capitalFromBudget+=amount;
-          if(isEtf) etfCapitalFromBudget+=amount;
+          if(isTrading) tradingCapitalFromBudget+=amount;
+          else if(isEtf) etfCapitalFromBudget+=amount;
           else otherCapitalFromBudget+=amount;
         }
       }
     }
+    const primaryTradingAsset=dayTradingAssets[0]||null;
+    const tradingCurrency=String(primaryTradingAsset?.priceCurrency||'USD').trim().toUpperCase()||'USD';
+    const tradingFxRate=tradingCurrency==='PLN'?1:Math.max(num(primaryTradingAsset?.currentPrice),0);
+    const tradingPnlSourceRaw=getTradingModulePnlRaw();
+    const tradingPnlConverted=(tradingCurrency==='PLN'?tradingPnlSourceRaw:tradingPnlSourceRaw*tradingFxRate);
+    const tradingConfigReady=tradingCurrency==='PLN'||tradingFxRate>0;
+
+    const dayTradingCostBasis=holdings
+      .filter(h=>dayTradingAssetIds.has(h.id))
+      .reduce((s,h)=>s+h.costBasis,0);
+    if(dayTradingCostBasis>0){
+      for(const h of holdings){
+        if(!dayTradingAssetIds.has(h.id)) continue;
+        const share=h.costBasis/dayTradingCostBasis;
+        const ownPnl=tradingConfigReady?(tradingPnlConverted*share):0;
+        h.marketValue=h.costBasis+ownPnl;
+        h.unrealizedPnl=ownPnl;
+      }
+    }
+
     const totalCostBasis=holdings.reduce((s,h)=>s+h.costBasis,0);
-    const hasAnyPrice=holdings.some(h=>h.currentPrice&&h.qty>0);
+    const hasAnyPrice=holdings.some(h=>(h.marketValue!==null||h.currentPrice)&&h.qty>0);
     const totalMarketValue=holdings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
     const totalRealizedPnl=holdings.reduce((s,h)=>s+h.realizedPnl,0);
     const totalUnrealizedPnl=hasAnyPrice?(totalMarketValue-totalCostBasis):null;
     const totalPnl=totalRealizedPnl+(totalUnrealizedPnl||0);
     const roi=capitalFromBudget>0?((totalPnl/capitalFromBudget)*100):0;
     const etfHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()==='ETF');
-    const otherHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()!=='ETF');
+    const tradingHoldings=holdings.filter(h=>dayTradingAssetIds.has(h.id));
+    const otherHoldings=holdings.filter(h=>String(h.group||'').trim().toUpperCase()!=='ETF'&&!dayTradingAssetIds.has(h.id));
     const etfMarketValue=etfHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
     const otherMarketValue=otherHoldings.reduce((s,h)=>s+(h.marketValue!==null?h.marketValue:h.costBasis),0);
     const etfCostBasis=etfHoldings.reduce((s,h)=>s+h.costBasis,0);
     const otherCostBasis=otherHoldings.reduce((s,h)=>s+h.costBasis,0);
     const etfRealizedPnl=etfHoldings.reduce((s,h)=>s+h.realizedPnl,0);
     const otherRealizedPnl=otherHoldings.reduce((s,h)=>s+h.realizedPnl,0);
+    const tradingRealizedPnl=tradingHoldings.reduce((s,h)=>s+h.realizedPnl,0);
     const etfUnrealizedPnl=etfHoldings.some(h=>h.currentPrice&&h.qty>0)?(etfMarketValue-etfCostBasis):null;
     const otherUnrealizedPnl=otherHoldings.some(h=>h.currentPrice&&h.qty>0)?(otherMarketValue-otherCostBasis):null;
+    const tradingUnrealizedPnl=tradingHoldings.length?(tradingHoldings.reduce((s,h)=>s+((h.marketValue!==null?h.marketValue:h.costBasis)-h.costBasis),0)):null;
     const etfTotalPnl=etfRealizedPnl+(etfUnrealizedPnl||0);
     const otherTotalPnl=otherRealizedPnl+(otherUnrealizedPnl||0);
+    const tradingTotalPnl=tradingRealizedPnl+(tradingUnrealizedPnl||0);
     const etfRoi=etfCapitalFromBudget>0?(etfTotalPnl/etfCapitalFromBudget)*100:null;
     const otherRoi=otherCapitalFromBudget>0?(otherTotalPnl/otherCapitalFromBudget)*100:null;
+    const tradingRoi=tradingCapitalFromBudget>0?(tradingTotalPnl/tradingCapitalFromBudget)*100:null;
     return {holdings,capitalFromBudget,capitalReturned,netFromBudget:capitalFromBudget-capitalReturned,
       reinvestPool:Math.max(0,reinvestPool),totalCostBasis,totalMarketValue,hasAnyPrice,
       totalRealizedPnl,totalUnrealizedPnl,totalPnl,roi,
       roiBreakdown:{
-        etfRoi,otherRoi,etfCapitalFromBudget,otherCapitalFromBudget,
-        etfTotalPnl,otherTotalPnl,etfRealizedPnl,otherRealizedPnl
+        etfRoi,otherRoi,tradingRoi,etfCapitalFromBudget,otherCapitalFromBudget,tradingCapitalFromBudget,
+        etfTotalPnl,otherTotalPnl,tradingTotalPnl,etfRealizedPnl,otherRealizedPnl,tradingRealizedPnl,
+        tradingPnlSourceRaw,tradingCurrency,tradingFxRate:tradingCurrency==='PLN'?1:(tradingConfigReady?tradingFxRate:null)
       }};
   }
 
@@ -7979,7 +8063,12 @@
     const provider=String(asset.priceProvider||'manual');
     const symbol=String(asset.priceSymbol||'').trim();
     const currency=String(asset.priceCurrency||state.currency||'PLN').trim().toLowerCase();
+    const dayTradingAsset=isDayTradingGroup(asset.group);
     if(provider==='manual') return {price:null,skipped:true};
+    if(dayTradingAsset&&provider==='nbp'){
+      const srcCode=String(asset.priceCurrency||symbol||'USD').trim().toUpperCase();
+      return {price:await fetchNbpFxPrice(srcCode),currency:'PLN'};
+    }
     if(!symbol) return {price:null,error:'Brak symbolu API'};
     try{
       if(provider==='stooq'){
@@ -8125,12 +8214,8 @@
     if(roiSub){
       const etfTxt=stats.roiBreakdown?.etfRoi===null?'—':`${stats.roiBreakdown.etfRoi.toFixed(1)}%`;
       const otherTxt=stats.roiBreakdown?.otherRoi===null?'—':`${stats.roiBreakdown.otherRoi.toFixed(1)}%`;
-      let deltaHtml='';
-      if(stats.roiBreakdown?.etfRoi!==null&&stats.roiBreakdown?.otherRoi!==null){
-        if(stats.roiBreakdown.otherRoi>stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta up" title="Rest lepszy od ETF">▲</span>';
-        else if(stats.roiBreakdown.otherRoi<stats.roiBreakdown.etfRoi) deltaHtml='<span class="inv-kpi-roi-delta down" title="Rest słabszy od ETF">▼</span>';
-      }
-      roiSub.innerHTML=`<span class="inv-kpi-roi-mini">ETF <b>${etfTxt}</b></span><span class="inv-kpi-roi-mini">Rest <b>${otherTxt}</b></span>${deltaHtml}`;
+      const tradingTxt=stats.roiBreakdown?.tradingRoi===null?'—':`${stats.roiBreakdown.tradingRoi.toFixed(1)}%`;
+      roiSub.innerHTML=`<span class="inv-kpi-roi-mini">ETF <b>${etfTxt}</b></span><span class="inv-kpi-roi-mini">Rest <b>${otherTxt}</b></span><span class="inv-kpi-roi-mini">Trading <b>${tradingTxt}</b></span>`;
     }
     roiCard.className='inv-kpi-card '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
   }
@@ -8416,6 +8501,41 @@
     preview.innerHTML=html;
   }
 
+  function updateInvBuyFormForAsset(){
+    const form=document.getElementById('inv-buy-form');
+    if(!form) return;
+    const assetId=form.querySelector('select[name="assetId"]')?.value;
+    const asset=investments().assets.find(a=>a.id===assetId);
+    const qtyInput=form.querySelector('input[name="quantity"]');
+    const qtyLabel=qtyInput?.closest('label');
+    const amountInput=form.querySelector('input[name="amount"]');
+    const footnote=document.getElementById('inv-buy-footnote');
+    const isDayTrading=!!asset&&isDayTradingGroup(asset.group);
+    if(qtyInput){
+      qtyInput.required=!isDayTrading;
+      qtyInput.readOnly=isDayTrading;
+      qtyInput.placeholder=isDayTrading?'auto':'0';
+      if(isDayTrading&&amountInput){
+        const amount=Math.abs(num(amountInput.value));
+        qtyInput.value=amount>0?String(amount):'';
+      }
+    }
+    if(qtyLabel){
+      qtyLabel.childNodes[0].nodeValue=isDayTrading?'Jednostki kapitału':'Ilość';
+      qtyLabel.title=isDayTrading?'Dla Day Trading ilość jest liczona automatycznie = kwota kapitału.':'';
+    }
+    if(footnote){
+      if(isDayTrading){
+        footnote.textContent='Day Trading: wpłata księgowana jak zwykły zakup, a P&L pobierany z modułu trading.html (waluta i kurs z konfiguracji aktywa).';
+      } else {
+        const srcSel=form.querySelector('select[name="fundSource"]');
+        footnote.textContent=srcSel?.value==='reinvest'
+          ?'Źródło: pula reinwestycyjna — jeśli kwota przekroczy pulę, reszta zostanie pobrana z budżetu.'
+          :'Źródło: budżet — kwota zostanie zaksięgowana jako inwestycja.';
+      }
+    }
+  }
+
   // --- Charts ----------------------------------------------------------------
   function invMonthKey(dateStr){
     const d=new Date(dateStr||new Date());
@@ -8593,10 +8713,13 @@
       costBasis:stats.totalCostBasis,
       etfRoi:stats.roiBreakdown?.etfRoi??null,
       restRoi:stats.roiBreakdown?.otherRoi??null,
+      tradingRoi:stats.roiBreakdown?.tradingRoi??null,
       etfCapitalFromBudget:stats.roiBreakdown?.etfCapitalFromBudget??0,
       restCapitalFromBudget:stats.roiBreakdown?.otherCapitalFromBudget??0,
+      tradingCapitalFromBudget:stats.roiBreakdown?.tradingCapitalFromBudget??0,
       etfTotalPnl:stats.roiBreakdown?.etfTotalPnl??0,
-      restTotalPnl:stats.roiBreakdown?.otherTotalPnl??0
+      restTotalPnl:stats.roiBreakdown?.otherTotalPnl??0,
+      tradingTotalPnl:stats.roiBreakdown?.tradingTotalPnl??0
     };
     if(existing>=0) snaps[existing]=snap;
     else snaps.push(snap);
@@ -8968,12 +9091,15 @@
           const roiCls=s.roi>=0?'inv-pnl-pos':'inv-pnl-neg';
           const etfRoiNum=Number(s.etfRoi);
           const restRoiNum=Number(s.restRoi);
+          const tradingRoiNum=Number(s.tradingRoi);
           const hasEtfRoi=Number.isFinite(etfRoiNum);
           const hasRestRoi=Number.isFinite(restRoiNum);
+          const hasTradingRoi=Number.isFinite(tradingRoiNum);
           const etfRoiCls=hasEtfRoi?(etfRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
           const restRoiCls=hasRestRoi?(restRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
+          const tradingRoiCls=hasTradingRoi?(tradingRoiNum>=0?'inv-pnl-pos':'inv-pnl-neg'):'';
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td class="${etfRoiCls}">${hasEtfRoi?`${etfRoiNum.toFixed(2)}%`:'—'}</td><td class="${restRoiCls}">${hasRestRoi?`${restRoiNum.toFixed(2)}%`:'—'}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
+          tr.innerHTML=`<td>${s.date}</td><td>${fmt(s.portfolioValue,cur)}</td><td>${fmt(s.capitalFromBudget,cur)}</td><td class="${pnlCls}">${s.totalPnl>=0?'+':''}${fmt(s.totalPnl,cur)}</td><td class="${roiCls}">${s.roi.toFixed(2)}%</td><td class="${etfRoiCls}">${hasEtfRoi?`${etfRoiNum.toFixed(2)}%`:'—'}</td><td class="${restRoiCls}">${hasRestRoi?`${restRoiNum.toFixed(2)}%`:'—'}</td><td class="${tradingRoiCls}">${hasTradingRoi?`${tradingRoiNum.toFixed(2)}%`:'—'}</td><td><button class="btn ghost" style="font-size:10px;padding:2px 6px" data-snap-del="${s.date}">Usuń</button></td>`;
           tr.querySelector('[data-snap-del]').onclick=()=>invHubDeleteSnapshot(s.date);
           snapTbody.appendChild(tr);
         }
@@ -10707,13 +10833,15 @@
     lines.push(`  ROI: ${stats.capitalFromBudget>0?stats.roi.toFixed(2)+'%':'—'}`);
     const etfRoi=stats.roiBreakdown?.etfRoi;
     const restRoi=stats.roiBreakdown?.otherRoi;
+    const tradingRoi=stats.roiBreakdown?.tradingRoi;
     const etfRoiTxt=etfRoi===null||etfRoi===undefined?'—':`${etfRoi.toFixed(2)}%`;
     const restRoiTxt=restRoi===null||restRoi===undefined?'—':`${restRoi.toFixed(2)}%`;
+    const tradingRoiTxt=tradingRoi===null||tradingRoi===undefined?'—':`${tradingRoi.toFixed(2)}%`;
     let roiCmp='';
     if(etfRoi!==null&&etfRoi!==undefined&&restRoi!==null&&restRoi!==undefined){
       roiCmp=restRoi>etfRoi?' ▲':restRoi<etfRoi?' ▼':'';
     }
-    lines.push(`  ROI ETF / Rest: ${etfRoiTxt} / ${restRoiTxt}${roiCmp}`);
+    lines.push(`  ROI ETF / Rest / Trading: ${etfRoiTxt} / ${restRoiTxt} / ${tradingRoiTxt}${roiCmp}`);
     lines.push(`  Pula reinwestycyjna: ${fmt(stats.reinvestPool,cur)}`);
 
     // --- Holdings ---
@@ -10827,6 +10955,7 @@
   // --- Main Render -----------------------------------------------------------
   function renderInvestments(){
     ensureInvestmentCategory();
+    ensureDayTradingAsset();
     const data=investments();
     bindInvestmentModal();
     bindInvestmentAnalyticsNav();
@@ -10878,11 +11007,15 @@
       buyForm._bound=true;
       const srcSel=buyForm.querySelector('select[name="fundSource"]');
       const footnote=document.getElementById('inv-buy-footnote');
+      const assetSel=buyForm.querySelector('select[name="assetId"]');
+      const amountInput=buyForm.querySelector('input[name="amount"]');
       if(srcSel){
         srcSel.onchange=()=>{
           if(footnote) footnote.textContent=srcSel.value==='reinvest'?'Źródło: pula reinwestycyjna — jeśli kwota przekroczy pulę, reszta zostanie pobrana z budżetu.':'Źródło: budżet — kwota zostanie zaksięgowana jako inwestycja.';
         };
       }
+      if(assetSel) assetSel.addEventListener('change',updateInvBuyFormForAsset);
+      if(amountInput) amountInput.addEventListener('input',updateInvBuyFormForAsset);
       buyForm.onsubmit=e=>{
         e.preventDefault();
         const f=new FormData(buyForm);
@@ -10891,7 +11024,8 @@
         if(!asset){alert('Dodaj najpierw aktywo.');return;}
         const date=f.get('date')||new Date().toISOString().slice(0,10);
         const amount=Math.abs(num(f.get('amount')));
-        const quantity=num(f.get('quantity'));
+        const isDayTrading=isDayTradingGroup(asset.group);
+        const quantity=isDayTrading?amount:num(f.get('quantity'));
         const note=String(f.get('note')||'');
         const fundSource=f.get('fundSource')||'budget';
         if(amount<=0||quantity<=0){alert('Kwota i ilość muszą być > 0.');return;}
@@ -10929,9 +11063,11 @@
         }
         save(state);buyForm.reset();
         const di=buyForm.querySelector('input[name="date"]');if(di) di.value=new Date().toISOString().slice(0,10);
+        updateInvBuyFormForAsset();
         renderAll();
       };
     }
+    updateInvBuyFormForAsset();
 
     // Sell form
     const sellForm=document.getElementById('inv-sell-form');
