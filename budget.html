@@ -119,11 +119,12 @@
     #inv-kpi-roi-card { position:relative; padding-right:128px; align-items:flex-start; gap:4px; }
     #inv-kpi-roi-card .inv-kpi-label { white-space:nowrap; }
     #inv-kpi-roi-card .inv-kpi-value { margin-top:0; }
-    #inv-kpi-roi-foot { font-size:11px; color:var(--muted); }
     #inv-kpi-roi-card .inv-kpi-sub.inv-kpi-sub-split { position:absolute; right:16px; top:14px; margin:0; display:flex; flex-direction:column; align-items:flex-end; gap:2px; line-height:1.1; font-size:10px; }
+    .inv-kpi-roi-note { margin-top:4px; font-size:10px; color:var(--muted); max-width:104px; text-align:right; line-height:1.15; white-space:normal; }
     @media(max-width:560px){
       #inv-kpi-roi-card{padding-right:16px;}
       #inv-kpi-roi-card .inv-kpi-sub.inv-kpi-sub-split{position:static;align-items:flex-start;}
+      .inv-kpi-roi-note{text-align:left;}
     }
     .inv-kpi-card.positive .inv-kpi-value { color:#16a34a; }
     .inv-kpi-card.negative .inv-kpi-value { color:#dc2626; }
@@ -5062,7 +5063,6 @@
             <div class="inv-kpi-card" id="inv-kpi-roi-card">
               <span class="inv-kpi-label">ROI %</span>
               <span class="inv-kpi-value" id="inv-kpi-roi">—</span>
-              <span class="inv-kpi-sub" id="inv-kpi-roi-foot">Zwrot na kapitale z budżetu</span>
               <span class="inv-kpi-sub inv-kpi-sub-split" id="inv-kpi-roi-sub">Zwrot na kapitale z budżetu</span>
             </div>
           </div>
@@ -8244,7 +8244,7 @@
         <div class="inv-kpi-roi-row"><span class="inv-kpi-roi-label">ETF</span><span class="inv-kpi-roi-val-wrap"><span class="inv-kpi-roi-value">${etfTxt}</span>${placeholder}</span></div>
         <div class="inv-kpi-roi-row"><span class="inv-kpi-roi-label">Rest</span><span class="inv-kpi-roi-val-wrap"><span class="inv-kpi-roi-value">${otherTxt}</span>${cmpDelta(restVal)||placeholder}</span></div>
         <div class="inv-kpi-roi-row"><span class="inv-kpi-roi-label">Trading</span><span class="inv-kpi-roi-val-wrap"><span class="inv-kpi-roi-value">${tradingTxt}</span>${cmpDelta(tradingVal)||placeholder}</span></div>
-      </div>`;
+      </div><div class="inv-kpi-roi-note">Zwrot na kapitale z budżetu</div>`;
     }
     roiCard.className='inv-kpi-card '+(stats.roi>0?'positive':stats.roi<0?'negative':'');
   }
