@@ -1060,6 +1060,40 @@ function getInvestmentStats(){
   const assets  = Array.isArray(investments.assets)  ? investments.assets  : [];
   if(!trades.length && !assets.length) return null;
 
+  const isDayTradingGroup = (name)=>String(name||'').trim().toUpperCase()==='DAY TRADING';
+  const dayTradingAssets = assets.filter(a=>isDayTradingGroup(a.group));
+  const dayTradingAssetIds = new Set(dayTradingAssets.map(a=>a.id));
+  const getTradingModulePnlRaw = ()=>{
+    const parsed = safeParse(localStorage.getItem(TRADING_STORAGE_KEY), {}) || {};
+    const tr = Array.isArray(parsed.trades) ? parsed.trades : [];
+    let total = 0;
+    for(const t of tr){
+      const entry = num(t?.entry);
+      const size = Math.max(num(t?.size),0);
+      const dir = t?.direction === 'short' ? 'short' : 'long';
+      const closings = Array.isArray(t?.closings) ? t.closings : [];
+      for(const c of closings){
+        const pct = Math.max(0, Math.min(100, num(c?.pct)));
+        const closingSize = size * (pct/100);
+        if(closingSize <= 0) continue;
+        const closePrice = num(c?.price);
+        const commission = num(c?.commission);
+        const gross = dir === 'short' ? (entry - closePrice) * closingSize : (closePrice - entry) * closingSize;
+        total += gross - commission;
+      }
+    }
+    return total;
+  };
+  const getTradingPnlConverted = ()=>{
+    if(!dayTradingAssets.length) return 0;
+    const primary = dayTradingAssets[0] || {};
+    const sourceCurrency = String(primary.priceCurrency || 'USD').trim().toUpperCase() || 'USD';
+    const fxRate = sourceCurrency === 'PLN' ? 1 : num(primary.currentPrice);
+    if(sourceCurrency !== 'PLN' && !(fxRate > 0)) return 0;
+    return getTradingModulePnlRaw() * fxRate;
+  };
+  const tradingPnlConverted = getTradingPnlConverted();
+
   /* ---- Latest snapshot (has pre-computed stats) ---- */
   const snapshots = safeParse(localStorage.getItem(INV_HUB_SNAP_KEY), []) || [];
   const snap = snapshots.length ? snapshots[snapshots.length-1] : null;
@@ -1088,14 +1122,21 @@ function getInvestmentStats(){
         h.cost += num(t.amount);
       }
     }
-    let mv=0, cb=0, realized=0;
+    let mv=0, cb=0, realized=0, dayTradingCb=0;
     for(const [id, h] of Object.entries(hMap)){
       if(h.qty <= 0){ realized += h.realized; continue; }
       const asset = assets.find(a=>a.id===id);
-      const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
-      mv += price > 0 ? h.qty*price : h.cost;
+      if(asset && dayTradingAssetIds.has(id)){
+        dayTradingCb += h.cost;
+      } else {
+        const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
+        mv += price > 0 ? h.qty*price : h.cost;
+      }
       cb += h.cost;
       realized += h.realized;
+    }
+    if(dayTradingCb > 0){
+      mv += dayTradingCb + tradingPnlConverted;
     }
     portfolioValue = mv;
     costBasis      = cb;
@@ -1146,16 +1187,29 @@ function getInvestmentStats(){
     }
   }
   const groupBreakdown = {};
+  let dayTradingCbTotal = 0;
+  const dayTradingCbByGroup = {};
   for(const [id, h] of Object.entries(fifoMap)){
     const qty = h.lots.reduce((s,l)=>s+l.qty, 0);
     if(qty <= 0.000001) continue;
     const cb = h.lots.reduce((s,l)=>s+l.qty*l.costPerUnit, 0);
+    const isDt = dayTradingAssetIds.has(id);
     const price = h.currentPrice ? num(h.currentPrice) : 0;
-    const mv = price > 0 ? qty * price : cb;
+    const mv = isDt ? cb : (price > 0 ? qty * price : cb);
     const group = h.group;
     if(!groupBreakdown[group]) groupBreakdown[group] = { mv:0, cb:0 };
     groupBreakdown[group].mv += mv;
     groupBreakdown[group].cb += cb;
+    if(isDt){
+      dayTradingCbTotal += cb;
+      dayTradingCbByGroup[group] = (dayTradingCbByGroup[group]||0) + cb;
+    }
+  }
+  if(dayTradingCbTotal > 0){
+    for(const [group, cbPart] of Object.entries(dayTradingCbByGroup)){
+      if(!groupBreakdown[group]) continue;
+      groupBreakdown[group].mv += tradingPnlConverted * (cbPart / dayTradingCbTotal);
+    }
   }
 
   // Available to invest: savings group + reinvest pool
