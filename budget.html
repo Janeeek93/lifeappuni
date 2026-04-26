@@ -175,6 +175,31 @@
       border-radius:10px;
       box-shadow:none;
     }
+    #inv-plan-kpi .kpi-value{
+      display:flex;
+      align-items:flex-end;
+      gap:6px;
+      white-space:nowrap;
+      word-break:normal;
+      overflow:hidden;
+    }
+    #inv-plan-kpi .kpi-value-main{
+      font-size:inherit;
+      font-weight:800;
+      line-height:1.1;
+      min-width:0;
+    }
+    #inv-plan-kpi .kpi-value-plan{
+      font-size:12px;
+      font-weight:600;
+      color:var(--muted);
+      line-height:1.1;
+      padding-bottom:2px;
+      white-space:nowrap;
+      flex-shrink:1;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
     /* --- Investment Module v2 ------------------------------------------------- */
     .inv-shell { max-width:1320px; margin:0 auto; padding:8px 10px 24px; display:flex; flex-direction:column; gap:18px; }
@@ -6138,7 +6163,7 @@
             <span class="kpi-emoji material-symbols-outlined">trending_up</span>
             <div class="kpi-body">
               <span class="kpi-label">Plan inwestycyjny</span>
-              <span class="kpi-value" id="dash-inv-progress">— / —</span>
+              <span class="kpi-value" id="dash-inv-progress"><span class="kpi-value-main">—</span><span class="kpi-value-plan">/ —</span></span>
               <div class="inv-progress-track" id="dash-inv-progress-track" title=""><div class="inv-progress-fill" id="dash-inv-progress-fill"></div></div>
               <span class="tiny muted" id="dash-inv-note">Brak planu na ten miesiąc</span>
             </div>
@@ -6757,7 +6782,7 @@
     const dashInvTrack = document.getElementById('dash-inv-progress-track');
     const dashInvNote = document.getElementById('dash-inv-note');
     if(dashInvProgress){
-      dashInvProgress.textContent = `${fmt(inv.actual, state.currency)} / ${fmt(inv.planned, state.currency)}`;
+      dashInvProgress.innerHTML = `<span class="kpi-value-main">${fmt(inv.actual, state.currency)}</span><span class="kpi-value-plan">/ ${fmt(inv.planned, state.currency)}</span>`;
     }
     if(dashInvFill && dashInvTrack){
       const pct = inv.planned > 0 ? (inv.actual / inv.planned) * 100 : 0;
