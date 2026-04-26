@@ -5091,6 +5091,7 @@
           </div>
           <div class="inv-plan-actions">
             <button class="btn ghost" type="button" id="inv-plan-copy-prev" title="Skopiuj plan z poprzedniego miesiąca"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Kopiuj z poprzedniego</button>
+            <button class="btn ghost" type="button" id="inv-plan-sync-actual" title="Ustaw plan równy aktualnie zainwestowanej kwocie"><span class="material-symbols-outlined" aria-hidden="true">sync_alt</span>Wyrównaj do wpłat</button>
             <button class="btn ghost" type="button" id="inv-plan-clear" title="Usuń plan na ten miesiąc"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Wyczyść</button>
           </div>
         </div>
@@ -6714,6 +6715,18 @@
         amount: num(prevPlan.amount),
         weekly: num(prevPlan.weekly),
         note: String(prevPlan.note||'')
+      };
+      save(state); renderAll();
+    };
+    const syncActualBtn = document.getElementById('inv-plan-sync-actual');
+    if(syncActualBtn) syncActualBtn.onclick = () => {
+      const ym = b().workingMonth; ensureMonth(ym);
+      const inv = getInvestmentSummary(ym);
+      const currentPlan = b().monthly[ym].investmentPlan || {amount:0, weekly:0, note:''};
+      b().monthly[ym].investmentPlan = {
+        amount: Math.max(0, Number(inv.actual.toFixed(2))),
+        weekly: 0,
+        note: String(currentPlan.note || '')
       };
       save(state); renderAll();
     };
