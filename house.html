@@ -506,12 +506,21 @@
   color: #fff;
   border: 1px solid transparent;
 }
+.h-cal-event.is-ghost {
+  visibility: hidden;
+  pointer-events: none;
+  margin-bottom: 3px;
+}
 .h-cal-event:hover { filter: brightness(1.1); transform: translateY(-1px); z-index: 10; position: relative; }
 
 /* Modyfikatory wielodniowe */
 .h-cal-event.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -7px; border-right: none; position: relative; z-index: 2; }
 .h-cal-event.span-mid { border-radius: 0; margin-left: -7px; margin-right: -7px; border-left: none; border-right: none; position: relative; z-index: 2; color: transparent; /* Ukrywa tekst w środkowych dniach */ }
 .h-cal-event.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -7px; border-left: none; position: relative; z-index: 2; color: transparent; }
+.h-cal-event.show-label {
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.22);
+}
 
 /* Krawędzie kalendarza dla wielodniowych */
 .span-cut-right { margin-right: 0 !important; border-top-right-radius: 4px !important; border-bottom-right-radius: 4px !important; border-right: 1px solid transparent !important; }
@@ -533,6 +542,35 @@
   font-weight: 800;
   box-shadow: 0 0 0 2px rgba(239,68,68,0.4);
   animation: pulse-red 2s infinite;
+}
+
+.h-cal-list-group { margin-bottom: 12px; }
+.h-cal-list-group-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.h-cal-list-group-title.critical { color: var(--red); }
+.h-cal-list-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  margin-bottom:6px;
+  cursor:pointer;
+  border-radius:8px;
+  border: 1px solid var(--line);
+}
+.h-cal-list-row:hover { border-color: var(--accent); background: var(--bg); }
+.h-cal-list-row.critical {
+  border-color: rgba(239,68,68,.28);
+  background: rgba(239,68,68,0.05);
 }
 @keyframes pulse-red {
   0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
@@ -1586,6 +1624,35 @@ function renderCalendar() {
 
   const todayIso = toIsoDate(new Date());
   const phases = state.phases;
+  const viewStartIso = toIsoDate(startDate);
+  const viewEndIso = toIsoDate(endDate);
+
+  const eventDefs = state.tasks
+    .filter(t => t.endDate)
+    .map(t => {
+      const start = t.startDate || t.endDate;
+      if (t.endDate < viewStartIso || start > viewEndIso) return null;
+      return {
+        task: t,
+        startIso: start,
+        endIso: t.endDate,
+        effectiveStartIso: start < viewStartIso ? viewStartIso : start,
+        effectiveEndIso: t.endDate > viewEndIso ? viewEndIso : t.endDate
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b) => a.effectiveStartIso.localeCompare(b.effectiveStartIso) || a.effectiveEndIso.localeCompare(b.effectiveEndIso) || a.task.id.localeCompare(b.task.id));
+
+  const laneEnds = [];
+  const eventLayout = new Map();
+  eventDefs.forEach(evt => {
+    let lane = 0;
+    while (laneEnds[lane] && laneEnds[lane] >= evt.effectiveStartIso) lane++;
+    laneEnds[lane] = evt.effectiveEndIso;
+    eventLayout.set(evt.task.id, { lane, ...evt });
+  });
+  const maxLanes = Math.max(4, laneEnds.length || 1);
+  const visibleLanes = Math.min(maxLanes, 6);
 
   let html = dayNames.map(d => `<div class="h-cal-head">${d}</div>`).join('');
 
@@ -1598,26 +1665,18 @@ function renderCalendar() {
     const isMonday = d.getDay() === 1;
     const isSunday = d.getDay() === 0;
 
-    // Pobierz zadania pokrywające się z tym dniem
-    const dayTasks = state.tasks.filter(t => {
-      if (!t.endDate) return false;
-      const s = t.startDate ? t.startDate : t.endDate;
-      return dateStr >= s && dateStr <= t.endDate;
-    });
-
-    // Sortowanie by belki ładnie łączyły się na różnych dniach
-    dayTasks.sort((a,b) => {
-      if (a.startDate !== b.startDate) return (a.startDate||a.endDate).localeCompare(b.startDate||b.endDate);
-      return a.id.localeCompare(b.id);
-    });
+    const dayEvents = eventDefs.filter(evt => dateStr >= evt.effectiveStartIso && dateStr <= evt.effectiveEndIso);
+    const eventByLane = new Map(dayEvents.map(evt => [eventLayout.get(evt.task.id).lane, evt.task]));
 
     html += `<div class="h-cal-cell ${isToday?'today':''}">
       <div class="h-cal-day">${d.getDate()} ${d.getDate()===1 ? monthNames[d.getMonth()].substr(0,3) : ''}</div>`;
 
-    let renderedCount = 0;
-    dayTasks.forEach(t => {
-      if (renderedCount >= 4) return; // Limit belek na dzień
-      renderedCount++;
+    for (let lane = 0; lane < visibleLanes; lane++) {
+      const t = eventByLane.get(lane);
+      if (!t) {
+        html += `<div class="h-cal-event is-ghost">&nbsp;</div>`;
+        continue;
+      }
 
       const ph = phases.find(p=>p.id===t.phaseId);
       const color = ph?.color || '#6366f1';
@@ -1640,6 +1699,12 @@ function renderCalendar() {
           if (isMonday) spanClass += ' span-cut-left';
         }
       }
+      const startsInView = dateStr === (t.startDate || t.endDate);
+      const repeatsWeeklyLabel = isMonday && dateStr !== (t.startDate || t.endDate) && dateStr >= (t.startDate || t.endDate) && dateStr <= t.endDate;
+      if (repeatsWeeklyLabel || startsInView) {
+        text = t.name;
+        spanClass += ' show-label';
+      }
 
       let extraStyle = `background:${color}`;
       let cls = `h-cal-event ${spanClass}`;
@@ -1651,10 +1716,10 @@ function renderCalendar() {
       if (isDone || isStrictlyOverdue) extraStyle = ''; 
 
       html += `<div class="${cls}" style="${extraStyle}" onclick="bm.openTaskModal('${t.id}')" title="${t.name}">${text}</div>`;
-    });
-
-    if (dayTasks.length > 4) {
-      html += `<div style="font-size:10px;color:var(--muted);padding:0 4px">+${dayTasks.length-4} więcej</div>`;
+    }
+    const hiddenCount = Math.max(0, dayEvents.length - visibleLanes);
+    if (hiddenCount > 0) {
+      html += `<div style="font-size:10px;color:var(--muted);padding:0 4px">+${hiddenCount} więcej</div>`;
     }
     html += `</div>`;
   }
@@ -1666,37 +1731,58 @@ function renderCalendar() {
 function renderUpcomingList() {
   const upEl = document.getElementById('h-cal-upcoming-list');
   const notDone = state.tasks.filter(t => t.status !== 'done' && t.endDate);
-  
-  // Oddzielamy zaległe od reszty (mocny czerwony nacisk)
+
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  let weekday = now.getDay();
+  if (weekday === 0) weekday = 7;
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() - weekday + 1);
+  const thisWeekEnd = new Date(thisMonday);
+  thisWeekEnd.setDate(thisMonday.getDate() + 6);
+  const nextWeekEnd = new Date(thisMonday);
+  nextWeekEnd.setDate(thisMonday.getDate() + 13);
+
   const overdue = notDone.filter(t => isPastDate(t.endDate)).sort((a,b) => a.endDate.localeCompare(b.endDate));
-  const upcoming = notDone.filter(t => !isPastDate(t.endDate)).sort((a,b) => a.endDate.localeCompare(b.endDate)).slice(0, 10);
+  const thisWeekCritical = notDone.filter(t => !isPastDate(t.endDate) && t.endDate <= toIsoDate(thisWeekEnd)).sort((a,b) => a.endDate.localeCompare(b.endDate));
+  const nextWeekCritical = notDone.filter(t => t.endDate > toIsoDate(thisWeekEnd) && t.endDate <= toIsoDate(nextWeekEnd)).sort((a,b) => a.endDate.localeCompare(b.endDate));
+  const later = notDone.filter(t => t.endDate > toIsoDate(nextWeekEnd)).sort((a,b) => a.endDate.localeCompare(b.endDate)).slice(0, 8);
 
-  const list = [...overdue, ...upcoming];
-
-  if (!list.length) {
+  if (![...overdue, ...thisWeekCritical, ...nextWeekCritical, ...later].length) {
     upEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Brak nadchodzących i zaległych zadań.</div>';
     return;
   }
 
-  upEl.innerHTML = list.map(t => {
+  const row = (t, mode) => {
     const ph = state.phases.find(p=>p.id===t.phaseId);
-    const isOverdue = isPastDate(t.endDate);
-    
-    // Zmienny wygląd wiersza w zależności od opóźnienia
-    const rowBg = isOverdue 
-      ? 'background: rgba(239,68,68,0.06); border-left: 3px solid var(--red);' 
-      : 'border-bottom: 1px solid var(--line);';
+    const isOverdue = mode === 'overdue';
+    const isCritical = mode === 'critical';
 
     return `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px; margin-bottom: 6px; cursor:pointer; border-radius: 6px; ${rowBg}" onclick="bm.openTaskModal('${t.id}')">
-        <div style="width:4px;height:32px;border-radius:2px;background:${isOverdue?'var(--red)':(ph?.color||'var(--muted)')}; display:${isOverdue?'none':'block'}"></div>
+      <div class="h-cal-list-row ${isOverdue||isCritical?'critical':''}" onclick="bm.openTaskModal('${t.id}')">
+        <div style="width:4px;height:32px;border-radius:2px;background:${isOverdue?'var(--red)':(ph?.color||'var(--muted)')}"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:${isOverdue?'700':'600'};color:${isOverdue?'var(--red)':'var(--ink)'}">${t.name}</div>
+          <div style="font-size:14px;font-weight:${isOverdue||isCritical?'700':'600'};color:${isOverdue?'var(--red)':'var(--ink)'}">${t.name}</div>
           <div style="font-size:11px;color:var(--muted); margin-top: 2px;">${ph?.icon||''} ${ph?.name||''}</div>
         </div>
-        <span class="h-badge ${isOverdue?'h-badge-red':'h-badge-blue'}" style="font-size:11px; ${isOverdue?'animation: pulse-red 2s infinite;':''}">${isOverdue?'⚠️ ZALEGŁE:':''} 📅 ${fmtDateFull(t.endDate)}</span>
+        <span class="h-badge ${isOverdue?'h-badge-red':isCritical?'h-badge-orange':'h-badge-blue'}" style="font-size:11px; ${isOverdue?'animation: pulse-red 2s infinite;':''}">
+          ${isOverdue?'⚠️ ZALEGŁE':isCritical?'⚡ Krytyczne':'📅 Plan'} · ${fmtDateFull(t.endDate)}
+        </span>
       </div>`;
-  }).join('');
+  };
+
+  const group = (title, items, mode, icon='') => items.length ? `
+    <div class="h-cal-list-group">
+      <h4 class="h-cal-list-group-title ${mode==='overdue'||mode==='critical'?'critical':''}">${icon} ${title} <span style="opacity:.75">(${items.length})</span></h4>
+      ${items.map(t => row(t, mode)).join('')}
+    </div>` : '';
+
+  upEl.innerHTML = [
+    group('Zaległe', overdue, 'overdue', '⛔'),
+    group('Krytyczne: ten tydzień', thisWeekCritical, 'critical', '🔥'),
+    group('Krytyczne: następny tydzień', nextWeekCritical, 'critical', '🟠'),
+    group('Dalszy plan', later, 'normal', '🗓️')
+  ].join('');
 }
 
 // Nawigacja kalendarza po 1 tygodniu przód/tył
