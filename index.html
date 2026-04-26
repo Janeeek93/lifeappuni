@@ -783,11 +783,12 @@ function renderKPIData(){
 
       const sharedSaved  = sumByIds(sharedIds);
       const otherSaved   = sumByIds(otherSavingIds);
-      const totalAlreadySaved = sharedSaved + otherSaved;
-      // Prognoza ŁĄCZNYCH oszczędności: prognoza zmiennych + już odłożone (bez inwestycji).
-      // Inwestycje są pokazane osobno jako plan/postęp (nie wliczają się ponownie do prognozy,
-      // bo plan został już odjęty od budżetu).
-      const totalForecast = projectedSavings + totalAlreadySaved;
+      // Duża liczba "Oszczędności tego miesiąca" ma sumować:
+      // 1) prognozę oszczędności zmiennych,
+      // 2) zaplanowane inwestycje,
+      // 3) oszczędności wspólne.
+      // Pozostałe oszczędności pozostają w rozbiciu, ale nie są częścią tej głównej sumy.
+      const totalForecast = projectedSavings + investmentPlanned + sharedSaved;
       const forecastSign  = totalForecast >= 0 ? '+' : '';
       const forecastClass = totalForecast >= 0 ? 'value-ok' : 'value-bad';
       const projSign = projectedSavings >= 0 ? '+' : '';

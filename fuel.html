@@ -493,6 +493,7 @@
 <script>
 const FUEL_STORAGE_KEY = 'lifeos_fuel_v1';
 const KPI_STORAGE_KEY = 'lifeos_kpis_v1';
+const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
 
 function fmt(n, c = 'PLN') {
     try {
@@ -567,6 +568,88 @@ function updateKPIs(state) {
     kpis.fuelBalance = balance;
     kpis.timestamp = new Date().toISOString();
     localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(kpis));
+}
+
+function getBudgetStateEnvelope(){
+    const raw = localStorage.getItem(BUDGET_STORAGE_KEY);
+    if(!raw) return null;
+    try{
+        const parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== 'object') return null;
+        if(parsed.modules?.budget && typeof parsed.modules.budget === 'object'){
+            return { root: parsed, budget: parsed.modules.budget, mode: 'modules' };
+        }
+        if(parsed.budget && typeof parsed.budget === 'object'){
+            return { root: parsed, budget: parsed.budget, mode: 'budgetProp' };
+        }
+        return { root: parsed, budget: parsed, mode: 'rootBudget' };
+    }catch{
+        return null;
+    }
+}
+
+function saveBudgetEnvelope(envelope){
+    if(!envelope?.root) return;
+    localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(envelope.root));
+}
+
+function ensureFuelCategory(budget){
+    if(!Array.isArray(budget.categories)) budget.categories = [];
+    const existing = budget.categories.find(cat => {
+        const name = String(cat?.name || '').toLowerCase();
+        return cat?.id === 'c_fuel' || name === 'paliwo' || name.includes('paliw');
+    });
+    if(existing) return existing.id;
+    const id = `c_fuel_${Date.now().toString(36)}`;
+    budget.categories.push({ id, name: 'Paliwo', type: 'expense', emoji: '⛽', budget: 0 });
+    return id;
+}
+
+function ensureMonthlyBucket(budget, ym){
+    if(!budget.monthly || typeof budget.monthly !== 'object') budget.monthly = {};
+    if(!budget.monthly[ym] || typeof budget.monthly[ym] !== 'object'){
+        budget.monthly[ym] = { incomes: [], fixed: [] };
+    }
+    if(!Array.isArray(budget.monthly[ym].incomes)) budget.monthly[ym].incomes = [];
+    if(!Array.isArray(budget.monthly[ym].fixed)) budget.monthly[ym].fixed = [];
+}
+
+function getDefaultBudgetAccountId(budget){
+    if(!Array.isArray(budget.accounts)) budget.accounts = [];
+    if(!budget.accounts.length){
+        budget.accounts.push({ id:'a_main', name:'Główne', type:'bank', initialBalance:0 });
+    }
+    return budget.accounts[0].id || 'a_main';
+}
+
+function bookFuelTxToBudget(tx){
+    if(!tx || !tx.date) return;
+    const env = getBudgetStateEnvelope();
+    if(!env || !env.budget || typeof env.budget !== 'object') return;
+    const budget = env.budget;
+    if(!Array.isArray(budget.transactions)) budget.transactions = [];
+    const ym = String(tx.date).slice(0,7);
+    ensureMonthlyBucket(budget, ym);
+
+    if(tx.type === 'invoice'){
+        const fuelCatId = ensureFuelCategory(budget);
+        budget.transactions.unshift({
+            id: `tx_fuel_auto_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+            date: tx.date,
+            amount: -Math.abs(num(tx.amount)),
+            categoryId: fuelCatId,
+            accountId: getDefaultBudgetAccountId(budget),
+            note: `Paliwo (auto): ${tx.ref || 'faktura paliwowa'}`
+        });
+    } else if(tx.type === 'advance'){
+        budget.monthly[ym].incomes.unshift({
+            id: `inc_fuel_auto_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+            amount: Math.abs(num(tx.amount)),
+            note: `Zaliczka paliwowa (auto): ${tx.ref || 'bez opisu'}`
+        });
+    }
+
+    saveBudgetEnvelope(env);
 }
 
 let state = loadState();
@@ -1320,7 +1403,10 @@ addBtn.addEventListener('click', () => {
             state.transactions[index] = { id, date, type, ref, liters: type === 'invoice' ? liters : null, amount };
         }
     } else { // Add mode
-        state.transactions.push({ id: `tx_${Date.now()}`, date, type, ref, liters: type === 'invoice' ? liters : null, amount });
+        const newTx = { id: `tx_${Date.now()}`, date, type, ref, liters: type === 'invoice' ? liters : null, amount };
+        state.transactions.push(newTx);
+        // Automatyzacja dotyczy wyłącznie NOWO dodawanych rekordów (bez migracji historii/edycji).
+        bookFuelTxToBudget(newTx);
     }
 
     saveState(state);

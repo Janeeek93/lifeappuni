@@ -439,7 +439,7 @@
 .h-status-btn.doing { border-color: var(--accent); background: rgba(99,102,241,.1); color: var(--accent); }
 .h-status-btn.done { border-color: var(--green); background: var(--green); color: #fff; }
 
-/* ── Calendar View ────────────────────────────────── */
+/* ── Ulepszony Calendar View ──────────────────────── */
 .h-cal-nav {
   display: flex;
   align-items: center;
@@ -447,7 +447,7 @@
   margin-bottom: 16px;
 }
 .h-cal-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink);
   min-width: 180px;
@@ -472,7 +472,7 @@
   border-bottom: 1px solid var(--line);
 }
 .h-cal-cell {
-  min-height: 90px;
+  min-height: 100px;
   padding: 6px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -481,31 +481,64 @@
   position: relative;
 }
 .h-cal-cell:nth-child(7n) { border-right: none; }
-.h-cal-cell.other-month { opacity: .35; }
-.h-cal-cell.today { background: rgba(99,102,241,.04); }
-.h-cal-cell.today .h-cal-day { color: var(--accent); font-weight: 800; }
+.h-cal-cell.today { background: rgba(99,102,241,.06); border: 2px solid var(--accent); z-index: 1; }
+.h-cal-cell.today .h-cal-day { background: var(--accent); color: #fff; border-radius: 4px; display: inline-block; padding: 2px 6px; }
 .h-cal-day {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   padding: 2px 4px;
 }
+/* Style dla zadań w kalendarzu - połączenia ciągłe */
 .h-cal-event {
   display: block;
-  padding: 2px 6px;
+  padding: 3px 6px;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: filter .15s ease;
+  transition: filter .15s ease, transform .1s ease;
   color: #fff;
+  border: 1px solid transparent;
 }
-.h-cal-event:hover { filter: brightness(1.1); }
+.h-cal-event:hover { filter: brightness(1.1); transform: translateY(-1px); z-index: 10; position: relative; }
+
+/* Modyfikatory wielodniowe */
+.h-cal-event.span-start { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -7px; border-right: none; position: relative; z-index: 2; }
+.h-cal-event.span-mid { border-radius: 0; margin-left: -7px; margin-right: -7px; border-left: none; border-right: none; position: relative; z-index: 2; color: transparent; /* Ukrywa tekst w środkowych dniach */ }
+.h-cal-event.span-end { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -7px; border-left: none; position: relative; z-index: 2; color: transparent; }
+
+/* Krawędzie kalendarza dla wielodniowych */
+.span-cut-right { margin-right: 0 !important; border-top-right-radius: 4px !important; border-bottom-right-radius: 4px !important; border-right: 1px solid transparent !important; }
+.span-cut-left { margin-left: 0 !important; border-top-left-radius: 4px !important; border-bottom-left-radius: 4px !important; border-left: 1px solid transparent !important; }
+
+/* Zakończone zadania */
+.h-cal-event.is-done {
+  background: repeating-linear-gradient(45deg, rgba(0,0,0,0.03), rgba(0,0,0,0.03) 5px, rgba(0,0,0,0.08) 5px, rgba(0,0,0,0.08) 10px) !important;
+  background-color: var(--bg) !important;
+  color: var(--muted) !important;
+  text-decoration: line-through;
+  border-color: var(--line) !important;
+}
+
+/* Zaległe zadania (Pulsacja i czerwień) */
+.h-cal-event.is-overdue {
+  background: var(--red) !important;
+  color: #fff !important;
+  font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(239,68,68,0.4);
+  animation: pulse-red 2s infinite;
+}
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  70% { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
 
 /* ── Forms ────────────────────────────────────────── */
 .h-form-group { margin-bottom: 14px; }
@@ -853,7 +886,7 @@
   .h-grid-2, .h-grid-3 { grid-template-columns: 1fr; }
   .h-form-row { grid-template-columns: 1fr; }
   .h-content { padding: 16px; }
-  .h-cal-cell { min-height: 60px; }
+  .h-cal-cell { min-height: 80px; }
 }
 
 /* ── Drag-and-drop visual feedback ────────────────── */
@@ -972,13 +1005,13 @@
             <button class="h-btn h-btn-icon" onclick="bm.calPrev()"><span class="material-symbols-outlined">chevron_left</span></button>
             <div class="h-cal-title" id="h-cal-title"></div>
             <button class="h-btn h-btn-icon" onclick="bm.calNext()"><span class="material-symbols-outlined">chevron_right</span></button>
-            <button class="h-btn h-btn-sm" onclick="bm.calToday()">Dziś</button>
+            <button class="h-btn h-btn-sm h-btn-primary" onclick="bm.calToday()">Obecny tydzień</button>
           </div>
           <div class="h-cal-grid" id="h-cal-grid"></div>
         </div>
         <div class="h-card" id="h-cal-upcoming">
           <div class="h-card-header">
-            <div class="h-card-title"><span class="material-symbols-outlined">upcoming</span> Nadchodzące zadania</div>
+            <div class="h-card-title"><span class="material-symbols-outlined">upcoming</span> Lista zadań z datą</div>
           </div>
           <div id="h-cal-upcoming-list"></div>
         </div>
@@ -1202,6 +1235,7 @@ const defaultState = () => ({
 
 let state = {};
 let activeTab = 'board';
+// Zmienione zachowanie kalendarza: śledzi punkt odniesienia (środek bieżącego widoku)
 let calendarDate = new Date();
 
 // ═══════════════════════════════════════════════════════
@@ -1523,93 +1557,151 @@ bm.toggleTaskStatus = (taskId, e) => {
 };
 
 // ═══════════════════════════════════════════════════════
-//  CALENDAR
+//  CALENDAR (Rolling 4-weeks View)
 // ═══════════════════════════════════════════════════════
 function renderCalendar() {
-  const year = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
+  const base = new Date(calendarDate);
+  base.setHours(0,0,0,0);
+  
+  // Znajdź poniedziałek bieżącego tygodnia z "base"
+  let dayOfWeek = base.getDay();
+  if (dayOfWeek === 0) dayOfWeek = 7; // Niedziela to 7, nie 0
+  
+  const currentMonday = new Date(base);
+  currentMonday.setDate(base.getDate() - dayOfWeek + 1);
+
+  // Ustawienie widoku: 1 tydzień wstecz od obecnego poniedziałku (aby widzieć przeszłość)
+  const startDate = new Date(currentMonday);
+  startDate.setDate(currentMonday.getDate() - 7);
+
+  // Koniec widoku to +27 dni (w sumie 28 dni = 4 tygodnie)
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 27);
+
   const monthNames = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
   const dayNames = ['Pon','Wt','Śr','Czw','Pt','Sob','Nd'];
 
-  document.getElementById('h-cal-title').textContent = `${monthNames[month]} ${year}`;
+  const formatHeaderDate = d => `${d.getDate()} ${monthNames[d.getMonth()].substr(0,3)}`;
+  document.getElementById('h-cal-title').textContent = `${formatHeaderDate(startDate)} - ${formatHeaderDate(endDate)} ${startDate.getFullYear()}`;
 
-  const firstDay = new Date(year, month, 1);
-  let startDow = firstDay.getDay() - 1; if (startDow < 0) startDow = 6; // Monday=0
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const prevMonthDays = new Date(year, month, 0).getDate();
-
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = toIsoDate(today);
-
-  // Get tasks with dates for this month
-  const tasksWithDates = state.tasks.filter(t => t.endDate);
+  const todayIso = toIsoDate(new Date());
   const phases = state.phases;
 
   let html = dayNames.map(d => `<div class="h-cal-head">${d}</div>`).join('');
 
-  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - startDow + 1;
-    let dateStr, displayDay, isOtherMonth = false;
+  // Generowanie 28 dni
+  for (let i = 0; i < 28; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const dateStr = toIsoDate(d);
+    const isToday = dateStr === todayIso;
+    const isMonday = d.getDay() === 1;
+    const isSunday = d.getDay() === 0;
 
-    if (dayNum < 1) {
-      const d = prevMonthDays + dayNum;
-      displayDay = d;
-      dateStr = toIsoDate(new Date(year, month-1, d));
-      isOtherMonth = true;
-    } else if (dayNum > daysInMonth) {
-      const d = dayNum - daysInMonth;
-      displayDay = d;
-      dateStr = toIsoDate(new Date(year, month+1, d));
-      isOtherMonth = true;
-    } else {
-      displayDay = dayNum;
-      dateStr = toIsoDate(new Date(year, month, dayNum));
+    // Pobierz zadania pokrywające się z tym dniem
+    const dayTasks = state.tasks.filter(t => {
+      if (!t.endDate) return false;
+      const s = t.startDate ? t.startDate : t.endDate;
+      return dateStr >= s && dateStr <= t.endDate;
+    });
+
+    // Sortowanie by belki ładnie łączyły się na różnych dniach
+    dayTasks.sort((a,b) => {
+      if (a.startDate !== b.startDate) return (a.startDate||a.endDate).localeCompare(b.startDate||b.endDate);
+      return a.id.localeCompare(b.id);
+    });
+
+    html += `<div class="h-cal-cell ${isToday?'today':''}">
+      <div class="h-cal-day">${d.getDate()} ${d.getDate()===1 ? monthNames[d.getMonth()].substr(0,3) : ''}</div>`;
+
+    let renderedCount = 0;
+    dayTasks.forEach(t => {
+      if (renderedCount >= 4) return; // Limit belek na dzień
+      renderedCount++;
+
+      const ph = phases.find(p=>p.id===t.phaseId);
+      const color = ph?.color || '#6366f1';
+      const isDone = t.status === 'done';
+      const isStrictlyOverdue = !isDone && isPastDate(t.endDate);
+
+      let spanClass = '';
+      let text = t.name;
+
+      // Wykrywanie rozpiętości wielu dni
+      if (t.startDate && t.startDate !== t.endDate) {
+        if (dateStr === t.startDate) { 
+          spanClass = isSunday ? 'span-start span-cut-right' : 'span-start'; 
+        } else if (dateStr === t.endDate) { 
+          spanClass = isMonday ? 'span-end span-cut-left' : 'span-end'; 
+        } else { 
+          spanClass = 'span-mid'; 
+          text = '&nbsp;'; // ukrywamy tekst w środku belki 
+          if (isSunday) spanClass += ' span-cut-right';
+          if (isMonday) spanClass += ' span-cut-left';
+        }
+      }
+
+      let extraStyle = `background:${color}`;
+      let cls = `h-cal-event ${spanClass}`;
+      
+      if (isDone) cls += ' is-done';
+      else if (isStrictlyOverdue) cls += ' is-overdue';
+
+      // Nadpisanie stylu inline jeśli są klasy specjalne
+      if (isDone || isStrictlyOverdue) extraStyle = ''; 
+
+      html += `<div class="${cls}" style="${extraStyle}" onclick="bm.openTaskModal('${t.id}')" title="${t.name}">${text}</div>`;
+    });
+
+    if (dayTasks.length > 4) {
+      html += `<div style="font-size:10px;color:var(--muted);padding:0 4px">+${dayTasks.length-4} więcej</div>`;
     }
-
-    const isToday = dateStr === todayStr;
-    const dayTasks = tasksWithDates.filter(t => t.endDate === dateStr);
-
-    html += `<div class="h-cal-cell ${isOtherMonth?'other-month':''} ${isToday?'today':''}">
-      <div class="h-cal-day">${displayDay}</div>
-      ${dayTasks.slice(0,3).map(t => {
-        const ph = phases.find(p=>p.id===t.phaseId);
-        const color = ph?.color || '#6366f1';
-        return `<div class="h-cal-event" style="background:${color}" onclick="bm.openTaskModal('${t.id}')" title="${t.name}">${t.name}</div>`;
-      }).join('')}
-      ${dayTasks.length > 3 ? `<div style="font-size:10px;color:var(--muted);padding:0 4px">+${dayTasks.length-3} więcej</div>` : ''}
-    </div>`;
+    html += `</div>`;
   }
 
   document.getElementById('h-cal-grid').innerHTML = html;
-
-  // Upcoming tasks
-  const upcoming = state.tasks
-    .filter(t => t.status !== 'done' && t.endDate)
-    .sort((a,b) => a.endDate.localeCompare(b.endDate))
-    .slice(0, 8);
-
-  const upEl = document.getElementById('h-cal-upcoming-list');
-  if (!upcoming.length) {
-    upEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Brak nadchodzących zadań z datą.</div>';
-  } else {
-    upEl.innerHTML = upcoming.map(t => {
-      const ph = phases.find(p=>p.id===t.phaseId);
-      const isOverdue = isPastDate(t.endDate);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer" onclick="bm.openTaskModal('${t.id}')">
-        <div style="width:4px;height:32px;border-radius:2px;background:${ph?.color||'var(--muted)'}"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--ink)">${t.name}</div>
-          <div style="font-size:11px;color:var(--muted)">${ph?.icon||''} ${ph?.name||''}</div>
-        </div>
-        <span class="h-badge ${isOverdue?'h-badge-red':'h-badge-blue'}" style="font-size:11px">📅 ${fmtDateFull(t.endDate)}</span>
-      </div>`;
-    }).join('');
-  }
+  renderUpcomingList();
 }
 
-bm.calPrev = () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); };
-bm.calNext = () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); };
+function renderUpcomingList() {
+  const upEl = document.getElementById('h-cal-upcoming-list');
+  const notDone = state.tasks.filter(t => t.status !== 'done' && t.endDate);
+  
+  // Oddzielamy zaległe od reszty (mocny czerwony nacisk)
+  const overdue = notDone.filter(t => isPastDate(t.endDate)).sort((a,b) => a.endDate.localeCompare(b.endDate));
+  const upcoming = notDone.filter(t => !isPastDate(t.endDate)).sort((a,b) => a.endDate.localeCompare(b.endDate)).slice(0, 10);
+
+  const list = [...overdue, ...upcoming];
+
+  if (!list.length) {
+    upEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Brak nadchodzących i zaległych zadań.</div>';
+    return;
+  }
+
+  upEl.innerHTML = list.map(t => {
+    const ph = state.phases.find(p=>p.id===t.phaseId);
+    const isOverdue = isPastDate(t.endDate);
+    
+    // Zmienny wygląd wiersza w zależności od opóźnienia
+    const rowBg = isOverdue 
+      ? 'background: rgba(239,68,68,0.06); border-left: 3px solid var(--red);' 
+      : 'border-bottom: 1px solid var(--line);';
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px; margin-bottom: 6px; cursor:pointer; border-radius: 6px; ${rowBg}" onclick="bm.openTaskModal('${t.id}')">
+        <div style="width:4px;height:32px;border-radius:2px;background:${isOverdue?'var(--red)':(ph?.color||'var(--muted)')}; display:${isOverdue?'none':'block'}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:${isOverdue?'700':'600'};color:${isOverdue?'var(--red)':'var(--ink)'}">${t.name}</div>
+          <div style="font-size:11px;color:var(--muted); margin-top: 2px;">${ph?.icon||''} ${ph?.name||''}</div>
+        </div>
+        <span class="h-badge ${isOverdue?'h-badge-red':'h-badge-blue'}" style="font-size:11px; ${isOverdue?'animation: pulse-red 2s infinite;':''}">${isOverdue?'⚠️ ZALEGŁE:':''} 📅 ${fmtDateFull(t.endDate)}</span>
+      </div>`;
+  }).join('');
+}
+
+// Nawigacja kalendarza po 1 tygodniu przód/tył
+bm.calPrev = () => { calendarDate.setDate(calendarDate.getDate() - 7); renderCalendar(); };
+bm.calNext = () => { calendarDate.setDate(calendarDate.getDate() + 7); renderCalendar(); };
 bm.calToday = () => { calendarDate = new Date(); renderCalendar(); };
 
 // ═══════════════════════════════════════════════════════

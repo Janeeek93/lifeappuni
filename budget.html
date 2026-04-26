@@ -98,6 +98,161 @@
       place-items: center;
     }
 
+    /* --- Investment plan (overview) - flatter visual style ------------------ */
+    .inv-plan-card{
+      margin-top:14px;
+      padding:16px;
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:14px;
+      background:#f3f4f6;
+      box-shadow:none;
+    }
+    .inv-plan-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .inv-plan-title{
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:16px;
+      font-weight:700;
+      color:var(--ink);
+    }
+    .inv-plan-title .material-symbols-outlined{
+      font-size:20px;
+      color:#4b5563;
+    }
+    .inv-plan-actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .inv-plan-actions .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius:10px;
+      box-shadow:none;
+    }
+    .inv-plan-actions .btn .material-symbols-outlined{
+      font-size:16px;
+    }
+    .inv-plan-stats{
+      margin-top:10px;
+      display:grid;
+      gap:8px;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    }
+    .inv-plan-stat{
+      background:#e5e7eb;
+      border:1px solid rgba(148,163,184,.28);
+      border-radius:10px;
+      padding:10px 12px;
+    }
+    .inv-plan-stat .lbl{
+      font-size:11px;
+      color:#6b7280;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      font-weight:700;
+    }
+    .inv-plan-stat .val{
+      margin-top:4px;
+      font-size:18px;
+      font-weight:700;
+      color:var(--ink);
+    }
+    #inv-plan-form{ margin-top:10px; }
+    #inv-plan-form label.tiny{ gap:6px !important; }
+    #inv-plan-form input{
+      background:#f9fafb;
+      border:1px solid rgba(148,163,184,.35);
+      border-radius:10px;
+      box-shadow:none;
+    }
+    #inv-plan-kpi .kpi-value{
+      display:flex;
+      align-items:flex-end;
+      gap:6px;
+      white-space:nowrap;
+      word-break:normal;
+      overflow:hidden;
+    }
+    #inv-plan-kpi .kpi-value-main{
+      font-size:inherit;
+      font-weight:800;
+      line-height:1.1;
+      min-width:0;
+    }
+    #inv-plan-kpi .kpi-value-plan{
+      font-size:12px;
+      font-weight:600;
+      color:var(--muted);
+      line-height:1.1;
+      padding-bottom:2px;
+      white-space:nowrap;
+      flex-shrink:1;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .overview-top-grid,
+    .overview-flow-grid{
+      display:grid;
+      gap:12px;
+      margin-bottom:12px;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+    .overview-flow-grid{ margin-bottom:0; }
+    .ov-rate-card .ov-rate-wrap{
+      display:flex;
+      justify-content:flex-start;
+      align-items:center;
+      gap:10px;
+      padding:2px 0 0;
+    }
+    .ov-rate-donut{
+      --pct:0;
+      width:58px;
+      height:58px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:conic-gradient(var(--blue, #2563eb) calc(var(--pct) * 1%), rgba(148,163,184,.22) 0);
+      position:relative;
+      flex-shrink:0;
+    }
+    .ov-rate-donut::after{
+      content:'';
+      position:absolute;
+      inset:8px;
+      border-radius:50%;
+      background:var(--surface);
+      border:1px solid var(--line);
+    }
+    .ov-rate-donut span{
+      position:relative;
+      z-index:1;
+      font-size:13px;
+      font-weight:800;
+      color:var(--ink);
+    }
+    .ov-rate-inline-note{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    @media(max-width:980px){
+      .overview-top-grid,
+      .overview-flow-grid{ grid-template-columns:1fr; }
+    }
+
     /* --- Investment Module v2 ------------------------------------------------- */
     .inv-shell { max-width:1320px; margin:0 auto; padding:8px 10px 24px; display:flex; flex-direction:column; gap:18px; }
     .inv-dashboard { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; }
@@ -4886,33 +5041,58 @@
     <!-- Overview -->
     <section id="tab-overview" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Przegląd miesiąca — <span id="ov-month">YYYY-MM</span></h3>
-      <div class="grid g-4">
-        <div class="stat-card"><div class="muted">Przychody</div><div class="big-number" id="ov-inc">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zaplanowane</div><div class="big-number" id="ov-fixed-planned">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
-        <div class="stat-card"><div class="muted">Wydatki zmienne</div><div class="big-number bad" id="ov-var-spent">0</div></div>
-        <div class="stat-card"><div class="muted">Oszczędności (bez inwestycji)</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
+      <div class="overview-top-grid">
+        <div class="stat-card">
+          <div class="muted">Przychody</div>
+          <div class="big-number" id="ov-inc">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="muted">Prognoza oszczędności (zmienne + plan inwestycji + oszczędności wspólne)</div>
+          <div class="big-number" id="ov-forecast-total">0</div>
+          <div class="tiny muted" id="ov-forecast-note">Przy obecnym tempie wydatków</div>
+        </div>
+        <div class="stat-card ov-rate-card">
+          <div class="muted">Prognozowana stopa oszczędności</div>
+          <div class="ov-rate-wrap">
+            <div class="ov-rate-donut" id="ov-savings-rate-donut" style="--pct:0;">
+              <span id="stat-savings-rate">0%</span>
+            </div>
+            <div class="ov-rate-inline-note">Prognoza oszczędności / przychód</div>
+          </div>
+        </div>
+      </div>
+      <div class="overview-flow-grid">
+        <div class="stat-card">
+          <div class="muted">Stałe (zapłacone / planowane)</div>
+          <div class="big-number"><span id="ov-fixed-paid">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-fixed-planned">0</span></span></div>
+          <div class="inv-progress-track" id="ov-fixed-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-fixed-progress-fill"></div></div>
+          <div class="tiny muted" id="ov-fixed-note" style="margin-top:4px">Pozostało: —</div>
+        </div>
+        <div class="stat-card">
+          <div class="muted">Budżet wydatków zmiennych (wydane / limit)</div>
+          <div class="big-number bad"><span id="ov-var-budget-spent">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-var-budget-total">0</span></span></div>
+          <div class="inv-progress-track" id="ov-var-budget-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-var-budget-progress-fill"></div></div>
+          <div class="tiny muted" id="ov-var-budget-note" style="margin-top:4px">Pozostało: —</div>
+        </div>
         <div class="stat-card">
           <div class="muted">Inwestycje (plan / postęp)</div>
           <div class="big-number" style="color:var(--blue)"><span id="ov-inv-actual">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-inv-planned">0</span></span></div>
           <div class="inv-progress-track" id="ov-inv-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-inv-progress-fill"></div></div>
           <div class="tiny muted" id="ov-inv-delta" style="margin-top:4px">Brak planu na ten miesiąc</div>
         </div>
-        <div class="stat-card"><div class="muted">Budżet zmienny do dyspozycji</div><div class="big-number" id="ov-remaining">0</div></div>
-        <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
       </div>
 
       <!-- Plan inwestycyjny — edytor -->
       <div class="inv-plan-card" id="inv-plan-card">
         <div class="inv-plan-header">
           <div>
-            <div class="title" style="margin:0">📈 Plan inwestycyjny — <span id="inv-plan-month">YYYY-MM</span></div>
+            <div class="inv-plan-title"><span class="material-symbols-outlined" aria-hidden="true">monitoring</span>Plan inwestycyjny — <span id="inv-plan-month">YYYY-MM</span></div>
             <div class="tiny muted">Zarezerwuj kwotę na inwestycje. Zmniejsza budżet zmienny do dyspozycji od razu (jak wydatki stałe). Faktyczne wpłaty w kategorii „Inwestycje” są liczone osobno; tylko nadwyżka ponad plan dodatkowo obniża budżet i prognozę.</div>
           </div>
-          <div class="row" style="gap:6px">
-            <button class="btn ghost" type="button" id="inv-plan-copy-prev" title="Skopiuj plan z poprzedniego miesiąca">Kopiuj z poprzedniego</button>
-            <button class="btn danger" type="button" id="inv-plan-clear" title="Usuń plan na ten miesiąc">Wyczyść</button>
+          <div class="inv-plan-actions">
+            <button class="btn ghost" type="button" id="inv-plan-copy-prev" title="Skopiuj plan z poprzedniego miesiąca"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Kopiuj z poprzedniego</button>
+            <button class="btn ghost" type="button" id="inv-plan-sync-actual" title="Ustaw plan równy aktualnie zainwestowanej kwocie"><span class="material-symbols-outlined" aria-hidden="true">sync_alt</span>Wyrównaj do wpłat</button>
+            <button class="btn ghost" type="button" id="inv-plan-clear" title="Usuń plan na ten miesiąc"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Wyczyść</button>
           </div>
         </div>
         <div class="inv-plan-stats">
@@ -6060,7 +6240,7 @@
             <span class="kpi-emoji material-symbols-outlined">trending_up</span>
             <div class="kpi-body">
               <span class="kpi-label">Plan inwestycyjny</span>
-              <span class="kpi-value" id="dash-inv-progress">— / —</span>
+              <span class="kpi-value" id="dash-inv-progress"><span class="kpi-value-main">—</span><span class="kpi-value-plan">/ —</span></span>
               <div class="inv-progress-track" id="dash-inv-progress-track" title=""><div class="inv-progress-fill" id="dash-inv-progress-fill"></div></div>
               <span class="tiny muted" id="dash-inv-note">Brak planu na ten miesiąc</span>
             </div>
@@ -6538,6 +6718,18 @@
       };
       save(state); renderAll();
     };
+    const syncActualBtn = document.getElementById('inv-plan-sync-actual');
+    if(syncActualBtn) syncActualBtn.onclick = () => {
+      const ym = b().workingMonth; ensureMonth(ym);
+      const inv = getInvestmentSummary(ym);
+      const currentPlan = b().monthly[ym].investmentPlan || {amount:0, weekly:0, note:''};
+      b().monthly[ym].investmentPlan = {
+        amount: Math.max(0, Number(inv.actual.toFixed(2))),
+        weekly: 0,
+        note: String(currentPlan.note || '')
+      };
+      save(state); renderAll();
+    };
   })();
 
   // --- NEW: Fixed Expenses Templates & Suggestions ---------------------------------
@@ -6679,7 +6871,7 @@
     const dashInvTrack = document.getElementById('dash-inv-progress-track');
     const dashInvNote = document.getElementById('dash-inv-note');
     if(dashInvProgress){
-      dashInvProgress.textContent = `${fmt(inv.actual, state.currency)} / ${fmt(inv.planned, state.currency)}`;
+      dashInvProgress.innerHTML = `<span class="kpi-value-main">${fmt(inv.actual, state.currency)}</span><span class="kpi-value-plan">/ ${fmt(inv.planned, state.currency)}</span>`;
     }
     if(dashInvFill && dashInvTrack){
       const pct = inv.planned > 0 ? (inv.actual / inv.planned) * 100 : 0;
@@ -7183,17 +7375,72 @@
     const daysLeft = getDaysRemaining(ym);
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
     // Prognoza: budżet pomniejszony o stałe oraz zarezerwowany plan inwestycyjny.
-    const forecastedSavings = (incomes - fixedPlanned - inv.effective) - projectedTotalVariableOutflow;
-    const savingsRate = incomes > 0 ? (forecastedSavings / incomes) * 100 : 0;
+    const forecastedVariableSavings = (incomes - fixedPlanned - inv.effective) - projectedTotalVariableOutflow;
+    const totalForecastSavings = forecastedVariableSavings + inv.planned + savingsTransfers;
+    const savingsRate = incomes > 0 ? (totalForecastSavings / incomes) * 100 : 0;
 
     document.getElementById('ov-inc').textContent = fmt(incomes, state.currency);
     document.getElementById('ov-fixed-planned').textContent = fmt(fixedPlanned, state.currency);
     document.getElementById('ov-fixed-paid').textContent = fmt(fixedPaid, state.currency);
-    document.getElementById('ov-fixed-unpaid').textContent = fmt(fixedUnpaid, state.currency);
-    document.getElementById('ov-var-spent').textContent = fmt(varSpent, state.currency);
-    document.getElementById('ov-savings').textContent = fmt(savingsTransfers, state.currency);
-    document.getElementById('ov-remaining').textContent = fmt(remainingVariableBudget, state.currency);
+    document.getElementById('ov-forecast-total').textContent = fmt(totalForecastSavings, state.currency);
+    const ovForecastNote = document.getElementById('ov-forecast-note');
+    if(ovForecastNote){
+      ovForecastNote.textContent = `Zmienne: ${fmt(forecastedVariableSavings, state.currency)} • Inwestycje: ${fmt(inv.planned, state.currency)} • Wspólne: ${fmt(savingsTransfers, state.currency)}`;
+    }
     document.getElementById('stat-savings-rate').textContent = savingsRate.toFixed(0)+'%';
+    const ovRateDonut = document.getElementById('ov-savings-rate-donut');
+    if(ovRateDonut){
+      const pct = Math.max(0, Math.min(100, savingsRate));
+      ovRateDonut.style.setProperty('--pct', pct.toFixed(2));
+    }
+
+    const ovFixedProgress = document.getElementById('ov-fixed-progress');
+    const ovFixedProgressFill = document.getElementById('ov-fixed-progress-fill');
+    const ovFixedNote = document.getElementById('ov-fixed-note');
+    if(ovFixedProgress && ovFixedProgressFill){
+      const pct = fixedPlanned > 0 ? Math.min(150, (fixedPaid / fixedPlanned) * 100) : 0;
+      ovFixedProgressFill.style.width = `${Math.min(100, pct)}%`;
+      ovFixedProgressFill.style.background = fixedUnpaid > 0 ? 'var(--orange, #f97316)' : 'var(--green, #16a34a)';
+      ovFixedProgress.title = fixedPlanned > 0 ? `${pct.toFixed(0)}% planu` : 'Brak planu';
+    }
+    if(ovFixedNote){
+      if(fixedPlanned <= 0){
+        ovFixedNote.textContent = 'Brak stałych wydatków w planie';
+        ovFixedNote.className = 'tiny muted';
+      } else if(fixedUnpaid > 0){
+        ovFixedNote.textContent = `Pozostało do zapłaty: ${fmt(fixedUnpaid, state.currency)}`;
+        ovFixedNote.className = 'tiny warn';
+      } else {
+        ovFixedNote.textContent = 'Wszystkie stałe opłacone';
+        ovFixedNote.className = 'tiny muted';
+      }
+    }
+    const variableBudgetTotal = Math.max(0, incomes - fixedPlanned - savingsTransfers - inv.effective);
+    const ovVarBudgetSpent = document.getElementById('ov-var-budget-spent');
+    const ovVarBudgetTotal = document.getElementById('ov-var-budget-total');
+    const ovVarBudgetProgress = document.getElementById('ov-var-budget-progress');
+    const ovVarBudgetProgressFill = document.getElementById('ov-var-budget-progress-fill');
+    const ovVarBudgetNote = document.getElementById('ov-var-budget-note');
+    if(ovVarBudgetSpent) ovVarBudgetSpent.textContent = fmt(varSpent, state.currency);
+    if(ovVarBudgetTotal) ovVarBudgetTotal.textContent = fmt(variableBudgetTotal, state.currency);
+    if(ovVarBudgetProgress && ovVarBudgetProgressFill){
+      const pct = variableBudgetTotal > 0 ? Math.min(150, (varSpent / variableBudgetTotal) * 100) : 0;
+      ovVarBudgetProgressFill.style.width = `${Math.min(100, pct)}%`;
+      ovVarBudgetProgressFill.style.background = varSpent > variableBudgetTotal ? 'var(--red, #dc2626)' : 'var(--blue, #2563eb)';
+      ovVarBudgetProgress.title = variableBudgetTotal > 0 ? `${pct.toFixed(0)}% limitu` : 'Brak limitu';
+    }
+    if(ovVarBudgetNote){
+      if(variableBudgetTotal <= 0){
+        ovVarBudgetNote.textContent = 'Brak budżetu zmiennego na ten miesiąc';
+        ovVarBudgetNote.className = 'tiny warn';
+      } else if(remainingVariableBudget < 0){
+        ovVarBudgetNote.textContent = `Przekroczono o ${fmt(Math.abs(remainingVariableBudget), state.currency)}`;
+        ovVarBudgetNote.className = 'tiny warn';
+      } else {
+        ovVarBudgetNote.textContent = `Pozostało: ${fmt(remainingVariableBudget, state.currency)}`;
+        ovVarBudgetNote.className = 'tiny muted';
+      }
+    }
     const ovInvPlan = document.getElementById('ov-inv-planned');
     const ovInvActual = document.getElementById('ov-inv-actual');
     const ovInvProgress = document.getElementById('ov-inv-progress');
@@ -14328,7 +14575,6 @@
       const updateBookingTotals=()=>{
         let total=0;
         const byType={};
-        const byTypeHasPrev={};
         grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
           const accId=i.dataset.accId;
           const acc=accounts.find(a=>a.id===accId);
@@ -14338,10 +14584,8 @@
             const currentVal=num(i.value);
             total+=currentVal;
             const prev=prevBalances[accId];
-            if(prev!==undefined){
-              byType[type]=(byType[type]||0)+(currentVal-prev);
-              byTypeHasPrev[type]=true;
-            }
+            const prevForDelta=prev===undefined ? 0 : prev;
+            byType[type]=(byType[type]||0)+(currentVal-prevForDelta);
           }
         });
         const liveTotal=el('eom2-live-total');
@@ -14349,7 +14593,7 @@
         grid.querySelectorAll('[data-group-delta]').forEach(summary=>{
           const type=summary.dataset.groupDelta;
           const delta=byType[type]||0;
-          if(byTypeHasPrev[type]){
+          if(type in byType){
             summary.textContent=`${delta>=0?'+':''}${fmt(delta,cur)}`;
             summary.className='eom2-booking-group-summary '+(delta>0?'pos':delta<0?'neg':'');
           } else {
@@ -14365,8 +14609,9 @@
           const prev=prevBalances[accId];
           const deltaEl=grid.querySelector(`[data-delta-for="${accId}"]`);
           if(!deltaEl) return;
-          if(prev!==undefined&&inp.value.trim()){
-            const d=val-prev;
+          if(inp.value.trim()){
+            const prevForDelta=prev===undefined ? 0 : prev;
+            const d=val-prevForDelta;
             deltaEl.textContent=`${d>=0?'+':''}${fmt(d,cur)}`;
             deltaEl.className='eom2-booking-delta '+(d>0?'pos':d<0?'neg':'');
           } else {
