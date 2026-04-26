@@ -324,6 +324,8 @@ const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
 const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
 const INV_CAL_GOAL_KEY = 'invCalGoal';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
+const TRADING_STORAGE_KEY = 'lifeos_trading_v2';
+const TRADING_SETTINGS_KEY = 'lifeos_trading_settings_v1';
 const DEF_WORKHUB_MEMBERS = [
   { id:'m1', name:'Pracownik 1', role:'', color:'#6366f1', profileNote:'', specialties:[] },
   { id:'m2', name:'Pracownik 2', role:'', color:'#f59e0b', profileNote:'', specialties:[] },
@@ -1058,6 +1060,40 @@ function getInvestmentStats(){
   const assets  = Array.isArray(investments.assets)  ? investments.assets  : [];
   if(!trades.length && !assets.length) return null;
 
+  const isDayTradingGroup = (name)=>String(name||'').trim().toUpperCase()==='DAY TRADING';
+  const dayTradingAssets = assets.filter(a=>isDayTradingGroup(a.group));
+  const dayTradingAssetIds = new Set(dayTradingAssets.map(a=>a.id));
+  const getTradingModulePnlRaw = ()=>{
+    const parsed = safeParse(localStorage.getItem(TRADING_STORAGE_KEY), {}) || {};
+    const tr = Array.isArray(parsed.trades) ? parsed.trades : [];
+    let total = 0;
+    for(const t of tr){
+      const entry = num(t?.entry);
+      const size = Math.max(num(t?.size),0);
+      const dir = t?.direction === 'short' ? 'short' : 'long';
+      const closings = Array.isArray(t?.closings) ? t.closings : [];
+      for(const c of closings){
+        const pct = Math.max(0, Math.min(100, num(c?.pct)));
+        const closingSize = size * (pct/100);
+        if(closingSize <= 0) continue;
+        const closePrice = num(c?.price);
+        const commission = num(c?.commission);
+        const gross = dir === 'short' ? (entry - closePrice) * closingSize : (closePrice - entry) * closingSize;
+        total += gross - commission;
+      }
+    }
+    return total;
+  };
+  const getTradingPnlConverted = ()=>{
+    if(!dayTradingAssets.length) return 0;
+    const primary = dayTradingAssets[0] || {};
+    const sourceCurrency = String(primary.priceCurrency || 'USD').trim().toUpperCase() || 'USD';
+    const fxRate = sourceCurrency === 'PLN' ? 1 : num(primary.currentPrice);
+    if(sourceCurrency !== 'PLN' && !(fxRate > 0)) return 0;
+    return getTradingModulePnlRaw() * fxRate;
+  };
+  const tradingPnlConverted = getTradingPnlConverted();
+
   /* ---- Latest snapshot (has pre-computed stats) ---- */
   const snapshots = safeParse(localStorage.getItem(INV_HUB_SNAP_KEY), []) || [];
   const snap = snapshots.length ? snapshots[snapshots.length-1] : null;
@@ -1086,14 +1122,21 @@ function getInvestmentStats(){
         h.cost += num(t.amount);
       }
     }
-    let mv=0, cb=0, realized=0;
+    let mv=0, cb=0, realized=0, dayTradingCb=0;
     for(const [id, h] of Object.entries(hMap)){
       if(h.qty <= 0){ realized += h.realized; continue; }
       const asset = assets.find(a=>a.id===id);
-      const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
-      mv += price > 0 ? h.qty*price : h.cost;
+      if(asset && dayTradingAssetIds.has(id)){
+        dayTradingCb += h.cost;
+      } else {
+        const price = asset && asset.currentPrice ? num(asset.currentPrice) : 0;
+        mv += price > 0 ? h.qty*price : h.cost;
+      }
       cb += h.cost;
       realized += h.realized;
+    }
+    if(dayTradingCb > 0){
+      mv += dayTradingCb + tradingPnlConverted;
     }
     portfolioValue = mv;
     costBasis      = cb;
@@ -1144,16 +1187,29 @@ function getInvestmentStats(){
     }
   }
   const groupBreakdown = {};
+  let dayTradingCbTotal = 0;
+  const dayTradingCbByGroup = {};
   for(const [id, h] of Object.entries(fifoMap)){
     const qty = h.lots.reduce((s,l)=>s+l.qty, 0);
     if(qty <= 0.000001) continue;
     const cb = h.lots.reduce((s,l)=>s+l.qty*l.costPerUnit, 0);
+    const isDt = dayTradingAssetIds.has(id);
     const price = h.currentPrice ? num(h.currentPrice) : 0;
-    const mv = price > 0 ? qty * price : cb;
+    const mv = isDt ? cb : (price > 0 ? qty * price : cb);
     const group = h.group;
     if(!groupBreakdown[group]) groupBreakdown[group] = { mv:0, cb:0 };
     groupBreakdown[group].mv += mv;
     groupBreakdown[group].cb += cb;
+    if(isDt){
+      dayTradingCbTotal += cb;
+      dayTradingCbByGroup[group] = (dayTradingCbByGroup[group]||0) + cb;
+    }
+  }
+  if(dayTradingCbTotal > 0){
+    for(const [group, cbPart] of Object.entries(dayTradingCbByGroup)){
+      if(!groupBreakdown[group]) continue;
+      groupBreakdown[group].mv += tradingPnlConverted * (cbPart / dayTradingCbTotal);
+    }
   }
 
   // Available to invest: savings group + reinvest pool
@@ -1568,6 +1624,8 @@ exportBtn.onclick = ()=>{
     invest_sheet: JSON.parse(localStorage.getItem(INVEST_SHEET_KEY) || 'null'),
     budget_filters: JSON.parse(localStorage.getItem(BUDGET_FILTERS_KEY) || 'null'),
     budget_eom_ui: JSON.parse(localStorage.getItem(BUDGET_EOM_UI_KEY) || 'null'),
+    trading_state: JSON.parse(localStorage.getItem(TRADING_STORAGE_KEY) || 'null'),
+    trading_settings: JSON.parse(localStorage.getItem(TRADING_SETTINGS_KEY) || 'null'),
     inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
     inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
     inv_cal_goal: localStorage.getItem(INV_CAL_GOAL_KEY) || null,
@@ -1628,6 +1686,14 @@ importInput.onchange = (e)=>{
       if(data.invest_sheet) localStorage.setItem(INVEST_SHEET_KEY, JSON.stringify(data.invest_sheet));
       if(data.budget_filters) localStorage.setItem(BUDGET_FILTERS_KEY, JSON.stringify(data.budget_filters));
       if(data.budget_eom_ui) localStorage.setItem(BUDGET_EOM_UI_KEY, JSON.stringify(data.budget_eom_ui));
+      if(Object.prototype.hasOwnProperty.call(data,'trading_state')){
+        if(data.trading_state && typeof data.trading_state==='object') localStorage.setItem(TRADING_STORAGE_KEY, JSON.stringify(data.trading_state));
+        else if(data.trading_state===null) localStorage.removeItem(TRADING_STORAGE_KEY);
+      }
+      if(Object.prototype.hasOwnProperty.call(data,'trading_settings')){
+        if(data.trading_settings && typeof data.trading_settings==='object') localStorage.setItem(TRADING_SETTINGS_KEY, JSON.stringify(data.trading_settings));
+        else if(data.trading_settings===null) localStorage.removeItem(TRADING_SETTINGS_KEY);
+      }
       if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
       if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);
       if(data.inv_cal_goal !== null && data.inv_cal_goal !== undefined) localStorage.setItem(INV_CAL_GOAL_KEY, data.inv_cal_goal);
