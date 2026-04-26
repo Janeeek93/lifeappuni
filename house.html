@@ -443,15 +443,21 @@
 .h-cal-nav {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
 .h-cal-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink);
-  min-width: 180px;
-  text-align: center;
+  min-width: 240px;
+  text-align: left;
+}
+.h-cal-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
 }
 .h-cal-grid {
   display: grid;
@@ -472,7 +478,7 @@
   border-bottom: 1px solid var(--line);
 }
 .h-cal-cell {
-  min-height: 90px;
+  min-height: 96px;
   padding: 6px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -482,8 +488,19 @@
 }
 .h-cal-cell:nth-child(7n) { border-right: none; }
 .h-cal-cell.other-month { opacity: .35; }
-.h-cal-cell.today { background: rgba(99,102,241,.04); }
-.h-cal-cell.today .h-cal-day { color: var(--accent); font-weight: 800; }
+.h-cal-cell.today {
+  background: rgba(99,102,241,.08);
+  box-shadow: inset 0 0 0 2px rgba(99,102,241,.35);
+  z-index: 1;
+}
+.h-cal-cell.today .h-cal-day {
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  width: 28px;
+  text-align: center;
+  font-weight: 800;
+}
 .h-cal-day {
   font-size: 12px;
   font-weight: 600;
@@ -506,6 +523,47 @@
   color: #fff;
 }
 .h-cal-event:hover { filter: brightness(1.1); }
+.h-cal-event.done {
+  background: #9ca3af !important;
+  color: #f9fafb;
+  opacity: .85;
+  text-decoration: line-through;
+}
+.h-cal-event.overdue {
+  outline: 2px solid rgba(239,68,68,.45);
+}
+.h-cal-event.continuation {
+  border-radius: 0;
+}
+.h-cal-event.continuation.start {
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+.h-cal-event.continuation.end {
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+.h-cal-event.continuation.solo {
+  border-radius: 999px;
+}
+.h-cal-list-item {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+}
+.h-cal-list-item.done { opacity:.65; }
+.h-cal-list-item.done .h-cal-list-name { text-decoration: line-through; color: var(--muted); }
+.h-cal-list-item.overdue {
+  background: linear-gradient(90deg, rgba(239,68,68,.12), transparent 65%);
+  border-radius: 8px;
+  padding-left: 8px;
+  margin-left: -8px;
+}
+.h-cal-list-name { font-size:13px;font-weight:600;color:var(--ink); }
+.h-cal-list-meta { font-size:11px;color:var(--muted); }
 
 /* ── Forms ────────────────────────────────────────── */
 .h-form-group { margin-bottom: 14px; }
@@ -972,13 +1030,14 @@
             <button class="h-btn h-btn-icon" onclick="bm.calPrev()"><span class="material-symbols-outlined">chevron_left</span></button>
             <div class="h-cal-title" id="h-cal-title"></div>
             <button class="h-btn h-btn-icon" onclick="bm.calNext()"><span class="material-symbols-outlined">chevron_right</span></button>
-            <button class="h-btn h-btn-sm" onclick="bm.calToday()">Dziś</button>
+            <button class="h-btn h-btn-sm" onclick="bm.calToday()">Bieżący tydzień</button>
+            <div class="h-cal-subtitle">Widok 4 tygodni: 1 wstecz + bieżący + 2 do przodu</div>
           </div>
           <div class="h-cal-grid" id="h-cal-grid"></div>
         </div>
         <div class="h-card" id="h-cal-upcoming">
           <div class="h-card-header">
-            <div class="h-card-title"><span class="material-symbols-outlined">upcoming</span> Nadchodzące zadania</div>
+            <div class="h-card-title"><span class="material-symbols-outlined">fact_check</span> Lista zadań w oknie kalendarza</div>
           </div>
           <div id="h-cal-upcoming-list"></div>
         </div>
@@ -1260,6 +1319,13 @@ function isPastDate(dateIso) {
   const today = new Date(); today.setHours(0,0,0,0);
   return d < today;
 }
+function startOfWeek(dateLike) {
+  const d = new Date(dateLike);
+  d.setHours(0,0,0,0);
+  const offset = (d.getDay() + 6) % 7; // Monday = 0
+  d.setDate(d.getDate() - offset);
+  return d;
+}
 function parseMoneyInput(raw) {
   const n = Number(String(raw||'').replace(/[^\d.]/g,'').replace(/,/g,'.'));
   return Number.isFinite(n) ? Math.max(0,n) : 0;
@@ -1526,56 +1592,61 @@ bm.toggleTaskStatus = (taskId, e) => {
 //  CALENDAR
 // ═══════════════════════════════════════════════════════
 function renderCalendar() {
-  const year = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
   const monthNames = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
   const dayNames = ['Pon','Wt','Śr','Czw','Pt','Sob','Nd'];
-
-  document.getElementById('h-cal-title').textContent = `${monthNames[month]} ${year}`;
-
-  const firstDay = new Date(year, month, 1);
-  let startDow = firstDay.getDay() - 1; if (startDow < 0) startDow = 6; // Monday=0
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const prevMonthDays = new Date(year, month, 0).getDate();
+  const viewStart = startOfWeek(calendarDate);
+  const viewEnd = new Date(viewStart);
+  viewEnd.setDate(viewStart.getDate() + 27);
+  const rangeLabel = `${fmtDateFull(toIsoDate(viewStart))} – ${fmtDateFull(toIsoDate(viewEnd))}`;
+  const fromMonth = monthNames[viewStart.getMonth()];
+  const toMonth = monthNames[viewEnd.getMonth()];
+  const sameMonth = viewStart.getMonth() === viewEnd.getMonth() && viewStart.getFullYear() === viewEnd.getFullYear();
+  document.getElementById('h-cal-title').textContent = sameMonth
+    ? `${fromMonth} ${viewStart.getFullYear()} · ${rangeLabel}`
+    : `${fromMonth} ${viewStart.getFullYear()} → ${toMonth} ${viewEnd.getFullYear()} · ${rangeLabel}`;
 
   const today = new Date(); today.setHours(0,0,0,0);
   const todayStr = toIsoDate(today);
-
-  // Get tasks with dates for this month
-  const tasksWithDates = state.tasks.filter(t => t.endDate);
   const phases = state.phases;
+  const tasksWithDates = state.tasks.filter(t => t.endDate);
 
   let html = dayNames.map(d => `<div class="h-cal-head">${d}</div>`).join('');
 
-  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - startDow + 1;
-    let dateStr, displayDay, isOtherMonth = false;
-
-    if (dayNum < 1) {
-      const d = prevMonthDays + dayNum;
-      displayDay = d;
-      dateStr = toIsoDate(new Date(year, month-1, d));
-      isOtherMonth = true;
-    } else if (dayNum > daysInMonth) {
-      const d = dayNum - daysInMonth;
-      displayDay = d;
-      dateStr = toIsoDate(new Date(year, month+1, d));
-      isOtherMonth = true;
-    } else {
-      displayDay = dayNum;
-      dateStr = toIsoDate(new Date(year, month, dayNum));
-    }
-
+  for (let i = 0; i < 28; i++) {
+    const cellDate = new Date(viewStart);
+    cellDate.setDate(viewStart.getDate() + i);
+    const dateStr = toIsoDate(cellDate);
+    const displayDay = cellDate.getDate();
+    const isOtherMonth = cellDate.getMonth() !== calendarDate.getMonth();
     const isToday = dateStr === todayStr;
-    const dayTasks = tasksWithDates.filter(t => t.endDate === dateStr);
+    const dayTasks = tasksWithDates.filter(t => {
+      const start = t.startDate || t.endDate;
+      const end = t.endDate;
+      return start <= dateStr && dateStr <= end;
+    });
 
     html += `<div class="h-cal-cell ${isOtherMonth?'other-month':''} ${isToday?'today':''}">
       <div class="h-cal-day">${displayDay}</div>
       ${dayTasks.slice(0,3).map(t => {
         const ph = phases.find(p=>p.id===t.phaseId);
         const color = ph?.color || '#6366f1';
-        return `<div class="h-cal-event" style="background:${color}" onclick="bm.openTaskModal('${t.id}')" title="${t.name}">${t.name}</div>`;
+        const start = t.startDate || t.endDate;
+        const end = t.endDate;
+        const isStart = dateStr === start;
+        const isEnd = dateStr === end;
+        const isSolo = isStart && isEnd;
+        const isDone = t.status === 'done';
+        const isOverdue = !isDone && isPastDate(t.endDate);
+        const classes = [
+          'h-cal-event',
+          isDone ? 'done' : '',
+          isOverdue ? 'overdue' : '',
+          start !== end ? 'continuation' : '',
+          isStart ? 'start' : '',
+          isEnd ? 'end' : '',
+          isSolo ? 'solo' : ''
+        ].filter(Boolean).join(' ');
+        return `<div class="${classes}" style="background:${color}" onclick="bm.openTaskModal('${t.id}')" title="${t.name}">${t.name}</div>`;
       }).join('')}
       ${dayTasks.length > 3 ? `<div style="font-size:10px;color:var(--muted);padding:0 4px">+${dayTasks.length-3} więcej</div>` : ''}
     </div>`;
@@ -1583,33 +1654,37 @@ function renderCalendar() {
 
   document.getElementById('h-cal-grid').innerHTML = html;
 
-  // Upcoming tasks
-  const upcoming = state.tasks
-    .filter(t => t.status !== 'done' && t.endDate)
+  const listTasks = state.tasks
+    .filter(t => t.endDate && (t.startDate || t.endDate) <= toIsoDate(viewEnd) && t.endDate >= toIsoDate(viewStart))
     .sort((a,b) => a.endDate.localeCompare(b.endDate))
-    .slice(0, 8);
+    .slice(0, 12);
 
   const upEl = document.getElementById('h-cal-upcoming-list');
-  if (!upcoming.length) {
-    upEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Brak nadchodzących zadań z datą.</div>';
+  if (!listTasks.length) {
+    upEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">Brak zadań w aktualnym oknie 4 tygodni.</div>';
   } else {
-    upEl.innerHTML = upcoming.map(t => {
+    upEl.innerHTML = listTasks.map(t => {
       const ph = phases.find(p=>p.id===t.phaseId);
       const isOverdue = isPastDate(t.endDate);
-      return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer" onclick="bm.openTaskModal('${t.id}')">
+      const isDone = t.status === 'done';
+      const strongOverdue = isOverdue && !isDone;
+      const spanLabel = (t.startDate && t.startDate !== t.endDate) ? `${fmtDateFull(t.startDate)} → ${fmtDateFull(t.endDate)}` : fmtDateFull(t.endDate);
+      return `<div class="h-cal-list-item ${isDone?'done':''} ${strongOverdue?'overdue':''}" onclick="bm.openTaskModal('${t.id}')">
         <div style="width:4px;height:32px;border-radius:2px;background:${ph?.color||'var(--muted)'}"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--ink)">${t.name}</div>
-          <div style="font-size:11px;color:var(--muted)">${ph?.icon||''} ${ph?.name||''}</div>
+          <div class="h-cal-list-name">${t.name}</div>
+          <div class="h-cal-list-meta">${ph?.icon||''} ${ph?.name||''}</div>
         </div>
-        <span class="h-badge ${isOverdue?'h-badge-red':'h-badge-blue'}" style="font-size:11px">📅 ${fmtDateFull(t.endDate)}</span>
+        <span class="h-badge ${isDone?'h-badge-gray':strongOverdue?'h-badge-red':'h-badge-blue'}" style="font-size:11px">
+          ${isDone?'✓':strongOverdue?'⚠':''} 📅 ${spanLabel}
+        </span>
       </div>`;
     }).join('');
   }
 }
 
-bm.calPrev = () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); };
-bm.calNext = () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); };
+bm.calPrev = () => { calendarDate.setDate(calendarDate.getDate()-7); renderCalendar(); };
+bm.calNext = () => { calendarDate.setDate(calendarDate.getDate()+7); renderCalendar(); };
 bm.calToday = () => { calendarDate = new Date(); renderCalendar(); };
 
 // ═══════════════════════════════════════════════════════
