@@ -4994,7 +4994,12 @@
         <div class="stat-card"><div class="muted">Stałe zaplanowane</div><div class="big-number" id="ov-fixed-planned">0</div></div>
         <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
         <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
-        <div class="stat-card"><div class="muted">Wydatki zmienne</div><div class="big-number bad" id="ov-var-spent">0</div></div>
+        <div class="stat-card">
+          <div class="muted">Budżet wydatków zmiennych (wydane / limit)</div>
+          <div class="big-number bad"><span id="ov-var-budget-spent">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-var-budget-total">0</span></span></div>
+          <div class="inv-progress-track" id="ov-var-budget-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-var-budget-progress-fill"></div></div>
+          <div class="tiny muted" id="ov-var-budget-note" style="margin-top:4px">Pozostało: —</div>
+        </div>
         <div class="stat-card"><div class="muted">Oszczędności (bez inwestycji)</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
         <div class="stat-card">
           <div class="muted">Inwestycje (plan / postęp)</div>
@@ -5002,7 +5007,6 @@
           <div class="inv-progress-track" id="ov-inv-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-inv-progress-fill"></div></div>
           <div class="tiny muted" id="ov-inv-delta" style="margin-top:4px">Brak planu na ten miesiąc</div>
         </div>
-        <div class="stat-card"><div class="muted">Budżet zmienny do dyspozycji</div><div class="big-number" id="ov-remaining">0</div></div>
         <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
       </div>
 
@@ -7293,10 +7297,34 @@
     document.getElementById('ov-fixed-planned').textContent = fmt(fixedPlanned, state.currency);
     document.getElementById('ov-fixed-paid').textContent = fmt(fixedPaid, state.currency);
     document.getElementById('ov-fixed-unpaid').textContent = fmt(fixedUnpaid, state.currency);
-    document.getElementById('ov-var-spent').textContent = fmt(varSpent, state.currency);
     document.getElementById('ov-savings').textContent = fmt(savingsTransfers, state.currency);
-    document.getElementById('ov-remaining').textContent = fmt(remainingVariableBudget, state.currency);
     document.getElementById('stat-savings-rate').textContent = savingsRate.toFixed(0)+'%';
+    const variableBudgetTotal = Math.max(0, incomes - fixedPlanned - savingsTransfers - inv.effective);
+    const ovVarBudgetSpent = document.getElementById('ov-var-budget-spent');
+    const ovVarBudgetTotal = document.getElementById('ov-var-budget-total');
+    const ovVarBudgetProgress = document.getElementById('ov-var-budget-progress');
+    const ovVarBudgetProgressFill = document.getElementById('ov-var-budget-progress-fill');
+    const ovVarBudgetNote = document.getElementById('ov-var-budget-note');
+    if(ovVarBudgetSpent) ovVarBudgetSpent.textContent = fmt(varSpent, state.currency);
+    if(ovVarBudgetTotal) ovVarBudgetTotal.textContent = fmt(variableBudgetTotal, state.currency);
+    if(ovVarBudgetProgress && ovVarBudgetProgressFill){
+      const pct = variableBudgetTotal > 0 ? Math.min(150, (varSpent / variableBudgetTotal) * 100) : 0;
+      ovVarBudgetProgressFill.style.width = `${Math.min(100, pct)}%`;
+      ovVarBudgetProgressFill.style.background = varSpent > variableBudgetTotal ? 'var(--red, #dc2626)' : 'var(--blue, #2563eb)';
+      ovVarBudgetProgress.title = variableBudgetTotal > 0 ? `${pct.toFixed(0)}% limitu` : 'Brak limitu';
+    }
+    if(ovVarBudgetNote){
+      if(variableBudgetTotal <= 0){
+        ovVarBudgetNote.textContent = 'Brak budżetu zmiennego na ten miesiąc';
+        ovVarBudgetNote.className = 'tiny warn';
+      } else if(remainingVariableBudget < 0){
+        ovVarBudgetNote.textContent = `Przekroczono o ${fmt(Math.abs(remainingVariableBudget), state.currency)}`;
+        ovVarBudgetNote.className = 'tiny warn';
+      } else {
+        ovVarBudgetNote.textContent = `Pozostało: ${fmt(remainingVariableBudget, state.currency)}`;
+        ovVarBudgetNote.className = 'tiny muted';
+      }
+    }
     const ovInvPlan = document.getElementById('ov-inv-planned');
     const ovInvActual = document.getElementById('ov-inv-actual');
     const ovInvProgress = document.getElementById('ov-inv-progress');
