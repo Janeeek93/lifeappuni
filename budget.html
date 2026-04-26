@@ -6239,10 +6239,14 @@
     ensureMonth(ym);
     return Math.max(0,num(b().monthly[ym].investmentPlan));
   }
-  function getInvestmentBudgetMetrics(ym){
+  function getInvestmentBudgetMetrics(ym, dayLimit=null){
     const trades=(b().investments?.trades||[]);
     const spentFromBudget=trades.reduce((sum,t)=>{
       if(String(t.date||'').slice(0,7)!==ym) return sum;
+      if(Number.isFinite(dayLimit)){
+        const day=Number(String(t.date||'').slice(8,10));
+        if(!Number.isFinite(day) || day>dayLimit) return sum;
+      }
       if(t.side==='sell') return sum;
       if(t.fundSource==='reinvest') return sum;
       return sum+Math.abs(num(t.amount));
@@ -6551,7 +6555,25 @@
 
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
     const daily=getDailySpending(ym);
-    const spentSoFar=Object.values(daily).reduce((a,b)=>a+b,0);
+    const calcEffectiveOutflowToDay=(dayLimit)=>{
+      if(!Number.isFinite(dayLimit) || dayLimit<=0) return 0;
+      const entriesToDay=entries.filter(e=>{
+        const day=Number(String(e.date||'').slice(8,10));
+        return Number.isFinite(day) && day<=dayLimit;
+      });
+      const variableToDay=entriesToDay.reduce((sum,e)=>{
+        const cat=cb[e.categoryId];
+        return (cat?.type==='expense' && cat.id!=='c_fixed') ? sum + Math.abs(e.amount) : sum;
+      },0);
+      const savingsToDay=entriesToDay.reduce((sum,e)=>{
+        const cat=cb[e.categoryId];
+        return cat?.type==='saving' ? sum + Math.abs(e.amount) : sum;
+      },0);
+      const invToDay=getInvestmentBudgetMetrics(ym,dayLimit).spentFromBudget;
+      const nonInvestmentToDay=Math.max(0,variableToDay-invToDay);
+      return nonInvestmentToDay + savingsToDay + Math.max(0, invToDay-invMetrics.plan);
+    };
+    const spentSoFar=calcEffectiveOutflowToDay(daysElapsed);
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     document.getElementById('dash-avg-daily').textContent=fmt(avgDaily, state.currency);
     const isAverageBelowPlan = avgDaily <= dailyBudget;
@@ -6604,9 +6626,7 @@
     if (ym === monthKey() && daysElapsed > 0 && daysElapsed <= days) {
       const dayOfMonth = new Date().getDate();
       const allowedToSpendUntilToday = dailyBudget * dayOfMonth;
-      const spentUntilToday = Object.entries(daily)
-        .filter(([day]) => parseInt(day) <= dayOfMonth)
-        .reduce((sum, [, amount]) => sum + amount, 0);
+      const spentUntilToday = calcEffectiveOutflowToDay(dayOfMonth);
       const buffer = allowedToSpendUntilToday - spentUntilToday;
       bufferEl.textContent = fmt(buffer, state.currency);
       bufferEl.classList.add(buffer >= 0 ? 'ok' : 'bad');
