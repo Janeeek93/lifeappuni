@@ -200,6 +200,49 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .overview-top-grid,
+    .overview-flow-grid{
+      display:grid;
+      gap:12px;
+      margin-bottom:12px;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+    .overview-flow-grid{ margin-bottom:0; }
+    .ov-rate-card .ov-rate-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:2px 0 4px;
+    }
+    .ov-rate-donut{
+      --pct:0;
+      width:90px;
+      height:90px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:conic-gradient(var(--blue, #2563eb) calc(var(--pct) * 1%), rgba(148,163,184,.22) 0);
+      position:relative;
+    }
+    .ov-rate-donut::after{
+      content:'';
+      position:absolute;
+      inset:10px;
+      border-radius:50%;
+      background:var(--surface);
+      border:1px solid var(--line);
+    }
+    .ov-rate-donut span{
+      position:relative;
+      z-index:1;
+      font-size:16px;
+      font-weight:800;
+      color:var(--ink);
+    }
+    @media(max-width:980px){
+      .overview-top-grid,
+      .overview-flow-grid{ grid-template-columns:1fr; }
+    }
 
     /* --- Investment Module v2 ------------------------------------------------- */
     .inv-shell { max-width:1320px; margin:0 auto; padding:8px 10px 24px; display:flex; flex-direction:column; gap:18px; }
@@ -4989,25 +5032,45 @@
     <!-- Overview -->
     <section id="tab-overview" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Przegląd miesiąca — <span id="ov-month">YYYY-MM</span></h3>
-      <div class="grid g-4">
-        <div class="stat-card"><div class="muted">Przychody</div><div class="big-number" id="ov-inc">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zaplanowane</div><div class="big-number" id="ov-fixed-planned">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
-        <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
+      <div class="overview-top-grid">
+        <div class="stat-card">
+          <div class="muted">Przychody</div>
+          <div class="big-number" id="ov-inc">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="muted">Prognoza oszczędności (zmienne + plan inwestycji + oszczędności wspólne)</div>
+          <div class="big-number" id="ov-forecast-total">0</div>
+          <div class="tiny muted" id="ov-forecast-note">Przy obecnym tempie wydatków</div>
+        </div>
+        <div class="stat-card ov-rate-card">
+          <div class="muted">Prognozowana stopa oszczędności</div>
+          <div class="ov-rate-wrap">
+            <div class="ov-rate-donut" id="ov-savings-rate-donut" style="--pct:0;">
+              <span id="stat-savings-rate">0%</span>
+            </div>
+          </div>
+          <div class="tiny muted">Prognoza oszczędności / przychód</div>
+        </div>
+      </div>
+      <div class="overview-flow-grid">
+        <div class="stat-card">
+          <div class="muted">Stałe (zapłacone / planowane)</div>
+          <div class="big-number"><span id="ov-fixed-paid">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-fixed-planned">0</span></span></div>
+          <div class="inv-progress-track" id="ov-fixed-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-fixed-progress-fill"></div></div>
+          <div class="tiny muted" id="ov-fixed-note" style="margin-top:4px">Pozostało: —</div>
+        </div>
         <div class="stat-card">
           <div class="muted">Budżet wydatków zmiennych (wydane / limit)</div>
           <div class="big-number bad"><span id="ov-var-budget-spent">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-var-budget-total">0</span></span></div>
           <div class="inv-progress-track" id="ov-var-budget-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-var-budget-progress-fill"></div></div>
           <div class="tiny muted" id="ov-var-budget-note" style="margin-top:4px">Pozostało: —</div>
         </div>
-        <div class="stat-card"><div class="muted">Oszczędności (bez inwestycji)</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
         <div class="stat-card">
           <div class="muted">Inwestycje (plan / postęp)</div>
           <div class="big-number" style="color:var(--blue)"><span id="ov-inv-actual">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-inv-planned">0</span></span></div>
           <div class="inv-progress-track" id="ov-inv-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-inv-progress-fill"></div></div>
           <div class="tiny muted" id="ov-inv-delta" style="margin-top:4px">Brak planu na ten miesiąc</div>
         </div>
-        <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
       </div>
 
       <!-- Plan inwestycyjny — edytor -->
@@ -7290,15 +7353,46 @@
     const daysLeft = getDaysRemaining(ym);
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
     // Prognoza: budżet pomniejszony o stałe oraz zarezerwowany plan inwestycyjny.
-    const forecastedSavings = (incomes - fixedPlanned - inv.effective) - projectedTotalVariableOutflow;
-    const savingsRate = incomes > 0 ? (forecastedSavings / incomes) * 100 : 0;
+    const forecastedVariableSavings = (incomes - fixedPlanned - inv.effective) - projectedTotalVariableOutflow;
+    const totalForecastSavings = forecastedVariableSavings + inv.planned + savingsTransfers;
+    const savingsRate = incomes > 0 ? (totalForecastSavings / incomes) * 100 : 0;
 
     document.getElementById('ov-inc').textContent = fmt(incomes, state.currency);
     document.getElementById('ov-fixed-planned').textContent = fmt(fixedPlanned, state.currency);
     document.getElementById('ov-fixed-paid').textContent = fmt(fixedPaid, state.currency);
-    document.getElementById('ov-fixed-unpaid').textContent = fmt(fixedUnpaid, state.currency);
-    document.getElementById('ov-savings').textContent = fmt(savingsTransfers, state.currency);
+    document.getElementById('ov-forecast-total').textContent = fmt(totalForecastSavings, state.currency);
+    const ovForecastNote = document.getElementById('ov-forecast-note');
+    if(ovForecastNote){
+      ovForecastNote.textContent = `Zmienne: ${fmt(forecastedVariableSavings, state.currency)} • Inwestycje: ${fmt(inv.planned, state.currency)} • Wspólne: ${fmt(savingsTransfers, state.currency)}`;
+    }
     document.getElementById('stat-savings-rate').textContent = savingsRate.toFixed(0)+'%';
+    const ovRateDonut = document.getElementById('ov-savings-rate-donut');
+    if(ovRateDonut){
+      const pct = Math.max(0, Math.min(100, savingsRate));
+      ovRateDonut.style.setProperty('--pct', pct.toFixed(2));
+    }
+
+    const ovFixedProgress = document.getElementById('ov-fixed-progress');
+    const ovFixedProgressFill = document.getElementById('ov-fixed-progress-fill');
+    const ovFixedNote = document.getElementById('ov-fixed-note');
+    if(ovFixedProgress && ovFixedProgressFill){
+      const pct = fixedPlanned > 0 ? Math.min(150, (fixedPaid / fixedPlanned) * 100) : 0;
+      ovFixedProgressFill.style.width = `${Math.min(100, pct)}%`;
+      ovFixedProgressFill.style.background = fixedUnpaid > 0 ? 'var(--orange, #f97316)' : 'var(--green, #16a34a)';
+      ovFixedProgress.title = fixedPlanned > 0 ? `${pct.toFixed(0)}% planu` : 'Brak planu';
+    }
+    if(ovFixedNote){
+      if(fixedPlanned <= 0){
+        ovFixedNote.textContent = 'Brak stałych wydatków w planie';
+        ovFixedNote.className = 'tiny muted';
+      } else if(fixedUnpaid > 0){
+        ovFixedNote.textContent = `Pozostało do zapłaty: ${fmt(fixedUnpaid, state.currency)}`;
+        ovFixedNote.className = 'tiny warn';
+      } else {
+        ovFixedNote.textContent = 'Wszystkie stałe opłacone';
+        ovFixedNote.className = 'tiny muted';
+      }
+    }
     const variableBudgetTotal = Math.max(0, incomes - fixedPlanned - savingsTransfers - inv.effective);
     const ovVarBudgetSpent = document.getElementById('ov-var-budget-spent');
     const ovVarBudgetTotal = document.getElementById('ov-var-budget-total');
