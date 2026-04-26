@@ -14328,7 +14328,6 @@
       const updateBookingTotals=()=>{
         let total=0;
         const byType={};
-        const byTypeHasPrev={};
         grid.querySelectorAll('input[data-acc-id]').forEach(i=>{
           const accId=i.dataset.accId;
           const acc=accounts.find(a=>a.id===accId);
@@ -14338,10 +14337,8 @@
             const currentVal=num(i.value);
             total+=currentVal;
             const prev=prevBalances[accId];
-            if(prev!==undefined){
-              byType[type]=(byType[type]||0)+(currentVal-prev);
-              byTypeHasPrev[type]=true;
-            }
+            const prevForDelta=prev===undefined ? 0 : prev;
+            byType[type]=(byType[type]||0)+(currentVal-prevForDelta);
           }
         });
         const liveTotal=el('eom2-live-total');
@@ -14349,7 +14346,7 @@
         grid.querySelectorAll('[data-group-delta]').forEach(summary=>{
           const type=summary.dataset.groupDelta;
           const delta=byType[type]||0;
-          if(byTypeHasPrev[type]){
+          if(type in byType){
             summary.textContent=`${delta>=0?'+':''}${fmt(delta,cur)}`;
             summary.className='eom2-booking-group-summary '+(delta>0?'pos':delta<0?'neg':'');
           } else {
@@ -14365,8 +14362,9 @@
           const prev=prevBalances[accId];
           const deltaEl=grid.querySelector(`[data-delta-for="${accId}"]`);
           if(!deltaEl) return;
-          if(prev!==undefined&&inp.value.trim()){
-            const d=val-prev;
+          if(inp.value.trim()){
+            const prevForDelta=prev===undefined ? 0 : prev;
+            const d=val-prevForDelta;
             deltaEl.textContent=`${d>=0?'+':''}${fmt(d,cur)}`;
             deltaEl.className='eom2-booking-delta '+(d>0?'pos':d<0?'neg':'');
           } else {
