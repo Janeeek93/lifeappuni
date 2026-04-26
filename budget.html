@@ -4892,9 +4892,53 @@
         <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
         <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
         <div class="stat-card"><div class="muted">Wydatki zmienne</div><div class="big-number bad" id="ov-var-spent">0</div></div>
-        <div class="stat-card"><div class="muted">Oszczędności</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
+        <div class="stat-card"><div class="muted">Oszczędności (bez inwestycji)</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
+        <div class="stat-card">
+          <div class="muted">Inwestycje (plan / postęp)</div>
+          <div class="big-number" style="color:var(--blue)"><span id="ov-inv-actual">0</span> <span class="muted" style="font-size:14px;font-weight:500">/ <span id="ov-inv-planned">0</span></span></div>
+          <div class="inv-progress-track" id="ov-inv-progress" style="margin-top:6px"><div class="inv-progress-fill" id="ov-inv-progress-fill"></div></div>
+          <div class="tiny muted" id="ov-inv-delta" style="margin-top:4px">Brak planu na ten miesiąc</div>
+        </div>
         <div class="stat-card"><div class="muted">Budżet zmienny do dyspozycji</div><div class="big-number" id="ov-remaining">0</div></div>
         <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
+      </div>
+
+      <!-- Plan inwestycyjny — edytor -->
+      <div class="inv-plan-card" id="inv-plan-card">
+        <div class="inv-plan-header">
+          <div>
+            <div class="title" style="margin:0">📈 Plan inwestycyjny — <span id="inv-plan-month">YYYY-MM</span></div>
+            <div class="tiny muted">Zarezerwuj kwotę na inwestycje. Zmniejsza budżet zmienny do dyspozycji od razu (jak wydatki stałe). Faktyczne wpłaty w kategorii „Inwestycje” są liczone osobno; tylko nadwyżka ponad plan dodatkowo obniża budżet i prognozę.</div>
+          </div>
+          <div class="row" style="gap:6px">
+            <button class="btn ghost" type="button" id="inv-plan-copy-prev" title="Skopiuj plan z poprzedniego miesiąca">Kopiuj z poprzedniego</button>
+            <button class="btn danger" type="button" id="inv-plan-clear" title="Usuń plan na ten miesiąc">Wyczyść</button>
+          </div>
+        </div>
+        <div class="inv-plan-stats">
+          <div class="inv-plan-stat"><div class="lbl">Plan miesięczny</div><div class="val" id="inv-plan-stat-planned">0</div></div>
+          <div class="inv-plan-stat"><div class="lbl">Zainwestowane</div><div class="val" id="inv-plan-stat-actual">0</div></div>
+          <div class="inv-plan-stat"><div class="lbl">Pozostało do planu</div><div class="val" id="inv-plan-stat-remaining">0</div></div>
+          <div class="inv-plan-stat" id="inv-plan-stat-overage-card"><div class="lbl">Powyżej planu</div><div class="val" id="inv-plan-stat-overage">0</div></div>
+        </div>
+        <form id="inv-plan-form" class="grid g-4" style="gap:8px">
+          <label class="tiny" style="display:flex;flex-direction:column;gap:4px">
+            Kwota miesięczna (zł)
+            <input name="amount" inputmode="decimal" placeholder="np. 2000" />
+          </label>
+          <label class="tiny" style="display:flex;flex-direction:column;gap:4px">
+            albo Kwota tygodniowa (zł)
+            <input name="weekly" inputmode="decimal" placeholder="np. 500" />
+          </label>
+          <label class="tiny" style="display:flex;flex-direction:column;gap:4px">
+            Notatka
+            <input name="note" placeholder="np. ETF + krypto, DCA" />
+          </label>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn" type="submit" style="width:100%">Zapisz plan</button>
+          </div>
+        </form>
+        <div class="tiny muted" id="inv-plan-hint" style="margin-top:6px">Wskazówka: jeśli wpiszesz tylko kwotę tygodniową, plan miesięczny zostanie wyliczony jako tygodniowa × liczba pełnych tygodni w miesiącu (~4,3).</div>
       </div>
     </section>
 
@@ -6012,6 +6056,15 @@
               <span class="tiny muted" id="dash-mom-note">Porównanie dostępne dla bieżącego miesiąca</span>
             </div>
           </div>
+          <div class="kpi-compact" id="inv-plan-kpi">
+            <span class="kpi-emoji material-symbols-outlined">trending_up</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Plan inwestycyjny</span>
+              <span class="kpi-value" id="dash-inv-progress">— / —</span>
+              <div class="inv-progress-track" id="dash-inv-progress-track" title=""><div class="inv-progress-fill" id="dash-inv-progress-fill"></div></div>
+              <span class="tiny muted" id="dash-inv-note">Brak planu na ten miesiąc</span>
+            </div>
+          </div>
           <div class="kpi-compact">
             <span class="kpi-emoji material-symbols-outlined">payments</span>
             <div class="kpi-body">
@@ -6157,6 +6210,21 @@
     if(!Array.isArray(bud.investments.trades)) bud.investments.trades=[];
     if(!Array.isArray(bud.investments.groups)) bud.investments.groups=[];
     if(!Array.isArray(bud.eomInvestmentBridge)) bud.eomInvestmentBridge=[];
+    // Per-month investment plan – planowana kwota inwestycji w danym miesiącu.
+    // Działa jak planowane wydatki stałe: zmniejsza budżet zmienny do dyspozycji
+    // od razu po ustaleniu, a nie dopiero przy zaksięgowaniu transakcji.
+    if(bud.monthly && typeof bud.monthly === 'object'){
+      for(const ym of Object.keys(bud.monthly)){
+        const m = bud.monthly[ym]; if(!m || typeof m !== 'object') continue;
+        if(!m.investmentPlan || typeof m.investmentPlan !== 'object'){
+          m.investmentPlan = {amount:0, weekly:0, note:''};
+        } else {
+          m.investmentPlan.amount = num(m.investmentPlan.amount);
+          m.investmentPlan.weekly = num(m.investmentPlan.weekly);
+          m.investmentPlan.note = String(m.investmentPlan.note||'');
+        }
+      }
+    }
     for(const t of bud.investments.trades){
       if(!t.side) t.side='buy';
       if(t.side==='buy' && !t.fundSource) t.fundSource='budget';
@@ -6201,7 +6269,10 @@
   const b=()=>state.modules.budget;
 
   // --- Core Helpers ----------------------------------------------------------------
-  function ensureMonth(ym){if(!b().monthly[ym]) b().monthly[ym]={ incomes:[], fixed:[] }}
+  function ensureMonth(ym){
+    if(!b().monthly[ym]) b().monthly[ym]={ incomes:[], fixed:[], investmentPlan:{amount:0, weekly:0, note:''} };
+    if(!b().monthly[ym].investmentPlan) b().monthly[ym].investmentPlan={amount:0, weekly:0, note:''};
+  }
   function setDefaultDate(){const i=document.querySelector('#var-form input[name="date"]'); if(i && !i.value){i.value=new Date().toISOString().slice(0,10)}}
   const catsById=()=>Object.fromEntries((b().categories||[]).map(c=>[c.id,c]));
   function catType(id){const c=catsById()[id];return c?c.type:undefined}
@@ -6358,6 +6429,117 @@
     bindMoneyInputs(document.getElementById('qa-editor'));
   }
   
+  // --- Investment Plan helpers --------------------------------------------------
+  // Plan inwestycyjny działa jak planowane wydatki stałe: kwota planu od razu
+  // pomniejsza budżet zmienny do dyspozycji. Faktyczne wpłaty w kategorii
+  // inwestycyjnej są śledzone osobno (postęp). Dopiero gdy faktyczne > plan,
+  // nadwyżka dodatkowo obniża budżet i prognozę.
+  function isInvestmentCategory(c){
+    return !!c && (c.id === 'c_invest' || c.name === 'Inwestycje');
+  }
+  function getInvestmentPlanned(ym){
+    ensureMonth(ym);
+    const p = b().monthly[ym].investmentPlan || {amount:0};
+    return num(p.amount);
+  }
+  function getInvestmentActual(ym){
+    const cb = catsById();
+    return entriesForMonth(ym).reduce((s,e)=>{
+      const c = cb[e.categoryId];
+      return isInvestmentCategory(c) ? s + Math.abs(e.amount) : s;
+    }, 0);
+  }
+  function getInvestmentSummary(ym){
+    const planned = getInvestmentPlanned(ym);
+    const actual  = getInvestmentActual(ym);
+    const overage = Math.max(0, actual - planned);
+    const reserved = Math.max(0, planned - actual); // nieskonsumowana rezerwa planu
+    const effective = Math.max(planned, actual);    // ile faktycznie obciąża budżet
+    return {planned, actual, overage, reserved, effective};
+  }
+
+  // --- Investment Plan UI -----------------------------------------------------
+  function weeksInMonth(ym){
+    // Liczba pełnych "tygodni płatności" – używamy 4 tyg dla 28-30 dni i 5 dla 31?
+    // Prościej: dni / 7 ≈ 4.29..4.43. Wybieramy zaokrąglenie do 1 miejsca dziesiętnego.
+    return daysInYm(ym) / 7;
+  }
+  function renderInvestmentPlan(){
+    const ym = b().workingMonth; ensureMonth(ym);
+    const plan = b().monthly[ym].investmentPlan || {amount:0, weekly:0, note:''};
+    const inv = getInvestmentSummary(ym);
+    const monthLabel = document.getElementById('inv-plan-month');
+    if(monthLabel) monthLabel.textContent = ym;
+
+    const cur = state.currency;
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    set('inv-plan-stat-planned', fmt(inv.planned, cur));
+    set('inv-plan-stat-actual', fmt(inv.actual, cur));
+    set('inv-plan-stat-remaining', fmt(inv.reserved, cur));
+    set('inv-plan-stat-overage', fmt(inv.overage, cur));
+
+    const overageCard = document.getElementById('inv-plan-stat-overage-card');
+    if(overageCard){
+      overageCard.classList.toggle('warn', inv.overage > 0);
+      overageCard.classList.toggle('ok', inv.overage === 0 && inv.planned > 0);
+    }
+
+    const form = document.getElementById('inv-plan-form');
+    if(form){
+      const amountInp = form.elements.namedItem('amount');
+      const weeklyInp = form.elements.namedItem('weekly');
+      const noteInp = form.elements.namedItem('note');
+      if(amountInp) amountInp.value = plan.amount ? String(plan.amount) : '';
+      if(weeklyInp) weeklyInp.value = plan.weekly ? String(plan.weekly) : '';
+      if(noteInp) noteInp.value = plan.note || '';
+      bindMoneyInputs(form);
+    }
+  }
+
+  (function bindInvestmentPlanForm(){
+    const form = document.getElementById('inv-plan-form');
+    if(!form || form.dataset.bound) return;
+    form.dataset.bound = '1';
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const ym = b().workingMonth; ensureMonth(ym);
+      const f = new FormData(form);
+      const amount = num(f.get('amount'));
+      const weekly = num(f.get('weekly'));
+      // Jeśli użytkownik podał tygodniówkę bez kwoty miesięcznej — wylicz miesięczną.
+      const computedAmount = amount > 0 ? amount : (weekly > 0 ? Math.round(weekly * weeksInMonth(ym)) : 0);
+      b().monthly[ym].investmentPlan = {
+        amount: computedAmount,
+        weekly: weekly,
+        note: String(f.get('note')||'')
+      };
+      save(state); renderAll();
+    };
+    const clearBtn = document.getElementById('inv-plan-clear');
+    if(clearBtn) clearBtn.onclick = () => {
+      const ym = b().workingMonth; ensureMonth(ym);
+      if(!confirm(`Wyczyścić plan inwestycyjny na ${ym}?`)) return;
+      b().monthly[ym].investmentPlan = {amount:0, weekly:0, note:''};
+      save(state); renderAll();
+    };
+    const copyPrevBtn = document.getElementById('inv-plan-copy-prev');
+    if(copyPrevBtn) copyPrevBtn.onclick = () => {
+      const ym = b().workingMonth; ensureMonth(ym);
+      const prev = ymAdd(ym, -1);
+      const prevPlan = b().monthly[prev]?.investmentPlan;
+      if(!prevPlan || (!prevPlan.amount && !prevPlan.weekly)){
+        alert(`Brak planu inwestycyjnego w ${prev}.`);
+        return;
+      }
+      b().monthly[ym].investmentPlan = {
+        amount: num(prevPlan.amount),
+        weekly: num(prevPlan.weekly),
+        note: String(prevPlan.note||'')
+      };
+      save(state); renderAll();
+    };
+  })();
+
   // --- NEW: Fixed Expenses Templates & Suggestions ---------------------------------
   function fixedExistsForTpl(ym, tplId){ensureMonth(ym); return b().monthly[ym].fixed.some(f=>f.tplId===tplId)}
 
@@ -6438,12 +6620,17 @@
   }
 
   // --- Daily calculations (spending + savings) --------------------------------
+  // Inwestycje są pomijane, ponieważ traktowane są jako osobny,
+  // planowany wydatek (patrz getInvestmentSummary). Dzięki temu prognoza
+  // oszczędności bez stałych i bez inwestycji jest spójna z deklaracją planu.
   function getDailySpending(ym){
     const daily={};
     const entries=entriesForMonth(ym);
     for(const e of entries){
       const c=catsById()[e.categoryId];
-      if(!c || !((c.type==='expense' && c.id!=='c_fixed') || c.type==='saving')) continue;
+      if(!c) continue;
+      if(isInvestmentCategory(c)) continue;
+      if(!((c.type==='expense' && c.id!=='c_fixed') || c.type==='saving')) continue;
       const day=parseInt(e.date.slice(-2));
       daily[day]=(daily[day]||0)+Math.abs(e.amount);
     }
@@ -6463,24 +6650,55 @@
     const ym=b().workingMonth; ensureMonth(ym);
     const incSum=b().monthly[ym].incomes.reduce((s,x)=>s+num(x.amount),0);
     const fixSum=b().monthly[ym].fixed.reduce((s,x)=>s+num(x.amount),0);
+    const inv=getInvestmentSummary(ym);
     const days=daysInYm(ym);
-    const dailyBudget=Math.max(0,(incSum-fixSum)/days);
+    // Limit dzienny liczy się z budżetu po odjęciu stałych ORAZ zarezerwowanego
+    // planu inwestycyjnego — żeby nie zachęcał do wydania pieniędzy "obiecanych" inwestycjom.
+    const dailyBudget=Math.max(0,(incSum-fixSum-inv.effective)/days);
 
       const entries=entriesForMonth(ym);
       const cb=catsById();
-    
+
     const variableSpent = entries.reduce((s, e) => {
         const c = cb[e.categoryId];
         return (c?.type === 'expense' && c.id !== 'c_fixed') ? s + Math.abs(e.amount) : s;
     }, 0);
     const savingsTransfers = entries.reduce((s, e) => {
         const c = cb[e.categoryId];
-        return c?.type === 'saving' ? s + Math.abs(e.amount) : s;
+        if(!c || c.type !== 'saving') return s;
+        if(isInvestmentCategory(c)) return s;
+        return s + Math.abs(e.amount);
     }, 0);
-    const remain = incSum - fixSum - variableSpent - savingsTransfers;
+    const remain = incSum - fixSum - variableSpent - savingsTransfers - inv.effective;
 
     document.getElementById('dash-remaining').textContent=fmt(remain, state.currency);
     document.getElementById('dash-daily-budget').textContent=fmt(dailyBudget, state.currency);
+
+    const dashInvProgress = document.getElementById('dash-inv-progress');
+    const dashInvFill = document.getElementById('dash-inv-progress-fill');
+    const dashInvTrack = document.getElementById('dash-inv-progress-track');
+    const dashInvNote = document.getElementById('dash-inv-note');
+    if(dashInvProgress){
+      dashInvProgress.textContent = `${fmt(inv.actual, state.currency)} / ${fmt(inv.planned, state.currency)}`;
+    }
+    if(dashInvFill && dashInvTrack){
+      const pct = inv.planned > 0 ? (inv.actual / inv.planned) * 100 : 0;
+      dashInvFill.style.width = `${Math.min(100, pct)}%`;
+      dashInvFill.style.background = inv.overage > 0 ? 'var(--red, #dc2626)' : 'var(--blue, #2563eb)';
+      dashInvTrack.title = inv.planned > 0 ? `${pct.toFixed(0)}% planu` : 'Brak planu';
+    }
+    if(dashInvNote){
+      if(inv.planned <= 0){
+        dashInvNote.textContent = inv.actual > 0 ? `Zainwestowano ${fmt(inv.actual, state.currency)} bez planu` : 'Brak planu na ten miesiąc';
+        dashInvNote.className = 'tiny muted';
+      } else if(inv.overage > 0){
+        dashInvNote.textContent = `Powyżej planu o ${fmt(inv.overage, state.currency)} — obniża budżet`;
+        dashInvNote.className = 'tiny warn';
+      } else {
+        dashInvNote.textContent = `Pozostało: ${fmt(inv.reserved, state.currency)}`;
+        dashInvNote.className = 'tiny muted';
+      }
+    }
 
     const todayKey=new Date().toISOString().slice(0,10);
     const todaySpent=entries.filter(e=>e.date===todayKey).reduce((s,e)=>{
@@ -6517,7 +6735,8 @@
 
     // --- Forecast & Buffer Section (NEW) ---
     const daysLeft = getDaysRemaining(ym);
-    const totalVariableBudget = incSum - fixSum;
+    // Budżet zmienny do prognozy nie zawiera ani stałych, ani zarezerwowanego planu inwestycji.
+    const totalVariableBudget = incSum - fixSum - inv.effective;
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
     const forecastedSavings = totalVariableBudget - projectedTotalVariableOutflow;
     
@@ -6943,12 +7162,18 @@
         const c = cb[e.categoryId];
         return (c?.type === 'expense' && c.id !== 'c_fixed') ? s + Math.abs(e.amount) : s;
     }, 0);
+    // Oszczędności BEZ inwestycji – inwestycje obsługiwane są przez plan inwestycyjny.
     const savingsTransfers = entries.reduce((s, e) => {
         const c = cb[e.categoryId];
-        return c?.type === 'saving' ? s + Math.abs(e.amount) : s;
+        if(!c || c.type !== 'saving') return s;
+        if(isInvestmentCategory(c)) return s;
+        return s + Math.abs(e.amount);
     }, 0);
+    const inv = getInvestmentSummary(ym);
 
-    const remainingVariableBudget = incomes - fixedPlanned - varSpent - savingsTransfers;
+    // Plan inwestycyjny rezerwuje kwotę z budżetu od razu (jak wydatki stałe).
+    // Dopiero faktyczne wpłaty powyżej planu (overage) dodatkowo obniżają budżet.
+    const remainingVariableBudget = incomes - fixedPlanned - varSpent - savingsTransfers - inv.effective;
 
     const days = daysInYm(ym);
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
@@ -6957,9 +7182,10 @@
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     const daysLeft = getDaysRemaining(ym);
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
-    const forecastedSavings = (incomes - fixedPlanned) - projectedTotalVariableOutflow;
+    // Prognoza: budżet pomniejszony o stałe oraz zarezerwowany plan inwestycyjny.
+    const forecastedSavings = (incomes - fixedPlanned - inv.effective) - projectedTotalVariableOutflow;
     const savingsRate = incomes > 0 ? (forecastedSavings / incomes) * 100 : 0;
-    
+
     document.getElementById('ov-inc').textContent = fmt(incomes, state.currency);
     document.getElementById('ov-fixed-planned').textContent = fmt(fixedPlanned, state.currency);
     document.getElementById('ov-fixed-paid').textContent = fmt(fixedPaid, state.currency);
@@ -6968,6 +7194,31 @@
     document.getElementById('ov-savings').textContent = fmt(savingsTransfers, state.currency);
     document.getElementById('ov-remaining').textContent = fmt(remainingVariableBudget, state.currency);
     document.getElementById('stat-savings-rate').textContent = savingsRate.toFixed(0)+'%';
+    const ovInvPlan = document.getElementById('ov-inv-planned');
+    const ovInvActual = document.getElementById('ov-inv-actual');
+    const ovInvProgress = document.getElementById('ov-inv-progress');
+    const ovInvProgressFill = document.getElementById('ov-inv-progress-fill');
+    const ovInvDelta = document.getElementById('ov-inv-delta');
+    if(ovInvPlan) ovInvPlan.textContent = fmt(inv.planned, state.currency);
+    if(ovInvActual) ovInvActual.textContent = fmt(inv.actual, state.currency);
+    if(ovInvDelta){
+      if(inv.planned <= 0){
+        ovInvDelta.textContent = inv.actual > 0 ? `Brak planu — zainwestowano ${fmt(inv.actual, state.currency)}` : 'Brak planu na ten miesiąc';
+        ovInvDelta.className = 'tiny muted';
+      } else if(inv.overage > 0){
+        ovInvDelta.textContent = `Powyżej planu o ${fmt(inv.overage, state.currency)}`;
+        ovInvDelta.className = 'tiny warn';
+      } else {
+        ovInvDelta.textContent = `Pozostało do planu: ${fmt(inv.reserved, state.currency)}`;
+        ovInvDelta.className = 'tiny muted';
+      }
+    }
+    if(ovInvProgress && ovInvProgressFill){
+      const pct = inv.planned > 0 ? Math.min(150, (inv.actual / inv.planned) * 100) : 0;
+      ovInvProgressFill.style.width = `${Math.min(100, pct)}%`;
+      ovInvProgressFill.style.background = inv.overage > 0 ? 'var(--red, #dc2626)' : 'var(--blue, #2563eb)';
+      ovInvProgress.title = inv.planned > 0 ? `${pct.toFixed(0)}% planu` : 'Brak planu';
+    }
   }
 
   // --- Forms ------------------------------------------------------------------
@@ -19063,6 +19314,7 @@
     document.getElementById('workingMonth').textContent=ym;
     safeRender(renderDashboard,'Dashboard');
     safeRender(renderOverview,'Overview');
+    safeRender(renderInvestmentPlan,'InvestmentPlan');
     safeRender(renderIncomes,'Incomes');
     safeRender(renderFixed,'Fixed');
     safeRender(renderVariable,'Variable');
