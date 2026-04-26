@@ -4892,6 +4892,9 @@
         <div class="stat-card"><div class="muted">Stałe zapłacone</div><div class="big-number ok" id="ov-fixed-paid">0</div></div>
         <div class="stat-card"><div class="muted">Stałe do zapłacenia</div><div class="big-number warn" id="ov-fixed-unpaid">0</div></div>
         <div class="stat-card"><div class="muted">Wydatki zmienne</div><div class="big-number bad" id="ov-var-spent">0</div></div>
+        <div class="stat-card"><div class="muted">Plan inwestycji</div><div class="big-number" id="ov-inv-plan">0</div></div>
+        <div class="stat-card"><div class="muted">Inwestycje (z budżetu)</div><div class="big-number" id="ov-inv-spent">0</div></div>
+        <div class="stat-card"><div class="muted">Nadwyżka inwestycji</div><div class="big-number" id="ov-inv-over">0</div></div>
         <div class="stat-card"><div class="muted">Oszczędności</div><div class="big-number" style="color:var(--blue)" id="ov-savings">0</div></div>
         <div class="stat-card"><div class="muted">Budżet zmienny do dyspozycji</div><div class="big-number" id="ov-remaining">0</div></div>
         <div class="stat-card"><div class="muted">Prognozowana stopa oszczędności</div><div class="big-number" id="stat-savings-rate">0%</div></div>
@@ -4967,6 +4970,18 @@
     <!-- Variable -->
     <section id="tab-variable" class="card" style="margin-top:12px;display:none">
       <h3 class="title">Wydatki zmienne — <span id="var-month">YYYY-MM</span></h3>
+      <div class="card" style="margin-bottom:10px;background:#f8fafc">
+        <div class="row" style="align-items:flex-end;gap:10px">
+          <label style="display:flex;flex-direction:column;gap:6px;min-width:220px">
+            <span class="tiny muted">Plan inwestycji na miesiąc</span>
+            <input id="inv-plan-input" inputmode="decimal" placeholder="Kwota (zł)" />
+          </label>
+          <div class="chip" style="margin:0">Zainwestowano: <b id="inv-plan-spent">0</b></div>
+          <div class="chip" style="margin:0">Pozostało do planu: <b id="inv-plan-left">0</b></div>
+          <div class="chip" style="margin:0">Nadwyżka ponad plan: <b id="inv-plan-over">0</b></div>
+        </div>
+        <div class="tiny muted" id="inv-plan-note" style="margin-top:8px">Plan obniża od razu budżet zmienny do dyspozycji. Dopiero nadwyżka ponad plan dodatkowo zmniejsza budżet.</div>
+      </div>
 
       <!-- Sugestie cykliczne -->
       <div id="rec-suggestions" class="card" style="margin-bottom:10px; display:none">
@@ -6013,6 +6028,14 @@
             </div>
           </div>
           <div class="kpi-compact">
+            <span class="kpi-emoji material-symbols-outlined">trending_up</span>
+            <div class="kpi-body">
+              <span class="kpi-label">Inwestycje: plan / wykonanie</span>
+              <span class="kpi-value" id="dash-inv-plan">0</span>
+              <span class="tiny muted" id="dash-inv-note">Plan miesięczny inwestycji</span>
+            </div>
+          </div>
+          <div class="kpi-compact">
             <span class="kpi-emoji material-symbols-outlined">payments</span>
             <div class="kpi-body">
               <span class="kpi-label">Pozostały budżet</span>
@@ -6142,6 +6165,13 @@
     if(!Array.isArray(bud.quickActions)) bud.quickActions=[];
     if(typeof bud.workingMonth!=='string' || !/^\d{4}-\d{2}$/.test(bud.workingMonth)) bud.workingMonth=monthKey();
     if(!bud.monthly) bud.monthly={};
+    for(const ymKey of Object.keys(bud.monthly)){
+      const m=bud.monthly[ymKey]||{};
+      if(!Array.isArray(m.incomes)) m.incomes=[];
+      if(!Array.isArray(m.fixed)) m.fixed=[];
+      if(!Number.isFinite(num(m.investmentPlan))) m.investmentPlan=0;
+      bud.monthly[ymKey]=m;
+    }
     if(!Array.isArray(bud.transactions)) bud.transactions=[];
     if(!Array.isArray(bud.eom)) bud.eom=[];
     if(!Array.isArray(bud.goals)) bud.goals=[];
@@ -6201,7 +6231,31 @@
   const b=()=>state.modules.budget;
 
   // --- Core Helpers ----------------------------------------------------------------
-  function ensureMonth(ym){if(!b().monthly[ym]) b().monthly[ym]={ incomes:[], fixed:[] }}
+  function ensureMonth(ym){
+    if(!b().monthly[ym]) b().monthly[ym]={ incomes:[], fixed:[], investmentPlan:0 };
+    if(!Number.isFinite(num(b().monthly[ym].investmentPlan))) b().monthly[ym].investmentPlan=0;
+  }
+  function investmentPlanForMonth(ym){
+    ensureMonth(ym);
+    return Math.max(0,num(b().monthly[ym].investmentPlan));
+  }
+  function getInvestmentBudgetMetrics(ym){
+    const trades=(b().investments?.trades||[]);
+    const spentFromBudget=trades.reduce((sum,t)=>{
+      if(String(t.date||'').slice(0,7)!==ym) return sum;
+      if(t.side==='sell') return sum;
+      if(t.fundSource==='reinvest') return sum;
+      return sum+Math.abs(num(t.amount));
+    },0);
+    const plan=investmentPlanForMonth(ym);
+    return {
+      plan,
+      spentFromBudget,
+      withinPlan:Math.min(plan,spentFromBudget),
+      remainingPlan:Math.max(0,plan-spentFromBudget),
+      overPlan:Math.max(0,spentFromBudget-plan)
+    };
+  }
   function setDefaultDate(){const i=document.querySelector('#var-form input[name="date"]'); if(i && !i.value){i.value=new Date().toISOString().slice(0,10)}}
   const catsById=()=>Object.fromEntries((b().categories||[]).map(c=>[c.id,c]));
   function catType(id){const c=catsById()[id];return c?c.type:undefined}
@@ -6463,8 +6517,10 @@
     const ym=b().workingMonth; ensureMonth(ym);
     const incSum=b().monthly[ym].incomes.reduce((s,x)=>s+num(x.amount),0);
     const fixSum=b().monthly[ym].fixed.reduce((s,x)=>s+num(x.amount),0);
+    const invMetrics=getInvestmentBudgetMetrics(ym);
     const days=daysInYm(ym);
-    const dailyBudget=Math.max(0,(incSum-fixSum)/days);
+    const variableBudgetBase=Math.max(0,incSum-fixSum-invMetrics.plan);
+    const dailyBudget=Math.max(0,variableBudgetBase/days);
 
       const entries=entriesForMonth(ym);
       const cb=catsById();
@@ -6477,7 +6533,8 @@
         const c = cb[e.categoryId];
         return c?.type === 'saving' ? s + Math.abs(e.amount) : s;
     }, 0);
-    const remain = incSum - fixSum - variableSpent - savingsTransfers;
+    const nonInvestmentVariableSpent=Math.max(0,variableSpent-invMetrics.spentFromBudget);
+    const remain = incSum - fixSum - invMetrics.plan - nonInvestmentVariableSpent - invMetrics.overPlan - savingsTransfers;
 
     document.getElementById('dash-remaining').textContent=fmt(remain, state.currency);
     document.getElementById('dash-daily-budget').textContent=fmt(dailyBudget, state.currency);
@@ -6517,9 +6574,9 @@
 
     // --- Forecast & Buffer Section (NEW) ---
     const daysLeft = getDaysRemaining(ym);
-    const totalVariableBudget = incSum - fixSum;
+    const totalVariableBudget = incSum - fixSum - invMetrics.plan;
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
-    const forecastedSavings = totalVariableBudget - projectedTotalVariableOutflow;
+    const forecastedSavings = totalVariableBudget - projectedTotalVariableOutflow - invMetrics.overPlan;
     
     const forecastEl = document.getElementById('forecast-content');
     const forecastNote = document.getElementById('forecast-note');
@@ -6529,6 +6586,17 @@
     forecastNote.textContent = forecastedSavings >= 0
       ? 'Możliwa nadwyżka przy obecnym tempie'
       : 'Ryzyko przekroczenia budżetu zmiennego';
+
+    const invPlanEl=document.getElementById('dash-inv-plan');
+    const invNoteEl=document.getElementById('dash-inv-note');
+    if(invPlanEl && invNoteEl){
+      invPlanEl.textContent=`${fmt(invMetrics.spentFromBudget,state.currency)} / ${fmt(invMetrics.plan,state.currency)}`;
+      invPlanEl.classList.remove('ok','bad');
+      invPlanEl.classList.add(invMetrics.overPlan>0?'bad':'ok');
+      invNoteEl.textContent=invMetrics.overPlan>0
+        ?`Nadwyżka ponad plan: ${fmt(invMetrics.overPlan,state.currency)}`
+        :`Do końca planu: ${fmt(invMetrics.remainingPlan,state.currency)}`;
+    }
 
     const bufferEl = document.getElementById('buffer-content');
     const bufferNote = document.getElementById('buffer-note');
@@ -6930,6 +6998,7 @@
     const ym=b().workingMonth; ensureMonth(ym);
     document.getElementById('ov-month').textContent=ym;
     const cb=catsById();
+    const invMetrics=getInvestmentBudgetMetrics(ym);
     
     const incomes = b().monthly[ym].incomes.reduce((s,x)=>s+num(x.amount),0);
     
@@ -6948,7 +7017,8 @@
         return c?.type === 'saving' ? s + Math.abs(e.amount) : s;
     }, 0);
 
-    const remainingVariableBudget = incomes - fixedPlanned - varSpent - savingsTransfers;
+    const nonInvestmentVariableSpent=Math.max(0,varSpent-invMetrics.spentFromBudget);
+    const remainingVariableBudget = incomes - fixedPlanned - invMetrics.plan - nonInvestmentVariableSpent - invMetrics.overPlan - savingsTransfers;
 
     const days = daysInYm(ym);
     const daysElapsed = (ym === monthKey()) ? new Date().getDate() : (monthKey() > ym ? days : 0);
@@ -6957,7 +7027,7 @@
     const avgDaily = (daysElapsed > 0 ? (spentSoFar / daysElapsed) : 0);
     const daysLeft = getDaysRemaining(ym);
     const projectedTotalVariableOutflow = spentSoFar + (daysLeft * avgDaily);
-    const forecastedSavings = (incomes - fixedPlanned) - projectedTotalVariableOutflow;
+    const forecastedSavings = (incomes - fixedPlanned - invMetrics.plan) - projectedTotalVariableOutflow - invMetrics.overPlan;
     const savingsRate = incomes > 0 ? (forecastedSavings / incomes) * 100 : 0;
     
     document.getElementById('ov-inc').textContent = fmt(incomes, state.currency);
@@ -6965,6 +7035,9 @@
     document.getElementById('ov-fixed-paid').textContent = fmt(fixedPaid, state.currency);
     document.getElementById('ov-fixed-unpaid').textContent = fmt(fixedUnpaid, state.currency);
     document.getElementById('ov-var-spent').textContent = fmt(varSpent, state.currency);
+    document.getElementById('ov-inv-plan').textContent = fmt(invMetrics.plan, state.currency);
+    document.getElementById('ov-inv-spent').textContent = fmt(invMetrics.spentFromBudget, state.currency);
+    document.getElementById('ov-inv-over').textContent = fmt(invMetrics.overPlan, state.currency);
     document.getElementById('ov-savings').textContent = fmt(savingsTransfers, state.currency);
     document.getElementById('ov-remaining').textContent = fmt(remainingVariableBudget, state.currency);
     document.getElementById('stat-savings-rate').textContent = savingsRate.toFixed(0)+'%';
@@ -7359,6 +7432,33 @@
   function renderVariable(){
     const ym=b().workingMonth; document.getElementById('var-month').textContent=ym;
     renderRecurringSuggestions();
+    const invMetrics=getInvestmentBudgetMetrics(ym);
+    const invPlanInput=document.getElementById('inv-plan-input');
+    const invPlanSpent=document.getElementById('inv-plan-spent');
+    const invPlanLeft=document.getElementById('inv-plan-left');
+    const invPlanOver=document.getElementById('inv-plan-over');
+    const invPlanNote=document.getElementById('inv-plan-note');
+    if(invPlanInput){
+      invPlanInput.value=String(investmentPlanForMonth(ym)).replace('.',',');
+      invPlanInput.onchange=()=>{
+        ensureMonth(ym);
+        b().monthly[ym].investmentPlan=Math.max(0,num(invPlanInput.value));
+        save(state);
+        renderAll();
+      };
+    }
+    if(invPlanSpent) invPlanSpent.textContent=fmt(invMetrics.spentFromBudget,state.currency);
+    if(invPlanLeft) invPlanLeft.textContent=fmt(invMetrics.remainingPlan,state.currency);
+    if(invPlanOver){
+      invPlanOver.textContent=fmt(invMetrics.overPlan,state.currency);
+      invPlanOver.classList.remove('ok','bad');
+      invPlanOver.classList.add(invMetrics.overPlan>0?'bad':'ok');
+    }
+    if(invPlanNote){
+      invPlanNote.textContent=invMetrics.overPlan>0
+        ?`Plan przekroczony o ${fmt(invMetrics.overPlan,state.currency)} — ta nadwyżka dodatkowo obniża budżet zmienny i prognozy.`
+        :'Plan inwestycji rezerwuje budżet na start miesiąca. Dopiero po przekroczeniu planu każda kolejna wpłata obniża budżet zmienny.';
+    }
 
     const tbody=document.getElementById('var-rows');tbody.innerHTML='';
     const cb=catsById();
@@ -7398,7 +7498,7 @@
 
     const varCat=document.querySelector('#var-form select[name="categoryId"]'); if(varCat){varCat.innerHTML=''; for(const c of (b().categories||[])){varCat.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id))}}
     const accSel=document.querySelector('#var-form select[name="accountId"]'); if(accSel){accSel.innerHTML=''; for(const a of (b().accounts||[])){accSel.add(new Option(a.name,a.id))}}
-    setDefaultDate(); bindMoneyInputs(tbody);
+    setDefaultDate(); bindMoneyInputs(document.getElementById('tab-variable'));
   }
 
   function startEditTx(t){
