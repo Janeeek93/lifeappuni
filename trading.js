@@ -1277,6 +1277,7 @@ function fmtMetricValue(metric, stat) {
   if (!stat) return '—';
   if (metric === 'pnl') return fmtUSD(stat.pnl, true);
   if (metric === 'roi') return fmtPct(stat.roi, true, 2);
+  if (metric === 'roi-lm') return stat.roiLm !== null && Number.isFinite(stat.roiLm) ? fmtPct(stat.roiLm, true, 2) : '—';
   if (metric === 'rr') return fmtR(stat.rr, true, 2);
   if (metric === 'depo') return fmtUSD(stat.depo);
   if (metric === 'trades') return String(stat.trades);
@@ -1305,16 +1306,22 @@ function getMetricClass(metric, stat) {
     ? stat.pnl
     : metric === 'roi'
       ? stat.roi
-      : metric === 'rr'
-        ? (stat.rr ?? 0)
-        : 0;
+      : metric === 'roi-lm'
+        ? (stat.roiLm ?? 0)
+        : metric === 'rr'
+          ? (stat.rr ?? 0)
+          : 0;
   return v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 }
 
-function calcBucketMetric(metric, stats) {
+function calcBucketMetric(metric, stats, lastMonthClosingDepo) {
   if (!stats.length) return '—';
   if (metric === 'pnl') return fmtUSD(stats.reduce((a, s) => a + s.pnl, 0), true);
   if (metric === 'roi') return fmtPct(stats.reduce((a, s) => a + s.pnl, 0) / Math.max(settings.capital, 0.01) * 100, true, 2);
+  if (metric === 'roi-lm') {
+    const base = lastMonthClosingDepo && lastMonthClosingDepo > 0 ? lastMonthClosingDepo : settings.capital;
+    return fmtPct(stats.reduce((a, s) => a + s.pnl, 0) / base * 100, true, 2);
+  }
   if (metric === 'rr') {
     const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
     return vals.length ? fmtR(vals.reduce((a, b) => a + b, 0) / vals.length, true, 2) : '—';
@@ -1333,7 +1340,7 @@ function calcBucketMetric(metric, stats) {
   return '—';
 }
 
-function renderCalendarBuckets(days, monthStats, metric) {
+function renderCalendarBuckets(days, monthStats, metric, lastMonthClosingDepo) {
   const wrap = document.getElementById('cal-buckets');
   const ranges = [[1,7],[8,14],[15,21],[22,28],[29,days],['all','all']];
   wrap.innerHTML = ranges.map(r => {
@@ -1346,9 +1353,12 @@ function renderCalendarBuckets(days, monthStats, metric) {
           })
           .map(k => monthStats[k]);
     const stats = statsRaw.filter(s => !s.isFuture);
+    const bucketPnl = stats.reduce((a, s) => a + s.pnl, 0);
+    const lmBase = lastMonthClosingDepo > 0 ? lastMonthClosingDepo : settings.capital;
     const aggStat = {
-      pnl: stats.reduce((a, s) => a + s.pnl, 0),
-      roi: settings.capital > 0 ? (stats.reduce((a, s) => a + s.pnl, 0) / settings.capital) * 100 : 0,
+      pnl: bucketPnl,
+      roi: settings.capital > 0 ? (bucketPnl / settings.capital) * 100 : 0,
+      roiLm: lmBase > 0 ? (bucketPnl / lmBase) * 100 : null,
       depo: stats.length ? stats[stats.length - 1].depo : null,
       rr: (() => {
         const vals = stats.map(s => s.rr).filter(v => v !== null && Number.isFinite(v));
@@ -1361,7 +1371,7 @@ function renderCalendarBuckets(days, monthStats, metric) {
       })()
     };
     const label = r[0] === 'all' ? 'Full Month' : `${r[0]}-${r[1]} dzień`;
-    return `<div class="cal-bucket"><div class="k">${label}</div><div class="v ${getMetricClass(metric, aggStat)}">${calcBucketMetric(metric, stats)}</div></div>`;
+    return `<div class="cal-bucket"><div class="k">${label}</div><div class="v ${getMetricClass(metric, aggStat)}">${calcBucketMetric(metric, stats, lastMonthClosingDepo)}</div></div>`;
   }).join('');
 }
 
@@ -1384,17 +1394,29 @@ function renderCalendarView() {
   const pnlBeforeMonth = Object.entries(agg.byDay)
     .filter(([k]) => k < monthStartKey)
     .reduce((a, [, v]) => a + v, 0);
-  let runningDepo = settings.capital + pnlBeforeMonth;
+  const lastMonthClosingDepo = settings.capital + pnlBeforeMonth;
+  let runningDepo = lastMonthClosingDepo;
+
+  // info bar — last month closing deposit (baza dla ROI vs LM)
+  const lmInfoEl = document.getElementById('cal-lm-info');
+  if (lmInfoEl) {
+    const prevMonthDate = new Date(year, mon - 2, 1);
+    const prevMonthName = prevMonthDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+    lmInfoEl.style.display = '';
+    lmInfoEl.innerHTML = `<span class="lm-label">Zamknięcie ${prevMonthName}:</span><span class="lm-value">${fmtUSD(lastMonthClosingDepo)}</span><span class="lm-target">cel +10%: ${fmtUSD(lastMonthClosingDepo * 1.1)}</span>`;
+  }
+
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const day = daily[key] || { pnl: 0, roi: 0, rr: null, trades: 0, wins: 0, losses: 0, wr: null };
     const isFuture = key > todayKey;
     if (!isFuture) runningDepo += day.pnl;
+    const roiLm = !isFuture && lastMonthClosingDepo > 0 ? (day.pnl / lastMonthClosingDepo) * 100 : null;
     monthStats[key] = isFuture
-      ? { pnl: null, roi: null, rr: null, depo: null, trades: 0, wins: 0, losses: 0, wr: null, isFuture: true }
-      : { ...day, depo: runningDepo, isFuture: false };
+      ? { pnl: null, roi: null, roiLm: null, rr: null, depo: null, trades: 0, wins: 0, losses: 0, wr: null, isFuture: true }
+      : { ...day, depo: runningDepo, roiLm, isFuture: false };
   }
-  renderCalendarBuckets(daysInMonth, monthStats, metric);
+  renderCalendarBuckets(daysInMonth, monthStats, metric, lastMonthClosingDepo);
 
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(`<div class="cal-cell empty"></div>`);
