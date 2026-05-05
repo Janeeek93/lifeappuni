@@ -368,6 +368,10 @@
     .inv-deep-list table{width:100%;border-collapse:collapse}
     .inv-deep-list th,.inv-deep-list td{padding:7px 4px;border-bottom:1px solid #eef2f7;font-size:12px;text-align:left}
     .inv-deep-list tr:last-child td{border-bottom:none}
+    .inv-deep-lots{display:grid;gap:8px;margin-top:8px}
+    .inv-deep-lot{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#f8fafc}
+    .inv-deep-lot-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}
+    .inv-deep-lot-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;margin-top:6px;font-size:12px}
     @media(max-width:780px){.inv-deep-grid{grid-template-columns:1fr}}
 
     /* --- Investment Analytics Hub ------------------------------------------- */
@@ -5378,6 +5382,8 @@
                 <div class="inv-deep-list">
                   <strong>Metryki pozycji</strong>
                   <table><tbody id="inv-deep-metrics"></tbody></table>
+                  <div class="row" style="justify-content:space-between;margin-top:8px"><strong>DCA — zakupy i wynik</strong><span class="tiny muted" id="inv-deep-lots-count"></span></div>
+                  <div id="inv-deep-lots" class="inv-deep-lots"></div>
                 </div>
               </div>
             </div>
@@ -8986,7 +8992,11 @@
     const roi=(buyAmount>0)?(totalPnl/buyAmount)*100:null;
     const firstDate=[...assetTrades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))[0]?.date||'—';
     const lastDate=assetTrades[0]?.date||'—';
+    const now=new Date();
+    const firstDateObj=firstDate!=='—'?new Date(firstDate):null;
+    const holdingDays=firstDateObj?Math.max(0,Math.floor((now-firstDateObj)/(1000*60*60*24))):null;
     const cur=state.currency;
+    const avgBuyPrice=buys.length?buys.reduce((s,t)=>s+(num(t.amount)/Math.max(num(t.quantity),0.000001)),0)/buys.length:null;
 
     document.getElementById('inv-deep-title').textContent=`${asset.name}`;
     document.getElementById('inv-deep-sub').textContent=`${asset.group||'Inne'} • ${asset.symbol||'brak tickera'}`;
@@ -8997,7 +9007,8 @@
       <div class="inv-deep-kpi"><div class="lbl">Niezrealizowane P&L</div><div class="val ${unrealized>=0?'inv-pnl-pos':'inv-pnl-neg'}">${unrealized===null?'—':`${unrealized>=0?'+':''}${fmt(unrealized,cur)}`}</div></div>
       <div class="inv-deep-kpi"><div class="lbl">Zrealizowane P&L</div><div class="val ${realized>=0?'inv-pnl-pos':'inv-pnl-neg'}">${realized>=0?'+':''}${fmt(realized,cur)}</div></div>
       <div class="inv-deep-kpi"><div class="lbl">Łączne P&L</div><div class="val ${totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${totalPnl>=0?'+':''}${fmt(totalPnl,cur)}</div></div>
-      <div class="inv-deep-kpi"><div class="lbl">ROI od wpłat</div><div class="val">${roi===null?'—':`${roi>=0?'+':''}${roi.toFixed(1)}%`}</div></div>`;
+      <div class="inv-deep-kpi"><div class="lbl">ROI od wpłat</div><div class="val">${roi===null?'—':`${roi>=0?'+':''}${roi.toFixed(1)}%`}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Dni w pozycji</div><div class="val">${holdingDays===null?'—':holdingDays}</div></div>`;
 
     document.getElementById('inv-deep-metrics').innerHTML=`
       <tr><td>Pierwsza transakcja</td><td><strong>${firstDate}</strong></td></tr>
@@ -9016,6 +9027,43 @@
     }).join(''):'<tr><td colspan="6" class="muted">Brak transakcji</td></tr>';
 
     const backdrop=document.getElementById('inv-deep-backdrop');
+    const lotsWrap=document.getElementById('inv-deep-lots');
+    const lotsCount=document.getElementById('inv-deep-lots-count');
+    const buyLots=buys.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const sellQueue=sells.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).map(t=>({qty:num(t.quantity)}));
+    const lots=buyLots.map(t=>({date:t.date,qty:num(t.quantity),amount:num(t.amount),ppu:num(t.amount)/Math.max(num(t.quantity),0.000001),remaining:num(t.quantity)}));
+    for(const lot of lots){
+      let remainingToMatch=lot.remaining;
+      for(const sq of sellQueue){
+        if(remainingToMatch<=0) break;
+        if(sq.qty<=0) continue;
+        const take=Math.min(remainingToMatch,sq.qty);
+        remainingToMatch-=take;
+        sq.qty-=take;
+      }
+      lot.remaining=remainingToMatch;
+      const days=Math.max(0,Math.floor((now-new Date(lot.date||now))/(1000*60*60*24)));
+      const refPrice=num(asset.currentPrice)||lot.ppu;
+      lot.unrealized=(refPrice-lot.ppu)*lot.remaining;
+      lot.realizedPart=(lot.qty-lot.remaining)*lot.ppu;
+      lot.days=days;
+      lot.lateFlag=avgBuyPrice!==null&&lot.ppu>avgBuyPrice*1.1;
+    }
+    lotsCount.textContent=`${lots.length} zakupów`;
+    lotsWrap.innerHTML=lots.length?lots.map((lot,idx)=>{
+      const cls=lot.unrealized>=0?'inv-pnl-pos':'inv-pnl-neg';
+      return `<div class="inv-deep-lot">
+        <div class="inv-deep-lot-top"><strong>#${idx+1} ${lot.date||'—'}</strong><span>${lot.days} dni</span></div>
+        <div class="inv-deep-lot-meta">
+          <span>Ilość: <strong>${lot.qty.toFixed(4)}</strong></span>
+          <span>Pozostało: <strong>${lot.remaining.toFixed(4)}</strong></span>
+          <span>Cena zakupu: <strong>${fmt(lot.ppu,cur)}</strong></span>
+          <span>Kwota: <strong>${fmt(lot.amount,cur)}</strong></span>
+          <span>P&L na pozostałej części: <strong class="${cls}">${lot.unrealized>=0?'+':''}${fmt(lot.unrealized,cur)}</strong></span>
+          <span>${lot.lateFlag?'<strong style="color:#b45309">Możliwy zakup na szczycie</strong>':'Timing OK'}</span>
+        </div>
+      </div>`;
+    }).join(''):'<div class="tiny muted">Brak zakupów do analizy DCA.</div>';
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
   }
