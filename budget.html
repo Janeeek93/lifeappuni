@@ -368,10 +368,6 @@
     .inv-deep-list table{width:100%;border-collapse:collapse}
     .inv-deep-list th,.inv-deep-list td{padding:7px 4px;border-bottom:1px solid #eef2f7;font-size:12px;text-align:left}
     .inv-deep-list tr:last-child td{border-bottom:none}
-    .inv-deep-lots{display:grid;gap:8px;margin-top:8px}
-    .inv-deep-lot{border:1px solid #e2e8f0;border-radius:10px;padding:8px;background:#f8fafc}
-    .inv-deep-lot-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}
-    .inv-deep-lot-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;margin-top:6px;font-size:12px}
     @media(max-width:780px){.inv-deep-grid{grid-template-columns:1fr}}
 
     /* --- Investment Analytics Hub ------------------------------------------- */
@@ -5375,15 +5371,13 @@
                 <div class="inv-deep-list">
                   <div class="row" style="justify-content:space-between"><strong>Historia transakcji</strong><span class="tiny muted" id="inv-deep-count"></span></div>
                   <table>
-                    <thead><tr><th>Data</th><th>Typ</th><th>Ilość</th><th>Kwota</th><th>Cena/szt</th><th>P&amp;L</th></tr></thead>
+                    <thead><tr><th>Data</th><th>Typ</th><th>Ilość</th><th>Kwota</th><th>Cena/szt</th><th>Dni</th><th>P&amp;L transakcji</th></tr></thead>
                     <tbody id="inv-deep-trades"></tbody>
                   </table>
                 </div>
                 <div class="inv-deep-list">
                   <strong>Metryki pozycji</strong>
                   <table><tbody id="inv-deep-metrics"></tbody></table>
-                  <div class="row" style="justify-content:space-between;margin-top:8px"><strong>DCA — zakupy i wynik</strong><span class="tiny muted" id="inv-deep-lots-count"></span></div>
-                  <div id="inv-deep-lots" class="inv-deep-lots"></div>
                 </div>
               </div>
             </div>
@@ -9020,15 +9014,7 @@
       <tr><td>Data aktualizacji ceny</td><td><strong>${asset.priceDate||'—'}</strong></td></tr>
       <tr><td>Udział w portfelu</td><td><strong>${holding&&stats?.totalMarketValue?(((holding.marketValue!==null?holding.marketValue:holding.costBasis)/stats.totalMarketValue)*100).toFixed(1)+'%':'—'}</strong></td></tr>`;
 
-    const tbody=document.getElementById('inv-deep-trades');
-    tbody.innerHTML=assetTrades.length?assetTrades.map(t=>{
-      const qty=num(t.quantity), amt=num(t.amount), ppu=qty>0?amt/qty:0, isSell=t.side==='sell', rp=num(t.realizedPnl);
-      return `<tr><td>${t.date||'—'}</td><td>${isSell?'SELL':'BUY'}</td><td>${qty.toFixed(4)}</td><td>${fmt(amt,cur)}</td><td>${fmt(ppu,cur)}</td><td>${isSell?`<span class="${rp>=0?'inv-pnl-pos':'inv-pnl-neg'}">${rp>=0?'+':''}${fmt(rp,cur)}</span>`:'—'}</td></tr>`;
-    }).join(''):'<tr><td colspan="6" class="muted">Brak transakcji</td></tr>';
-
     const backdrop=document.getElementById('inv-deep-backdrop');
-    const lotsWrap=document.getElementById('inv-deep-lots');
-    const lotsCount=document.getElementById('inv-deep-lots-count');
     const buyLots=buys.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     const sellQueue=sells.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).map(t=>({qty:num(t.quantity)}));
     const lots=buyLots.map(t=>({date:t.date,qty:num(t.quantity),amount:num(t.amount),ppu:num(t.amount)/Math.max(num(t.quantity),0.000001),remaining:num(t.quantity)}));
@@ -9045,25 +9031,25 @@
       const days=Math.max(0,Math.floor((now-new Date(lot.date||now))/(1000*60*60*24)));
       const refPrice=num(asset.currentPrice)||lot.ppu;
       lot.unrealized=(refPrice-lot.ppu)*lot.remaining;
-      lot.realizedPart=(lot.qty-lot.remaining)*lot.ppu;
       lot.days=days;
       lot.lateFlag=avgBuyPrice!==null&&lot.ppu>avgBuyPrice*1.1;
     }
-    lotsCount.textContent=`${lots.length} zakupów`;
-    lotsWrap.innerHTML=lots.length?lots.map((lot,idx)=>{
-      const cls=lot.unrealized>=0?'inv-pnl-pos':'inv-pnl-neg';
-      return `<div class="inv-deep-lot">
-        <div class="inv-deep-lot-top"><strong>#${idx+1} ${lot.date||'—'}</strong><span>${lot.days} dni</span></div>
-        <div class="inv-deep-lot-meta">
-          <span>Ilość: <strong>${lot.qty.toFixed(4)}</strong></span>
-          <span>Pozostało: <strong>${lot.remaining.toFixed(4)}</strong></span>
-          <span>Cena zakupu: <strong>${fmt(lot.ppu,cur)}</strong></span>
-          <span>Kwota: <strong>${fmt(lot.amount,cur)}</strong></span>
-          <span>P&L na pozostałej części: <strong class="${cls}">${lot.unrealized>=0?'+':''}${fmt(lot.unrealized,cur)}</strong></span>
-          <span>${lot.lateFlag?'<strong style="color:#b45309">Możliwy zakup na szczycie</strong>':'Timing OK'}</span>
-        </div>
-      </div>`;
-    }).join(''):'<div class="tiny muted">Brak zakupów do analizy DCA.</div>';
+    const lotByDateAndPpu=new Map(lots.map(l=>[`${l.date}|${l.ppu.toFixed(8)}|${l.qty.toFixed(8)}`,l]));
+    const tbody=document.getElementById('inv-deep-trades');
+    tbody.innerHTML=assetTrades.length?assetTrades.map(t=>{
+      const qty=num(t.quantity), amt=num(t.amount), ppu=qty>0?amt/qty:0, isSell=t.side==='sell', rp=num(t.realizedPnl);
+      const days=t.date?Math.max(0,Math.floor((now-new Date(t.date))/(1000*60*60*24))):0;
+      let txPnlHtml='—';
+      if(isSell){
+        txPnlHtml=`<span class="${rp>=0?'inv-pnl-pos':'inv-pnl-neg'}">${rp>=0?'+':''}${fmt(rp,cur)}</span>`;
+      } else {
+        const key=`${t.date}|${ppu.toFixed(8)}|${qty.toFixed(8)}`;
+        const lot=lotByDateAndPpu.get(key);
+        const lotPnl=lot?lot.unrealized:(num(asset.currentPrice)-ppu)*qty;
+        txPnlHtml=`<span class="${lotPnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${lotPnl>=0?'+':''}${fmt(lotPnl,cur)}</span>${lot?.lateFlag?' <span class="tiny" style="color:#b45309">(szczyt?)</span>':''}`;
+      }
+      return `<tr><td>${t.date||'—'}</td><td>${isSell?'SELL':'BUY'}</td><td>${qty.toFixed(4)}</td><td>${fmt(amt,cur)}</td><td>${fmt(ppu,cur)}</td><td>${days}</td><td>${txPnlHtml}</td></tr>`;
+    }).join(''):'<tr><td colspan="7" class="muted">Brak transakcji</td></tr>';
     backdrop.classList.add('open');
     backdrop.setAttribute('aria-hidden','false');
   }
