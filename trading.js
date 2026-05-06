@@ -1215,6 +1215,7 @@ function switchTab(name) {
   if (name === 'analytics') setTimeout(renderAnalytics, 30);
   if (name === 'calendar') setTimeout(renderCalendarView, 30);
   if (name === 'planner') setTimeout(updatePlanner, 30);
+  if (name === 'execution') setTimeout(renderExecutionPlan, 30);
 }
 
 function toast(msg, kind = '') {
@@ -1635,6 +1636,80 @@ function drawHeatmap(agg) {
   `;
 }
 
+function monthShift(ym, add) {
+  const [y,m]=ym.split('-').map(Number);
+  const d=new Date(y,m-1+add,1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function renderExecutionPlan() {
+  const agg = aggregate();
+  const horizon = clamp(numberOr(document.getElementById('exec-horizon')?.value,24),1,120);
+  const targetPct = clamp(numberOr(document.getElementById('exec-target')?.value,10),0.1,100);
+  const tradesPerMonthInput = clamp(numberOr(document.getElementById('exec-trades-month')?.value,12),1,200);
+  const targetFactor = 1 + targetPct / 100;
+
+  const firstTradeDate = [...state.trades].map(t=>t.date).filter(Boolean).sort()[0] || today();
+  const startMonth = firstTradeDate.slice(0,7);
+  const pnlByMonth = {};
+  for (const e of agg.events) {
+    const m = e.date.slice(0,7);
+    pnlByMonth[m] = (pnlByMonth[m] || 0) + e.pnl;
+  }
+
+  const rrVals = agg.events.map(e=>e.realizedR).filter(v=>v!==null && Number.isFinite(v));
+  const avgR = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0.4;
+  const monthsWithData = Object.keys(pnlByMonth).length || 1;
+  const avgTradesPerMonthReal = Math.max(1, agg.events.length / monthsWithData);
+  const tradesPerMonth = tradesPerMonthInput || avgTradesPerMonthReal;
+
+  let depoStart = settings.capital;
+  let targetCum = 0;
+  let actualCum = 0;
+  const rows = [];
+  for (let i=0;i<horizon;i++) {
+    const ym = monthShift(startMonth, i);
+    const targetPnl = depoStart * (targetFactor - 1);
+    const targetEnd = depoStart * targetFactor;
+    targetCum += targetPnl;
+    const actualPnl = pnlByMonth[ym] || 0;
+    actualCum += actualPnl;
+    const actualEnd = depoStart + actualPnl;
+    const monthRealPct = targetPnl !== 0 ? (actualPnl / targetPnl) * 100 : 0;
+    const gap = actualPnl - targetPnl;
+    const requiredRiskPct = (depoStart > 0 && avgR !== 0 && tradesPerMonth > 0) ? (targetPnl / (depoStart * avgR * tradesPerMonth)) * 100 : null;
+    rows.push({ym,depoStart,targetPnl,targetEnd,targetCum,actualPnl,actualEnd,actualCum,monthRealPct,gap,requiredRiskPct});
+    depoStart = targetEnd;
+  }
+
+  const kpis = document.getElementById('exec-kpis');
+  const table = document.getElementById('exec-table');
+  if (!kpis || !table) return;
+  const realizedAll = rows.reduce((a,r)=>a+r.actualPnl,0);
+  const targetAll = rows.reduce((a,r)=>a+r.targetPnl,0);
+  const realization = targetAll>0?(realizedAll/targetAll)*100:0;
+  const last = rows[rows.length-1];
+  kpis.innerHTML = `
+    <div class="tc-kpi"><span class="k">Start miesiąca</span><span class="v mono">${startMonth}</span><span class="n">Pierwsza transakcja</span></div>
+    <div class="tc-kpi"><span class="k">Cel końcowy</span><span class="v mono">${fmtUSD(last.targetEnd)}</span><span class="n">po ${horizon} mies.</span></div>
+    <div class="tc-kpi"><span class="k">Realizacja planu</span><span class="v mono ${realization>=100?'pos':'neg'}">${fmtPct(realization, false, 1)}</span><span class="n">vs target sum</span></div>
+    <div class="tc-kpi"><span class="k">Śr. R z historii</span><span class="v mono">${fmtR(avgR, true, 2)}</span><span class="n">do estymacji SL%</span></div>`;
+
+  table.innerHTML = `<thead><tr>
+    <th>Miesiąc</th><th>Depo start</th><th>Plan +${targetPct}%</th><th>Depo cel</th><th>PnL real</th><th>Depo real</th>
+    <th>Plan skum.</th><th>Real skum.</th><th>Realizacja %</th><th>Gap</th><th>Sug. SL %/trade</th>
+  </tr></thead><tbody>${
+    rows.map(r=>`<tr>
+      <td>${r.ym}</td><td>${fmtUSD(r.depoStart)}</td><td>${fmtUSD(r.targetPnl,true)}</td><td>${fmtUSD(r.targetEnd)}</td>
+      <td class="${posClass(r.actualPnl)}">${fmtUSD(r.actualPnl,true)}</td><td>${fmtUSD(r.actualEnd)}</td>
+      <td>${fmtUSD(r.targetCum,true)}</td><td>${fmtUSD(r.actualCum,true)}</td>
+      <td class="${r.monthRealPct>=100?'exec-hit':'exec-miss'}">${fmtPct(r.monthRealPct,false,1)}</td>
+      <td class="${posClass(r.gap)}">${fmtUSD(r.gap,true)}</td>
+      <td>${r.requiredRiskPct===null?'—':fmtPct(r.requiredRiskPct,false,2)}</td>
+    </tr>`).join('')
+  }</tbody>`;
+}
+
 // ============================================================
 // Render all
 // ============================================================
@@ -1651,6 +1726,7 @@ function renderAll() {
   // Only redraw analytics if tab visible
   if (document.getElementById('tab-analytics').classList.contains('active')) renderAnalytics();
   if (document.getElementById('tab-calendar').classList.contains('active')) renderCalendarView();
+  if (document.getElementById('tab-execution').classList.contains('active')) renderExecutionPlan();
 }
 
 // ============================================================
@@ -1672,6 +1748,7 @@ function init() {
   document.getElementById('settings-btn').addEventListener('click', openSettings);
   document.getElementById('export-btn').addEventListener('click', exportCSV);
   document.getElementById('new-trade-btn').addEventListener('click', openNewTradeModal);
+  document.getElementById('exec-recalc-btn')?.addEventListener('click', renderExecutionPlan);
 
   // Filters
   document.querySelectorAll('#filter-status .filter-chip').forEach(b => b.addEventListener('click', () => {
