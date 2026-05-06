@@ -22,6 +22,7 @@ let modalDir = 'long';
 let eqRange = '90';
 let tradeFilters = { status: 'all', dir: 'all', q: '', closedGrouping: 'month' };
 let calendarState = { month: today().slice(0, 7), metric: 'pnl' };
+let planSimState = { horizon: 24, targetMoM: 10, riskPct: 1 };
 let expandedRows = new Set();
 let expandedClosedGroups = new Set();
 let charts = {};
@@ -1214,6 +1215,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'analytics') setTimeout(renderAnalytics, 30);
   if (name === 'calendar') setTimeout(renderCalendarView, 30);
+  if (name === 'plan') setTimeout(renderPlanSimulator, 30);
   if (name === 'planner') setTimeout(updatePlanner, 30);
 }
 
@@ -1638,6 +1640,379 @@ function drawHeatmap(agg) {
 // ============================================================
 // Render all
 // ============================================================
+// Plan Simulator
+// ============================================================
+function getFirstTradeMonth() {
+  const dates = state.trades.map(t => t.date).filter(Boolean).sort();
+  return dates.length ? dates[0].slice(0, 7) : today().slice(0, 7);
+}
+
+function getMonthlyActualPnL() {
+  const events = getClosingEvents(state.trades);
+  const byMonth = {};
+  for (const e of events) {
+    const m = e.date.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = { pnl: 0, trades: 0, wins: 0, losses: 0 };
+    byMonth[m].pnl += e.pnl;
+    byMonth[m].trades++;
+    if (e.pnl > 0) byMonth[m].wins++;
+    if (e.pnl < 0) byMonth[m].losses++;
+  }
+  return byMonth;
+}
+
+function renderPlanSimulator() {
+  const horizon = Math.max(1, Math.min(120, parseInt(document.getElementById('ps-horizon')?.value) || 24));
+  const targetMoMPct = parseFloat(document.getElementById('ps-target')?.value) || 10;
+  const targetMoM = targetMoMPct / 100;
+  const riskPct = parseFloat(document.getElementById('ps-risk')?.value) || 1;
+  const capitalRaw = parseFloat(document.getElementById('ps-capital')?.value);
+  const startCapital = (capitalRaw > 0) ? capitalRaw : settings.capital;
+
+  // Update placeholder to reflect auto value
+  const psCapEl = document.getElementById('ps-capital');
+  if (psCapEl && !psCapEl.value) psCapEl.placeholder = `Auto (${fmtUSD(settings.capital)})`;
+
+  const firstMonth = getFirstTradeMonth();
+  const byMonthActual = getMonthlyActualPnL();
+  const agg = aggregate();
+  const todayMonth = today().slice(0, 7);
+  const [sy, sm] = firstMonth.split('-').map(Number);
+
+  // Historical expectancy for trade-count estimation
+  const closedTrades = agg.closedTrades;
+  const perTradePNL = closedTrades.map(t => tradeMetrics(t).realized);
+  const winsArr = perTradePNL.filter(x => x > 0);
+  const lossesArr = perTradePNL.filter(x => x < 0);
+  const histWR = perTradePNL.length ? winsArr.length / perTradePNL.length : null;
+  const histAvgWin = winsArr.length ? winsArr.reduce((a, b) => a + b, 0) / winsArr.length : 0;
+  const histAvgLoss = lossesArr.length ? Math.abs(lossesArr.reduce((a, b) => a + b, 0) / lossesArr.length) : 0;
+  const expectancyUSD = histWR !== null ? histWR * histAvgWin - (1 - histWR) * histAvgLoss : null;
+
+  const rows = [];
+  let cumulativeActualPnl = 0;
+
+  for (let i = 0; i < horizon; i++) {
+    const d = new Date(sy, sm - 1 + i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+
+    const planStartDepo = startCapital * Math.pow(1 + targetMoM, i);
+    const planEndDepo   = startCapital * Math.pow(1 + targetMoM, i + 1);
+    const planPnL       = planStartDepo * targetMoM;
+    const cumulativePlanPnl = planEndDepo - startCapital;
+
+    const isFuture  = monthKey > todayMonth;
+    const isCurrent = monthKey === todayMonth;
+
+    const monthData  = byMonthActual[monthKey] || null;
+    const actualPnL  = !isFuture ? (monthData ? monthData.pnl : 0) : null;
+
+    if (!isFuture) cumulativeActualPnl += (actualPnL || 0);
+
+    const actualEndEquity    = !isFuture ? startCapital + cumulativeActualPnl : null;
+    const realizationPct     = !isFuture && planPnL > 0 ? (actualPnL / planPnL) * 100 : null;
+    const gapUSD             = actualEndEquity !== null ? actualEndEquity - planEndDepo : null;
+    const gapPct             = gapUSD !== null && planEndDepo > 0 ? (gapUSD / planEndDepo) * 100 : null;
+
+    const riskUSD      = planStartDepo * riskPct / 100;
+    const tradesNeeded = expectancyUSD && expectancyUSD > 0 ? Math.ceil(planPnL / expectancyUSD) : null;
+    const monthWR      = monthData && monthData.trades > 0 ? (monthData.wins / monthData.trades) * 100 : null;
+
+    rows.push({
+      i: i + 1, monthKey,
+      planStartDepo, planEndDepo, planPnL, cumulativePlanPnl,
+      actualPnL, actualEndEquity,
+      cumulativeActualPnl: !isFuture ? cumulativeActualPnl : null,
+      realizationPct, gapUSD, gapPct,
+      riskUSD, riskPct,
+      tradesNeeded,
+      monthTrades: monthData ? monthData.trades : 0,
+      monthWR,
+      isFuture, isCurrent,
+      isPast: !isFuture && !isCurrent
+    });
+  }
+
+  renderPlanKPIs(rows, startCapital, targetMoM, targetMoMPct, horizon, agg);
+  drawPlanChart(rows, startCapital, targetMoMPct);
+  renderPlanTable(rows);
+  document.getElementById('ps-table-sub').textContent =
+    `Start: ${firstMonth} · horyzont ${horizon} mies. · cel +${targetMoMPct}%/mies. · ryzyko ${riskPct}%/trade`;
+}
+
+function renderPlanKPIs(rows, startCapital, targetMoM, targetMoMPct, horizon, agg) {
+  const wrap = document.getElementById('ps-kpis');
+  if (!wrap) return;
+
+  const actualEquity   = agg.equity;
+  const pastRows       = rows.filter(r => !r.isFuture);
+  const monthsElapsed  = pastRows.length;
+  const monthsLeft     = rows.filter(r => r.isFuture).length;
+
+  const planAtNow    = startCapital * Math.pow(1 + targetMoM, monthsElapsed);
+  const equityVsPlan = planAtNow > 0 ? actualEquity / planAtNow : 1;
+  const equityGapPct = (equityVsPlan - 1) * 100;
+
+  const achievedMoM  = monthsElapsed > 0 && startCapital > 0
+    ? (Math.pow(Math.max(actualEquity / startCapital, 0.0001), 1 / monthsElapsed) - 1) * 100
+    : null;
+  const annualizedReturn = achievedMoM !== null
+    ? (Math.pow(1 + achievedMoM / 100, 12) - 1) * 100
+    : null;
+
+  const realizedRows    = pastRows.filter(r => r.realizationPct !== null);
+  const avgRealization  = realizedRows.length
+    ? realizedRows.reduce((a, r) => a + r.realizationPct, 0) / realizedRows.length : null;
+
+  const finalPlanDepo = rows[rows.length - 1]?.planEndDepo || startCapital * Math.pow(1 + targetMoM, horizon);
+  const requiredMoM   = monthsLeft > 0 && actualEquity > 0
+    ? (Math.pow(finalPlanDepo / actualEquity, 1 / monthsLeft) - 1) * 100 : null;
+
+  const projectedFinal = actualEquity * Math.pow(1 + targetMoM, monthsLeft);
+  const projVsPlan     = projectedFinal / finalPlanDepo;
+
+  const achievedMultiplier = startCapital > 0 ? actualEquity / startCapital : 1;
+  const planMultiplier     = Math.pow(1 + targetMoM, horizon);
+
+  // Best/worst months
+  const withData = realizedRows;
+  const bestM  = withData.length ? Math.max(...withData.map(r => r.realizationPct)) : null;
+  const worstM = withData.length ? Math.min(...withData.map(r => r.realizationPct)) : null;
+
+  const cards = [
+    {
+      label: 'Equity vs Plan (teraz)',
+      value: fmtUSD(actualEquity),
+      sub: `Plan: ${fmtUSD(planAtNow)} · ${equityGapPct >= 0 ? '+' : ''}${equityGapPct.toFixed(1)}%`,
+      cls: equityVsPlan >= 1 ? 'pos' : 'neg'
+    },
+    {
+      label: 'Śr. MoM (faktyczny)',
+      value: achievedMoM !== null ? achievedMoM.toFixed(2) + '%' : '—',
+      sub: `Cel: ${targetMoMPct}% · CAGR ~${annualizedReturn !== null ? annualizedReturn.toFixed(0) : '—'}%/rok`,
+      cls: achievedMoM !== null ? (achievedMoM >= targetMoMPct ? 'pos' : 'neg') : ''
+    },
+    {
+      label: 'Śr. realizacja planu',
+      value: avgRealization !== null ? avgRealization.toFixed(1) + '%' : '—',
+      sub: `${realizedRows.length} mies. z danymi · najlepszy ${bestM !== null ? bestM.toFixed(0) + '%' : '—'}`,
+      cls: avgRealization !== null ? (avgRealization >= 100 ? 'pos' : avgRealization >= 60 ? 'warn' : 'neg') : ''
+    },
+    {
+      label: 'Proj. equity (cel MoM)',
+      value: fmtUSD(projectedFinal),
+      sub: `Za ${monthsLeft} mies. · plan ${fmtUSD(finalPlanDepo)} · ${projVsPlan >= 1 ? '+' : ''}${((projVsPlan - 1) * 100).toFixed(1)}%`,
+      cls: projVsPlan >= 1 ? 'pos' : 'neg'
+    },
+    {
+      label: 'Wymagane MoM do celu',
+      value: requiredMoM !== null ? requiredMoM.toFixed(2) + '%' : '—',
+      sub: `${monthsLeft} mies. pozostało · cel ${fmtUSD(finalPlanDepo)}`,
+      cls: requiredMoM !== null ? (requiredMoM <= targetMoMPct ? 'pos' : requiredMoM <= targetMoMPct * 1.5 ? 'warn' : 'neg') : ''
+    },
+    {
+      label: `Mnożnik (×${(1 + targetMoM).toFixed(1)}^n)`,
+      value: `${achievedMultiplier.toFixed(3)}×`,
+      sub: `Plan za ${horizon} mies.: ×${planMultiplier.toFixed(2)} · aktualnie ${achievedMultiplier >= 1 ? '+' : ''}${((achievedMultiplier - 1) * 100).toFixed(1)}%`,
+      cls: achievedMultiplier >= (planAtNow / startCapital) ? 'pos' : 'neg'
+    }
+  ];
+
+  wrap.innerHTML = cards.map(c => `
+    <div class="ps-kpi-card">
+      <div class="pk-label">${c.label}</div>
+      <div class="pk-value ${c.cls}">${c.value}</div>
+      <div class="pk-sub">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+function drawPlanChart(rows, startCapital, targetMoMPct) {
+  const ctx = document.getElementById('chart-plan');
+  if (!ctx) return;
+
+  const labels     = ['Start', ...rows.map(r => r.monthKey.slice(5))];
+  const planLine   = [startCapital, ...rows.map(r => r.planEndDepo)];
+  const actualLine = [startCapital];
+  const actualFutureLine = new Array(rows.length + 1).fill(null);
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r.isFuture) {
+      actualLine.push(r.actualEndEquity);
+      actualFutureLine[i + 1] = null;
+    } else {
+      actualLine.push(null);
+      // Projected continuation from last actual point
+      const lastActual = actualLine.filter(v => v !== null);
+      const lastVal    = lastActual[lastActual.length - 1] || startCapital;
+      const stepsFromLast = i - (actualLine.filter(v => v !== null).length - 2);
+      actualFutureLine[i + 1] = lastVal * Math.pow(1 + targetMoMPct / 100, stepsFromLast);
+    }
+  }
+
+  // Connect actual to future projection at boundary
+  const lastActualIdx = actualLine.reduce((best, v, idx) => v !== null ? idx : best, 0);
+  if (lastActualIdx > 0 && actualFutureLine.some(v => v !== null)) {
+    actualFutureLine[lastActualIdx] = actualLine[lastActualIdx];
+  }
+
+  if (charts.plan) charts.plan.destroy();
+  charts.plan = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: `Plan +${targetMoMPct}% MoM`,
+          data: planLine,
+          borderColor: '#0057c0',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.15
+        },
+        {
+          label: 'Realizacja',
+          data: actualLine,
+          borderColor: '#0b8a4a',
+          borderWidth: 2.5,
+          pointRadius: (ctx) => actualLine[ctx.dataIndex] !== null && (ctx.dataIndex === 0 || actualLine[ctx.dataIndex - 1] !== null) ? 3 : 0,
+          pointBackgroundColor: '#0b8a4a',
+          fill: false,
+          tension: 0.15
+        },
+        {
+          label: 'Projekcja (cel MoM)',
+          data: actualFutureLine,
+          borderColor: '#0b8a4a',
+          borderWidth: 1.5,
+          borderDash: [4, 3],
+          pointRadius: 0,
+          fill: false,
+          tension: 0.15
+        }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: '#64748b', font: { size: 11 }, usePointStyle: true, pointStyleWidth: 16, boxHeight: 2 }
+        },
+        tooltip: {
+          backgroundColor: '#0f172a',
+          titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0',
+          padding: 10,
+          cornerRadius: 8,
+          callbacks: {
+            label: c => `${c.dataset.label}: ${c.parsed.y !== null ? fmtUSD(c.parsed.y) : '—'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 13 }
+        },
+        y: {
+          grid: { color: 'rgba(226,232,240,0.6)' },
+          border: { display: false },
+          ticks: {
+            color: '#94a3b8', font: { size: 10 },
+            callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'k' : '$' + v
+          }
+        }
+      }
+    }
+  });
+}
+
+function realizCls(pct) {
+  if (pct === null) return '';
+  if (pct >= 110) return 'pos';
+  if (pct >= 100) return 'pos';
+  if (pct >= 50)  return 'warn';
+  return 'neg';
+}
+
+function renderPlanTable(rows) {
+  const wrap = document.getElementById('ps-table-wrap');
+  if (!wrap) return;
+
+  const thead = `<thead><tr>
+    <th class="ps-th-n">#</th>
+    <th>Miesiąc</th>
+    <th class="num">Depo start (plan)</th>
+    <th class="num">Cel depo (×1+%)</th>
+    <th class="num">Plan PnL</th>
+    <th class="num">Fakt. PnL</th>
+    <th class="num">Equity (fakt.)</th>
+    <th class="num">Realizacja %</th>
+    <th class="num">PnL skum. plan</th>
+    <th class="num">PnL skum. fakt.</th>
+    <th class="num">Gap ($)</th>
+    <th class="num">Gap (%)</th>
+    <th class="num">Risk/trade ($)</th>
+    <th class="num">Risk/trade (%)</th>
+    <th class="num">Trans. (hist.)</th>
+    <th class="num">WR (mies.)</th>
+    <th>Status</th>
+  </tr></thead>`;
+
+  const tbody = rows.map(r => {
+    const rowCls = r.isCurrent ? 'ps-row-current' : r.isFuture ? 'ps-row-future' : '';
+    const realPct = r.realizationPct;
+    const rCls    = realizCls(realPct);
+    const gCls    = r.gapUSD === null ? '' : r.gapUSD >= 0 ? 'pos' : 'neg';
+
+    let badge = '';
+    if (r.isFuture)           badge = '<span class="ps-badge ps-badge-future">przyszły</span>';
+    else if (r.isCurrent)     badge = '<span class="ps-badge ps-badge-current">bieżący</span>';
+    else if (realPct === null) badge = '<span class="ps-badge ps-badge-neutral">brak danych</span>';
+    else if (realPct >= 110)  badge = '<span class="ps-badge ps-badge-over">ponad plan</span>';
+    else if (realPct >= 100)  badge = '<span class="ps-badge ps-badge-on">na planie</span>';
+    else if (realPct >= 50)   badge = '<span class="ps-badge ps-badge-partial">częściowo</span>';
+    else                      badge = '<span class="ps-badge ps-badge-miss">poniżej</span>';
+
+    const fmtGap = (v) => v === null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+
+    return `<tr class="${rowCls}">
+      <td class="ps-td-n muted">${r.i}</td>
+      <td class="mono" style="font-size:12px;font-weight:600;">${r.monthKey}</td>
+      <td class="num mono">${fmtUSD(r.planStartDepo)}</td>
+      <td class="num mono">${fmtUSD(r.planEndDepo)}</td>
+      <td class="num mono pos">${fmtUSD(r.planPnL, true)}</td>
+      <td class="num mono ${r.actualPnL === null ? '' : posClass(r.actualPnL)}">${r.actualPnL === null ? '—' : fmtUSD(r.actualPnL, true)}</td>
+      <td class="num mono">${r.actualEndEquity === null ? '—' : fmtUSD(r.actualEndEquity)}</td>
+      <td class="num mono ${rCls}">${realPct === null ? '—' : realPct.toFixed(1) + '%'}</td>
+      <td class="num mono muted">${fmtUSD(r.cumulativePlanPnl, true)}</td>
+      <td class="num mono ${r.cumulativeActualPnl === null ? '' : posClass(r.cumulativeActualPnl)}">${r.cumulativeActualPnl === null ? '—' : fmtUSD(r.cumulativeActualPnl, true)}</td>
+      <td class="num mono ${gCls}">${r.gapUSD === null ? '—' : fmtUSD(r.gapUSD, true)}</td>
+      <td class="num mono ${gCls}">${fmtGap(r.gapPct)}</td>
+      <td class="num mono">${fmtUSD(r.riskUSD)}</td>
+      <td class="num muted" style="font-size:11px;">${r.riskPct}%</td>
+      <td class="num">${r.tradesNeeded !== null ? r.tradesNeeded : '—'}</td>
+      <td class="num ${r.monthWR === null ? 'muted' : r.monthWR >= 50 ? 'pos' : 'neg'}">${r.monthWR !== null ? r.monthWR.toFixed(0) + '%' : (r.monthTrades > 0 ? '0%' : '—')}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div style="overflow-x:auto;"><table class="tc-tbl ps-tbl">${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
+// ============================================================
 function renderAll() {
   const agg = aggregate();
   renderHeader(agg);
@@ -1651,6 +2026,7 @@ function renderAll() {
   // Only redraw analytics if tab visible
   if (document.getElementById('tab-analytics').classList.contains('active')) renderAnalytics();
   if (document.getElementById('tab-calendar').classList.contains('active')) renderCalendarView();
+  if (document.getElementById('tab-plan').classList.contains('active')) renderPlanSimulator();
 }
 
 // ============================================================
@@ -1695,6 +2071,17 @@ function init() {
   }));
   document.getElementById('cal-prev').addEventListener('click', () => shiftCalendarMonth(-1));
   document.getElementById('cal-next').addEventListener('click', () => shiftCalendarMonth(1));
+
+  // Plan simulator
+  document.getElementById('ps-apply').addEventListener('click', renderPlanSimulator);
+  ['ps-horizon', 'ps-target', 'ps-risk', 'ps-capital'].forEach(id => {
+    const node = document.getElementById(id);
+    node.addEventListener('change', renderPlanSimulator);
+    node.addEventListener('keydown', e => { if (e.key === 'Enter') renderPlanSimulator(); });
+  });
+  const psCapitalEl = document.getElementById('ps-capital');
+  if (psCapitalEl && !psCapitalEl.value) psCapitalEl.placeholder = `Auto (${fmtUSD(settings.capital)})`;
+
 
   // Planner listeners
   ['p-ticker', 'p-entry', 'p-sl', 'p-tp', 'p-riskpct', 'p-lev', 'p-date', 'p-note', 'p-size-override'].forEach(id => {
