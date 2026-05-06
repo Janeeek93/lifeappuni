@@ -23,6 +23,7 @@ let eqRange = '90';
 let tradeFilters = { status: 'all', dir: 'all', q: '', closedGrouping: 'month' };
 let calendarState = { month: today().slice(0, 7), metric: 'pnl' };
 let planSimState = { horizon: 24, targetMoM: 10, riskPct: 1 };
+let currencyState = { mode: 'USD', rate: null, rateDate: null };
 let expandedRows = new Set();
 let expandedClosedGroups = new Set();
 let charts = {};
@@ -37,9 +38,26 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ 
 function fmtUSD(v, sign = false) {
   if (v === null || v === undefined || !Number.isFinite(Number(v))) return '—';
   v = Number(v);
+  if (currencyState.mode === 'PLN' && currencyState.rate) {
+    v = v * currencyState.rate;
+    const abs = Math.abs(v);
+    const s = abs >= 1000
+      ? abs.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : abs.toFixed(2);
+    return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + s + ' zł';
+  }
   const abs = Math.abs(v);
   const s = abs >= 1000 ? abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : abs.toFixed(2);
   return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + '$' + s;
+}
+
+// Always returns USD-formatted string regardless of currencyState (for inputs / raw labels)
+function fmtUSDraw(v) {
+  if (!Number.isFinite(Number(v))) return '—';
+  v = Number(v);
+  const abs = Math.abs(v);
+  const s = abs >= 1000 ? abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : abs.toFixed(2);
+  return '$' + s;
 }
 function fmtPct(v, sign = true, dp = 2) {
   if (v === null || v === undefined || !Number.isFinite(Number(v))) return '—';
@@ -1640,6 +1658,64 @@ function drawHeatmap(agg) {
 // ============================================================
 // Render all
 // ============================================================
+// Currency — NBP rate fetch
+// ============================================================
+const FX_CACHE_KEY = 'lifeos_fx_usdpln_v1';
+
+async function fetchNBPRate() {
+  // Try localStorage cache first (1 h TTL)
+  try {
+    const cached = JSON.parse(localStorage.getItem(FX_CACHE_KEY) || 'null');
+    if (cached?.rate > 0 && (Date.now() - cached.ts) < 3_600_000) {
+      currencyState.rate     = cached.rate;
+      currencyState.rateDate = cached.date;
+      updateRateBadge();
+      return;
+    }
+  } catch {}
+
+  updateRateBadge('loading');
+  try {
+    const resp = await fetch('https://api.nbp.pl/api/exchangerates/rates/a/usd/?format=json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const rate = data?.rates?.[0]?.mid;
+    const date = data?.rates?.[0]?.effectiveDate || '';
+    if (rate > 0) {
+      currencyState.rate     = rate;
+      currencyState.rateDate = date;
+      localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ rate, date, ts: Date.now() }));
+      updateRateBadge();
+      if (currencyState.mode === 'PLN') renderAll();
+    }
+  } catch (e) {
+    console.warn('[NBP] rate fetch failed:', e);
+    updateRateBadge('error');
+  }
+}
+
+function updateRateBadge(state) {
+  const badge = document.getElementById('rate-badge');
+  if (!badge) return;
+  if (state === 'loading') {
+    badge.textContent = 'Pobieranie kursu NBP…';
+    badge.className = 'tc-rate-badge loading';
+    return;
+  }
+  if (state === 'error' || !currencyState.rate) {
+    badge.textContent = currencyState.mode === 'PLN' ? 'Błąd kursu NBP' : '';
+    badge.className = 'tc-rate-badge error';
+    return;
+  }
+  badge.className = 'tc-rate-badge';
+  if (currencyState.mode === 'PLN') {
+    badge.textContent = `1 USD = ${currencyState.rate.toFixed(4)} PLN · NBP ${currencyState.rateDate || ''}`;
+  } else {
+    badge.textContent = `kurs: ${currencyState.rate ? currencyState.rate.toFixed(4) + ' PLN/USD' : ''}`;
+  }
+}
+
+// ============================================================
 // Plan Simulator
 // ============================================================
 function getFirstTradeMonth() {
@@ -1669,9 +1745,9 @@ function renderPlanSimulator() {
   const capitalRaw = parseFloat(document.getElementById('ps-capital')?.value);
   const startCapital = (capitalRaw > 0) ? capitalRaw : settings.capital;
 
-  // Update placeholder to reflect auto value
+  // Update placeholder to reflect auto value (always in USD since input is USD)
   const psCapEl = document.getElementById('ps-capital');
-  if (psCapEl && !psCapEl.value) psCapEl.placeholder = `Auto (${fmtUSD(settings.capital)})`;
+  if (psCapEl && !psCapEl.value) psCapEl.placeholder = `Auto (${fmtUSDraw(settings.capital)})`;
 
   const firstMonth = getFirstTradeMonth();
   const byMonthActual = getMonthlyActualPnL();
@@ -2080,7 +2156,23 @@ function init() {
     node.addEventListener('keydown', e => { if (e.key === 'Enter') renderPlanSimulator(); });
   });
   const psCapitalEl = document.getElementById('ps-capital');
-  if (psCapitalEl && !psCapitalEl.value) psCapitalEl.placeholder = `Auto (${fmtUSD(settings.capital)})`;
+  if (psCapitalEl && !psCapitalEl.value) psCapitalEl.placeholder = `Auto (${fmtUSDraw(settings.capital)})`;
+
+  // Currency toggle
+  document.querySelectorAll('.tc-cur-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.tc-cur-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currencyState.mode = b.dataset.cur;
+    updateRateBadge();
+    if (currencyState.mode === 'PLN' && !currencyState.rate) {
+      fetchNBPRate();
+    } else {
+      renderAll();
+    }
+  }));
+
+  // Fetch rate in background on load (for when user switches to PLN)
+  fetchNBPRate();
 
 
   // Planner listeners
