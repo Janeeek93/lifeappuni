@@ -353,6 +353,22 @@
     .inv-holdings-group-toggle { border:none; background:transparent; cursor:pointer; font:inherit; color:inherit; display:flex; align-items:center; gap:8px; padding:0; }
     .inv-holdings-group-chevron { color:var(--muted); width:12px; display:inline-block; }
     .inv-holdings-group-metrics { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; font-size:12px; font-weight:600; color:var(--muted); }
+    .inv-asset-name-btn{background:none;border:none;padding:0;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;text-align:left}
+    .inv-asset-name-btn:hover{color:var(--accent);text-decoration:underline}
+    .inv-deep-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:1400}
+    .inv-deep-backdrop.open{display:flex}
+    .inv-deep-modal{width:min(980px,100%);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 30px 60px rgba(15,23,42,.35);display:grid;gap:14px}
+    .inv-deep-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .inv-deep-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    .inv-deep-kpi{border:1px solid var(--line);background:#f8fafc;border-radius:12px;padding:10px 12px}
+    .inv-deep-kpi .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+    .inv-deep-kpi .val{margin-top:4px;font-size:18px;font-weight:800}
+    .inv-deep-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+    .inv-deep-list{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+    .inv-deep-list table{width:100%;border-collapse:collapse}
+    .inv-deep-list th,.inv-deep-list td{padding:7px 4px;border-bottom:1px solid #eef2f7;font-size:12px;text-align:left}
+    .inv-deep-list tr:last-child td{border-bottom:none}
+    @media(max-width:780px){.inv-deep-grid{grid-template-columns:1fr}}
 
     /* --- Investment Analytics Hub ------------------------------------------- */
     .inv-hub-snapshot-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
@@ -5341,6 +5357,32 @@
             </div>
           </div>
 
+          <div class="inv-deep-backdrop" id="inv-deep-backdrop" aria-hidden="true">
+            <div class="inv-deep-modal" role="dialog" aria-modal="true" aria-labelledby="inv-deep-title">
+              <div class="inv-deep-head">
+                <div>
+                  <h3 id="inv-deep-title" style="margin:0">Szczegóły aktywa</h3>
+                  <div class="tiny muted" id="inv-deep-sub">—</div>
+                </div>
+                <button class="btn ghost" type="button" id="inv-deep-close">Zamknij</button>
+              </div>
+              <div class="inv-deep-kpis" id="inv-deep-kpis"></div>
+              <div class="inv-deep-grid">
+                <div class="inv-deep-list">
+                  <div class="row" style="justify-content:space-between"><strong>Historia transakcji</strong><span class="tiny muted" id="inv-deep-count"></span></div>
+                  <table>
+                    <thead><tr><th>Data</th><th>Typ</th><th>Ilość</th><th>Kwota</th><th>Cena/szt</th><th>Dni</th><th>P&amp;L transakcji</th></tr></thead>
+                    <tbody id="inv-deep-trades"></tbody>
+                  </table>
+                </div>
+                <div class="inv-deep-list">
+                  <strong>Metryki pozycji</strong>
+                  <table><tbody id="inv-deep-metrics"></tbody></table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Group Summary -->
           <div class="card stack">
             <div class="row" style="justify-content:space-between;align-items:center">
@@ -8864,6 +8906,11 @@
         }
       };
     };
+    const bindDeepDive=tr=>{
+      tr.querySelector('.inv-asset-name-btn')?.addEventListener('click',()=>{
+        openInvestmentAssetDetail(tr.dataset.assetId, holdings, stats);
+      });
+    };
 
     for(const g of groups){
       const isCollapsed=invCollapsedGroups.has(g.name);
@@ -8890,9 +8937,11 @@
           roiHtml=`<span class="${cls}">${sign}${pct.toFixed(1)}%</span>`;
         }
         const priceDisplay=h.currentPrice?fmt(h.currentPrice,state.currency):'<span class="muted">ustaw</span>';
-        tr.innerHTML=`<td><strong>${escapeHtml(h.name)}</strong></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
+        tr.dataset.assetId=h.id;
+        tr.innerHTML=`<td><button type="button" class="inv-asset-name-btn" title="Kliknij, aby zobaczyć szczegóły">${escapeHtml(h.name)}</button></td><td>${h.qty.toFixed(4)}</td><td>${fmt(h.avgCost,state.currency)}</td><td class="inv-price-cell" data-asset-id="${h.id}" style="cursor:pointer" title="Kliknij, aby zmienić cenę">${priceDisplay}</td><td>${fmt(val,state.currency)}</td><td>${pnlHtml}</td><td>${roiHtml}</td><td>${weight}%</td><td><button class="btn ghost inv-sell-quick" data-sell-asset="${h.id}" data-sell-qty="${h.qty}" style="font-size:11px;padding:4px 8px">Sprzedaj</button></td>`;
         bindPriceEditor(tr);
         bindQuickSell(tr);
+        bindDeepDive(tr);
         tbody.appendChild(tr);
       }
     }
@@ -8919,6 +8968,90 @@
       }
       tfoot.innerHTML=`<tr style="font-weight:700;border-top:2px solid rgba(148,163,184,.3)"><td colspan="2">Razem</td><td>${fmt(totalCost,state.currency)}</td><td></td><td>${fmt(totalMV,state.currency)}</td><td>${pnlFoot}</td><td>${roiFoot}</td><td>100%</td><td></td></tr>`;
     }
+  }
+
+  function openInvestmentAssetDetail(assetId, holdingsFromRender, stats){
+    const data=investments();
+    const asset=data.assets.find(a=>a.id===assetId);
+    if(!asset) return;
+    const holding=(holdingsFromRender||[]).find(h=>h.id===assetId) || computeHoldingsFIFO().find(h=>h.id===assetId);
+    const assetTrades=[...data.trades].filter(t=>t.assetId===assetId).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+    const buys=assetTrades.filter(t=>t.side!=='sell');
+    const sells=assetTrades.filter(t=>t.side==='sell');
+    const buyAmount=buys.reduce((s,t)=>s+num(t.amount),0);
+    const sellAmount=sells.reduce((s,t)=>s+num(t.amount),0);
+    const realized=sells.reduce((s,t)=>s+num(t.realizedPnl),0);
+    const unrealized=holding?.unrealizedPnl??null;
+    const totalPnl=(unrealized===null?0:unrealized)+realized;
+    const roi=(buyAmount>0)?(totalPnl/buyAmount)*100:null;
+    const firstDate=[...assetTrades].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))[0]?.date||'—';
+    const lastDate=assetTrades[0]?.date||'—';
+    const now=new Date();
+    const firstDateObj=firstDate!=='—'?new Date(firstDate):null;
+    const holdingDays=firstDateObj?Math.max(0,Math.floor((now-firstDateObj)/(1000*60*60*24))):null;
+    const cur=state.currency;
+    const avgBuyPrice=buys.length?buys.reduce((s,t)=>s+(num(t.amount)/Math.max(num(t.quantity),0.000001)),0)/buys.length:null;
+
+    document.getElementById('inv-deep-title').textContent=`${asset.name}`;
+    document.getElementById('inv-deep-sub').textContent=`${asset.group||'Inne'} • ${asset.symbol||'brak tickera'}`;
+    document.getElementById('inv-deep-count').textContent=`${assetTrades.length} transakcji`;
+    document.getElementById('inv-deep-kpis').innerHTML=`
+      <div class="inv-deep-kpi"><div class="lbl">Ilość otwarta</div><div class="val">${holding?holding.qty.toFixed(4):'0'}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Wartość rynkowa</div><div class="val">${holding?fmt(holding.marketValue!==null?holding.marketValue:holding.costBasis,cur):'—'}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Niezrealizowane P&L</div><div class="val ${unrealized>=0?'inv-pnl-pos':'inv-pnl-neg'}">${unrealized===null?'—':`${unrealized>=0?'+':''}${fmt(unrealized,cur)}`}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Zrealizowane P&L</div><div class="val ${realized>=0?'inv-pnl-pos':'inv-pnl-neg'}">${realized>=0?'+':''}${fmt(realized,cur)}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Łączne P&L</div><div class="val ${totalPnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${totalPnl>=0?'+':''}${fmt(totalPnl,cur)}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">ROI od wpłat</div><div class="val">${roi===null?'—':`${roi>=0?'+':''}${roi.toFixed(1)}%`}</div></div>
+      <div class="inv-deep-kpi"><div class="lbl">Dni w pozycji</div><div class="val">${holdingDays===null?'—':holdingDays}</div></div>`;
+
+    document.getElementById('inv-deep-metrics').innerHTML=`
+      <tr><td>Pierwsza transakcja</td><td><strong>${firstDate}</strong></td></tr>
+      <tr><td>Ostatnia transakcja</td><td><strong>${lastDate}</strong></td></tr>
+      <tr><td>Suma zakupów</td><td><strong>${fmt(buyAmount,cur)}</strong></td></tr>
+      <tr><td>Suma sprzedaży</td><td><strong>${fmt(sellAmount,cur)}</strong></td></tr>
+      <tr><td>Średni koszt/szt</td><td><strong>${holding?fmt(holding.avgCost,cur):'—'}</strong></td></tr>
+      <tr><td>Aktualna cena</td><td><strong>${asset.currentPrice?fmt(asset.currentPrice,cur):'—'}</strong></td></tr>
+      <tr><td>Data aktualizacji ceny</td><td><strong>${asset.priceDate||'—'}</strong></td></tr>
+      <tr><td>Udział w portfelu</td><td><strong>${holding&&stats?.totalMarketValue?(((holding.marketValue!==null?holding.marketValue:holding.costBasis)/stats.totalMarketValue)*100).toFixed(1)+'%':'—'}</strong></td></tr>`;
+
+    const backdrop=document.getElementById('inv-deep-backdrop');
+    const buyLots=buys.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const sellQueue=sells.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).map(t=>({qty:num(t.quantity)}));
+    const lots=buyLots.map(t=>({date:t.date,qty:num(t.quantity),amount:num(t.amount),ppu:num(t.amount)/Math.max(num(t.quantity),0.000001),remaining:num(t.quantity)}));
+    for(const lot of lots){
+      let remainingToMatch=lot.remaining;
+      for(const sq of sellQueue){
+        if(remainingToMatch<=0) break;
+        if(sq.qty<=0) continue;
+        const take=Math.min(remainingToMatch,sq.qty);
+        remainingToMatch-=take;
+        sq.qty-=take;
+      }
+      lot.remaining=remainingToMatch;
+      const days=Math.max(0,Math.floor((now-new Date(lot.date||now))/(1000*60*60*24)));
+      const refPrice=num(asset.currentPrice)||lot.ppu;
+      lot.unrealized=(refPrice-lot.ppu)*lot.remaining;
+      lot.days=days;
+      lot.lateFlag=avgBuyPrice!==null&&lot.ppu>avgBuyPrice*1.1;
+    }
+    const lotByDateAndPpu=new Map(lots.map(l=>[`${l.date}|${l.ppu.toFixed(8)}|${l.qty.toFixed(8)}`,l]));
+    const tbody=document.getElementById('inv-deep-trades');
+    tbody.innerHTML=assetTrades.length?assetTrades.map(t=>{
+      const qty=num(t.quantity), amt=num(t.amount), ppu=qty>0?amt/qty:0, isSell=t.side==='sell', rp=num(t.realizedPnl);
+      const days=t.date?Math.max(0,Math.floor((now-new Date(t.date))/(1000*60*60*24))):0;
+      let txPnlHtml='—';
+      if(isSell){
+        txPnlHtml=`<span class="${rp>=0?'inv-pnl-pos':'inv-pnl-neg'}">${rp>=0?'+':''}${fmt(rp,cur)}</span>`;
+      } else {
+        const key=`${t.date}|${ppu.toFixed(8)}|${qty.toFixed(8)}`;
+        const lot=lotByDateAndPpu.get(key);
+        const lotPnl=lot?lot.unrealized:(num(asset.currentPrice)-ppu)*qty;
+        txPnlHtml=`<span class="${lotPnl>=0?'inv-pnl-pos':'inv-pnl-neg'}">${lotPnl>=0?'+':''}${fmt(lotPnl,cur)}</span>${lot?.lateFlag?' <span class="tiny" style="color:#b45309">(szczyt?)</span>':''}`;
+      }
+      return `<tr><td>${t.date||'—'}</td><td>${isSell?'SELL':'BUY'}</td><td>${qty.toFixed(4)}</td><td>${fmt(amt,cur)}</td><td>${fmt(ppu,cur)}</td><td>${days}</td><td>${txPnlHtml}</td></tr>`;
+    }).join(''):'<tr><td colspan="7" class="muted">Brak transakcji</td></tr>';
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
   }
 
 
@@ -11527,6 +11660,24 @@
     if(exportJsonBtn&&!exportJsonBtn._bound){exportJsonBtn._bound=true;exportJsonBtn.onclick=exportInvestmentsJson;}
     const exportCsvBtn=document.getElementById('inv-export-csv');
     if(exportCsvBtn&&!exportCsvBtn._bound){exportCsvBtn._bound=true;exportCsvBtn.onclick=exportInvestmentsCsv;}
+    const deepBackdrop=document.getElementById('inv-deep-backdrop');
+    const deepClose=document.getElementById('inv-deep-close');
+    if(deepBackdrop&&!deepBackdrop._bound){
+      deepBackdrop._bound=true;
+      deepBackdrop.addEventListener('click',e=>{
+        if(e.target===deepBackdrop){
+          deepBackdrop.classList.remove('open');
+          deepBackdrop.setAttribute('aria-hidden','true');
+        }
+      });
+    }
+    if(deepClose&&!deepClose._bound){
+      deepClose._bound=true;
+      deepClose.onclick=()=>{
+        deepBackdrop?.classList.remove('open');
+        deepBackdrop?.setAttribute('aria-hidden','true');
+      };
+    }
     renderAssetManagerList(data.assets,data.trades);
 
     // Buy form

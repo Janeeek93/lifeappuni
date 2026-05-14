@@ -117,6 +117,53 @@ body[data-page="trading"] .site-header__title {
 .tc-hdr-btn.primary:hover { background: var(--tc-accent-ink); border-color: var(--tc-accent-ink); }
 .tc-hdr-btn.danger:hover { border-color: var(--tc-neg); color: var(--tc-neg); }
 
+/* -------------------- Currency toggle -------------------- */
+.tc-cur-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-line);
+  border-radius: var(--tc-radius-sm);
+  padding: 2px;
+  height: 32px;
+}
+.tc-cur-btn {
+  border: 0;
+  background: transparent;
+  color: var(--tc-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.tc-cur-btn:hover { color: var(--tc-ink); }
+.tc-cur-btn.active {
+  background: var(--tc-card);
+  color: var(--tc-accent);
+  box-shadow: 0 1px 3px rgba(15,23,42,.1);
+}
+.tc-rate-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tc-muted-2);
+  white-space: nowrap;
+  font-family: var(--mono);
+  padding: 0 2px;
+}
+.tc-rate-badge.loading { color: var(--tc-muted-2); font-style: italic; }
+.tc-rate-badge.error   { color: var(--tc-neg); }
+.tc-hdr-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--tc-line);
+  flex-shrink: 0;
+}
+
 /* -------------------- Tabs (keep existing slot, restyle) -------------------- */
 .trade-tabs {
   display: inline-flex;
@@ -1265,3 +1312,179 @@ body[data-page="trading"] .site-header__title {
 .scroll-x { overflow-x: auto; }
 .scroll-x::-webkit-scrollbar { height: 8px; }
 .scroll-x::-webkit-scrollbar-thumb { background: var(--tc-line-strong); border-radius: 4px; }
+
+/* ============================================================
+   PLAN SIMULATOR TAB
+   ============================================================ */
+
+/* Controls row */
+.ps-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+.ps-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ps-ctrl-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+}
+.ps-ctrl-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ps-input {
+  width: 96px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--tc-line);
+  background: var(--tc-surface);
+  border-radius: var(--tc-radius-sm);
+  font-size: 13px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--tc-ink);
+  transition: border-color .15s;
+}
+.ps-input:focus { outline: none; border-color: var(--tc-accent); background: var(--tc-card); }
+.ps-ctrl-unit {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tc-muted-2);
+}
+
+/* KPI grid */
+.ps-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.ps-kpi-card {
+  background: var(--tc-card);
+  border: 1px solid var(--tc-line);
+  border-radius: var(--tc-radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ps-kpi-card .pk-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+}
+.ps-kpi-card .pk-value {
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--mono);
+  color: var(--tc-ink);
+  letter-spacing: -.02em;
+  line-height: 1.15;
+}
+.ps-kpi-card .pk-value.pos { color: var(--tc-pos); }
+.ps-kpi-card .pk-value.neg { color: var(--tc-neg); }
+.ps-kpi-card .pk-value.warn { color: var(--tc-warn); }
+.ps-kpi-card .pk-sub {
+  font-size: 11px;
+  color: var(--tc-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* Chart */
+.ps-chart-wrap {
+  height: 280px;
+  padding: 8px 16px 16px;
+}
+
+/* Table */
+.ps-tbl-wrap {
+  overflow-x: auto;
+}
+.ps-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.ps-tbl th {
+  position: sticky;
+  top: 0;
+  background: var(--tc-surface);
+  border-bottom: 2px solid var(--tc-line-strong);
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+  white-space: nowrap;
+  text-align: left;
+}
+.ps-tbl th.num { text-align: right; }
+.ps-tbl td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--tc-line);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.ps-tbl tbody tr:last-child td { border-bottom: 0; }
+.ps-tbl tbody tr:hover { background: var(--tc-surface); }
+
+/* Row state highlighting */
+.ps-row-current { background: #fffbeb !important; }
+.ps-row-current:hover { background: #fef9e0 !important; }
+.ps-row-current td:first-child { border-left: 3px solid var(--tc-warn); }
+.ps-row-future { opacity: 0.55; }
+.ps-row-future td { color: var(--tc-muted-2); }
+
+.ps-th-n, .ps-td-n {
+  width: 28px;
+  font-size: 10px;
+  color: var(--tc-muted-2);
+  padding-right: 4px;
+}
+
+/* Color classes for table cells */
+.ps-tbl .pos  { color: var(--tc-pos); }
+.ps-tbl .neg  { color: var(--tc-neg); }
+.ps-tbl .warn { color: var(--tc-warn); }
+.ps-tbl .muted { color: var(--tc-muted); }
+
+/* Status badges */
+.ps-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.ps-badge-over    { background: #d1fae5; color: #065f46; }
+.ps-badge-on      { background: var(--tc-pos-tint); color: var(--tc-pos); }
+.ps-badge-partial { background: var(--tc-warn-tint); color: var(--tc-warn); }
+.ps-badge-miss    { background: var(--tc-neg-tint); color: var(--tc-neg); }
+.ps-badge-current { background: #fef3c7; color: #92400e; }
+.ps-badge-future  { background: var(--tc-surface); color: var(--tc-muted-2); border: 1px solid var(--tc-line); }
+.ps-badge-neutral { background: var(--tc-surface); color: var(--tc-muted); }
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .ps-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .ps-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ps-controls { gap: 10px; }
+  .ps-input { width: 80px; }
+}
