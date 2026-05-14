@@ -2513,22 +2513,103 @@
       border-radius: 10px;
       background: var(--surface);
     }
-    .spread-day-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      padding: 4px 10px;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      cursor: pointer;
+    /* ---- Spread modal ---- */
+    .spread-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .spread-modal {
+      background: var(--bg);
+      border-radius: 16px;
+      width: 100%; max-width: 920px;
+      max-height: 92vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 72px rgba(0,0,0,.35);
+    }
+    .spread-modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .spread-modal-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+    }
+    .spread-editor-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      min-height: 0;
+    }
+    @media (max-width: 700px) {
+      .spread-editor-layout { grid-template-columns: 1fr; }
+    }
+    .spread-editor-form-col { display: flex; flex-direction: column; gap: 10px; }
+    .spread-editor-form-col label.field-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; display: block; }
+    .spread-editor-form-col input,
+    .spread-editor-form-col select { width: 100%; }
+    .spread-editor-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .spread-calc-summary { font-size: 15px; font-weight: 600; color: var(--accent); }
+    /* Calendar */
+    .spread-cal-scroll { overflow-y: auto; max-height: 480px; padding-right: 4px; }
+    .spread-cal-month { margin-bottom: 18px; }
+    .spread-cal-month-title {
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+    .spread-cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    }
+    .spread-cal-dow {
+      text-align: center; font-size: 10px; color: var(--muted);
+      padding: 3px 0; font-weight: 600;
+    }
+    .spread-cal-day {
+      aspect-ratio: 1; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: background .08s, border-color .08s;
       user-select: none;
     }
-    .spread-day-label:has(input:checked) {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
+    .spread-cal-day.scd-active   { background: var(--accent); color: #fff; }
+    .spread-cal-day.scd-inactive { background: var(--surface); color: var(--text); }
+    .spread-cal-day.scd-inactive:hover { border-color: var(--accent); }
+    .spread-cal-day.scd-weekend  { color: var(--muted); }
+    .spread-cal-day.scd-today    { border-color: var(--accent) !important; }
+    .spread-cal-day.scd-oor      { opacity: .2; cursor: default; pointer-events: none; }
+    .spread-cal-day.scd-empty    { background: transparent; cursor: default; pointer-events: none; }
+    .spread-day-counter { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: right; }
+    /* Preset chips */
+    .spread-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .spread-chip {
+      display: inline-block; padding: 3px 11px; border-radius: 20px; font-size: 12px;
+      border: 1px solid var(--line); cursor: pointer; background: var(--bg);
+      transition: background .1s, border-color .1s, color .1s;
     }
+    .spread-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .spread-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    /* Template cards in list */
+    .spread-tpl-card {
+      border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+      margin-bottom: 10px; background: var(--surface);
+      transition: border-color .15s;
+    }
+    .spread-tpl-card:hover { border-color: var(--accent); }
+    .spread-tpl-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+    .spread-prog-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .spread-prog-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s; }
 
     .banner {
       background: #ecfeff;
@@ -5259,50 +5340,18 @@
         </table>
       </div>
 
-      <!-- Wydatki rozkładane -->
-      <div id="spread-suggestions" class="card" style="margin-bottom:10px; display:none">
-        <div class="row">
-          <div class="title">📅 Rozkładane — aktywne dziś</div>
-          <div class="tiny muted" id="spread-sugg-info"></div>
-        </div>
-        <div id="spread-sugg-list" class="grid" style="gap:6px;margin-top:6px"></div>
-      </div>
-
-      <div id="spread-manage" class="editor-section" style="display:none">
-        <div class="title">Wydatki rozkładane</div>
-        <div class="tiny" style="margin-bottom:8px">Kwota zostaje automatycznie podzielona na wybrane dni i dodawana codziennie jako transakcja.</div>
-        <form id="spread-add-form" class="grid g-4" style="margin-top:8px">
-          <input name="label" placeholder="Nazwa (np. Catering)" required style="grid-column:1/-1"/>
-          <input name="totalAmount" inputmode="decimal" placeholder="Łączna kwota (zł)" required />
-          <select name="categoryId" required></select>
-          <select name="accountId"></select>
-          <input name="note" placeholder="Notatka" />
-          <label style="font-size:13px;color:var(--muted)">Data od</label>
-          <label style="font-size:13px;color:var(--muted)">Data do</label>
-          <input name="startDate" type="date" required />
-          <input name="endDate" type="date" required />
-          <div style="grid-column:1/-1">
-            <div style="margin-bottom:6px;font-size:13px;color:var(--muted)">Aktywne dni tygodnia</div>
-            <div id="spread-days-picker" style="display:flex;gap:8px;flex-wrap:wrap">
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="1" checked/> Pon</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="2" checked/> Wt</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="3" checked/> Śr</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="4" checked/> Czw</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="5" checked/> Pt</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="6"/> Sob</label>
-              <label class="spread-day-label"><input type="checkbox" name="dow" value="0"/> Nd</label>
-            </div>
+      <!-- Wydatki rozkładane — compact status bar -->
+      <div id="spread-status-bar" style="display:none;margin-bottom:10px">
+        <div class="card" style="padding:10px 14px">
+          <div class="row">
+            <div style="font-size:13px">📅 <b>Rozkładane aktywne:</b> <span id="spread-status-text"></span></div>
+            <button class="btn ghost" style="font-size:12px" id="spread-open-modal-status">Zarządzaj</button>
           </div>
-          <div id="spread-preview" style="grid-column:1/-1;font-size:12px;color:var(--muted);min-height:16px"></div>
-          <button class="btn" type="submit" style="grid-column:1/-1">Dodaj wydatek rozkładany</button>
-        </form>
-        <table style="margin-top:10px" id="spread-table">
-          <thead><tr><th>Nazwa</th><th>Kwota łączna</th><th>Kwota/dzień</th><th>Od</th><th>Do</th><th>Dni tyg.</th><th>Kategoria</th><th>Postęp</th><th></th></tr></thead>
-          <tbody id="spread-rows"></tbody>
-        </table>
+          <div id="spread-status-list" style="margin-top:6px;display:flex;flex-direction:column;gap:4px"></div>
+        </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-        <button class="btn ghost" id="spread-manage-toggle">📅 Wydatki rozkładane</button>
+        <button class="btn ghost" id="spread-open-modal-btn">📅 Wydatki rozkładane</button>
       </div>
 
       <!-- Dodawanie transakcji -->
@@ -7965,11 +8014,10 @@
     const ym=b().workingMonth; document.getElementById('var-month').textContent=ym;
     applySpreadTemplates();
     renderSpreadSuggestions();
-    document.getElementById('spread-manage-toggle').onclick=()=>{
-      const m=document.getElementById('spread-manage');
-      m.style.display = m.style.display==='none'?'block':'none';
-      if(m.style.display==='block') renderSpreadManager();
-    };
+    const openBtn = document.getElementById('spread-open-modal-btn');
+    if(openBtn) openBtn.onclick = openSpreadModal;
+    const openBtnStatus = document.getElementById('spread-open-modal-status');
+    if(openBtnStatus) openBtnStatus.onclick = openSpreadModal;
     renderRecurringSuggestions();
 
     const tbody=document.getElementById('var-rows');tbody.innerHTML='';
@@ -19572,10 +19620,10 @@
 
 
   // --- Spread (distributed) expense templates ---------------------------------
-  const DOW_NAMES = ['Nd','Pon','Wt','Śr','Czw','Pt','Sob'];
 
   function getSpreadDates(tpl){
-    // Returns sorted array of 'YYYY-MM-DD' strings within [startDate, endDate] matching tpl.activeDows
+    if(Array.isArray(tpl.activeDates)) return [...tpl.activeDates].sort();
+    // Legacy fallback: activeDows-based
     const dows = new Set((tpl.activeDows||[1,2,3,4,5]).map(Number));
     const dates = [];
     const cur = new Date(tpl.startDate + 'T00:00:00');
@@ -19609,8 +19657,7 @@
         if(isSpreadLogged(tpl.id, date)) continue;
         const txId = `tx_${Math.random().toString(36).slice(2)}`;
         b().transactions.unshift({
-          id: txId,
-          date,
+          id: txId, date,
           amount: signFor(tpl.categoryId, daily),
           categoryId: tpl.categoryId,
           accountId: tpl.accountId || b().accounts[0]?.id || 'a_main',
@@ -19625,109 +19672,301 @@
     return changed;
   }
 
+  // ---- Modal state ----
+  let _spreadEditId = null;
+  let _spreadSelDates = new Set();
+
   function renderSpreadSuggestions(){
     const today = new Date().toISOString().slice(0,10);
-    const pending = [];
-    for(const tpl of (b().spreadTemplates||[])){
-      const dates = getSpreadDates(tpl);
-      const daily = spreadDailyAmount(tpl);
-      const applied = dates.filter(d=>d<=today && isSpreadLogged(tpl.id,d)).length;
-      const total = dates.length;
-      if(applied < total && dates.some(d=>d<=today && !isSpreadLogged(tpl.id,d))){
-        pending.push({tpl, daily, applied, total});
-      }
-    }
-    const box = document.getElementById('spread-suggestions');
-    const list = document.getElementById('spread-sugg-list');
-    const info = document.getElementById('spread-sugg-info');
-    if(!pending.length){ box.style.display='none'; return; }
-    box.style.display='block';
-    info.textContent = `${pending.length} aktywn${pending.length===1?'y':'ych'}`;
+    const active = (b().spreadTemplates||[]).filter(tpl => {
+      return getSpreadDates(tpl).some(d => d <= today && !isSpreadLogged(tpl.id, d));
+    });
+    const bar = document.getElementById('spread-status-bar');
+    if(!bar) return;
+    if(!active.length){ bar.style.display='none'; return; }
+    bar.style.display='block';
+    document.getElementById('spread-status-text').textContent =
+      active.length === 1 ? '1 aktywny' : `${active.length} aktywne`;
+    const list = document.getElementById('spread-status-list');
     list.innerHTML='';
-    for(const {tpl, daily, applied, total} of pending){
-      const div = document.createElement('div'); div.className='row';
-      div.innerHTML=`<div><b>${tpl.label}</b> <span class="muted">${fmt(daily,state.currency)}/dzień</span></div><div class="muted tiny">${applied}/${total} dni zastosowanych</div>`;
-      list.appendChild(div);
+    for(const tpl of active){
+      const daily = spreadDailyAmount(tpl);
+      const dates = getSpreadDates(tpl);
+      const applied = dates.filter(d=>d<=today&&isSpreadLogged(tpl.id,d)).length;
+      const pct = dates.length ? Math.round(applied/dates.length*100) : 0;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;font-size:12px';
+      row.innerHTML = `<span style="min-width:120px"><b>${tpl.label}</b></span>
+        <span class="muted">${fmt(daily,state.currency)}/dzień</span>
+        <div class="spread-prog-bar"><div class="spread-prog-fill" style="width:${pct}%"></div></div>
+        <span class="muted">${applied}/${dates.length} dni</span>`;
+      list.appendChild(row);
     }
   }
 
-  function renderSpreadManager(){
-    const form = document.getElementById('spread-add-form');
-    if(!form) return;
+  function openSpreadModal(){
+    const modal = document.getElementById('spread-modal');
+    modal.style.display = 'flex';
+    _spreadShowView('list');
+    _spreadRenderList();
+    // Wire close / back buttons once
+    document.getElementById('spread-modal-close').onclick = closeSpreadModal;
+    document.getElementById('spread-modal-back').onclick = () => { _spreadShowView('list'); _spreadRenderList(); };
+    document.getElementById('spread-new-btn').onclick = () => openSpreadEditor(null);
+    document.getElementById('spread-editor-cancel').onclick = () => { _spreadShowView('list'); _spreadRenderList(); };
+    document.getElementById('spread-editor-save').onclick = saveSpreadTemplate;
+    modal.addEventListener('click', e => { if(e.target===modal) closeSpreadModal(); }, {once:false});
+    // Preset chips
+    document.getElementById('spread-view-editor').querySelectorAll('.spread-chip').forEach(chip => {
+      chip.onclick = () => applySpreadPreset(chip.dataset.preset);
+    });
+    document.getElementById('spread-open-modal-status')?.addEventListener('click', openSpreadModal);
+  }
+
+  function closeSpreadModal(){
+    document.getElementById('spread-modal').style.display = 'none';
+  }
+
+  function _spreadShowView(view){
+    const listEl = document.getElementById('spread-view-list');
+    const editEl = document.getElementById('spread-view-editor');
+    const backBtn = document.getElementById('spread-modal-back');
+    const title = document.getElementById('spread-modal-title');
+    if(view === 'list'){
+      listEl.style.display = 'block';
+      editEl.style.display = 'none';
+      backBtn.style.display = 'none';
+      title.textContent = '📅 Wydatki rozkładane';
+    } else {
+      listEl.style.display = 'none';
+      editEl.style.display = 'flex';
+      backBtn.style.display = 'inline-block';
+      title.textContent = _spreadEditId ? '✏️ Edytuj wydatek rozkładany' : '+ Nowy wydatek rozkładany';
+    }
+  }
+
+  function _spreadRenderList(){
+    const container = document.getElementById('spread-templates-list');
+    container.innerHTML = '';
+    const today = new Date().toISOString().slice(0,10);
+    if(!(b().spreadTemplates||[]).length){
+      container.innerHTML = '<div class="tiny muted" style="padding:40px;text-align:center">Brak szablonów. Kliknij „+ Nowy wydatek rozkładany".</div>';
+      return;
+    }
+    for(const tpl of b().spreadTemplates){
+      const dates = getSpreadDates(tpl);
+      const daily = spreadDailyAmount(tpl);
+      const applied = dates.filter(d=>d<=today&&isSpreadLogged(tpl.id,d)).length;
+      const pct = dates.length ? Math.round(applied/dates.length*100) : 0;
+      const catObj = catsById()[tpl.categoryId];
+      const catName = (catObj?.emoji||'') + ' ' + (catObj?.name||'—');
+      const isActive = today >= (tpl.startDate||'') && today <= (tpl.endDate||'');
+      const card = document.createElement('div');
+      card.className = 'spread-tpl-card';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+              <b style="font-size:15px">${tpl.label}</b>
+              ${isActive?'<span class="badge" style="font-size:11px;padding:2px 8px;background:var(--accent);color:#fff;border-radius:10px">Aktywny</span>':''}
+            </div>
+            <div class="spread-tpl-meta">
+              <span>💰 ${fmt(num(tpl.totalAmount),state.currency)}</span>
+              <span>📆 ${fmt(daily,state.currency)}/dzień</span>
+              <span>${catName}</span>
+              <span>🗓 ${tpl.startDate||'?'} → ${tpl.endDate||'?'}</span>
+              <span>📌 ${dates.length} dni wybranych</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="spread-prog-bar"><div class="spread-prog-fill" style="width:${pct}%"></div></div>
+              <span class="tiny muted">${applied}/${dates.length} dni (${pct}%)</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn soft" data-act="edit" title="Edytuj">✏️</button>
+            <button class="btn danger" data-act="del" title="Usuń">🗑️</button>
+          </div>
+        </div>`;
+      card.querySelector('[data-act="edit"]').onclick = () => openSpreadEditor(tpl.id);
+      card.querySelector('[data-act="del"]').onclick = () => {
+        if(!confirm('Usunąć szablon? Już dodane transakcje pozostaną.')) return;
+        b().spreadTemplates = (b().spreadTemplates||[]).filter(x=>x.id!==tpl.id);
+        b().spreadLog = (b().spreadLog||[]).filter(x=>x.templateId!==tpl.id);
+        save(state); _spreadRenderList(); renderSpreadSuggestions();
+      };
+      container.appendChild(card);
+    }
+  }
+
+  function openSpreadEditor(tplId){
+    _spreadEditId = tplId || null;
+    _spreadSelDates = new Set();
+    _spreadShowView('editor');
+    const form = document.getElementById('spread-edit-form');
     const catSel = form.querySelector('select[name="categoryId"]');
     catSel.innerHTML=''; for(const c of (b().categories||[])){catSel.add(new Option((c.emoji?c.emoji+' ':'')+c.name,c.id))}
     const accSel = form.querySelector('select[name="accountId"]');
     accSel.innerHTML=''; for(const a of (b().accounts||[])){accSel.add(new Option(a.name,a.id))}
 
-    // Live preview of daily amount
-    function updatePreview(){
-      const totalStr = form.querySelector('input[name="totalAmount"]').value;
-      const start = form.querySelector('input[name="startDate"]').value;
-      const end = form.querySelector('input[name="endDate"]').value;
-      const dows = Array.from(form.querySelectorAll('input[name="dow"]:checked')).map(el=>Number(el.value));
-      const preview = document.getElementById('spread-preview');
-      if(!totalStr || !start || !end || !dows.length || start>end){ preview.textContent=''; return; }
-      const fakeTpl = {startDate:start, endDate:end, activeDows:dows, totalAmount:num(totalStr)};
-      const dates = getSpreadDates(fakeTpl);
-      if(!dates.length){ preview.textContent='Brak dni pasujących do wyboru.'; return; }
-      const daily = Math.round((num(totalStr)/dates.length)*100)/100;
-      preview.textContent = `→ ${dates.length} dni × ${fmt(daily,state.currency)}/dzień = ${fmt(num(totalStr),state.currency)} łącznie`;
-    }
-    form.querySelectorAll('input[name="totalAmount"], input[name="startDate"], input[name="endDate"], input[name="dow"]').forEach(el=>el.addEventListener('input',updatePreview));
-    form.querySelectorAll('input[name="dow"]').forEach(el=>el.addEventListener('change',updatePreview));
-
-    form.onsubmit = (e)=>{
-      e.preventDefault();
-      const f = new FormData(form);
-      const label = String(f.get('label')||'').trim();
-      const totalAmount = num(f.get('totalAmount'));
-      const startDate = String(f.get('startDate')||'');
-      const endDate = String(f.get('endDate')||'');
-      const categoryId = String(f.get('categoryId')||'');
-      const accountId = String(f.get('accountId')||b().accounts[0]?.id||'a_main');
-      const note = String(f.get('note')||'');
-      const activeDows = Array.from(form.querySelectorAll('input[name="dow"]:checked')).map(el=>Number(el.value));
-      if(!label || !totalAmount || !startDate || !endDate || !categoryId || !activeDows.length){
-        alert('Uzupełnij wszystkie pola i zaznacz co najmniej jeden dzień tygodnia.'); return;
-      }
-      if(startDate > endDate){ alert('Data końcowa musi być późniejsza niż początkowa.'); return; }
-      b().spreadTemplates.push({
-        id:'se_'+Math.random().toString(36).slice(2),
-        label, totalAmount, startDate, endDate, activeDows, categoryId, accountId, note
-      });
-      save(state);
-      // Immediately apply past days
-      applySpreadTemplates();
+    if(tplId){
+      const tpl = (b().spreadTemplates||[]).find(t=>t.id===tplId);
+      if(!tpl){ _spreadShowView('list'); return; }
+      form.querySelector('[name="label"]').value = tpl.label||'';
+      form.querySelector('[name="totalAmount"]').value = String(num(tpl.totalAmount)).replace('.',',');
+      form.querySelector('[name="categoryId"]').value = tpl.categoryId||'';
+      form.querySelector('[name="accountId"]').value = tpl.accountId||'';
+      form.querySelector('[name="note"]').value = tpl.note||'';
+      form.querySelector('[name="startDate"]').value = tpl.startDate||'';
+      form.querySelector('[name="endDate"]').value = tpl.endDate||'';
+      _spreadSelDates = new Set(getSpreadDates(tpl));
+    } else {
       form.reset();
-      // Restore default weekday checkboxes
-      form.querySelectorAll('input[name="dow"]').forEach(el=>{ el.checked = [1,2,3,4,5].includes(Number(el.value)); });
-      document.getElementById('spread-preview').textContent='';
-      renderSpreadManager();
-      renderSpreadSuggestions();
-    };
-
-    const tbody = document.getElementById('spread-rows'); tbody.innerHTML='';
-    const today = new Date().toISOString().slice(0,10);
-    for(const tpl of (b().spreadTemplates||[])){
-      const dates = getSpreadDates(tpl);
-      const daily = spreadDailyAmount(tpl);
-      const applied = dates.filter(d=>d<=today && isSpreadLogged(tpl.id,d)).length;
-      const dowLabel = (tpl.activeDows||[]).sort().map(d=>DOW_NAMES[d]).join(', ');
-      const catName = (catsById()[tpl.categoryId]?.emoji||'')+' '+(catsById()[tpl.categoryId]?.name||'—');
-      const progressPct = dates.length ? Math.round(applied/dates.length*100) : 0;
-      const tr = document.createElement('tr');
-      tr.innerHTML=`<td>${tpl.label}</td><td>${fmt(num(tpl.totalAmount),state.currency)}</td><td>${fmt(daily,state.currency)}</td><td>${tpl.startDate}</td><td>${tpl.endDate}</td><td class="tiny">${dowLabel}</td><td>${catName}</td>
-        <td><div style="display:flex;align-items:center;gap:6px"><div style="width:60px;height:6px;background:var(--border);border-radius:3px"><div style="width:${progressPct}%;height:100%;background:var(--accent);border-radius:3px"></div></div><span class="tiny">${applied}/${dates.length}</span></div></td>
-        <td><button class="btn danger">Usuń</button></td>`;
-      tr.querySelector('.btn').onclick=()=>{
-        if(!confirm('Usunąć szablon rozkładany? Już dodane transakcje pozostaną.')) return;
-        b().spreadTemplates = (b().spreadTemplates||[]).filter(x=>x.id!==tpl.id);
-        b().spreadLog = (b().spreadLog||[]).filter(x=>x.templateId!==tpl.id);
-        save(state); renderSpreadManager(); renderSpreadSuggestions();
-      };
-      tbody.appendChild(tr);
+      const today = new Date();
+      form.querySelector('[name="startDate"]').value = today.toISOString().slice(0,10);
+      const end = new Date(today); end.setMonth(end.getMonth()+1);
+      form.querySelector('[name="endDate"]').value = end.toISOString().slice(0,10);
+      applySpreadPreset('weekdays');
+      return; // applySpreadPreset calls refreshSpreadCalendar
     }
     bindMoneyInputs(form);
+    refreshSpreadCalendar();
+    updateSpreadSummary();
+    form.querySelector('[name="startDate"]').onchange = () => { refreshSpreadCalendar(); };
+    form.querySelector('[name="endDate"]').onchange = () => { refreshSpreadCalendar(); };
+    form.querySelector('[name="totalAmount"]').oninput = updateSpreadSummary;
+  }
+
+  function applySpreadPreset(preset){
+    const form = document.getElementById('spread-edit-form');
+    const startDate = form.querySelector('[name="startDate"]').value;
+    const endDate = form.querySelector('[name="endDate"]').value;
+    if(!startDate || !endDate || startDate > endDate){ refreshSpreadCalendar(); return; }
+    _spreadSelDates = new Set();
+    const cur = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    let i = 0;
+    while(cur <= end){
+      const d = cur.getDay();
+      const ds = cur.toISOString().slice(0,10);
+      if(preset==='all') _spreadSelDates.add(ds);
+      else if(preset==='weekdays' && d>=1 && d<=5) _spreadSelDates.add(ds);
+      else if(preset==='weekends' && (d===0||d===6)) _spreadSelDates.add(ds);
+      else if(preset==='every-other' && i%2===0) _spreadSelDates.add(ds);
+      // 'clear' leaves set empty
+      cur.setDate(cur.getDate()+1); i++;
+    }
+    const form2 = document.getElementById('spread-edit-form');
+    bindMoneyInputs(form2);
+    form2.querySelector('[name="startDate"]').onchange = () => refreshSpreadCalendar();
+    form2.querySelector('[name="endDate"]').onchange = () => refreshSpreadCalendar();
+    form2.querySelector('[name="totalAmount"]').oninput = updateSpreadSummary;
+    refreshSpreadCalendar();
+  }
+
+  function refreshSpreadCalendar(){
+    const form = document.getElementById('spread-edit-form');
+    const startDate = form.querySelector('[name="startDate"]').value;
+    const endDate = form.querySelector('[name="endDate"]').value;
+    const container = document.getElementById('spread-calendar-grid');
+    container.innerHTML = '';
+    if(!startDate || !endDate || startDate > endDate){
+      container.innerHTML = '<div class="tiny muted" style="padding:20px;text-align:center">Ustaw zakres dat aby wyświetlić kalendarz.</div>';
+      updateSpreadSummary(); return;
+    }
+    const today = new Date().toISOString().slice(0,10);
+    const MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+    let curM = new Date(startDate.slice(0,7) + '-01T00:00:00');
+    const lastM = new Date(endDate.slice(0,7) + '-01T00:00:00');
+    while(curM <= lastM){
+      const y = curM.getFullYear(); const m = curM.getMonth();
+      const wrap = document.createElement('div'); wrap.className = 'spread-cal-month';
+      wrap.innerHTML = `<div class="spread-cal-month-title">${MONTH_NAMES[m]} ${y}</div>`;
+      const grid = document.createElement('div'); grid.className = 'spread-cal-grid';
+      ['Pon','Wt','Śr','Czw','Pt','Sob','Nd'].forEach(label=>{
+        const el = document.createElement('div'); el.className='spread-cal-dow'; el.textContent=label; grid.appendChild(el);
+      });
+      const firstDow = (new Date(y,m,1).getDay()+6)%7; // Mon=0
+      for(let i=0;i<firstDow;i++){
+        const el=document.createElement('div'); el.className='spread-cal-day scd-empty'; grid.appendChild(el);
+      }
+      const daysInM = new Date(y,m+1,0).getDate();
+      for(let day=1;day<=daysInM;day++){
+        const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const inRange = ds>=startDate && ds<=endDate;
+        const sel = _spreadSelDates.has(ds);
+        const isToday = ds===today;
+        const dow = new Date(y,m,day).getDay();
+        const isWE = dow===0||dow===6;
+        const el = document.createElement('div'); el.textContent=day;
+        el.className = 'spread-cal-day' + (
+          !inRange ? ' scd-oor' :
+          sel ? ' scd-active' :
+          (isWE ? ' scd-inactive scd-weekend' : ' scd-inactive')
+        );
+        if(isToday) el.classList.add('scd-today');
+        if(inRange){
+          el.onclick = ()=>{
+            if(_spreadSelDates.has(ds)){ _spreadSelDates.delete(ds); el.className='spread-cal-day scd-inactive'+(isWE?' scd-weekend':'')+(isToday?' scd-today':''); }
+            else { _spreadSelDates.add(ds); el.className='spread-cal-day scd-active'+(isToday?' scd-today':''); }
+            updateSpreadSummary();
+          };
+        }
+        grid.appendChild(el);
+      }
+      wrap.appendChild(grid);
+      container.appendChild(wrap);
+      curM.setMonth(curM.getMonth()+1);
+    }
+    updateSpreadSummary();
+  }
+
+  function updateSpreadSummary(){
+    const form = document.getElementById('spread-edit-form');
+    const totalRaw = num(form.querySelector('[name="totalAmount"]').value||'0');
+    const count = _spreadSelDates.size;
+    const daily = count ? Math.round(totalRaw/count*100)/100 : 0;
+    const counter = document.getElementById('spread-day-count');
+    const summary = document.getElementById('spread-calc-summary');
+    const pl = count===1?'dzień':(count>=2&&count<=4?'dni':'dni');
+    if(counter) counter.textContent = `Wybrano ${count} ${pl}`;
+    if(summary){
+      if(count && totalRaw)
+        summary.innerHTML = `<b>${count} dni</b> × <b>${fmt(daily,state.currency)}/dzień</b> = <b>${fmt(totalRaw,state.currency)}</b>`;
+      else
+        summary.textContent = count ? 'Uzupełnij kwotę' : (totalRaw ? 'Zaznacz co najmniej jeden dzień' : 'Uzupełnij kwotę i zaznacz dni');
+    }
+  }
+
+  function saveSpreadTemplate(){
+    const form = document.getElementById('spread-edit-form');
+    const label = form.querySelector('[name="label"]').value.trim();
+    const totalAmount = num(form.querySelector('[name="totalAmount"]').value);
+    const categoryId = form.querySelector('[name="categoryId"]').value;
+    const accountId = form.querySelector('[name="accountId"]').value || b().accounts[0]?.id||'a_main';
+    const note = form.querySelector('[name="note"]').value.trim();
+    const startDate = form.querySelector('[name="startDate"]').value;
+    const endDate = form.querySelector('[name="endDate"]').value;
+    if(!label||!totalAmount||!categoryId||!_spreadSelDates.size){
+      alert('Uzupełnij nazwę, kwotę, kategorię i zaznacz co najmniej jeden dzień.'); return;
+    }
+    if(!startDate||!endDate||startDate>endDate){ alert('Ustaw poprawny zakres dat.'); return; }
+    const activeDates = Array.from(_spreadSelDates).sort();
+    if(_spreadEditId){
+      const tpl = (b().spreadTemplates||[]).find(t=>t.id===_spreadEditId);
+      if(tpl){
+        Object.assign(tpl,{label,totalAmount,startDate,endDate,activeDates,categoryId,accountId,note});
+        const today = new Date().toISOString().slice(0,10);
+        b().spreadLog=(b().spreadLog||[]).filter(r=>r.templateId!==tpl.id||r.date<=today);
+      }
+    } else {
+      b().spreadTemplates.push({id:'se_'+Math.random().toString(36).slice(2),label,totalAmount,startDate,endDate,activeDates,categoryId,accountId,note});
+    }
+    save(state);
+    applySpreadTemplates();
+    _spreadShowView('list');
+    _spreadRenderList();
+    renderSpreadSuggestions();
+    renderAll();
   }
 
   // --- Recurring templates (variable expenses) --------------------------------
@@ -19953,5 +20192,92 @@
   }
   renderAll();
   </script>
+
+<!-- ===== Spread Expense Modal ===== -->
+<div id="spread-modal" class="spread-modal-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="spread-modal">
+
+    <!-- Header -->
+    <div class="spread-modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn ghost" id="spread-modal-back" style="display:none;padding:4px 10px">← Wróć</button>
+        <h3 style="margin:0;font-size:17px" id="spread-modal-title">📅 Wydatki rozkładane</h3>
+      </div>
+      <button class="btn ghost" id="spread-modal-close" style="font-size:16px;padding:4px 10px">✕</button>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div id="spread-view-list" class="spread-modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <p class="tiny muted" style="margin:0">Wydatki są automatycznie rozkładane na wybrane dni i księgowane codziennie.</p>
+        <button class="btn" id="spread-new-btn">+ Nowy wydatek rozkładany</button>
+      </div>
+      <div id="spread-templates-list">
+        <div class="tiny muted" style="padding:30px;text-align:center">Brak szablonów.</div>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div id="spread-view-editor" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div class="spread-modal-body">
+        <div class="spread-editor-layout">
+
+          <!-- Left: form + presets -->
+          <div class="spread-editor-form-col">
+            <form id="spread-edit-form" autocomplete="off">
+              <label class="field-label">Nazwa</label>
+              <input name="label" placeholder="np. Catering" required style="margin-bottom:8px"/>
+              <label class="field-label">Łączna kwota (zł)</label>
+              <input name="totalAmount" inputmode="decimal" placeholder="0,00" required style="margin-bottom:8px"/>
+              <label class="field-label">Kategoria</label>
+              <select name="categoryId" required style="margin-bottom:8px"></select>
+              <label class="field-label">Konto</label>
+              <select name="accountId" style="margin-bottom:8px"></select>
+              <label class="field-label">Notatka</label>
+              <input name="note" placeholder="opcjonalnie" style="margin-bottom:8px"/>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div><label class="field-label">Data od</label><input name="startDate" type="date" required/></div>
+                <div><label class="field-label">Data do</label><input name="endDate" type="date" required/></div>
+              </div>
+            </form>
+            <div>
+              <div class="field-label" style="margin-bottom:6px">Szybki wybór dni</div>
+              <div class="spread-presets">
+                <span class="spread-chip" data-preset="all">Wszystkie</span>
+                <span class="spread-chip" data-preset="weekdays">Pon–Pt</span>
+                <span class="spread-chip" data-preset="weekends">Weekendy</span>
+                <span class="spread-chip" data-preset="every-other">Co drugi dzień</span>
+                <span class="spread-chip" data-preset="clear">Wyczyść</span>
+              </div>
+            </div>
+            <div class="tiny muted" style="margin-top:4px">Możesz też klikać dni bezpośrednio w kalendarzu po prawej.</div>
+          </div>
+
+          <!-- Right: calendar -->
+          <div style="display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="field-label" style="margin:0">Wybierz dni</div>
+              <div class="spread-day-counter" id="spread-day-count">Wybrano 0 dni</div>
+            </div>
+            <div class="spread-cal-scroll" id="spread-calendar-grid">
+              <div class="tiny muted" style="padding:20px;text-align:center">Ustaw zakres dat, aby wyświetlić kalendarz.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Sticky footer -->
+      <div class="spread-editor-footer">
+        <div class="spread-calc-summary" id="spread-calc-summary">Uzupełnij kwotę i wybierz dni</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" id="spread-editor-cancel">Anuluj</button>
+          <button class="btn" id="spread-editor-save">Zapisz</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 </body>
 </html>
