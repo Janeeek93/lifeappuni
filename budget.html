@@ -5936,6 +5936,22 @@
           </div>
         </div>
 
+        <!-- Growth / Dynamics (period-over-period bar chart) -->
+        <div class="card stack">
+          <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <strong>Dynamika przyrostów <span class="muted" style="font-weight:400;font-size:12px">(ile przybyło/ubyło w okresie)</span></strong>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="inv-trade-filters" style="margin:0">
+                <button type="button" class="eom2-growth-mode-btn is-active" data-growth-mode="total">Łącznie</button>
+                <button type="button" class="eom2-growth-mode-btn" data-growth-mode="category">Wg kategorii</button>
+              </div>
+              <span class="muted" style="font-size:11px">Granulacja i zakres jak na wykresie powyżej</span>
+            </div>
+          </div>
+          <div class="eom2-kpis" id="eom2-growth-kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
+          <div style="height:320px;position:relative"><canvas id="eom2-growth-chart"></canvas></div>
+        </div>
+
         <!-- Category Deep-Dive -->
         <div id="eom2-deepdive" class="card stack" style="display:none">
           <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -14662,7 +14678,8 @@
   }
 
   // ===== EOM V2 — Redesigned Wealth Tracker =================================
-  let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null;
+  let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null, eom2GrowthChart=null;
+  let eom2GrowthMode='total';
   let eom2SelectedRange=6;
   let eom2SelectedGranularity='monthly';
   let eom2SelectedCat='all';
@@ -15093,6 +15110,76 @@
       });
     }
 
+    // --- Growth / Dynamics Bar Chart (period-over-period deltas) ---
+    if(eom2GrowthChart){eom2GrowthChart.destroy();eom2GrowthChart=null;}
+    {
+      const growthCanvas=el('eom2-growth-chart');
+      const growthKpis=el('eom2-growth-kpis');
+      // End-of-period months at current granularity (shared with trend chart)
+      const allPeriods=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+      const periodTotal=ym=>sumBalances(ctx.monthBalances[ym]||{});
+      const typeTotal=(ym,type)=>{
+        let s=0;
+        for(const a of accounts){ if(inferAccountType(a)!==type) continue; const v=(ctx.monthBalances[ym]||{})[a.id]; if(v!==undefined) s+=v; }
+        return s;
+      };
+      // Delta vs previous period over the full list, then keep ones with a baseline
+      const deltas=allPeriods.map((ym,i)=>({ym,prev:i>0?allPeriods[i-1]:null,total:i>0?periodTotal(ym)-periodTotal(allPeriods[i-1]):null}));
+      let visible=deltas.filter(d=>d.total!==null);
+      if(eom2SelectedRange!=='all'){ const n=parseInt(eom2SelectedRange)||6; visible=visible.slice(-n); }
+
+      if(growthCanvas&&visible.length){
+        const labels=visible.map(d=>eom2FormatTrendLabel(d.ym,eom2SelectedGranularity));
+        const datasets=[];
+        if(eom2GrowthMode==='category'){
+          const usedTypes=new Set();
+          for(const a of accounts) usedTypes.add(inferAccountType(a));
+          for(const t of eom2TypeOrder){
+            if(!usedTypes.has(t)) continue;
+            const col=eom2TypeColorMap[t]||'#94a3b8';
+            const data=visible.map(d=>typeTotal(d.ym,t)-typeTotal(d.prev,t));
+            datasets.push({label:eom2TypeLabelMap[t]||t,data,backgroundColor:colorWithAlpha(col,.85),borderColor:col,borderWidth:1,borderRadius:3,stack:'growth'});
+          }
+        } else {
+          const data=visible.map(d=>d.total);
+          datasets.push({label:'Przyrost majątku',data,
+            backgroundColor:data.map(v=>colorWithAlpha(v>=0?'#16a34a':'#dc2626',.8)),
+            borderColor:data.map(v=>v>=0?'#16a34a':'#dc2626'),borderWidth:1,borderRadius:4});
+        }
+        const stacked=eom2GrowthMode==='category';
+        eom2GrowthChart=new Chart(growthCanvas.getContext('2d'),{
+          type:'bar',
+          data:{labels,datasets},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:stacked,position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'rectRounded'}},
+              tooltip:{mode:'index',intersect:false,callbacks:{
+                label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${currencyTicks(c.parsed.y)}`,
+                footer:stacked?items=>{let s=0;for(const it of items)s+=it.parsed.y;return `Razem: ${s>=0?'+':''}${currencyTicks(s)}`;}:undefined}}},
+            interaction:{mode:'index',intersect:false},
+            scales:{x:{stacked,grid:{display:false}},y:{stacked,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
+          }
+        });
+      }
+
+      if(growthKpis){
+        if(visible.length){
+          const totals=visible.map(d=>d.total);
+          const sum=totals.reduce((a,c)=>a+c,0);
+          const avg=sum/totals.length;
+          let best=visible[0],worst=visible[0];
+          for(const d of visible){ if(d.total>best.total)best=d; if(d.total<worst.total)worst=d; }
+          const card=(label,val,sub,cls)=>`<div class="eom2-kpi ${cls||''}"><span class="kpi-label">${label}</span><span class="kpi-val">${val}</span><span class="kpi-sub">${sub||''}</span></div>`;
+          growthKpis.innerHTML=
+            card('Suma przyrostów',`${sum>=0?'+':''}${fmt(sum,cur)}`,`${visible.length} okres.`,sum>0?'positive':sum<0?'negative':'')+
+            card('Średnio / okres',`${avg>=0?'+':''}${fmt(avg,cur)}`,'',avg>0?'positive':avg<0?'negative':'')+
+            card('Najlepszy okres',`+${fmt(best.total,cur)}`,eom2FormatTrendLabel(best.ym,eom2SelectedGranularity),'positive')+
+            card('Najsłabszy okres',`${worst.total>=0?'+':''}${fmt(worst.total,cur)}`,eom2FormatTrendLabel(worst.ym,eom2SelectedGranularity),worst.total<0?'negative':'');
+        } else {
+          growthKpis.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Potrzeba min. 2 okresów danych, aby pokazać dynamikę przyrostów.</div>';
+        }
+      }
+    }
+
     // --- Bottleneck: Gainers & Losers ---
     const gainersEl=el('eom2-top-gainers');
     const losersEl=el('eom2-top-losers');
@@ -15456,6 +15543,14 @@
       btn.onclick=()=>{
         eom2SelectedGranularity=btn.dataset.granularity||'monthly';
         document.querySelectorAll('.eom2-gran-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
+        renderEomV2();
+      };
+    });
+    // Growth/dynamics mode buttons (total vs by category)
+    document.querySelectorAll('.eom2-growth-mode-btn').forEach(btn=>{
+      btn.onclick=()=>{
+        eom2GrowthMode=btn.dataset.growthMode||'total';
+        document.querySelectorAll('.eom2-growth-mode-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
         renderEomV2();
       };
     });
