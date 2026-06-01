@@ -5925,6 +5925,12 @@
 	                  <button type="button" class="eom2-range-btn is-active" data-range="6">6m</button>
 	                  <button type="button" class="eom2-range-btn" data-range="12">12m</button>
 	                  <button type="button" class="eom2-range-btn" data-range="all">Wszystko</button>
+	                  <button type="button" class="eom2-range-btn" data-range="custom">Własny</button>
+                </div>
+                <div class="inv-trade-filters eom2-custom-range" id="eom2-custom-range" style="margin:0;display:none;align-items:center;gap:4px">
+                  <select id="eom2-range-start" style="font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)"></select>
+                  <span class="muted" style="font-size:12px">→</span>
+                  <select id="eom2-range-end" style="font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--fg)"></select>
                 </div>
               </div>
             </div>
@@ -5941,11 +5947,15 @@
           <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <strong>Dynamika przyrostów <span class="muted" style="font-weight:400;font-size:12px">(ile przybyło/ubyło w okresie)</span></strong>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <div class="inv-trade-filters" style="margin:0">
+              <div class="inv-trade-filters" id="eom2-growth-mode-group" style="margin:0">
                 <button type="button" class="eom2-growth-mode-btn is-active" data-growth-mode="total">Łącznie</button>
                 <button type="button" class="eom2-growth-mode-btn" data-growth-mode="category">Wg kategorii</button>
               </div>
-              <span class="muted" style="font-size:11px">Granulacja i zakres jak na wykresie powyżej</span>
+              <label class="tiny" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+                <input type="checkbox" id="eom2-growth-cumulative" checked />
+                Linia skumulowana
+              </label>
+              <span class="muted" style="font-size:11px">Kategoria, granulacja i zakres jak na wykresie powyżej</span>
             </div>
           </div>
           <div class="eom2-kpis" id="eom2-growth-kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
@@ -14680,6 +14690,8 @@
   // ===== EOM V2 — Redesigned Wealth Tracker =================================
   let eom2NwChart=null, eom2BreakdownChart=null, eom2DdChart=null, eom2GrowthChart=null;
   let eom2GrowthMode='total';
+  let eom2GrowthCumulative=true;
+  let eom2CustomStart='', eom2CustomEnd='';
   let eom2SelectedRange=6;
   let eom2SelectedGranularity='monthly';
   let eom2SelectedCat='all';
@@ -14704,6 +14716,18 @@
       if(!prev||ym>prev) bucketLastMonth.set(key, ym);
     }
     return Array.from(bucketLastMonth.values()).sort();
+  }
+
+  // Apply the active range filter to a chronological list of period keys.
+  // Supports fixed windows (6/12), 'all', and a custom start→end selection.
+  function eom2ApplyRange(periods){
+    if(eom2SelectedRange==='custom'){
+      const s=eom2CustomStart, e=eom2CustomEnd;
+      return periods.filter(p=>(!s||p>=s)&&(!e||p<=e));
+    }
+    if(eom2SelectedRange==='all') return periods.slice();
+    const n=parseInt(eom2SelectedRange)||6;
+    return periods.slice(-n);
   }
 
   function eom2FormatTrendLabel(ym, granularity){
@@ -15020,12 +15044,28 @@
       catFilter.innerHTML=opts;
       catFilter.value=curVal;
     }
+
+    // --- Custom range (start → end) selectors, shared by both charts ---
+    const customWrap=el('eom2-custom-range');
+    const rangeStart=el('eom2-range-start');
+    const rangeEnd=el('eom2-range-end');
+    if(customWrap) customWrap.style.display = eom2SelectedRange==='custom' ? 'flex' : 'none';
+    if(rangeStart&&rangeEnd){
+      const allPeriodKeys=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
+      const optsHtml=allPeriodKeys.map(p=>`<option value="${p}">${eom2FormatTrendLabel(p,eom2SelectedGranularity)}</option>`).join('');
+      rangeStart.innerHTML=optsHtml;
+      rangeEnd.innerHTML=optsHtml;
+      // Reset to sensible defaults if current selection no longer valid for this granularity
+      if(!allPeriodKeys.includes(eom2CustomStart)) eom2CustomStart=allPeriodKeys[0]||'';
+      if(!allPeriodKeys.includes(eom2CustomEnd)) eom2CustomEnd=allPeriodKeys[allPeriodKeys.length-1]||'';
+      // Guard against an inverted range
+      if(eom2CustomStart&&eom2CustomEnd&&eom2CustomStart>eom2CustomEnd) eom2CustomStart=eom2CustomEnd;
+      rangeStart.value=eom2CustomStart;
+      rangeEnd.value=eom2CustomEnd;
+    }
+
 	    if(nwCanvas){
-	      let months=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
-	      if(eom2SelectedRange!=='all'){
-	        const n=parseInt(eom2SelectedRange)||6;
-	        months=months.slice(-n);
-      }
+	      let months=eom2ApplyRange(eom2AggregateMonths(ctx.months,eom2SelectedGranularity));
       if(months.length>0){
         const subAccColors=['#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#e11d48','#84cc16'];
         const datasets=[];
@@ -15123,38 +15163,58 @@
         for(const a of accounts){ if(inferAccountType(a)!==type) continue; const v=(ctx.monthBalances[ym]||{})[a.id]; if(v!==undefined) s+=v; }
         return s;
       };
-      // Delta vs previous period over the full list, then keep ones with a baseline
+      // Net-worth delta vs previous period over the full list, then keep ones with a baseline
       const deltas=allPeriods.map((ym,i)=>({ym,prev:i>0?allPeriods[i-1]:null,total:i>0?periodTotal(ym)-periodTotal(allPeriods[i-1]):null}));
-      let visible=deltas.filter(d=>d.total!==null);
-      if(eom2SelectedRange!=='all'){ const n=parseInt(eom2SelectedRange)||6; visible=visible.slice(-n); }
+      const allowed=new Set(eom2ApplyRange(allPeriods));
+      let visible=deltas.filter(d=>d.total!==null&&allowed.has(d.ym));
+
+      // When a single category is isolated (via the shared category filter),
+      // the whole chart concerns only that category; otherwise use net worth.
+      const isAll=eom2SelectedCat==='all';
+      const seriesLabel=isAll?'Przyrost majątku':`Przyrost: ${eom2TypeLabelMap[eom2SelectedCat]||eom2SelectedCat}`;
+      const seriesDelta=d=>isAll?d.total:(typeTotal(d.ym,eom2SelectedCat)-typeTotal(d.prev,eom2SelectedCat));
+      // Stacked-by-category bars only make sense in the "all categories" view
+      const stacked=isAll&&eom2GrowthMode==='category';
+
+      // Hide the Łącznie/Wg kategorii toggle when a single category is isolated
+      const modeGroup=el('eom2-growth-mode-group');
+      if(modeGroup) modeGroup.style.display=isAll?'inline-flex':'none';
 
       if(growthCanvas&&visible.length){
         const labels=visible.map(d=>eom2FormatTrendLabel(d.ym,eom2SelectedGranularity));
         const datasets=[];
-        if(eom2GrowthMode==='category'){
+        if(stacked){
           const usedTypes=new Set();
           for(const a of accounts) usedTypes.add(inferAccountType(a));
           for(const t of eom2TypeOrder){
             if(!usedTypes.has(t)) continue;
             const col=eom2TypeColorMap[t]||'#94a3b8';
             const data=visible.map(d=>typeTotal(d.ym,t)-typeTotal(d.prev,t));
-            datasets.push({label:eom2TypeLabelMap[t]||t,data,backgroundColor:colorWithAlpha(col,.85),borderColor:col,borderWidth:1,borderRadius:3,stack:'growth'});
+            datasets.push({label:eom2TypeLabelMap[t]||t,data,backgroundColor:colorWithAlpha(col,.85),borderColor:col,borderWidth:1,borderRadius:3,stack:'growth',order:2});
           }
         } else {
-          const data=visible.map(d=>d.total);
-          datasets.push({label:'Przyrost majątku',data,
+          const data=visible.map(seriesDelta);
+          datasets.push({label:seriesLabel,data,order:2,
             backgroundColor:data.map(v=>colorWithAlpha(v>=0?'#16a34a':'#dc2626',.8)),
             borderColor:data.map(v=>v>=0?'#16a34a':'#dc2626'),borderWidth:1,borderRadius:4});
         }
-        const stacked=eom2GrowthMode==='category';
+        // Cumulative line: running sum of period deltas across the visible window
+        if(eom2GrowthCumulative){
+          let run=0;
+          const cumData=visible.map(d=>{run+=seriesDelta(d);return run;});
+          datasets.push({type:'line',label:'Skumulowane',data:cumData,order:1,stack:'cum',
+            borderColor:'#1e293b',backgroundColor:colorWithAlpha('#1e293b',.06),
+            borderWidth:2,pointRadius:3,pointBackgroundColor:'#1e293b',pointBorderColor:'#fff',pointBorderWidth:1,tension:.3,fill:true});
+        }
+        const showLegend=stacked||eom2GrowthCumulative;
         eom2GrowthChart=new Chart(growthCanvas.getContext('2d'),{
           type:'bar',
           data:{labels,datasets},
           options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:stacked,position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'rectRounded'}},
+            plugins:{legend:{display:showLegend,position:'bottom',labels:{font:{size:11},usePointStyle:true,pointStyle:'rectRounded'}},
               tooltip:{mode:'index',intersect:false,callbacks:{
                 label:c=>`${c.dataset.label}: ${c.parsed.y>=0?'+':''}${currencyTicks(c.parsed.y)}`,
-                footer:stacked?items=>{let s=0;for(const it of items)s+=it.parsed.y;return `Razem: ${s>=0?'+':''}${currencyTicks(s)}`;}:undefined}}},
+                footer:stacked?items=>{let s=0;for(const it of items){if(it.dataset.type==='line')continue;s+=it.parsed.y;}return `Razem: ${s>=0?'+':''}${currencyTicks(s)}`;}:undefined}}},
             interaction:{mode:'index',intersect:false},
             scales:{x:{stacked,grid:{display:false}},y:{stacked,ticks:{callback:v=>currencyTicks(v)},grid:{color:'rgba(148,163,184,.08)'}}}
           }
@@ -15163,17 +15223,17 @@
 
       if(growthKpis){
         if(visible.length){
-          const totals=visible.map(d=>d.total);
+          const totals=visible.map(seriesDelta);
           const sum=totals.reduce((a,c)=>a+c,0);
           const avg=sum/totals.length;
-          let best=visible[0],worst=visible[0];
-          for(const d of visible){ if(d.total>best.total)best=d; if(d.total<worst.total)worst=d; }
+          let bestIdx=0,worstIdx=0;
+          totals.forEach((v,i)=>{if(v>totals[bestIdx])bestIdx=i;if(v<totals[worstIdx])worstIdx=i;});
           const card=(label,val,sub,cls)=>`<div class="eom2-kpi ${cls||''}"><span class="kpi-label">${label}</span><span class="kpi-val">${val}</span><span class="kpi-sub">${sub||''}</span></div>`;
           growthKpis.innerHTML=
-            card('Suma przyrostów',`${sum>=0?'+':''}${fmt(sum,cur)}`,`${visible.length} okres.`,sum>0?'positive':sum<0?'negative':'')+
+            card('Skumulowane w oknie',`${sum>=0?'+':''}${fmt(sum,cur)}`,`${visible.length} okres.`,sum>0?'positive':sum<0?'negative':'')+
             card('Średnio / okres',`${avg>=0?'+':''}${fmt(avg,cur)}`,'',avg>0?'positive':avg<0?'negative':'')+
-            card('Najlepszy okres',`+${fmt(best.total,cur)}`,eom2FormatTrendLabel(best.ym,eom2SelectedGranularity),'positive')+
-            card('Najsłabszy okres',`${worst.total>=0?'+':''}${fmt(worst.total,cur)}`,eom2FormatTrendLabel(worst.ym,eom2SelectedGranularity),worst.total<0?'negative':'');
+            card('Najlepszy okres',`${totals[bestIdx]>=0?'+':''}${fmt(totals[bestIdx],cur)}`,eom2FormatTrendLabel(visible[bestIdx].ym,eom2SelectedGranularity),'positive')+
+            card('Najsłabszy okres',`${totals[worstIdx]>=0?'+':''}${fmt(totals[worstIdx],cur)}`,eom2FormatTrendLabel(visible[worstIdx].ym,eom2SelectedGranularity),totals[worstIdx]<0?'negative':'');
         } else {
           growthKpis.innerHTML='<div class="muted" style="padding:10px;font-size:12px">Potrzeba min. 2 okresów danych, aby pokazać dynamikę przyrostów.</div>';
         }
@@ -15226,11 +15286,7 @@
     const compareB=el('eom2-history-compare-b');
     if(hThead&&hTbody){
       hThead.innerHTML='';hTbody.innerHTML='';
-      let periods=eom2AggregateMonths(ctx.months,eom2SelectedGranularity);
-      if(eom2SelectedRange!=='all'){
-        const n=parseInt(eom2SelectedRange)||6;
-        periods=periods.slice(-n);
-      }
+      let periods=eom2ApplyRange(eom2AggregateMonths(ctx.months,eom2SelectedGranularity));
       if(hCount) hCount.textContent=`(${periods.length} okres.)`;
 
       if(compareA&&compareB){
@@ -15534,11 +15590,25 @@
     // Range buttons
     document.querySelectorAll('.eom2-range-btn').forEach(btn=>{
       btn.onclick=()=>{
-        eom2SelectedRange=btn.dataset.range==='all'?'all':parseInt(btn.dataset.range);
+        const r=btn.dataset.range;
+        eom2SelectedRange=(r==='all'||r==='custom')?r:parseInt(r);
         document.querySelectorAll('.eom2-range-btn').forEach(b2=>b2.classList.toggle('is-active',b2===btn));
         renderEomV2();
       };
     });
+    // Custom range start/end selectors
+    const rangeStart=document.getElementById('eom2-range-start');
+    if(rangeStart) rangeStart.onchange=()=>{
+      eom2CustomStart=rangeStart.value;
+      if(eom2CustomEnd&&eom2CustomStart>eom2CustomEnd) eom2CustomEnd=eom2CustomStart;
+      renderEomV2();
+    };
+    const rangeEnd=document.getElementById('eom2-range-end');
+    if(rangeEnd) rangeEnd.onchange=()=>{
+      eom2CustomEnd=rangeEnd.value;
+      if(eom2CustomStart&&eom2CustomEnd<eom2CustomStart) eom2CustomStart=eom2CustomEnd;
+      renderEomV2();
+    };
     document.querySelectorAll('.eom2-gran-btn').forEach(btn=>{
       btn.onclick=()=>{
         eom2SelectedGranularity=btn.dataset.granularity||'monthly';
@@ -15554,6 +15624,12 @@
         renderEomV2();
       };
     });
+    // Cumulative line toggle on the dynamics chart
+    const growthCumToggle=document.getElementById('eom2-growth-cumulative');
+    if(growthCumToggle) growthCumToggle.onchange=()=>{
+      eom2GrowthCumulative=!!growthCumToggle.checked;
+      renderEomV2();
+    };
     const historyCompareToggle=document.getElementById('eom2-history-compare-toggle');
     if(historyCompareToggle) historyCompareToggle.onchange=()=>{
       eom2HistoryCompareMode=!!historyCompareToggle.checked;
