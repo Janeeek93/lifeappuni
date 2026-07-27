@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zakłady – LifeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="trading.css">
+  <link rel="stylesheet" href="betting.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+</head>
+<body data-page="betting">
+<div class="layout">
+  <aside class="sidebar" aria-label="Główna nawigacja">
+    <div class="sidebar__header">
+      <span class="sidebar__emoji">🧭</span>
+      <span class="sidebar__brand">LifeOS</span>
+    </div>
+    <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+      <ul class="sidebar__list">
+        <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span class="sidebar__label">Dashboard</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="material-symbols-outlined">payments</span><span class="sidebar__label">Budżet</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="material-symbols-outlined">assignment</span><span class="sidebar__label">Zadania</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="material-symbols-outlined">trending_up</span><span class="sidebar__label">Progres</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="material-symbols-outlined">local_gas_station</span><span class="sidebar__label">Paliwo</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="material-symbols-outlined">credit_card</span><span class="sidebar__label">Kredyt</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="material-symbols-outlined">inventory_2</span><span class="sidebar__label">Magazyn</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="material-symbols-outlined">construction</span><span class="sidebar__label">Budowa</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="betting.html" data-page="betting"><span class="material-symbols-outlined">sports_soccer</span><span class="sidebar__label">Zakłady</span></a></li>
+      </ul>
+    </nav>
+    <div class="sidebar__footer">
+      <strong>Twoje centrum dowodzenia życiem.</strong>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="site-header" role="banner">
+      <div class="site-header__left">
+        <div class="site-header__greeting">
+          <h1 class="site-header__title">Zakłady</h1>
+        </div>
+        <div class="tc-hdr-strip" id="hdr-strip">
+          <div class="tc-hdr-kpi"><span class="k">Bankroll</span><span class="v" id="hdr-bankroll">—</span></div>
+          <div class="tc-hdr-divider"></div>
+          <div class="tc-hdr-kpi"><span class="k">P&amp;L</span><span class="v" id="hdr-pnl">—</span></div>
+          <div class="tc-hdr-divider"></div>
+          <div class="tc-hdr-kpi"><span class="k">Yield</span><span class="v" id="hdr-roi">—</span></div>
+          <div class="tc-hdr-divider"></div>
+          <div class="tc-hdr-kpi"><span class="k">Otwarte</span><span class="v" id="hdr-open">—</span></div>
+          <div class="tc-hdr-divider"></div>
+          <div class="tc-hdr-kpi"><span class="k">Dziś</span><span class="v" id="hdr-today">—</span></div>
+        </div>
+      </div>
+      <div class="site-header__right tc-hdr-actions" aria-label="Akcje strony">
+        <a class="tc-hdr-btn" href="budget.html" title="Wróć do budżetu"><span class="material-symbols-outlined">arrow_back</span>Budżet</a>
+        <div class="tc-hdr-sep"></div>
+        <button id="settings-btn" class="tc-hdr-btn"><span class="material-symbols-outlined">tune</span>Ustawienia</button>
+        <button id="export-btn" class="tc-hdr-btn"><span class="material-symbols-outlined">download</span>CSV</button>
+        <button id="new-bet-btn" class="tc-hdr-btn primary"><span class="material-symbols-outlined">add</span>Nowy kupon</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <main class="content-main stack">
+
+        <div class="trade-tabs">
+          <button class="trade-tab active" data-tab="dashboard"><span class="material-symbols-outlined">dashboard</span>Dashboard</button>
+          <button class="trade-tab" data-tab="bets"><span class="material-symbols-outlined">receipt_long</span>Kupony</button>
+          <button class="trade-tab" data-tab="analytics"><span class="material-symbols-outlined">bar_chart</span>Analityka</button>
+          <button class="trade-tab" data-tab="calendar"><span class="material-symbols-outlined">calendar_month</span>Kalendarz P&amp;L</button>
+          <button class="trade-tab" data-tab="ledger"><span class="material-symbols-outlined">account_balance</span>Księgowość</button>
+          <button class="trade-tab" data-tab="calc"><span class="material-symbols-outlined">calculate</span>Kalkulator</button>
+        </div>
+
+        <!-- ================= DASHBOARD ================= -->
+        <div class="tab-panel active" id="tab-dashboard">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <div class="tc-grid-kpi" id="kpi-rail">
+              <div class="tc-kpi"><span class="k">Bankroll</span><span class="v mono" id="k-bank">—</span><span class="n" id="k-bank-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Zysk / strata</span><span class="v mono" id="k-pnl">—</span><span class="n" id="k-pnl-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Yield (ROI)</span><span class="v mono" id="k-roi">—</span><span class="n" id="k-roi-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Skuteczność</span><span class="v mono" id="k-wr">—</span><span class="n" id="k-wr-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Śr. kurs</span><span class="v mono" id="k-odds">—</span><span class="n" id="k-odds-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Max obsunięcie</span><span class="v mono" id="k-dd">—</span><span class="n" id="k-dd-n">—</span></div>
+            </div>
+
+            <div class="tc-row-2">
+              <section class="tc-card">
+                <div class="tc-eq-head">
+                  <div class="tc-eq-title">
+                    <h3>Krzywa bankrolla</h3>
+                    <span class="net mono" id="eq-net">—</span>
+                    <span class="delta mono" id="eq-delta">—</span>
+                  </div>
+                  <div class="seg" id="eq-range">
+                    <button data-range="30">30D</button>
+                    <button data-range="90" class="active">90D</button>
+                    <button data-range="365">1R</button>
+                    <button data-range="all">ALL</button>
+                  </div>
+                </div>
+                <div class="tc-eq-canvas-wrap">
+                  <canvas id="chart-bankroll"></canvas>
+                </div>
+              </section>
+
+              <section class="tc-card">
+                <div class="tc-card-head">
+                  <h3>Dyscyplina</h3>
+                  <span class="sub" id="disc-status">—</span>
+                </div>
+                <div class="bt-disc-body">
+                  <div class="bt-disc-top">
+                    <div class="bt-disc-cell">
+                      <div class="k">1 unit (stawka bazowa)</div>
+                      <div class="v" id="d-unit">—</div>
+                      <div class="n" id="d-unit-n">—</div>
+                    </div>
+                    <div class="bt-disc-cell">
+                      <div class="k">Ekspozycja otwarta</div>
+                      <div class="v" id="d-exposure">—</div>
+                      <div class="n" id="d-exposure-n">—</div>
+                    </div>
+                  </div>
+
+                  <div class="tc-meter">
+                    <div class="tc-meter-head"><strong>Ekspozycja / bankroll</strong><span class="pct" id="m-exp-pct">—</span></div>
+                    <div class="tc-bar"><div class="tc-bar-fill" id="m-exp-bar" style="width:0%"></div></div>
+                    <div class="tc-meter-head" style="font-size:11px;"><span id="m-exp-limit">Limit —</span><span id="m-exp-cur" class="mono">—</span></div>
+                  </div>
+
+                  <div class="tc-meter">
+                    <div class="tc-meter-head"><strong>Strata dzienna</strong><span class="pct" id="m-loss-pct">—</span></div>
+                    <div class="tc-bar"><div class="tc-bar-fill bad" id="m-loss-bar" style="width:0%"></div></div>
+                    <div class="tc-meter-head" style="font-size:11px;"><span id="m-loss-limit">Limit —</span><span id="m-loss-cur" class="mono">—</span></div>
+                  </div>
+
+                  <div class="tc-meter">
+                    <div class="tc-meter-head"><strong>Kupony dzisiaj (tilt guard)</strong><span class="pct" id="m-cnt-pct">—</span></div>
+                    <div class="tc-bar"><div class="tc-bar-fill" id="m-cnt-bar" style="width:0%"></div></div>
+                    <div class="tc-meter-head" style="font-size:11px;"><span id="m-cnt-limit">Limit —</span><span id="m-cnt-cur" class="mono">—</span></div>
+                  </div>
+
+                  <div class="bt-alerts" id="disc-alerts"></div>
+                </div>
+              </section>
+            </div>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Kupony otwarte <span class="sub" id="open-count" style="margin-left:6px;">0</span></h3>
+                <button class="btn-small primary" onclick="openBetModal()"><span class="material-symbols-outlined">add</span>Dodaj kupon</button>
+              </div>
+              <div class="tc-tbl-wrap" id="open-bets-wrap"></div>
+            </section>
+
+            <div class="tc-row-2-even">
+              <section class="tc-card">
+                <div class="tc-card-head">
+                  <h3>Ostatnie rozliczenia</h3>
+                  <span class="sub" id="recent-count">—</span>
+                </div>
+                <div id="recent-wrap"></div>
+              </section>
+
+              <section class="tc-card">
+                <div class="tc-card-head">
+                  <h3>Wyniki wg dyscypliny</h3>
+                  <span class="sub">Top 8 wg P&amp;L</span>
+                </div>
+                <div id="sport-perf-wrap"></div>
+              </section>
+            </div>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Cel miesięczny</h3>
+                <span class="sub" id="goal-sub">—</span>
+              </div>
+              <div class="bt-goal" style="border-top:0">
+                <div class="bt-goal-head"><strong id="goal-label">—</strong><span class="pct mono" id="goal-pct">—</span></div>
+                <div class="tc-bar"><div class="tc-bar-fill good" id="goal-bar" style="width:0%"></div></div>
+                <div class="bt-goal-head" style="font-size:11px"><span id="goal-note">—</span><span class="mono" id="goal-cur">—</span></div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- ================= KUPONY ================= -->
+        <div class="tab-panel" id="tab-bets">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Szybkie dodanie kuponu</h3>
+                <span class="sub">Pojedynczy typ — rozbudowany formularz w „Nowy kupon”</span>
+              </div>
+              <form class="bt-quick" id="quick-form" autocomplete="off">
+                <div class="ff"><label>Zdarzenie</label><input id="q-event" type="text" list="dl-events" placeholder="Legia – Lech" required></div>
+                <div class="ff"><label>Typ / wybór</label><input id="q-pick" type="text" list="dl-picks" placeholder="1 / Over 2.5"></div>
+                <div class="ff"><label>Stawka (zł)</label><input id="q-stake" type="number" step="any" min="0" required></div>
+                <div class="ff"><label>Kurs</label><input id="q-odds" type="number" step="any" min="1" required></div>
+                <div class="ff"><label>Bukmacher</label><input id="q-book" type="text" list="dl-books" placeholder="STS"></div>
+                <button class="btn-small primary" type="submit" style="height:34px"><span class="material-symbols-outlined">add</span>Dodaj</button>
+              </form>
+            </section>
+
+            <section class="tc-card">
+              <div class="bt-toolbar">
+                <div class="grp">
+                  <div class="filter-chip-grp" id="f-status">
+                    <button class="filter-chip active" data-s="all">Wszystkie</button>
+                    <button class="filter-chip" data-s="pending">Otwarte</button>
+                    <button class="filter-chip" data-s="won">Wygrane</button>
+                    <button class="filter-chip" data-s="lost">Przegrane</button>
+                    <button class="filter-chip" data-s="other">Zwrot / cashout</button>
+                  </div>
+                  <input class="filter-input" id="f-q" type="search" placeholder="Szukaj: zdarzenie, typ, tag…">
+                </div>
+                <div class="grp">
+                  <select class="bt-select" id="f-book"><option value="">Bukmacher: wszyscy</option></select>
+                  <select class="bt-select" id="f-sport"><option value="">Dyscyplina: wszystkie</option></select>
+                  <select class="bt-select" id="f-period">
+                    <option value="all">Cały okres</option>
+                    <option value="30">Ostatnie 30 dni</option>
+                    <option value="90">Ostatnie 90 dni</option>
+                    <option value="ytd">Od początku roku</option>
+                    <option value="month">Bieżący miesiąc</option>
+                  </select>
+                  <div class="filter-chip-grp" id="f-group">
+                    <button class="filter-chip" data-g="day">Dzień</button>
+                    <button class="filter-chip active" data-g="week">Tydzień</button>
+                    <button class="filter-chip" data-g="month">Miesiąc</button>
+                  </div>
+                </div>
+              </div>
+              <div id="bets-summary" class="bt-acct-grid"></div>
+              <div id="pending-section"></div>
+              <div id="settled-section"></div>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- ================= ANALITYKA ================= -->
+        <div class="tab-panel" id="tab-analytics">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <div class="tc-card">
+              <div class="an-stats">
+                <div class="an-stat"><div class="k">Kupony</div><div class="v mono" id="an-total">—</div></div>
+                <div class="an-stat"><div class="k">Wygrane / przegrane</div><div class="v mono" id="an-wl">—</div></div>
+                <div class="an-stat"><div class="k">Obrót</div><div class="v mono" id="an-turnover">—</div></div>
+                <div class="an-stat"><div class="k">Śr. stawka</div><div class="v mono" id="an-avgstake">—</div></div>
+              </div>
+              <div class="an-stats">
+                <div class="an-stat"><div class="k">Śr. kurs wygranych</div><div class="v mono pos" id="an-oddswin">—</div></div>
+                <div class="an-stat"><div class="k">Śr. kurs przegranych</div><div class="v mono neg" id="an-oddslose">—</div></div>
+                <div class="an-stat"><div class="k">Najlepszy kupon</div><div class="v mono pos" id="an-best">—</div></div>
+                <div class="an-stat"><div class="k">Najgorszy kupon</div><div class="v mono neg" id="an-worst">—</div></div>
+              </div>
+              <div class="an-stats" style="border-bottom:0;">
+                <div class="an-stat"><div class="k">Seria wygranych</div><div class="v mono" id="an-winstreak">—</div></div>
+                <div class="an-stat"><div class="k">Seria przegranych</div><div class="v mono" id="an-lossstreak">—</div></div>
+                <div class="an-stat"><div class="k">CLV (śr.)</div><div class="v mono" id="an-clv">—</div></div>
+                <div class="an-stat"><div class="k">Podatek zapłacony</div><div class="v mono" id="an-tax">—</div></div>
+              </div>
+            </div>
+
+            <div class="analytics-grid">
+              <section class="tc-card an-chart wide">
+                <div class="tc-card-head"><h3>P&amp;L miesięczny</h3><span class="sub">Zrealizowany zysk / strata</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-monthly"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart wide">
+                <div class="tc-card-head"><h3>Zysk skumulowany vs obrót</h3><span class="sub">Narastająco</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-cum"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart half">
+                <div class="tc-card-head"><h3>Yield wg przedziału kursów</h3><span class="sub">Gdzie masz przewagę</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-odds"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart half">
+                <div class="tc-card-head"><h3>P&amp;L wg wielkości stawki</h3><span class="sub">W jednostkach (unit)</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-stake"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart third">
+                <div class="tc-card-head"><h3>P&amp;L wg bukmachera</h3><span class="sub">Rozliczone</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-book"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart third">
+                <div class="tc-card-head"><h3>Struktura wyników</h3><span class="sub">Rozliczone kupony</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-wr"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart third">
+                <div class="tc-card-head"><h3>P&amp;L wg dnia tygodnia</h3><span class="sub">Data rozliczenia</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-dow"></canvas></div>
+              </section>
+
+              <section class="tc-card an-chart wide">
+                <div class="tc-card-head"><h3>Skuteczność wg poziomu pewności</h3><span class="sub">Czy Twoja ocena ma wartość predykcyjną?</span></div>
+                <div class="an-body an-chart-body"><canvas id="chart-conf"></canvas></div>
+              </section>
+            </div>
+
+            <div class="tc-row-2-even">
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Rynki / typy zakładów</h3><span class="sub">Yield i liczba kuponów</span></div>
+                <div id="market-perf-wrap"></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Tagi / strategie</h3><span class="sub">Yield i liczba kuponów</span></div>
+                <div id="tag-perf-wrap"></div>
+              </section>
+            </div>
+
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Mapa kursów</h3><span class="sub">Yield w przedziałach kursowych</span></div>
+              <div class="bt-heat" id="odds-heat"></div>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- ================= KALENDARZ ================= -->
+        <div class="tab-panel" id="tab-calendar">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <section class="tc-card cal-card">
+              <div class="tc-card-head cal-head">
+                <div class="cal-month-nav">
+                  <button class="btn-small ghost" id="cal-prev"><span class="material-symbols-outlined">chevron_left</span></button>
+                  <h3 id="cal-month-label">—</h3>
+                  <button class="btn-small ghost" id="cal-next"><span class="material-symbols-outlined">chevron_right</span></button>
+                </div>
+                <div class="filter-chip-grp" id="cal-metric-toggle">
+                  <button class="filter-chip active" data-m="pnl">P&amp;L</button>
+                  <button class="filter-chip" data-m="roi">Yield</button>
+                  <button class="filter-chip" data-m="bank">Bankroll</button>
+                  <button class="filter-chip" data-m="turnover">Obrót</button>
+                  <button class="filter-chip" data-m="bets">Kupony</button>
+                  <button class="filter-chip" data-m="wr">Skuteczność</button>
+                </div>
+              </div>
+              <div class="cal-lm-info" id="cal-lm-info" style="display:none"></div>
+              <div class="cal-buckets" id="cal-buckets"></div>
+              <div class="cal-grid-wrap">
+                <div class="cal-weekdays">
+                  <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>Sb</span><span>Nd</span>
+                </div>
+                <div class="cal-grid" id="cal-grid"></div>
+              </div>
+            </section>
+
+            <div class="bt-period-grid">
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Ujęcie tygodniowe</h3><span class="sub">Ostatnie 16 tygodni (ISO)</span></div>
+                <div class="tc-tbl-wrap" id="week-table-wrap"></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Ujęcie miesięczne</h3><span class="sub">Ostatnie 12 miesięcy</span></div>
+                <div class="tc-tbl-wrap" id="month-table-wrap"></div>
+              </section>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= KSIĘGOWOŚĆ ================= -->
+        <div class="tab-panel" id="tab-ledger">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Bilans bankrolla</h3>
+                <span class="sub">Kapitał startowy + przepływy + wynik zakładów</span>
+              </div>
+              <div class="bt-acct-grid" id="acct-grid"></div>
+              <div id="acct-recon" style="padding:12px 14px"></div>
+            </section>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Operacje kasowe</h3>
+                <span class="sub">Wpłaty, wypłaty, bonusy, korekty</span>
+              </div>
+              <form class="bt-ledger-form" id="ledger-form" autocomplete="off">
+                <div class="ff"><label>Data</label><input id="l-date" type="date" required></div>
+                <div class="ff"><label>Typ</label>
+                  <select id="l-type">
+                    <option value="deposit">Wpłata</option>
+                    <option value="withdraw">Wypłata</option>
+                    <option value="bonus">Bonus / freebet</option>
+                    <option value="adjust">Korekta</option>
+                  </select>
+                </div>
+                <div class="ff"><label>Kwota (zł)</label><input id="l-amount" type="number" step="any" min="0" required></div>
+                <div class="ff"><label>Bukmacher / opis</label><input id="l-note" type="text" list="dl-books" placeholder="STS – wpłata BLIK"></div>
+                <button class="btn-small primary" type="submit" style="height:34px"><span class="material-symbols-outlined">add</span>Zaksięguj</button>
+              </form>
+              <div class="tc-tbl-wrap" id="ledger-wrap"></div>
+            </section>
+
+            <div class="tc-row-2-even">
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Salda wg bukmachera</h3><span class="sub">Wpłaty − wypłaty + wynik</span></div>
+                <div class="tc-tbl-wrap" id="book-balance-wrap"></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Rozliczenie podatkowe</h3><span class="sub">Wg ustawień modułu</span></div>
+                <div class="tc-tbl-wrap" id="tax-wrap"></div>
+              </section>
+            </div>
+
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Księga miesięczna</h3><span class="sub">Obrót, podatek, wynik netto</span></div>
+              <div class="tc-tbl-wrap" id="acct-month-wrap"></div>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- ================= KALKULATOR ================= -->
+        <div class="tab-panel" id="tab-calc">
+          <div class="bt-calc-grid">
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Value bet &amp; wielkość stawki</h3>
+                <span class="sub">Edge, EV i Kelly</span>
+              </div>
+              <div class="tc-card-body">
+                <div class="ff-grid cols-3">
+                  <div class="ff"><label>Kurs bukmachera</label><input id="c-odds" type="number" step="any" min="1" value="2.10"></div>
+                  <div class="ff"><label>Twoje prawdop. (%)</label><input id="c-prob" type="number" step="any" min="0" max="100" value="52"></div>
+                  <div class="ff"><label>Ułamek Kelly'ego</label><input id="c-kelly" type="number" step="any" min="0" max="1" value="0.25"></div>
+                </div>
+                <div class="ff-grid cols-3" style="margin-top:12px">
+                  <div class="ff"><label>Bankroll (zł)</label><input id="c-bank" type="number" step="any" min="0"></div>
+                  <div class="ff"><label>Podatek od stawki (%)</label><input id="c-tax" type="number" step="any" min="0" value="12"></div>
+                  <div class="ff"><label>Max stawka (% BR)</label><input id="c-max" type="number" step="any" min="0" value="5"></div>
+                </div>
+                <div class="bt-slip" style="margin-top:14px" id="calc-value-out"></div>
+                <div class="bt-verdict" style="margin-top:10px" id="calc-verdict">Uzupełnij dane, aby zobaczyć ocenę wartości.</div>
+              </div>
+            </section>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Kalkulator kuponu (AKO)</h3>
+                <span class="sub">Kurs łączny, podatek, wypłata</span>
+              </div>
+              <div class="tc-card-body">
+                <div class="ff"><label>Kursy nóg (oddziel spacją lub przecinkiem)</label><input id="c-legs" type="text" value="1.85 2.10 1.60"></div>
+                <div class="ff-grid" style="margin-top:12px">
+                  <div class="ff"><label>Stawka (zł)</label><input id="c-ako-stake" type="number" step="any" min="0" value="100"></div>
+                  <div class="ff"><label>Podatek od stawki (%)</label><input id="c-ako-tax" type="number" step="any" min="0" value="12"></div>
+                </div>
+                <div class="bt-slip" style="margin-top:14px" id="calc-ako-out"></div>
+              </div>
+            </section>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Cashout — czy się opłaca?</h3>
+                <span class="sub">Porównanie z wartością oczekiwaną</span>
+              </div>
+              <div class="tc-card-body">
+                <div class="ff-grid cols-3">
+                  <div class="ff"><label>Stawka (zł)</label><input id="co-stake" type="number" step="any" min="0" value="100"></div>
+                  <div class="ff"><label>Kurs kuponu</label><input id="co-odds" type="number" step="any" min="1" value="3.00"></div>
+                  <div class="ff"><label>Oferta cashout (zł)</label><input id="co-offer" type="number" step="any" min="0" value="150"></div>
+                </div>
+                <div class="ff-grid" style="margin-top:12px">
+                  <div class="ff"><label>Szansa na wygraną teraz (%)</label><input id="co-prob" type="number" step="any" min="0" max="100" value="60"></div>
+                  <div class="ff"><label>Podatek od stawki (%)</label><input id="co-tax" type="number" step="any" min="0" value="12"></div>
+                </div>
+                <div class="bt-slip" style="margin-top:14px" id="calc-co-out"></div>
+                <div class="bt-verdict" style="margin-top:10px" id="calc-co-verdict">—</div>
+              </div>
+            </section>
+
+            <section class="tc-card">
+              <div class="tc-card-head">
+                <h3>Marża bukmachera &amp; kurs efektywny</h3>
+                <span class="sub">Ile realnie oddajesz</span>
+              </div>
+              <div class="tc-card-body">
+                <div class="ff"><label>Kursy wszystkich wyników (1 / X / 2)</label><input id="c-margin" type="text" value="2.10 3.40 3.60"></div>
+                <div class="ff" style="margin-top:12px"><label>Podatek od stawki (%)</label><input id="c-margin-tax" type="number" step="any" min="0" value="12"></div>
+                <div class="bt-slip" style="margin-top:14px" id="calc-margin-out"></div>
+                <div class="bt-verdict" style="margin-top:10px" id="calc-margin-verdict">—</div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<datalist id="dl-books"></datalist>
+<datalist id="dl-sports"></datalist>
+<datalist id="dl-leagues"></datalist>
+<datalist id="dl-markets"></datalist>
+<datalist id="dl-events"></datalist>
+<datalist id="dl-picks"></datalist>
+<datalist id="dl-tags"></datalist>
+
+<!-- ========== MODAL: KUPON ========== -->
+<div class="tc-modal-ov" id="bet-modal">
+  <div class="tc-modal" style="max-width:720px">
+    <div class="tc-modal-head">
+      <h3 id="bet-modal-title">Nowy kupon</h3>
+      <button class="row-btn" onclick="closeBetModal()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tc-modal-body">
+      <input type="hidden" id="b-id">
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="bt-type-toggle" id="b-type-toggle">
+          <button type="button" data-t="single" class="active">Solo</button>
+          <button type="button" data-t="combo">AKO</button>
+        </div>
+        <div class="bt-checks">
+          <label class="bt-check"><input type="checkbox" id="b-live">Live</label>
+          <label class="bt-check"><input type="checkbox" id="b-freebet">Freebet</label>
+          <label class="bt-check"><input type="checkbox" id="b-taxfree">Bez podatku (zwrot)</label>
+        </div>
+      </div>
+
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Data postawienia</label><input id="b-date" type="date"></div>
+        <div class="ff"><label>Bukmacher</label><input id="b-book" type="text" list="dl-books" placeholder="STS"></div>
+        <div class="ff"><label>Dyscyplina</label><input id="b-sport" type="text" list="dl-sports" placeholder="Piłka nożna"></div>
+      </div>
+
+      <div id="b-single-box">
+        <div class="ff-grid">
+          <div class="ff"><label>Zdarzenie</label><input id="b-event" type="text" list="dl-events" placeholder="Legia Warszawa – Lech Poznań"></div>
+          <div class="ff"><label>Rozgrywki</label><input id="b-league" type="text" list="dl-leagues" placeholder="Ekstraklasa"></div>
+        </div>
+        <div class="ff-grid" style="margin-top:12px">
+          <div class="ff"><label>Rynek</label><input id="b-market" type="text" list="dl-markets" placeholder="1X2 / Over-Under / Handicap"></div>
+          <div class="ff"><label>Typ (wybór)</label><input id="b-pick" type="text" list="dl-picks" placeholder="Legia wygra"></div>
+        </div>
+      </div>
+
+      <div id="b-combo-box" style="display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--tc-muted)">Nogi kuponu</span>
+          <button type="button" class="btn-small ghost" onclick="addLegRow()"><span class="material-symbols-outlined">add</span>Dodaj nogę</button>
+        </div>
+        <div class="bt-legs-editor" id="b-legs"></div>
+        <div style="margin-top:8px; font-size:11.5px; color:var(--tc-muted)">Kurs łączny wyliczany automatycznie z nóg (możesz go nadpisać poniżej).</div>
+      </div>
+
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Stawka (zł)</label><input id="b-stake" type="number" step="any" min="0"></div>
+        <div class="ff"><label>Kurs</label><input id="b-odds" type="number" step="any" min="1"></div>
+        <div class="ff"><label>Kurs zamknięcia (CLV)</label><input id="b-closing" type="number" step="any" min="1" placeholder="opcjonalnie"></div>
+      </div>
+
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Pewność</label>
+          <div class="bt-conf-pick" id="b-conf">
+            <button type="button" data-c="1">1</button>
+            <button type="button" data-c="2">2</button>
+            <button type="button" data-c="3" class="active">3</button>
+            <button type="button" data-c="4">4</button>
+            <button type="button" data-c="5">5</button>
+          </div>
+        </div>
+        <div class="ff"><label>Tagi / strategia</label><input id="b-tags" type="text" list="dl-tags" placeholder="value, underdog"></div>
+        <div class="ff"><label>Stawka w unitach</label><input id="b-units" type="text" readonly value="—" style="background:var(--tc-surface)"></div>
+      </div>
+
+      <div class="ff"><label>Notatka / uzasadnienie</label><input id="b-note" type="text" placeholder="Dlaczego ten typ? Jakie założenia?"></div>
+
+      <div class="bt-slip" id="b-preview"></div>
+      <div class="bt-alerts" id="b-warnings"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" onclick="closeBetModal()">Anuluj</button>
+      <button class="btn-small primary" onclick="saveBetModal()"><span class="material-symbols-outlined">check</span>Zapisz kupon</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ROZLICZENIE ========== -->
+<div class="tc-modal-ov" id="settle-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head">
+      <h3>Rozlicz kupon</h3>
+      <button class="row-btn" onclick="closeSettleModal()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tc-modal-body">
+      <input type="hidden" id="st-id">
+      <div class="bt-slip" id="st-info"></div>
+
+      <div>
+        <label style="font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--tc-muted); display:block; margin-bottom:6px;">Wynik</label>
+        <div class="bt-result-grid" id="st-result">
+          <button type="button" class="bt-result-btn" data-r="won">Wygrany<small>pełna wypłata</small></button>
+          <button type="button" class="bt-result-btn" data-r="lost">Przegrany<small>strata stawki</small></button>
+          <button type="button" class="bt-result-btn" data-r="void">Zwrot<small>kurs 1.00</small></button>
+          <button type="button" class="bt-result-btn" data-r="cashout">Cashout<small>kwota ręczna</small></button>
+          <button type="button" class="bt-result-btn" data-r="half_won">Połowa wygrana<small>handicap azjatycki</small></button>
+          <button type="button" class="bt-result-btn" data-r="half_lost">Połowa przegrana<small>handicap azjatycki</small></button>
+        </div>
+      </div>
+
+      <div class="ff-grid">
+        <div class="ff"><label>Data rozliczenia</label><input id="st-date" type="date"></div>
+        <div class="ff"><label>Wypłata netto (zł)</label><input id="st-payout" type="number" step="any" min="0"></div>
+      </div>
+      <div style="font-size:11.5px; color:var(--tc-muted)">Wypłata liczona automatycznie z kursu i ustawień podatkowych — możesz ją nadpisać, jeśli bukmacher rozliczył inaczej.</div>
+
+      <div class="bt-slip" id="st-preview"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" onclick="closeSettleModal()">Anuluj</button>
+      <button class="btn-small primary" onclick="saveSettle()"><span class="material-symbols-outlined">check</span>Zapisz rozliczenie</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: USTAWIENIA ========== -->
+<div class="tc-modal-ov" id="settings-modal">
+  <div class="tc-modal" style="max-width:640px">
+    <div class="tc-modal-head">
+      <h3>Ustawienia modułu zakładów</h3>
+      <button class="row-btn" onclick="closeSettings()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tc-modal-body">
+
+      <div class="plan-section-title">Bankroll i stawki</div>
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Bankroll startowy (zł)</label><input id="s-bank" type="number" step="any" min="0"></div>
+        <div class="ff"><label>1 unit (% bankrolla)</label><input id="s-unit" type="number" step="0.1" min="0.1"></div>
+        <div class="ff"><label>Cel miesięczny (% BR)</label><input id="s-goal" type="number" step="0.1"></div>
+      </div>
+
+      <div class="plan-section-title" style="margin-top:6px">Limity dyscypliny</div>
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Max stawka (% BR)</label><input id="s-maxstake" type="number" step="0.1" min="0.1"></div>
+        <div class="ff"><label>Max ekspozycja (% BR)</label><input id="s-maxexp" type="number" step="0.1" min="0.1"></div>
+        <div class="ff"><label>Max strata dzienna (% BR)</label><input id="s-maxloss" type="number" step="0.1" min="0.1"></div>
+      </div>
+      <div class="ff-grid">
+        <div class="ff"><label>Max kuponów dziennie</label><input id="s-maxbets" type="number" step="1" min="1"></div>
+        <div class="ff"><label>Max kurs (ostrzeżenie)</label><input id="s-maxodds" type="number" step="0.1" min="1"></div>
+      </div>
+
+      <div class="plan-section-title" style="margin-top:6px">Podatki</div>
+      <div class="ff-grid">
+        <div class="ff"><label>Model podatkowy</label>
+          <select id="s-taxmode">
+            <option value="stake">Od stawki (PL: 12% obrotu)</option>
+            <option value="win">Od wygranej (ryczałt)</option>
+            <option value="both">Od stawki i od wygranej</option>
+            <option value="none">Bez podatku</option>
+          </select>
+        </div>
+        <div class="ff"><label>Podatek od stawki (%)</label><input id="s-staketax" type="number" step="0.1" min="0"></div>
+      </div>
+      <div class="ff-grid">
+        <div class="ff"><label>Podatek od wygranej (%)</label><input id="s-wintax" type="number" step="0.1" min="0"></div>
+        <div class="ff"><label>Kwota wolna od podatku (zł)</label><input id="s-winfree" type="number" step="any" min="0"></div>
+      </div>
+      <div style="font-size:11.5px; color:var(--tc-muted); line-height:1.5;">
+        Domyślnie: 12% podatku od gier pobierane od stawki (legalni bukmacherzy w PL) oraz 10% ryczałtu od wygranych powyżej 2 280 zł.
+        Ustawienia wpływają na wyliczanie wypłat, yieldu i księgi podatkowej — sprawdź je z regulaminem swojego bukmachera.
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid var(--tc-line); gap:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--tc-muted);">Dane trzymane lokalnie (localStorage)</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-small ghost" onclick="exportJSON()"><span class="material-symbols-outlined">download</span>Backup JSON</button>
+          <button class="btn-small ghost" onclick="document.getElementById('import-file').click()"><span class="material-symbols-outlined">upload</span>Import</button>
+          <button class="btn-small" onclick="clearAllBets()" style="color:var(--tc-neg); border-color:var(--tc-neg-tint);">Wyczyść</button>
+        </div>
+      </div>
+      <input type="file" id="import-file" accept="application/json" style="display:none">
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" onclick="closeSettings()">Anuluj</button>
+      <button class="btn-small primary" onclick="saveSettings()"><span class="material-symbols-outlined">check</span>Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<div class="tc-toasts" id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="betting.js"></script>
+</body>
+</html>
