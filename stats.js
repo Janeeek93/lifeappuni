@@ -10,8 +10,8 @@
 
    Ograniczenia planu Free, które kształtują ten moduł:
    - terminarz tylko wczoraj / dziś / jutro,
-   - historia formy korzysta z `fixtures?team=…&last=…`, dzięki czemu
-     zakres 5/10/20 meczów może przechodzić przez granicę sezonu,
+   - plan Free blokuje parametr `last`; historia jest składana z lokalnie
+     zapisanych terminarzy oraz archiwalnych sezonów 2022–2024,
    - prior bramkowy bierzemy z /predictions (1 zapytanie na mecz),
    - 100 zapytań na dobę, 10 na minutę.
    ============================================================ */
@@ -22,6 +22,7 @@ const CACHE_STORE = 'lifeos_stats_cache_v1';
 const USAGE_STORE = 'lifeos_stats_usage_v1';
 const DAILY_LIMIT = 100;
 const HISTORY_WINDOWS = [5, 10, 20];
+const FREE_ARCHIVE_SEASONS = [2024, 2023, 2022];
 
 const TTL = {
   fixtures: 30 * 60 * 1000,        // terminarz dnia — wyniki się zmieniają
@@ -296,7 +297,8 @@ function wilsonLower(hits, n, z = 1.282) {
 }
 
 function recentTeamSample(list, teamId) {
-  return (list || [])
+  const unique = [...new Map((list || []).map(match => [match?.fixture?.id, match])).values()];
+  return unique
     .filter(m => ['FT', 'AET', 'PEN'].includes(m?.fixture?.status?.short) && m.goals?.home != null && m.goals?.away != null)
     .map(m => {
       const home = m.teams.home.id === teamId;
@@ -312,6 +314,40 @@ function recentTeamSample(list, teamId) {
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function locallyObservedFixtures(teamId) {
+  const observed = [];
+  for (const [path, entry] of Object.entries(cache)) {
+    if (!path.startsWith('fixtures?date=') || !Array.isArray(entry?.data?.response)) continue;
+    observed.push(...entry.data.response.filter(match =>
+      match?.teams?.home?.id === teamId || match?.teams?.away?.id === teamId));
+  }
+  return observed;
+}
+
+async function fetchFreeTeamHistory(teamId, wanted, { force = false } = {}) {
+  const fixtures = locallyObservedFixtures(teamId);
+  const seasonsUsed = [];
+  const errors = [];
+
+  for (const season of FREE_ARCHIVE_SEASONS) {
+    if (recentTeamSample(fixtures, teamId).length >= wanted) break;
+    try {
+      const { data } = await apiGet(`fixtures?team=${teamId}&season=${season}`, TTL.predictions, { force });
+      fixtures.push(...(data.response || []));
+      seasonsUsed.push(season);
+    } catch (error) {
+      errors.push(error);
+      // Brak dostępu do jednego sezonu nie powinien blokować sprawdzenia
+      // kolejnego; błędy klucza, limitu i sieci są jednak terminalne.
+      if (['key', 'quota', 'rate', 'network'].includes(error.kind)) throw error;
+    }
+  }
+
+  const matches = recentTeamSample(fixtures, teamId).slice(0, wanted);
+  if (!matches.length && errors.length) throw errors[0];
+  return { matches, seasonsUsed, observed: locallyObservedFixtures(teamId).length };
 }
 
 function mean(values) {
@@ -359,14 +395,12 @@ async function analyseFixture(fx, { force = false } = {}) {
   const lam = expectedGoals(r.teams.home, r.teams.away);
   const sample = h2hSample(r.h2h, homeId, awayId);
 
-  // `last` przechodzi przez granicę sezonu, więc początek rozgrywek nie
-  // redukuje historii do jednego meczu. To dwa zapytania niezależnie od N.
-  const [homeHistory, awayHistory] = await Promise.all([
-    apiGet(`fixtures?team=${homeId}&last=${historyWindow}`, TTL.predictions, { force }),
-    apiGet(`fixtures?team=${awayId}&last=${historyWindow}`, TTL.predictions, { force })
-  ]);
-  const recentHome = recentTeamSample(homeHistory.data.response, homeId).slice(0, historyWindow);
-  const recentAway = recentTeamSample(awayHistory.data.response, awayId).slice(0, historyWindow);
+  // Plan Free nie udostępnia `last`. Składamy próbkę z zakończonych meczów
+  // zapamiętanych podczas codziennego używania aplikacji i sezonów archiwalnych.
+  const homeHistory = await fetchFreeTeamHistory(homeId, historyWindow, { force });
+  const awayHistory = await fetchFreeTeamHistory(awayId, historyWindow, { force });
+  const recentHome = homeHistory.matches;
+  const recentAway = awayHistory.matches;
 
   // Forma własnego ataku i obrony rywala ma równą wagę. Prior z predykcji
   // stabilizuje małe próbki, ale wraz z historią szybko traci znaczenie.
@@ -389,7 +423,10 @@ async function analyseFixture(fx, { force = false } = {}) {
     seasonSample: lam.sample,
     fhShare: firstHalfShare(lam.homeModel, lam.awayModel),
     h2h: sample,
-    recent: { home: recentHome, away: recentAway, window: historyWindow },
+    recent: {
+      home: recentHome, away: recentAway, window: historyWindow,
+      sources: { home: homeHistory, away: awayHistory }
+    },
     advice: r.predictions?.advice || null,
     underOver: r.predictions?.under_over || null,
     percent: r.predictions?.percent || null,
@@ -720,6 +757,11 @@ function renderAnalysis() {
   if (smallSample) notes.push(['warn', 'warning', `API zwróciło tylko <strong>${a.recent.home.length}</strong> i <strong>${a.recent.away.length}</strong> zakończonych meczów. Przy tak małej próbce traktuj rekomendacje orientacyjnie.`]);
   if (noH2H) notes.push(['warn', 'history', 'Brak rozegranych meczów bezpośrednich — kolumna H2H pozostanie pusta, zostaje sam model.']);
   else if (a.h2h.length < 4) notes.push(['warn', 'history', `Tylko <strong>${a.h2h.length}</strong> mecze bezpośrednie w bazie. Odsetki H2H przy tak małej próbce potrafią mocno mylić.`]);
+  const archiveSeasons = [...new Set([
+    ...a.recent.sources.home.seasonsUsed,
+    ...a.recent.sources.away.seasonsUsed
+  ])].sort((x, y) => y - x);
+  notes.push(['warn', 'database', `Plan Free API-Football blokuje parametr <code>last</code>. Próba jest składana z meczów zapisanych lokalnie${archiveSeasons.length ? ` oraz archiwów sezonów <strong>${archiveSeasons.join(', ')}</strong>` : ''}. Nie należy interpretować archiwum 2024 jako bieżącej formy.`]);
   notes.push(['', 'info', 'Model bramek łączy ostatnie mecze obu drużyn z priorem API. Poisson służy tylko rynkom bramkowym; statystyki meczowe pokazują empiryczne pokrycie. Model nie uwzględnia kontuzji, składów ani stawki meczu.']);
 
   const statsBtn = a.stats
@@ -750,7 +792,7 @@ function renderAnalysis() {
         <div class="cell"><div class="k">Mecze bezpośrednie</div><div class="v">${a.h2h.length}</div><div class="n">w bazie API</div></div>
       </div>
       <div class="st-history-toolbar">
-        <span>Zakres formy (także poprzedni sezon):</span>
+        <span>Zakres dostępnej historii:</span>
         <div class="st-seg" id="history-seg">${HISTORY_WINDOWS.map(n => `<button data-window="${n}" class="${a.recent.window === n ? 'active' : ''}">Ostatnie ${n}</button>`).join('')}</div>
       </div>
       <div class="st-notes">${notes.map(([k, i, t]) => `<div class="st-note ${k}"><span class="material-symbols-outlined">${i}</span><span>${t}</span></div>`).join('')}</div>
@@ -785,7 +827,7 @@ function renderAnalysis() {
       ? buildStatsMatrix(a)
       : `<div class="tc-empty"><span class="material-symbols-outlined">bar_chart</span>
              <h4>Statystyki jeszcze nie pobrane</h4>
-             <p>Rożne, strzały i kartki API udostępnia per mecz. Pobranie obejmie ostatnie mecze obu drużyn, także z poprzedniego sezonu; wspólne spotkania są liczone tylko raz i zapisują się w cache.</p></div>`}
+             <p>Rożne, strzały i kartki API udostępnia per mecz. Pobranie obejmie mecze widoczne w dostępnej historii; wspólne spotkania są liczone tylko raz i zapisują się w cache.</p></div>`}
       </div>
     </section>
 
@@ -887,7 +929,7 @@ async function runAnalysis(fixtureId) {
   el('analysis-block').style.display = '';
   el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
     <span class="material-symbols-outlined">hourglass_top</span><h4>Liczę…</h4>
-    <p>Pobieram formę drużyn i mecze bezpośrednie (1 zapytanie).</p></div></section>`;
+    <p>Pobieram predykcję oraz dostępną na planie Free historię drużyn.</p></div></section>`;
   busy = true;
   try {
     analysis = await analyseFixture(fx);
