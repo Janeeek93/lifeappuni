@@ -1,1069 +1,263 @@
-/* ============================================================
-   STATYSTYKI — pomoc przy budowaniu kuponów
-   Źródło: API-Football (v3.football.api-sports.io)
-
-   Zasady:
-   - Nic nie łączy się samo. Każde zapytanie wymaga kliknięcia.
-   - Każda odpowiedź ląduje w cache (localStorage), więc powrót
-     do raz przeanalizowanego meczu nic nie kosztuje.
-   - Klucz API trzymany wyłącznie w przeglądarce użytkownika.
-
-   Ograniczenia planu Free, które kształtują ten moduł:
-   - terminarz tylko wczoraj / dziś / jutro,
-   - plan Free blokuje parametr `last`; historia jest składana z lokalnie
-     zapisanych terminarzy oraz archiwalnych sezonów 2022–2024,
-   - prior bramkowy bierzemy z /predictions (1 zapytanie na mecz),
-   - 100 zapytań na dobę, 10 na minutę.
-   ============================================================ */
-
-const API_BASE = 'https://v3.football.api-sports.io';
-const KEY_STORE = 'lifeos_stats_apikey';
-const CACHE_STORE = 'lifeos_stats_cache_v1';
-const USAGE_STORE = 'lifeos_stats_usage_v1';
-const DAILY_LIMIT = 100;
+/* Statystyki piłkarskie — TheSportsDB v1, publiczny klucz Free „123”.
+   API jest wywoływane wyłącznie po akcji użytkownika, a odpowiedzi są cache'owane. */
+const API_BASE = 'https://www.thesportsdb.com/api/v1/json/123';
+const CACHE_STORE = 'lifeos_thesportsdb_cache_v1';
 const HISTORY_WINDOWS = [5, 10, 20];
-const FREE_ARCHIVE_SEASONS = [2024, 2023, 2022];
+const TTL = { fixtures: 30 * 60 * 1000, history: 6 * 60 * 60 * 1000 };
 
-const TTL = {
-  fixtures: 30 * 60 * 1000,        // terminarz dnia — wyniki się zmieniają
-  predictions: 6 * 60 * 60 * 1000, // forma drużyn — zmienia się powoli
-  statistics: Infinity             // mecz rozegrany nie zmieni już statystyk
-};
-
-let apiKey = '';
 let cache = {};
-let usage = { day: '', count: 0 };
-
 let dayOffset = 0;
-let fixtures = [];          // wszystkie mecze pobranego dnia
-let leagues = [];           // pogrupowane ligi
+let fixtures = [];
+let leagues = [];
 let selectedLeagueId = null;
 let selectedFixture = null;
-let analysis = null;        // wynik analizy wybranego meczu
+let analysis = null;
 let leagueFilter = '';
+let historyWindow = 5;
 let busy = false;
-let historyWindow = 10;
 
-/* ============================================================
-   Narzędzia
-   ============================================================ */
 const el = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const num = (v, f = 0) => { const n = Number(v); return Number.isFinite(n) ? n : f; };
-const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const num = (value, fallback = null) => { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : fallback; };
 
 function todayISO(offset = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
 }
-function fmtPct(p, dp = 0) {
-  if (p === null || p === undefined || !Number.isFinite(p)) return '—';
-  return (p * 100).toFixed(dp) + '%';
+function fmtPct(value, dp = 0) { return Number.isFinite(value) ? `${(value * 100).toFixed(dp)}%` : '—'; }
+function fairOdds(value) { return Number.isFinite(value) && value > 0 ? (1 / value).toFixed(2) : '—'; }
+function toast(message, kind = '') {
+  const node = document.createElement('div');
+  node.className = `tc-toast ${kind}`;
+  node.textContent = message;
+  el('toasts').appendChild(node);
+  setTimeout(() => node.remove(), 3400);
 }
-function fairOdds(p) {
-  if (!Number.isFinite(p) || p <= 0) return '—';
-  return (1 / p).toFixed(2);
-}
-function toast(msg, kind = '') {
-  const t = document.createElement('div');
-  t.className = 'tc-toast ' + kind;
-  t.textContent = msg;
-  el('toasts').appendChild(t);
-  setTimeout(() => t.remove(), 3400);
-}
-
-/* ============================================================
-   Klucz, cache i licznik zapytań
-   ============================================================ */
-function loadStores() {
-  try { apiKey = localStorage.getItem(KEY_STORE) || ''; } catch { apiKey = ''; }
+function loadCache() {
   try { cache = JSON.parse(localStorage.getItem(CACHE_STORE) || '{}') || {}; } catch { cache = {}; }
-  try { usage = JSON.parse(localStorage.getItem(USAGE_STORE) || 'null') || { day: '', count: 0 }; } catch { usage = { day: '', count: 0 }; }
-  const d = todayISO();
-  if (usage.day !== d) usage = { day: d, count: 0 };
 }
 function saveCache() {
-  try { localStorage.setItem(CACHE_STORE, JSON.stringify(cache)); }
-  catch {
-    // przy przepełnieniu localStorage wyrzucamy najstarsze wpisy
-    const entries = Object.entries(cache).sort((a, b) => a[1].ts - b[1].ts);
-    for (let i = 0; i < Math.ceil(entries.length / 2); i++) delete cache[entries[i][0]];
-    try { localStorage.setItem(CACHE_STORE, JSON.stringify(cache)); } catch { }
-  }
+  try { localStorage.setItem(CACHE_STORE, JSON.stringify(cache)); } catch { /* cache jest opcjonalny */ }
 }
-function bumpUsage() {
-  usage.count += 1;
-  localStorage.setItem(USAGE_STORE, JSON.stringify(usage));
-  renderQuota();
-}
-function remainingQuota() { return Math.max(DAILY_LIMIT - usage.count, 0); }
-
-function renderQuota() {
-  const used = usage.count;
-  const pct = clamp(used / DAILY_LIMIT * 100, 0, 100);
-  el('quota-bar').style.width = pct + '%';
-  el('quota-text').innerHTML = `<strong>${used}</strong> / ${DAILY_LIMIT}`;
-  const box = el('quota');
-  box.className = 'st-quota' + (used >= DAILY_LIMIT ? ' bad' : used >= DAILY_LIMIT * 0.8 ? ' warn' : '');
-  box.title = `Zużyto ${used} z ${DAILY_LIMIT} zapytań w dobie (licznik lokalny, resetuje się o północy).`;
-}
-
-function cacheKey(path) { return path; }
-function cacheGet(path, ttl) {
-  const hit = cache[cacheKey(path)];
-  if (!hit) return null;
-  if (ttl !== Infinity && Date.now() - hit.ts > ttl) return null;
-  return hit.data;
-}
-function cacheSet(path, data) {
-  cache[cacheKey(path)] = { ts: Date.now(), data };
+async function apiGet(path, ttl) {
+  const hit = cache[path];
+  if (hit && Date.now() - hit.ts < ttl) return { data: hit.data, cached: true };
+  let response;
+  try { response = await fetch(`${API_BASE}/${path}`); }
+  catch { throw new Error('Brak połączenia z TheSportsDB. Sprawdź internet.'); }
+  if (!response.ok) throw new Error(`TheSportsDB zwróciło błąd HTTP ${response.status}.`);
+  const data = await response.json();
+  cache[path] = { ts: Date.now(), data };
   saveCache();
+  return { data, cached: false };
 }
 
-/* ============================================================
-   Warstwa API
-   ============================================================ */
-class ApiError extends Error {
-  constructor(message, kind) { super(message); this.kind = kind; }
+function eventDate(event) {
+  if (event.strTimestamp) return new Date(event.strTimestamp);
+  const time = (event.strTime || '00:00:00').slice(0, 8);
+  return new Date(`${event.dateEvent}T${time}Z`);
 }
-
-async function apiGet(path, ttl, { force = false } = {}) {
-  if (!force) {
-    const cached = cacheGet(path, ttl);
-    if (cached) return { data: cached, cached: true };
-  }
-  if (!apiKey) throw new ApiError('Brak klucza API. Dodaj go w „Klucz API”.', 'key');
-  if (remainingQuota() <= 0) throw new ApiError(`Wyczerpany dzienny limit ${DAILY_LIMIT} zapytań. Licznik zeruje się o północy.`, 'quota');
-
-  let res;
-  try {
-    res = await fetch(`${API_BASE}/${path}`, { headers: { 'x-apisports-key': apiKey } });
-  } catch {
-    throw new ApiError('Brak połączenia z API. Sprawdź internet.', 'network');
-  }
-  bumpUsage();
-
-  if (res.status === 429) throw new ApiError('Przekroczony limit zapytań na minutę (10). Odczekaj chwilę i spróbuj ponownie.', 'rate');
-  if (res.status === 499 || res.status === 401 || res.status === 403) throw new ApiError('Klucz API odrzucony. Sprawdź go w ustawieniach.', 'key');
-  if (!res.ok) throw new ApiError(`API zwróciło błąd ${res.status}.`, 'http');
-
-  const json = await res.json();
-  const errs = json.errors;
-  if (errs && !Array.isArray(errs) && Object.keys(errs).length) {
-    const msg = Object.values(errs).join(' ');
-    const kind = errs.plan ? 'plan' : errs.token ? 'key' : errs.requests ? 'quota' : 'api';
-    throw new ApiError(msg, kind);
-  }
-  cacheSet(path, json);
-  return { data: json, cached: false };
+function eventStatus(event) {
+  const status = String(event.strStatus || '').toLowerCase();
+  const hasScore = event.intHomeScore !== null && event.intHomeScore !== '' && event.intAwayScore !== null && event.intAwayScore !== '';
+  if (hasScore || status.includes('finished')) return { short: 'FT', elapsed: null };
+  if (status.includes('postpon')) return { short: 'PST', elapsed: null };
+  if (status.includes('live') || status.includes('progress')) return { short: 'LIVE', elapsed: null };
+  return { short: 'NS', elapsed: null };
 }
-
-/* ============================================================
-   Matematyka: rozkład Poissona
-   ============================================================ */
-function poissonPmf(k, lambda) {
-  if (lambda <= 0) return k === 0 ? 1 : 0;
-  let logP = -lambda + k * Math.log(lambda);
-  for (let i = 2; i <= k; i++) logP -= Math.log(i);
-  return Math.exp(logP);
-}
-// P(X > threshold) dla progu typu 2.5 → P(X >= 3)
-function pOver(lambda, threshold) {
-  if (!Number.isFinite(lambda) || lambda <= 0) return null;
-  const maxK = Math.floor(threshold);
-  let cdf = 0;
-  for (let k = 0; k <= maxK; k++) cdf += poissonPmf(k, lambda);
-  return clamp(1 - cdf, 0, 1);
-}
-function pAtLeastOne(lambda) {
-  if (!Number.isFinite(lambda) || lambda <= 0) return null;
-  return 1 - Math.exp(-lambda);
-}
-// wynik 1 / X / 2 z dwóch niezależnych rozkładów Poissona
-function outcomeProbs(lh, la, maxGoals = 12) {
-  let home = 0, draw = 0, away = 0;
-  for (let i = 0; i <= maxGoals; i++) {
-    for (let j = 0; j <= maxGoals; j++) {
-      const p = poissonPmf(i, lh) * poissonPmf(j, la);
-      if (i > j) home += p; else if (i === j) draw += p; else away += p;
-    }
-  }
-  const tot = home + draw + away || 1;
-  return { home: home / tot, draw: draw / tot, away: away / tot };
-}
-
-/* ============================================================
-   Wyliczanie oczekiwanych goli ze średnich sezonowych
-   ============================================================ */
-function avg(v) {
-  const n = Number(v);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-function teamGoalModel(t) {
-  const lg = t?.league?.goals || {};
+function adaptEvent(event) {
+  const date = eventDate(event);
   return {
-    forHome: avg(lg.for?.average?.home),
-    forAway: avg(lg.for?.average?.away),
-    forTotal: avg(lg.for?.average?.total),
-    againstHome: avg(lg.against?.average?.home),
-    againstAway: avg(lg.against?.average?.away),
-    againstTotal: avg(lg.against?.average?.total),
-    played: num(t?.league?.fixtures?.played?.total, 0),
-    form: t?.league?.form || '',
-    minutes: lg.for?.minute || null
+    fixture: { id: String(event.idEvent), date: date.toISOString(), timestamp: date.getTime() / 1000, status: eventStatus(event) },
+    league: { id: String(event.idLeague || event.strLeague || 'other'), name: event.strLeague || 'Inne rozgrywki', country: event.strCountry || '', logo: event.strLeagueBadge || '' },
+    teams: {
+      home: { id: String(event.idHomeTeam), name: event.strHomeTeam || '—', logo: event.strHomeTeamBadge || '' },
+      away: { id: String(event.idAwayTeam), name: event.strAwayTeam || '—', logo: event.strAwayTeamBadge || '' }
+    },
+    goals: { home: num(event.intHomeScore), away: num(event.intAwayScore) },
+    raw: event
   };
 }
-function expectedGoals(home, away) {
-  const h = teamGoalModel(home), a = teamGoalModel(away);
-  const pick = (...vals) => { for (const v of vals) if (v !== null && v > 0) return v; return null; };
-
-  // atak gospodarza u siebie vs obrona gościa na wyjeździe
-  const hAtt = pick(h.forHome, h.forTotal);
-  const aDef = pick(a.againstAway, a.againstTotal);
-  const aAtt = pick(a.forAway, a.forTotal);
-  const hDef = pick(h.againstHome, h.againstTotal);
-
-  const blend = (x, y) => {
-    if (x !== null && y !== null) return (x + y) / 2;
-    return x !== null ? x : (y !== null ? y : null);
-  };
-  return {
-    home: blend(hAtt, aDef),
-    away: blend(aAtt, hDef),
-    sample: Math.min(h.played, a.played),
-    homeModel: h,
-    awayModel: a
-  };
+function completedSample(events, teamId) {
+  return [...new Map((events || []).map(event => [event.idEvent, event])).values()]
+    .map(adaptEvent)
+    .filter(match => match.fixture.status.short === 'FT' && (match.teams.home.id === String(teamId) || match.teams.away.id === String(teamId)))
+    .map(match => {
+      const home = match.teams.home.id === String(teamId);
+      const scored = home ? match.goals.home : match.goals.away;
+      const conceded = home ? match.goals.away : match.goals.home;
+      return { id: match.fixture.id, date: match.fixture.date.slice(0, 10), opponent: home ? match.teams.away.name : match.teams.home.name, scored, conceded, total: scored + conceded, btts: scored > 0 && conceded > 0, won: scored > conceded, draw: scored === conceded };
+    }).sort((a, b) => b.date.localeCompare(a.date));
 }
-// udział goli padających do przerwy (z rozkładu minutowego obu drużyn)
-function firstHalfShare(h, a) {
-  const buckets = ['0-15', '16-30', '31-45'];
-  const grab = m => {
-    if (!m) return null;
-    let first = 0, total = 0;
-    for (const [k, v] of Object.entries(m)) {
-      const t = num(v?.total, 0);
-      total += t;
-      if (buckets.includes(k)) first += t;
-    }
-    return total > 0 ? first / total : null;
-  };
-  const sh = grab(h.minutes), sa = grab(a.minutes);
-  if (sh === null && sa === null) return 0.45; // typowy udział, gdy brak danych
-  if (sh === null) return sa;
-  if (sa === null) return sh;
-  return (sh + sa) / 2;
+function cachedTeamEvents(teamId) {
+  const events = [];
+  for (const [path, entry] of Object.entries(cache)) {
+    const payload = entry?.data;
+    if (!payload) continue;
+    const list = path.startsWith('eventsday.php') ? payload.events : path.startsWith('eventslast.php') ? payload.results : null;
+    if (!Array.isArray(list)) continue;
+    events.push(...list.filter(event => String(event.idHomeTeam) === String(teamId) || String(event.idAwayTeam) === String(teamId)));
+  }
+  return events;
+}
+async function fetchTeamHistory(teamId, wanted) {
+  const { data } = await apiGet(`eventslast.php?id=${encodeURIComponent(teamId)}`, TTL.history);
+  const apiEvents = data.results || data.events || [];
+  return completedSample([...apiEvents, ...cachedTeamEvents(teamId)], teamId).slice(0, wanted);
 }
 
-/* ============================================================
-   Empiria z meczów bezpośrednich
-   ============================================================ */
-function h2hSample(h2h, homeId, awayId) {
-  return (h2h || [])
-    .filter(m => m?.fixture?.status?.short === 'FT' && m.goals?.home !== null && m.goals?.away !== null)
-    .map(m => {
-      const isHomeOurs = m.teams.home.id === homeId;
-      const gh = num(m.goals.home), ga = num(m.goals.away);
-      return {
-        id: m.fixture.id,
-        date: m.fixture.date.slice(0, 10),
-        homeName: m.teams.home.name,
-        awayName: m.teams.away.name,
-        gh, ga,
-        total: gh + ga,
-        ourHome: isHomeOurs ? gh : ga,   // gole drużyny, która dziś gra u siebie
-        ourAway: isHomeOurs ? ga : gh,
-        btts: gh > 0 && ga > 0
-      };
-    })
-    .sort((a, b) => (a.date < b.date ? 1 : -1));
+function mean(values) { const valid = values.filter(Number.isFinite); return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null; }
+function empirical(values, predicate) {
+  const valid = values.filter(value => value !== null && value !== undefined);
+  if (!valid.length) return null;
+  const hits = valid.filter(predicate).length;
+  return { p: hits / valid.length, hits, n: valid.length };
 }
-function empiricalOver(values, threshold) {
-  const vals = values.filter(v => Number.isFinite(v));
-  if (!vals.length) return null;
-  const hits = vals.filter(v => v > threshold).length;
-  return { p: hits / vals.length, hits, n: vals.length };
-}
-
-// Dolna granica 80% przedziału Wilsona. Surowe 4/5 nie powinno wyglądać
-// równie wiarygodnie jak 16/20, dlatego rekomendacje uwzględniają próbkę.
 function wilsonLower(hits, n, z = 1.282) {
   if (!n) return null;
-  const p = hits / n;
-  const z2 = z * z;
+  const p = hits / n, z2 = z * z;
   return clamp((p + z2 / (2 * n) - z * Math.sqrt((p * (1 - p) + z2 / (4 * n)) / n)) / (1 + z2 / n), 0, 1);
 }
-
-function recentTeamSample(list, teamId) {
-  const unique = [...new Map((list || []).map(match => [match?.fixture?.id, match])).values()];
-  return unique
-    .filter(m => ['FT', 'AET', 'PEN'].includes(m?.fixture?.status?.short) && m.goals?.home != null && m.goals?.away != null)
-    .map(m => {
-      const home = m.teams.home.id === teamId;
-      const scored = num(home ? m.goals.home : m.goals.away);
-      const conceded = num(home ? m.goals.away : m.goals.home);
-      return {
-        id: m.fixture.id,
-        date: m.fixture.date.slice(0, 10),
-        opponent: home ? m.teams.away.name : m.teams.home.name,
-        venue: home ? 'D' : 'W',
-        scored, conceded, total: scored + conceded,
-        btts: scored > 0 && conceded > 0
-      };
-    })
-    .sort((a, b) => b.date.localeCompare(a.date));
+function poissonPmf(k, lambda) {
+  if (!Number.isFinite(lambda) || lambda <= 0) return k === 0 ? 1 : 0;
+  let value = Math.exp(-lambda);
+  for (let i = 1; i <= k; i++) value *= lambda / i;
+  return value;
 }
-
-function locallyObservedFixtures(teamId) {
-  const observed = [];
-  for (const [path, entry] of Object.entries(cache)) {
-    if (!path.startsWith('fixtures?date=') || !Array.isArray(entry?.data?.response)) continue;
-    observed.push(...entry.data.response.filter(match =>
-      match?.teams?.home?.id === teamId || match?.teams?.away?.id === teamId));
+function pOver(lambda, line) {
+  if (!Number.isFinite(lambda) || lambda < 0) return null;
+  let cdf = 0;
+  for (let k = 0; k <= Math.floor(line); k++) cdf += poissonPmf(k, lambda);
+  return clamp(1 - cdf, 0, 1);
+}
+function outcomeProbs(homeLambda, awayLambda) {
+  if (!Number.isFinite(homeLambda) || !Number.isFinite(awayLambda)) return { home: null, draw: null, away: null };
+  let home = 0, draw = 0, away = 0;
+  for (let i = 0; i <= 12; i++) for (let j = 0; j <= 12; j++) {
+    const p = poissonPmf(i, homeLambda) * poissonPmf(j, awayLambda);
+    if (i > j) home += p; else if (i === j) draw += p; else away += p;
   }
-  return observed;
+  const total = home + draw + away;
+  return { home: home / total, draw: draw / total, away: away / total };
 }
+function tone(p) { return !Number.isFinite(p) ? 'empty' : p >= .8 ? 't5' : p >= .65 ? 't4' : p >= .45 ? 't3' : p >= .3 ? 't2' : 't1'; }
 
-async function fetchFreeTeamHistory(teamId, wanted, { force = false } = {}) {
-  const fixtures = locallyObservedFixtures(teamId);
-  const seasonsUsed = [];
-  const errors = [];
-
-  for (const season of FREE_ARCHIVE_SEASONS) {
-    if (recentTeamSample(fixtures, teamId).length >= wanted) break;
-    try {
-      const { data } = await apiGet(`fixtures?team=${teamId}&season=${season}`, TTL.predictions, { force });
-      fixtures.push(...(data.response || []));
-      seasonsUsed.push(season);
-    } catch (error) {
-      errors.push(error);
-      // Brak dostępu do jednego sezonu nie powinien blokować sprawdzenia
-      // kolejnego; błędy klucza, limitu i sieci są jednak terminalne.
-      if (['key', 'quota', 'rate', 'network'].includes(error.kind)) throw error;
-    }
-  }
-
-  const matches = recentTeamSample(fixtures, teamId).slice(0, wanted);
-  if (!matches.length && errors.length) throw errors[0];
-  return { matches, seasonsUsed, observed: locallyObservedFixtures(teamId).length };
-}
-
-function mean(values) {
-  const valid = values.filter(Number.isFinite);
-  return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
-}
-
-function shrunkMean(values, prior, priorWeight = 5) {
-  const valid = values.filter(Number.isFinite);
-  if (!valid.length) return prior;
-  if (!Number.isFinite(prior)) return mean(valid);
-  return (valid.reduce((sum, value) => sum + value, 0) + prior * priorWeight) / (valid.length + priorWeight);
-}
-
-/* ============================================================
-   Definicje rynków
-   ============================================================ */
-const GOAL_LINES = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5];
-const TEAM_GOAL_LINES = [0.5, 1.5, 2.5, 3.5];
-const CORNER_LINES = [6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5];
-const TEAM_CORNER_LINES = [2.5, 3.5, 4.5, 5.5, 6.5];
-const SHOT_LINES = [15.5, 17.5, 19.5, 21.5, 23.5, 25.5];
-const SHOT_ON_LINES = [5.5, 6.5, 7.5, 8.5, 9.5, 10.5];
-const CARD_LINES = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
-const FOUL_LINES = [17.5, 19.5, 21.5, 23.5, 25.5, 27.5];
-
-const STAT_MAP = {
-  'Corner Kicks': 'corners',
-  'Total Shots': 'shots',
-  'Shots on Goal': 'shotsOn',
-  'Yellow Cards': 'yellow',
-  'Red Cards': 'red',
-  'Fouls': 'fouls'
-};
-
-/* ============================================================
-   Analiza meczu
-   ============================================================ */
-async function analyseFixture(fx, { force = false } = {}) {
-  const { data } = await apiGet(`predictions?fixture=${fx.fixture.id}`, TTL.predictions, { force });
-  const r = (data.response || [])[0];
-  if (!r) throw new ApiError('API nie zwróciło danych dla tego meczu.', 'api');
-
-  const homeId = fx.teams.home.id, awayId = fx.teams.away.id;
-  const lam = expectedGoals(r.teams.home, r.teams.away);
-  const sample = h2hSample(r.h2h, homeId, awayId);
-
-  // Plan Free nie udostępnia `last`. Składamy próbkę z zakończonych meczów
-  // zapamiętanych podczas codziennego używania aplikacji i sezonów archiwalnych.
-  const homeHistory = await fetchFreeTeamHistory(homeId, historyWindow, { force });
-  const awayHistory = await fetchFreeTeamHistory(awayId, historyWindow, { force });
-  const recentHome = homeHistory.matches;
-  const recentAway = awayHistory.matches;
-
-  // Forma własnego ataku i obrony rywala ma równą wagę. Prior z predykcji
-  // stabilizuje małe próbki, ale wraz z historią szybko traci znaczenie.
-  const recentLambdaHome = mean([
-    shrunkMean(recentHome.map(m => m.scored), lam.home),
-    shrunkMean(recentAway.map(m => m.conceded), lam.home)
+async function analyseFixture(fixture) {
+  const [home, away] = await Promise.all([
+    fetchTeamHistory(fixture.teams.home.id, historyWindow),
+    fetchTeamHistory(fixture.teams.away.id, historyWindow)
   ]);
-  const recentLambdaAway = mean([
-    shrunkMean(recentAway.map(m => m.scored), lam.away),
-    shrunkMean(recentHome.map(m => m.conceded), lam.away)
-  ]);
-
-  return {
-    fixture: fx,
-    raw: r,
-    lambdaHome: recentLambdaHome,
-    lambdaAway: recentLambdaAway,
-    lambdaTotal: (recentLambdaHome ?? 0) + (recentLambdaAway ?? 0),
-    models: { home: lam.homeModel, away: lam.awayModel },
-    seasonSample: lam.sample,
-    fhShare: firstHalfShare(lam.homeModel, lam.awayModel),
-    h2h: sample,
-    recent: {
-      home: recentHome, away: recentAway, window: historyWindow,
-      sources: { home: homeHistory, away: awayHistory }
-    },
-    advice: r.predictions?.advice || null,
-    underOver: r.predictions?.under_over || null,
-    percent: r.predictions?.percent || null,
-    stats: null            // uzupełniane osobnym przyciskiem
-  };
+  const lambdaHome = mean([mean(home.map(m => m.scored)), mean(away.map(m => m.conceded))]);
+  const lambdaAway = mean([mean(away.map(m => m.scored)), mean(home.map(m => m.conceded))]);
+  return { fixture, recent: { home, away, window: historyWindow }, lambdaHome, lambdaAway, lambdaTotal: (lambdaHome ?? 0) + (lambdaAway ?? 0) };
 }
 
-// Statystyki szczegółowe z ostatnich meczów obu drużyn. Wspólne spotkanie
-// pobieramy raz, a potem przypisujemy do obu próbek.
-async function fetchRecentStats(a, onProgress) {
-  const ids = [...new Map([...a.recent.home, ...a.recent.away].map(m => [m.id, m])).values()];
-  const rows = [];
-  let fetched = 0, failed = 0;
-
-  for (let i = 0; i < ids.length; i++) {
-    const m = ids[i];
-    const path = `fixtures/statistics?fixture=${m.id}`;
-    let payload = cacheGet(path, TTL.statistics);
-    if (!payload) {
-      if (remainingQuota() <= 0) { failed++; break; }
-      try {
-        const res = await apiGet(path, TTL.statistics);
-        payload = res.data;
-        fetched++;
-        // Plan Free dopuszcza 10/min; odstęp chroni przed 429 także przy
-        // ruchomym oknie limitu. Cache nie powoduje opóźnienia.
-        if (i < ids.length - 1) await sleep(6100);
-      } catch (e) {
-        failed++;
-        if (e.kind === 'rate' || e.kind === 'quota' || e.kind === 'key') break;
-        continue;
-      }
-    }
-    const teams = payload.response || [];
-    if (teams.length < 2) continue;
-
-    const per = teams.map(t => {
-      const out = { teamId: t.team.id };
-      for (const s of t.statistics || []) {
-        const key = STAT_MAP[s.type];
-        if (!key) continue;
-        const v = typeof s.value === 'string' ? parseInt(s.value, 10) : s.value;
-        // brak wartości zostaje nullem — inaczej mecz bez statystyk
-        // zaniżałby średnią, udając same zera
-        out[key] = Number.isFinite(v) ? v : null;
-      }
-      return out;
-    });
-    // suma obu drużyn tylko wtedy, gdy API podało dane choć dla jednej
-    const sum = (...keys) => {
-      let total = 0, any = false;
-      for (const t of per) for (const k of keys) {
-        if (Number.isFinite(t[k])) { total += t[k]; any = true; }
-      }
-      return any ? total : null;
-    };
-
-    const teamValue = teamId => {
-      const t = per.find(item => item.teamId === teamId) || {};
-      return {
-        corners: t.corners, shots: t.shots, shotsOn: t.shotsOn,
-        cards: Number.isFinite(t.yellow) || Number.isFinite(t.red) ? num(t.yellow) + num(t.red) : null,
-        fouls: t.fouls
-      };
-    };
-    rows.push({
-      id: m.id, date: m.date,
-      corners: sum('corners'),
-      shots: sum('shots'),
-      shotsOn: sum('shotsOn'),
-      cards: sum('yellow', 'red'),
-      fouls: sum('fouls'),
-      homeTeam: teamValue(a.fixture.teams.home.id),
-      awayTeam: teamValue(a.fixture.teams.away.id)
-    });
-    if (onProgress) onProgress(i + 1, ids.length);
-  }
-
-  a.stats = { rows, fetched, failed, requested: ids.length };
-  return a.stats;
+function matrixCell(model, observed) {
+  const shown = model ?? observed?.p;
+  const title = observed ? `${observed.hits}/${observed.n} trafień · dolna granica Wilsona ${fmtPct(wilsonLower(observed.hits, observed.n))}` : `Model Poissona · kurs godziwy ${fairOdds(model)}`;
+  return `<td><div class="mx ${tone(shown)}" title="${esc(title)}"><span class="p">${fmtPct(shown)}</span>${observed ? `<span class="h">${observed.hits}/${observed.n}</span>` : ''}</div></td>`;
 }
-
-/* ============================================================
-   Budowa macierzy
-   ============================================================ */
-function tone(p) {
-  if (p === null || !Number.isFinite(p)) return 'empty';
-  if (p >= 0.80) return 't5';
-  if (p >= 0.65) return 't4';
-  if (p >= 0.45) return 't3';
-  if (p >= 0.30) return 't2';
-  return 't1';
-}
-
-function matrixCell(model, emp) {
-  if (model === null && !emp) return `<td><div class="mx empty"><span class="p">—</span></div></td>`;
-  const t = tone(model !== null ? model : emp.p);
-  const title = model !== null
-    ? `Model: ${fmtPct(model, 1)} (kurs godziwy ${fairOdds(model)})${emp ? ` · H2H: ${emp.hits}/${emp.n} = ${fmtPct(emp.p, 0)}` : ''}`
-    : `H2H: ${emp.hits}/${emp.n} = ${fmtPct(emp.p, 0)}`;
-  let h = '';
-  if (emp) {
-    const diff = model !== null && Math.abs(emp.p - model) > 0.22;
-    h = `<span class="h ${diff ? 'diff' : ''}" title="Dolna granica Wilsona: ${fmtPct(wilsonLower(emp.hits, emp.n), 0)}">${emp.hits}/${emp.n}</span>`;
-  }
-  return `<td><div class="mx ${t}" title="${esc(title)}">
-    <span class="p">${model !== null ? fmtPct(model) : fmtPct(emp.p)}</span>${h}</div></td>`;
-}
-
-function matrixTable(title, sub, lines, rows) {
-  return `<div class="st-matrix-title"><strong>${esc(title)}</strong><span class="sub">${esc(sub)}</span></div>
-  <div class="st-matrix-wrap"><table class="st-matrix">
-    <thead><tr><th>Rynek</th>${lines.map(l => `<th>pow. ${String(l).replace('.', ',')}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>
-      <td class="lbl">${esc(r.label)}${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</td>
-      ${lines.map((l, i) => matrixCell(r.model[i], r.emp ? r.emp[i] : null)).join('')}
-    </tr>`).join('')}</tbody>
-  </table></div>`;
-}
-
-function buildGoalsMatrix(a) {
-  const { lambdaHome: lh, lambdaAway: la, lambdaTotal: lt } = a;
-  const hs = a.recent.home, as = a.recent.away;
-  const all = [...hs, ...as];
-  const rows = [
-    {
-      label: 'Gole w meczu', sub: 'suma obu drużyn',
-      model: GOAL_LINES.map(l => pOver(lt, l)),
-      emp: GOAL_LINES.map(l => empiricalOver(all.map(m => m.total), l))
-    },
-    {
-      label: `Gole: ${a.fixture.teams.home.name}`, sub: 'gospodarz',
-      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(lh, l) : null)),
-      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(hs.map(m => m.scored), l) : null))
-    },
-    {
-      label: `Gole: ${a.fixture.teams.away.name}`, sub: 'gość',
-      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(la, l) : null)),
-      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(as.map(m => m.scored), l) : null))
-    },
-    {
-      label: 'Gole do przerwy', sub: `${fmtPct(a.fhShare, 0)} goli pada w 1. połowie`,
-      model: GOAL_LINES.map(l => (l <= 2.5 ? pOver(lt * a.fhShare, l) : null)),
-      emp: GOAL_LINES.map(() => null)
-    }
-  ];
-  return matrixTable('Gole', `oczekiwane ${lt.toFixed(2)} gola · ostatnie ${hs.length} + ${as.length} meczów drużyn`, GOAL_LINES, rows);
-}
-
-function buildStatsMatrix(a) {
-  if (!a.stats || !a.stats.rows.length) return '';
-  const rows = a.stats.rows;
-
-  const section = (title, key, lines, unit) => {
-    const vals = rows.map(r => r[key]).filter(v => Number.isFinite(v));
-    if (!vals.length) {
-      return `<div class="st-matrix-title"><strong>${esc(title)}</strong>
-        <span class="sub">API nie ma tych statystyk dla żadnego z pobranych meczów</span></div>`;
-    }
-    const m = vals.reduce((s, v) => s + v, 0) / vals.length;
-    return matrixTable(title, `średnia ${m.toFixed(1)} ${unit} · próbka ${vals.length} ${vals.length === 1 ? 'mecz' : 'meczów'}`, lines, [{
-      label: title, sub: 'suma obu drużyn',
-      // Rożne, strzały, kartki i faule są zwykle nadmiernie rozproszone;
-      // Poisson ze średniej zawyżał precyzję. Pokazujemy obserwowane pokrycie.
-      model: lines.map(() => null),
-      emp: lines.map(l => empiricalOver(vals, l))
-    }]);
-  };
-
-  return `
-    ${section('Rożne', 'corners', CORNER_LINES, 'na mecz')}
-    ${section('Strzały', 'shots', SHOT_LINES, 'na mecz')}
-    ${section('Strzały celne', 'shotsOn', SHOT_ON_LINES, 'na mecz')}
-    ${section('Kartki', 'cards', CARD_LINES, 'na mecz')}
-    ${section('Faule', 'fouls', FOUL_LINES, 'na mecz')}`;
-}
-
 function buildRecommendations(a) {
-  const samples = [
-    ['Gole w meczu pow. 1,5', [...a.recent.home, ...a.recent.away].map(m => m.total), 1.5],
-    ['Gole w meczu pow. 2,5', [...a.recent.home, ...a.recent.away].map(m => m.total), 2.5],
-    [`${a.fixture.teams.home.name} strzeli`, a.recent.home.map(m => m.scored), 0.5],
-    [`${a.fixture.teams.away.name} strzeli`, a.recent.away.map(m => m.scored), 0.5]
+  const all = [...a.recent.home, ...a.recent.away];
+  const definitions = [
+    ['Gole pow. 1,5', all.map(m => m.total), v => v > 1.5],
+    ['Gole pow. 2,5', all.map(m => m.total), v => v > 2.5],
+    ['Obie drużyny strzelą', all.map(m => m.btts), Boolean],
+    [`${a.fixture.teams.home.name} strzeli`, a.recent.home.map(m => m.scored), v => v > 0],
+    [`${a.fixture.teams.away.name} strzeli`, a.recent.away.map(m => m.scored), v => v > 0]
   ];
-  const picks = samples.map(([label, values, line]) => {
-    const result = empiricalOver(values, line);
-    return result && { label, ...result, lower: wilsonLower(result.hits, result.n) };
-  }).filter(Boolean).sort((a, b) => b.lower - a.lower);
-
-  return `<div class="st-recommendations">
-    <div class="st-matrix-title"><strong>Rekomendacje statystyczne</strong><span class="sub">ranking wg dolnej granicy Wilsona (80%), nie samego odsetka</span></div>
-    <div class="st-rec-grid">${picks.map(p => `<div class="st-rec ${tone(p.p)}">
-      <strong>${esc(p.label)}</strong><span class="value">${fmtPct(p.p)}</span>
-      <small>${p.hits}/${p.n} trafień · konserwatywna ocena ${fmtPct(p.lower)}</small>
-    </div>`).join('')}</div>
-  </div>`;
+  const picks = definitions.map(([label, values, test]) => ({ label, ...empirical(values, test) })).filter(p => Number.isFinite(p.p)).map(p => ({ ...p, lower: wilsonLower(p.hits, p.n) })).sort((x, y) => y.lower - x.lower);
+  return `<div class="st-recommendations"><div class="st-matrix-title"><strong>Rekomendacje statystyczne</strong><span class="sub">ranking wg dolnej granicy Wilsona (80%)</span></div><div class="st-rec-grid">${picks.map(p => `<div class="st-rec ${tone(p.p)}"><strong>${esc(p.label)}</strong><span class="value">${fmtPct(p.p)}</span><small>${p.hits}/${p.n} trafień · konserwatywnie ${fmtPct(p.lower)}</small></div>`).join('')}</div></div>`;
 }
-
-function buildExtraMarkets(a) {
-  const { lambdaHome: lh, lambdaAway: la } = a;
-  const oc = outcomeProbs(lh, la);
-  const bttsModel = (pAtLeastOne(lh) ?? 0) * (pAtLeastOne(la) ?? 0);
-  const recent = [...a.recent.home, ...a.recent.away];
-  const bttsEmp = empiricalOver(recent.map(m => m.btts ? 1 : 0), 0.5);
-
-  const items = [
-    ['Obie drużyny strzelą', bttsModel, bttsEmp],
-    ['Wygrana gospodarza', oc.home, empiricalOver(a.recent.home.map(m => m.scored > m.conceded ? 1 : 0), 0.5)],
-    ['Remis', oc.draw, empiricalOver(recent.map(m => m.scored === m.conceded ? 1 : 0), 0.5)],
-    ['Wygrana gościa', oc.away, empiricalOver(a.recent.away.map(m => m.scored > m.conceded ? 1 : 0), 0.5)],
-    ['Gospodarz nie przegra', oc.home + oc.draw, null],
-    ['Gość nie przegra', oc.away + oc.draw, null]
+function buildGoalsMatrix(a) {
+  const lines = [.5, 1.5, 2.5, 3.5, 4.5];
+  const all = [...a.recent.home, ...a.recent.away];
+  const rows = [
+    ['Gole w meczu', a.lambdaTotal, all.map(m => m.total)],
+    [`Gole: ${a.fixture.teams.home.name}`, a.lambdaHome, a.recent.home.map(m => m.scored)],
+    [`Gole: ${a.fixture.teams.away.name}`, a.lambdaAway, a.recent.away.map(m => m.scored)]
   ];
-
-  return `<div class="st-matrix-title"><strong>Rynki dodatkowe</strong><span class="sub">model Poissona + częstość w ostatnich meczach</span></div>
-  <div class="st-matrix-wrap"><table class="st-matrix">
-    <thead><tr><th>Rynek</th><th>Pokrycie</th><th>Kurs godziwy</th><th>H2H</th></tr></thead>
-    <tbody>${items.map(([label, p, emp]) => `<tr>
-      <td class="lbl">${esc(label)}</td>
-      <td><div class="mx ${tone(p)}"><span class="p">${fmtPct(p)}</span></div></td>
-      <td><div class="mx t3"><span class="p">${fairOdds(p)}</span></div></td>
-      <td><div class="mx ${emp ? tone(emp.p) : 'empty'}"><span class="p">${emp ? fmtPct(emp.p) : '—'}</span>${emp ? `<span class="h">${emp.hits}/${emp.n}</span>` : ''}</div></td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
+  return `<div class="st-matrix-title"><strong>Gole</strong><span class="sub">model Poissona + pokrycie ostatnich dostępnych meczów</span></div><div class="st-matrix-wrap"><table class="st-matrix"><thead><tr><th>Rynek</th>${lines.map(line => `<th>pow. ${String(line).replace('.', ',')}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, lambda, values]) => `<tr><td class="lbl">${esc(label)}</td>${lines.map(line => matrixCell(pOver(lambda, line), empirical(values, value => value > line))).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function buildOutcomes(a) {
+  const probs = outcomeProbs(a.lambdaHome, a.lambdaAway);
+  const items = [['Wygrana gospodarza', probs.home], ['Remis', probs.draw], ['Wygrana gościa', probs.away], ['Gospodarz nie przegra', probs.home + probs.draw], ['Gość nie przegra', probs.away + probs.draw]];
+  return `<div class="st-matrix-title"><strong>Wynik meczu</strong><span class="sub">model bramkowy</span></div><div class="st-matrix-wrap"><table class="st-matrix"><thead><tr><th>Rynek</th><th>Prawdopodobieństwo</th><th>Kurs godziwy</th></tr></thead><tbody>${items.map(([label, p]) => `<tr><td class="lbl">${esc(label)}</td>${matrixCell(p, null)}<td><div class="mx t3"><span class="p">${fairOdds(p)}</span></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+function historyList(title, team, rows) {
+  return `<div class="tc-card-head"><h3>${esc(title)}</h3><span class="sub">${rows.length} spotkań</span></div><div class="st-h2h-list">${rows.map(m => `<div class="st-h2h-row"><span class="d">${esc(m.date)}</span><span class="tn">${esc(team)}</span><span class="sc">${m.scored} : ${m.conceded}</span><span class="tn a">${esc(m.opponent)}</span><span class="ex">${m.total} gole${m.btts ? ' · BTTS' : ''}</span></div>`).join('')}</div>`;
 }
 
-/* ============================================================
-   Render
-   ============================================================ */
-function setStep(n) {
-  document.querySelectorAll('.st-step').forEach(s => {
-    const i = Number(s.dataset.step);
-    s.classList.toggle('done', i < n);
-    s.classList.toggle('active', i === n);
-  });
-}
-
-function renderDayLabel() {
-  const d = todayISO(dayOffset);
-  const dt = new Date(d + 'T00:00:00');
-  el('day-label').textContent = dt.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-}
-
+function setStep(n) { document.querySelectorAll('.st-step').forEach(step => { const value = Number(step.dataset.step); step.classList.toggle('done', value < n); step.classList.toggle('active', value === n); }); }
+function renderDayLabel() { const date = new Date(`${todayISO(dayOffset)}T00:00:00Z`); el('day-label').textContent = date.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }); }
 function renderFixturesStatus(html) { el('fixtures-status').innerHTML = html; }
-
 function groupLeagues(list) {
   const map = new Map();
-  for (const f of list) {
-    const id = f.league.id;
-    if (!map.has(id)) map.set(id, { id, name: f.league.name, country: f.league.country, logo: f.league.logo, flag: f.league.flag, count: 0 });
-    map.get(id).count += 1;
-  }
-  return [...map.values()].sort((a, b) => b.count - a.count || a.country.localeCompare(b.country, 'pl'));
+  for (const match of list) { if (!map.has(match.league.id)) map.set(match.league.id, { ...match.league, count: 0 }); map.get(match.league.id).count++; }
+  return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'pl'));
 }
-
 function renderLeagues() {
   el('leagues-block').style.display = leagues.length ? '' : 'none';
-  if (!leagues.length) return;
   const q = leagueFilter.trim().toLowerCase();
-  const list = q ? leagues.filter(l => (l.name + ' ' + l.country).toLowerCase().includes(q)) : leagues;
+  const visible = q ? leagues.filter(l => `${l.name} ${l.country}`.toLowerCase().includes(q)) : leagues;
   el('leagues-desc').textContent = `${leagues.length} lig · ${fixtures.length} meczów`;
-  el('leagues').innerHTML = list.length ? list.map(l => `
-    <button class="st-league ${selectedLeagueId === l.id ? 'active' : ''}" data-league="${l.id}">
-      <img src="${esc(l.logo || l.flag || '')}" alt="" onerror="this.style.visibility='hidden'">
-      <span class="t"><span class="n">${esc(l.name)}</span><span class="c">${esc(l.country)}</span></span>
-      <span class="cnt">${l.count}</span>
-    </button>`).join('')
-    : `<div class="tc-empty" style="grid-column:1/-1"><span class="material-symbols-outlined">search_off</span><h4>Brak lig</h4><p>Zmień filtr.</p></div>`;
-
-  el('leagues').querySelectorAll('.st-league').forEach(b =>
-    b.addEventListener('click', () => selectLeague(Number(b.dataset.league))));
+  el('leagues').innerHTML = visible.map(l => `<button class="st-league ${selectedLeagueId === l.id ? 'active' : ''}" data-league="${esc(l.id)}"><span class="t"><span class="n">${esc(l.name)}</span><span class="c">${esc(l.country)}</span></span><span class="cnt">${l.count}</span></button>`).join('') || '<div class="tc-empty">Brak lig</div>';
+  el('leagues').querySelectorAll('[data-league]').forEach(button => button.addEventListener('click', () => selectLeague(button.dataset.league)));
 }
-
-function statusTag(s) {
-  const short = s.short;
-  if (['1H', '2H', 'HT', 'ET', 'LIVE', 'P', 'BT'].includes(short)) return `<span class="st-status live">${short === 'HT' ? 'Przerwa' : 'Live ' + (s.elapsed ?? '') + "'"}</span>`;
-  if (short === 'NS') return `<span class="st-status ns">Przed meczem</span>`;
-  if (['FT', 'AET', 'PEN'].includes(short)) return `<span class="st-status ft">Zakończony</span>`;
-  return `<span class="st-status">${esc(s.short)}</span>`;
-}
-
+function statusTag(status) { return status.short === 'FT' ? '<span class="st-status ft">Zakończony</span>' : status.short === 'NS' ? '<span class="st-status ns">Przed meczem</span>' : `<span class="st-status live">${esc(status.short)}</span>`; }
 function renderMatches() {
-  const block = el('matches-block');
-  if (!selectedLeagueId) { block.style.display = 'none'; return; }
-  block.style.display = '';
-  const list = fixtures.filter(f => f.league.id === selectedLeagueId)
-    .sort((a, b) => a.fixture.timestamp - b.fixture.timestamp);
-  const lg = leagues.find(l => l.id === selectedLeagueId);
-  el('matches-desc').textContent = lg ? `${lg.name} · ${lg.country} · ${list.length} meczów` : '';
-
-  el('matches').innerHTML = `<table class="tc-tbl">
-    <thead><tr><th style="width:70px">Godz.</th><th>Gospodarz</th><th style="width:70px" class="num">Wynik</th><th>Gość</th><th style="width:120px">Status</th><th style="width:130px"></th></tr></thead>
-    <tbody>${list.map(f => {
-    const t = new Date(f.fixture.date);
-    const active = selectedFixture && selectedFixture.fixture.id === f.fixture.id;
-    const score = f.goals.home === null ? '—' : `${f.goals.home} : ${f.goals.away}`;
-    return `<tr class="st-match-row ${active ? 'active' : ''}" data-fx="${f.fixture.id}">
-        <td class="st-time">${t.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</td>
-        <td><span class="st-team"><img src="${esc(f.teams.home.logo)}" alt="" onerror="this.style.visibility='hidden'"><span>${esc(f.teams.home.name)}</span></span></td>
-        <td class="num mono">${score}</td>
-        <td><span class="st-team"><img src="${esc(f.teams.away.logo)}" alt="" onerror="this.style.visibility='hidden'"><span>${esc(f.teams.away.name)}</span></span></td>
-        <td>${statusTag(f.fixture.status)}</td>
-        <td><button class="st-btn ${active ? 'primary' : ''}" style="height:30px;padding:0 12px;font-size:12px" data-analyse="${f.fixture.id}">
-          <span class="material-symbols-outlined">insights</span>Analizuj</button></td>
-      </tr>`;
-  }).join('')}</tbody></table>`;
-
-  el('matches').querySelectorAll('[data-analyse]').forEach(b =>
-    b.addEventListener('click', e => { e.stopPropagation(); runAnalysis(Number(b.dataset.analyse)); }));
-  el('matches').querySelectorAll('.st-match-row').forEach(r =>
-    r.addEventListener('click', () => runAnalysis(Number(r.dataset.fx))));
+  if (!selectedLeagueId) { el('matches-block').style.display = 'none'; return; }
+  const list = fixtures.filter(match => match.league.id === selectedLeagueId).sort((a, b) => a.fixture.timestamp - b.fixture.timestamp);
+  el('matches-block').style.display = '';
+  el('matches-desc').textContent = `${leagues.find(l => l.id === selectedLeagueId)?.name || ''} · ${list.length} meczów`;
+  el('matches').innerHTML = `<table class="tc-tbl"><thead><tr><th>Godz.</th><th>Gospodarz</th><th>Wynik</th><th>Gość</th><th>Status</th><th></th></tr></thead><tbody>${list.map(match => `<tr class="st-match-row" data-fx="${match.fixture.id}"><td class="st-time">${new Date(match.fixture.date).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</td><td><span class="st-team"><span>${esc(match.teams.home.name)}</span></span></td><td class="num mono">${match.goals.home == null ? '—' : `${match.goals.home} : ${match.goals.away}`}</td><td><span class="st-team"><span>${esc(match.teams.away.name)}</span></span></td><td>${statusTag(match.fixture.status)}</td><td><button class="st-btn primary" data-analyse="${match.fixture.id}"><span class="material-symbols-outlined">insights</span>Analizuj</button></td></tr>`).join('')}</tbody></table>`;
+  el('matches').querySelectorAll('[data-analyse]').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); runAnalysis(button.dataset.analyse); }));
+  el('matches').querySelectorAll('[data-fx]').forEach(row => row.addEventListener('click', () => runAnalysis(row.dataset.fx)));
 }
-
 function renderAnalysis() {
-  const block = el('analysis-block');
-  if (!analysis) { block.style.display = 'none'; return; }
-  block.style.display = '';
-  const a = analysis;
-  const fx = a.fixture;
-  el('analysis-desc').textContent = `${fx.teams.home.name} – ${fx.teams.away.name}`;
-
-  const hm = a.models.home, am = a.models.away;
-  const smallSample = Math.min(a.recent.home.length, a.recent.away.length) < 5;
-  const noH2H = a.h2h.length === 0;
-
-  const notes = [];
-  if (a.advice) notes.push(['good', 'lightbulb', `<strong>Podpowiedź API:</strong> ${esc(a.advice)}${a.underOver ? ` · linia goli ${esc(a.underOver)}` : ''}`]);
-  if (smallSample) notes.push(['warn', 'warning', `API zwróciło tylko <strong>${a.recent.home.length}</strong> i <strong>${a.recent.away.length}</strong> zakończonych meczów. Przy tak małej próbce traktuj rekomendacje orientacyjnie.`]);
-  if (noH2H) notes.push(['warn', 'history', 'Brak rozegranych meczów bezpośrednich — kolumna H2H pozostanie pusta, zostaje sam model.']);
-  else if (a.h2h.length < 4) notes.push(['warn', 'history', `Tylko <strong>${a.h2h.length}</strong> mecze bezpośrednie w bazie. Odsetki H2H przy tak małej próbce potrafią mocno mylić.`]);
-  const archiveSeasons = [...new Set([
-    ...a.recent.sources.home.seasonsUsed,
-    ...a.recent.sources.away.seasonsUsed
-  ])].sort((x, y) => y - x);
-  notes.push(['warn', 'database', `Plan Free API-Football blokuje parametr <code>last</code>. Próba jest składana z meczów zapisanych lokalnie${archiveSeasons.length ? ` oraz archiwów sezonów <strong>${archiveSeasons.join(', ')}</strong>` : ''}. Nie należy interpretować archiwum 2024 jako bieżącej formy.`]);
-  notes.push(['', 'info', 'Model bramek łączy ostatnie mecze obu drużyn z priorem API. Poisson służy tylko rynkom bramkowym; statystyki meczowe pokazują empiryczne pokrycie. Model nie uwzględnia kontuzji, składów ani stawki meczu.']);
-
-  const statsBtn = a.stats
-    ? `<button class="st-btn" id="refresh-stats"><span class="material-symbols-outlined">refresh</span>Odśwież statystyki</button>`
-    : `<button class="st-btn primary" id="fetch-stats"><span class="material-symbols-outlined">download</span>Dociągnij rożne i strzały (do ${a.recent.home.length + a.recent.away.length} zapytań)</button>`;
-
-  el('analysis').innerHTML = `
-    <section class="tc-card">
-      <div class="st-fixture-hero">
-        <div class="st-fx-team">
-          <img src="${esc(fx.teams.home.logo)}" alt="" onerror="this.style.visibility='hidden'">
-          <div><div class="n">${esc(fx.teams.home.name)}</div><div class="s">forma: ${esc(hm.form.slice(-6) || '—')}</div></div>
-        </div>
-        <div class="st-fx-mid">
-          <div class="k">Oczekiwane gole</div>
-          <div class="lam">${(a.lambdaHome ?? 0).toFixed(2)} – ${(a.lambdaAway ?? 0).toFixed(2)}</div>
-          <div class="k">razem ${a.lambdaTotal.toFixed(2)}</div>
-        </div>
-        <div class="st-fx-team away">
-          <img src="${esc(fx.teams.away.logo)}" alt="" onerror="this.style.visibility='hidden'">
-          <div><div class="n">${esc(fx.teams.away.name)}</div><div class="s">forma: ${esc(am.form.slice(-6) || '—')}</div></div>
-        </div>
-      </div>
-      <div class="st-fx-meta">
-        <div class="cell"><div class="k">Mecze w sezonie</div><div class="v">${hm.played} / ${am.played}</div><div class="n">gospodarz / gość</div></div>
-        <div class="cell"><div class="k">Śr. gole zdobyte</div><div class="v">${(hm.forTotal ?? 0).toFixed(2)} / ${(am.forTotal ?? 0).toFixed(2)}</div><div class="n">na mecz</div></div>
-        <div class="cell"><div class="k">Śr. gole stracone</div><div class="v">${(hm.againstTotal ?? 0).toFixed(2)} / ${(am.againstTotal ?? 0).toFixed(2)}</div><div class="n">na mecz</div></div>
-        <div class="cell"><div class="k">Mecze bezpośrednie</div><div class="v">${a.h2h.length}</div><div class="n">w bazie API</div></div>
-      </div>
-      <div class="st-history-toolbar">
-        <span>Zakres dostępnej historii:</span>
-        <div class="st-seg" id="history-seg">${HISTORY_WINDOWS.map(n => `<button data-window="${n}" class="${a.recent.window === n ? 'active' : ''}">Ostatnie ${n}</button>`).join('')}</div>
-      </div>
-      <div class="st-notes">${notes.map(([k, i, t]) => `<div class="st-note ${k}"><span class="material-symbols-outlined">${i}</span><span>${t}</span></div>`).join('')}</div>
-    </section>
-
-    <section class="tc-card">
-      ${buildRecommendations(a)}
-      ${buildGoalsMatrix(a)}
-      ${buildExtraMarkets(a)}
-      <div class="st-legend">
-        <span class="item"><span class="sw" style="background:#dcf5e7"></span>≥ 80%</span>
-        <span class="item"><span class="sw" style="background:#eaf8f0"></span>65–80%</span>
-        <span class="item"><span class="sw" style="background:#f6f8fa"></span>45–65%</span>
-        <span class="item"><span class="sw" style="background:#fdf3e3"></span>30–45%</span>
-        <span class="item"><span class="sw" style="background:#fbe9e7"></span>&lt; 30%</span>
-        <span class="item" style="margin-left:auto">Duża liczba = model · mała = trafienia w H2H · pomarańczowa, gdy historia mocno odbiega od modelu</span>
-      </div>
-    </section>
-
-    <section class="tc-card">
-      <div class="st-toolbar">
-        <div class="grp">
-          <strong style="font-size:12.5px">Rożne, strzały i kartki</strong>
-          <span class="sub" style="font-size:11.5px;color:var(--tc-muted)">
-            ${a.stats ? `pobrano ${a.stats.rows.length} z ${a.stats.requested} meczów` : 'wymaga osobnego pobrania — po jednym zapytaniu z ostatnich meczów każdej drużyny'}
-          </span>
-        </div>
-        <div class="grp">${a.recent.home.length || a.recent.away.length ? statsBtn : ''}</div>
-      </div>
-      <div id="stats-body">
-        ${a.stats && a.stats.rows.length
-      ? buildStatsMatrix(a)
-      : `<div class="tc-empty"><span class="material-symbols-outlined">bar_chart</span>
-             <h4>Statystyki jeszcze nie pobrane</h4>
-             <p>Rożne, strzały i kartki API udostępnia per mecz. Pobranie obejmie mecze widoczne w dostępnej historii; wspólne spotkania są liczone tylko raz i zapisują się w cache.</p></div>`}
-      </div>
-    </section>
-
-    ${a.h2h.length ? `<section class="tc-card">
-      <div class="tc-card-head"><h3>Mecze bezpośrednie</h3><span class="sub">${a.h2h.length} spotkań</span></div>
-      <div class="st-h2h-list">${a.h2h.map(m => `
-        <div class="st-h2h-row">
-          <span class="d">${esc(m.date)}</span>
-          <span class="tn">${esc(m.homeName)}</span>
-          <span class="sc">${m.gh} : ${m.ga}</span>
-          <span class="tn a">${esc(m.awayName)}</span>
-          <span class="ex">${m.total} gole${m.btts ? ' · BTTS' : ''}</span>
-        </div>`).join('')}</div>
-    </section>` : ''}
-  `;
-
-  const fs = el('fetch-stats') || el('refresh-stats');
-  if (fs) fs.addEventListener('click', () => runStatsFetch());
-  el('history-seg')?.querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
-    const next = Number(button.dataset.window);
-    if (next === historyWindow || busy) return;
-    historyWindow = next;
-    runAnalysis(a.fixture.fixture.id);
-  }));
-}
-
-/* ============================================================
-   Akcje
-   ============================================================ */
-function setBusy(btn, on, label) {
-  busy = on;
-  if (!btn) return;
-  btn.disabled = on;
-  btn.classList.toggle('spin', on);
-  if (label) btn.innerHTML = `<span class="material-symbols-outlined">${on ? 'progress_activity' : 'download'}</span>${label}`;
-}
-
-function handleError(e) {
-  const msg = e instanceof ApiError ? e.message : 'Nieoczekiwany błąd.';
-  toast(msg, 'err');
-  if (e.kind === 'key') openSettings();
-  return msg;
-}
-
-async function fetchFixtures() {
-  const btn = el('fetch-fixtures');
-  if (busy) return;
-  const date = todayISO(dayOffset);
-  renderFixturesStatus(`<div class="st-notes"><div class="st-note"><span class="material-symbols-outlined">hourglass_top</span><span>Pobieram terminarz na ${date}…</span></div></div>`);
-  setBusy(btn, true, 'Pobieram…');
-  try {
-    const { data, cached } = await apiGet(`fixtures?date=${date}`, TTL.fixtures);
-    fixtures = data.response || [];
-    leagues = groupLeagues(fixtures);
-    selectedLeagueId = null;
-    selectedFixture = null;
-    analysis = null;
-    renderLeagues();
-    renderMatches();
-    renderAnalysis();
-    el('step1-sub').textContent = `${fixtures.length} meczów, ${leagues.length} lig`;
-    el('step2-sub').textContent = 'Kliknij ligę';
-    setStep(2);
-    renderFixturesStatus(`<div class="st-notes"><div class="st-note good">
-      <span class="material-symbols-outlined">check_circle</span>
-      <span>Pobrano <strong>${fixtures.length}</strong> meczów z <strong>${leagues.length}</strong> lig na ${date}.
-      ${cached ? 'Dane z lokalnego cache — nie zużyto zapytania.' : 'Zużyto 1 zapytanie.'}</span></div></div>`);
-    if (!fixtures.length) renderFixturesStatus(`<div class="st-notes"><div class="st-note warn">
-      <span class="material-symbols-outlined">event_busy</span><span>Brak meczów w tym dniu.</span></div></div>`);
-  } catch (e) {
-    const msg = handleError(e);
-    renderFixturesStatus(`<div class="st-notes"><div class="st-note bad">
-      <span class="material-symbols-outlined">error</span><span>${esc(msg)}</span></div></div>`);
-  } finally {
-    setBusy(btn, false, 'Pobierz mecze');
-  }
-}
-
-function selectLeague(id) {
-  selectedLeagueId = id;
-  selectedFixture = null;
-  analysis = null;
-  const lg = leagues.find(l => l.id === id);
-  el('step2-sub').textContent = lg ? lg.name : '—';
-  el('step3-sub').textContent = 'Kliknij mecz';
-  setStep(3);
-  renderLeagues();
-  renderMatches();
-  renderAnalysis();
-  el('matches-block').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-async function runAnalysis(fixtureId) {
-  if (busy) return;
-  const fx = fixtures.find(f => f.fixture.id === fixtureId);
-  if (!fx) return;
-  selectedFixture = fx;
-  renderMatches();
+  if (!analysis) { el('analysis-block').style.display = 'none'; return; }
+  const a = analysis, fx = a.fixture;
   el('analysis-block').style.display = '';
-  el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
-    <span class="material-symbols-outlined">hourglass_top</span><h4>Liczę…</h4>
-    <p>Pobieram predykcję oraz dostępną na planie Free historię drużyn.</p></div></section>`;
+  el('analysis-desc').textContent = `${fx.teams.home.name} – ${fx.teams.away.name}`;
+  const available = Math.min(a.recent.home.length, a.recent.away.length);
+  const warning = available < a.recent.window ? `TheSportsDB Free zwraca endpointem <code>eventslast</code> maksymalnie ostatnie dostępne spotkania (zwykle 5). Wybrano ${a.recent.window}, ale wspólna próbka ma ${available}. Cache kolejnych dni może ją stopniowo powiększyć.` : `Analiza obejmuje po ${available} ostatnich dostępnych spotkań drużyn.`;
+  el('analysis').innerHTML = `<section class="tc-card"><div class="st-fixture-hero"><div class="st-fx-team"><div><div class="n">${esc(fx.teams.home.name)}</div><div class="s">${a.recent.home.length} meczów</div></div></div><div class="st-fx-mid"><div class="k">Oczekiwane gole</div><div class="lam">${(a.lambdaHome ?? 0).toFixed(2)} – ${(a.lambdaAway ?? 0).toFixed(2)}</div></div><div class="st-fx-team away"><div><div class="n">${esc(fx.teams.away.name)}</div><div class="s">${a.recent.away.length} meczów</div></div></div></div><div class="st-history-toolbar"><span>Zakres historii:</span><div class="st-seg" id="history-seg">${HISTORY_WINDOWS.map(n => `<button data-window="${n}" class="${n === a.recent.window ? 'active' : ''}">Ostatnie ${n}</button>`).join('')}</div></div><div class="st-notes"><div class="st-note warn"><span class="material-symbols-outlined">info</span><span>${warning}</span></div><div class="st-note"><span class="material-symbols-outlined">analytics</span><span>TheSportsDB Free nie udostępnia rożnych, strzałów, kartek ani predykcji. Rekomendacje bazują wyłącznie na wynikach i golach; nie są poradą bukmacherską.</span></div></div></section><section class="tc-card">${buildRecommendations(a)}${buildGoalsMatrix(a)}${buildOutcomes(a)}</section><section class="tc-card">${historyList(`Historia: ${fx.teams.home.name}`, fx.teams.home.name, a.recent.home)}${historyList(`Historia: ${fx.teams.away.name}`, fx.teams.away.name, a.recent.away)}</section>`;
+  el('history-seg').querySelectorAll('button').forEach(button => button.addEventListener('click', () => { const next = Number(button.dataset.window); if (next !== historyWindow && !busy) { historyWindow = next; runAnalysis(fx.fixture.id); } }));
+}
+async function fetchFixtures() {
+  if (busy) return;
   busy = true;
+  const button = el('fetch-fixtures'); button.disabled = true;
+  const date = todayISO(dayOffset);
+  renderFixturesStatus('<div class="st-note"><span class="material-symbols-outlined">hourglass_top</span><span>Pobieram mecze…</span></div>');
   try {
-    analysis = await analyseFixture(fx);
-    el('step3-sub').textContent = `${fx.teams.home.name} – ${fx.teams.away.name}`;
-    el('step4-sub').textContent = `oczekiwane ${analysis.lambdaTotal.toFixed(2)} gola`;
-    setStep(4);
-    renderAnalysis();
-    el('analysis-block').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) {
-    const msg = handleError(e);
-    analysis = null;
-    el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
-      <span class="material-symbols-outlined">error</span><h4>Nie udało się przeanalizować</h4><p>${esc(msg)}</p></div></section>`;
-  } finally {
-    busy = false;
-  }
+    const { data, cached } = await apiGet(`eventsday.php?d=${date}&s=Soccer`, TTL.fixtures);
+    fixtures = (data.events || []).map(adaptEvent);
+    leagues = groupLeagues(fixtures); selectedLeagueId = null; selectedFixture = null; analysis = null;
+    renderLeagues(); renderMatches(); renderAnalysis(); setStep(2);
+    el('step1-sub').textContent = `${fixtures.length} meczów, ${leagues.length} lig`;
+    renderFixturesStatus(`<div class="st-notes"><div class="st-note good"><span class="material-symbols-outlined">check_circle</span><span>Pobrano <strong>${fixtures.length}</strong> meczów z TheSportsDB${cached ? ' (cache)' : ''}.</span></div></div>`);
+  } catch (error) { renderFixturesStatus(`<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>${esc(error.message)}</span></div>`); toast(error.message, 'err'); }
+  finally { busy = false; button.disabled = false; }
 }
-
-async function runStatsFetch() {
-  if (!analysis || busy) return;
-  const btn = el('fetch-stats') || el('refresh-stats');
-  const recentMatches = [...new Map([...analysis.recent.home, ...analysis.recent.away].map(m => [m.id, m])).values()];
-  const need = recentMatches.filter(m => !cacheGet(`fixtures/statistics?fixture=${m.id}`, TTL.statistics)).length;
-  if (need > remainingQuota()) {
-    toast(`Potrzeba ${need} zapytań, a zostało ${remainingQuota()}.`, 'err');
-    return;
-  }
-  busy = true;
-  setBusy(btn, true, 'Pobieram…');
-  try {
-    await fetchRecentStats(analysis, (done, total) => {
-      if (btn) btn.innerHTML = `<span class="material-symbols-outlined">progress_activity</span>Pobieram ${done}/${total}…`;
-    });
-    renderAnalysis();
-    const s = analysis.stats;
-    toast(s.rows.length
-      ? `Pobrano statystyki z ${s.rows.length} meczów${s.fetched ? ` (${s.fetched} nowych zapytań)` : ' — wszystko z cache'}.`
-      : 'API nie zwróciło statystyk dla tych meczów.', s.rows.length ? 'ok' : 'err');
-  } catch (e) {
-    handleError(e);
-  } finally {
-    busy = false;
-  }
+function selectLeague(id) { selectedLeagueId = id; analysis = null; el('step2-sub').textContent = leagues.find(l => l.id === id)?.name || '—'; setStep(3); renderLeagues(); renderMatches(); renderAnalysis(); }
+async function runAnalysis(id) {
+  if (busy) return;
+  const fixture = fixtures.find(match => match.fixture.id === String(id)); if (!fixture) return;
+  busy = true; selectedFixture = fixture; el('analysis-block').style.display = ''; el('analysis').innerHTML = '<section class="tc-card"><div class="tc-empty"><span class="material-symbols-outlined">hourglass_top</span><h4>Liczę…</h4><p>Pobieram ostatnie wyniki obu drużyn z TheSportsDB.</p></div></section>';
+  try { analysis = await analyseFixture(fixture); setStep(4); el('step3-sub').textContent = `${fixture.teams.home.name} – ${fixture.teams.away.name}`; el('step4-sub').textContent = `${analysis.recent.home.length} / ${analysis.recent.away.length} meczów`; renderAnalysis(); el('analysis-block').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  catch (error) { analysis = null; el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty"><span class="material-symbols-outlined">error</span><h4>Nie udało się przeanalizować</h4><p>${esc(error.message)}</p></div></section>`; toast(error.message, 'err'); }
+  finally { busy = false; }
 }
-
-/* ============================================================
-   Ustawienia klucza
-   ============================================================ */
-function openSettings() {
-  el('s-key').value = apiKey;
-  el('key-status').innerHTML = '';
-  el('settings-modal').classList.add('on');
-}
-function closeSettings() { el('settings-modal').classList.remove('on'); }
-
-async function testKey() {
-  const k = el('s-key').value.trim();
-  if (!k) { el('key-status').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>Wklej klucz.</span></div>`; return; }
-  el('key-status').innerHTML = `<div class="st-note"><span class="material-symbols-outlined">hourglass_top</span><span>Sprawdzam…</span></div>`;
-  try {
-    const res = await fetch(`${API_BASE}/status`, { headers: { 'x-apisports-key': k } });
-    const json = await res.json();
-    bumpUsage();
-    const sub = json?.response?.subscription, req = json?.response?.requests;
-    if (!sub) throw new Error('bad');
-    el('key-status').innerHTML = `<div class="st-note good"><span class="material-symbols-outlined">check_circle</span>
-      <span>Klucz działa. Plan <strong>${esc(sub.plan)}</strong>, zużycie po stronie API:
-      <strong>${req.current}/${req.limit_day}</strong> na dobę.</span></div>`;
-  } catch {
-    el('key-status').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>Klucz odrzucony albo brak połączenia.</span></div>`;
-  }
-}
-
-function saveKey() {
-  apiKey = el('s-key').value.trim();
-  localStorage.setItem(KEY_STORE, apiKey);
-  closeSettings();
-  renderKeyGate();
-  toast(apiKey ? 'Klucz zapisany' : 'Klucz usunięty', apiKey ? 'ok' : '');
-}
-
-function renderKeyGate() {
-  if (apiKey) { renderFixturesStatus(''); return; }
-  renderFixturesStatus(`<div class="st-key-missing">
-    <span class="material-symbols-outlined">key_off</span>
-    <h4>Brak klucza API</h4>
-    <p>Ten moduł korzysta z API-Football. Wklej swój klucz w „Klucz API” — zapisze się tylko w tej przeglądarce
-       i nigdy nie trafi do repozytorium.</p>
-    <button class="st-btn primary" onclick="openSettings()"><span class="material-symbols-outlined">key</span>Dodaj klucz</button>
-  </div>`);
-}
-
-function clearCache() {
-  const n = Object.keys(cache).length;
-  if (!n) { toast('Cache jest pusty'); return; }
-  if (!confirm(`Usunąć ${n} zapisanych odpowiedzi API? Kolejne analizy zużyją zapytania od nowa.`)) return;
-  cache = {};
-  saveCache();
-  toast('Cache wyczyszczony');
-}
-
-/* ============================================================
-   Init
-   ============================================================ */
+function clearCache() { cache = {}; saveCache(); toast('Cache TheSportsDB wyczyszczony'); }
 function init() {
-  loadStores();
-  renderQuota();
-  renderDayLabel();
-  renderKeyGate();
-  setStep(1);
-
-  document.querySelectorAll('.sidebar__link[data-page]').forEach(l => {
-    if (l.dataset.page === 'stats') l.classList.add('sidebar__link--active');
-  });
-
-  el('day-seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-    dayOffset = Number(b.dataset.day);
-    el('day-seg').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
-    renderDayLabel();
-  }));
-
+  loadCache(); renderDayLabel(); setStep(1);
+  document.querySelectorAll('.sidebar__link[data-page]').forEach(link => link.classList.toggle('sidebar__link--active', link.dataset.page === 'stats'));
+  el('day-seg').querySelectorAll('button').forEach(button => button.addEventListener('click', () => { dayOffset = Number(button.dataset.day); el('day-seg').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button)); renderDayLabel(); }));
   el('fetch-fixtures').addEventListener('click', fetchFixtures);
-  el('settings-btn').addEventListener('click', openSettings);
   el('clear-cache-btn').addEventListener('click', clearCache);
-  el('save-key-btn').addEventListener('click', saveKey);
-  el('test-key-btn').addEventListener('click', testKey);
-  el('s-show').addEventListener('change', e => { el('s-key').type = e.target.checked ? 'text' : 'password'; });
-  el('league-search').addEventListener('input', e => { leagueFilter = e.target.value; renderLeagues(); });
-
-  document.querySelectorAll('.tc-modal-ov').forEach(ov =>
-    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('on'); }));
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') document.querySelectorAll('.tc-modal-ov.on').forEach(m => m.classList.remove('on'));
-  });
+  el('league-search').addEventListener('input', event => { leagueFilter = event.target.value; renderLeagues(); });
 }
-
 document.addEventListener('DOMContentLoaded', init);
