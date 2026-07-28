@@ -326,6 +326,8 @@ const INV_CAL_GOAL_KEY = 'invCalGoal';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
 const TRADING_STORAGE_KEY = 'lifeos_trading_v2';
 const TRADING_SETTINGS_KEY = 'lifeos_trading_settings_v1';
+const BETTING_STORAGE_KEY = 'lifeos_betting_v1';
+const BETTING_SETTINGS_KEY = 'lifeos_betting_settings_v1';
 const DEF_WORKHUB_MEMBERS = [
   { id:'m1', name:'Pracownik 1', role:'', color:'#6366f1', profileNote:'', specialties:[] },
   { id:'m2', name:'Pracownik 2', role:'', color:'#f59e0b', profileNote:'', specialties:[] },
@@ -1667,6 +1669,8 @@ exportBtn.onclick = ()=>{
     budget_eom_ui: JSON.parse(localStorage.getItem(BUDGET_EOM_UI_KEY) || 'null'),
     trading_state: JSON.parse(localStorage.getItem(TRADING_STORAGE_KEY) || 'null'),
     trading_settings: JSON.parse(localStorage.getItem(TRADING_SETTINGS_KEY) || 'null'),
+    betting_state: JSON.parse(localStorage.getItem(BETTING_STORAGE_KEY) || 'null'),
+    betting_settings: JSON.parse(localStorage.getItem(BETTING_SETTINGS_KEY) || 'null'),
     inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
     inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
     inv_cal_goal: localStorage.getItem(INV_CAL_GOAL_KEY) || null,
@@ -1734,6 +1738,14 @@ importInput.onchange = (e)=>{
       if(Object.prototype.hasOwnProperty.call(data,'trading_settings')){
         if(data.trading_settings && typeof data.trading_settings==='object') localStorage.setItem(TRADING_SETTINGS_KEY, JSON.stringify(data.trading_settings));
         else if(data.trading_settings===null) localStorage.removeItem(TRADING_SETTINGS_KEY);
+      }
+      if(Object.prototype.hasOwnProperty.call(data,'betting_state')){
+        if(data.betting_state && typeof data.betting_state==='object') localStorage.setItem(BETTING_STORAGE_KEY, JSON.stringify(data.betting_state));
+        else if(data.betting_state===null) localStorage.removeItem(BETTING_STORAGE_KEY);
+      }
+      if(Object.prototype.hasOwnProperty.call(data,'betting_settings')){
+        if(data.betting_settings && typeof data.betting_settings==='object') localStorage.setItem(BETTING_SETTINGS_KEY, JSON.stringify(data.betting_settings));
+        else if(data.betting_settings===null) localStorage.removeItem(BETTING_SETTINGS_KEY);
       }
       if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
       if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);
