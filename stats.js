@@ -40,6 +40,8 @@ let selectedFixture = null;
 let analysis = null;        // wynik analizy wybranego meczu
 let leagueFilter = '';
 let busy = false;
+let formWindow = 0;         // 0 = sezon bieżący, inaczej liczba ostatnich meczów
+let allowedSeasonMax = null; // najnowszy sezon dopuszczony przez plan (wykrywany z komunikatu API)
 
 /* ============================================================
    Narzędzia
@@ -151,6 +153,17 @@ async function apiGet(path, ttl, { force = false } = {}) {
   if (errs && !Array.isArray(errs) && Object.keys(errs).length) {
     const msg = Object.values(errs).join(' ');
     const kind = errs.plan ? 'plan' : errs.token ? 'key' : errs.requests ? 'quota' : 'api';
+    // API podaje w komunikacie zakres sezonów dostępnych w planie —
+    // zapamiętujemy najnowszy, żeby użyć go jako zapasowego źródła formy
+    const range = /from\s+(\d{4})\s+to\s+(\d{4})/i.exec(msg);
+    if (range) allowedSeasonMax = Number(range[2]);
+    // odrzucenie przez plan nie zdejmuje zapytania z dobowej puli po
+    // stronie API, więc cofamy nasz lokalny licznik
+    if (kind === 'plan') {
+      usage.count = Math.max(usage.count - 1, 0);
+      localStorage.setItem(USAGE_STORE, JSON.stringify(usage));
+      renderQuota();
+    }
     throw new ApiError(msg, kind);
   }
   cacheSet(path, json);
@@ -255,6 +268,82 @@ function firstHalfShare(h, a) {
 }
 
 /* ============================================================
+   Forma: ostatnie N meczów drużyny, niezależnie od rozgrywek
+   ------------------------------------------------------------
+   Na planach płatnych wystarczy parametr `last`. Plan Free go
+   blokuje, więc spadamy na ostatni dopuszczony sezon i bierzemy
+   z niego N najświeższych rozegranych meczów. W obu wypadkach
+   próbka obejmuje wszystkie rozgrywki: ligę, puchary i sparingi.
+   ============================================================ */
+async function fetchTeamForm(teamId, n) {
+  // 1. najlepsza opcja — prawdziwe ostatnie N meczów
+  try {
+    const { data } = await apiGet(`fixtures?team=${teamId}&last=${n}`, TTL.predictions);
+    const ms = (data.response || []).filter(m => m.fixture.status.short === 'FT');
+    if (ms.length) return { matches: ms, source: 'last', season: null };
+  } catch (e) {
+    if (e.kind !== 'plan') throw e;
+  }
+  // 2. zapas — ostatni sezon, do którego plan daje dostęp
+  const grab = async season => {
+    const { data } = await apiGet(`fixtures?team=${teamId}&season=${season}&status=FT`, TTL.statistics);
+    const ms = (data.response || [])
+      .filter(m => m.fixture.status.short === 'FT' && m.goals.home !== null)
+      .sort((a, b) => (a.fixture.date < b.fixture.date ? 1 : -1))
+      .slice(0, n);
+    return { matches: ms, source: 'season', season };
+  };
+  const guess = allowedSeasonMax || new Date().getFullYear() - 1;
+  try {
+    return await grab(guess);
+  } catch (e) {
+    // API podało w komunikacie właściwy zakres — próbujemy raz jeszcze
+    if (e.kind === 'plan' && allowedSeasonMax && allowedSeasonMax !== guess) return await grab(allowedSeasonMax);
+    throw e;
+  }
+}
+
+function formStats(matches, teamId) {
+  const rows = matches.map(m => {
+    const isHome = m.teams.home.id === teamId;
+    const gf = num(isHome ? m.goals.home : m.goals.away);
+    const ga = num(isHome ? m.goals.away : m.goals.home);
+    return {
+      date: m.fixture.date.slice(0, 10),
+      league: m.league?.name || '',
+      opponent: (isHome ? m.teams.away : m.teams.home).name,
+      isHome, gf, ga,
+      total: gf + ga,
+      btts: gf > 0 && ga > 0,
+      win: gf > ga, draw: gf === ga
+    };
+  });
+  const mean = (list, k) => list.length ? list.reduce((s, r) => s + r[k], 0) / list.length : null;
+  const atHome = rows.filter(r => r.isHome), away = rows.filter(r => !r.isHome);
+  return {
+    rows, count: rows.length,
+    gf: mean(rows, 'gf'), ga: mean(rows, 'ga'),
+    gfHome: atHome.length >= 3 ? mean(atHome, 'gf') : null,
+    gaHome: atHome.length >= 3 ? mean(atHome, 'ga') : null,
+    gfAway: away.length >= 3 ? mean(away, 'gf') : null,
+    gaAway: away.length >= 3 ? mean(away, 'ga') : null,
+    homeCount: atHome.length, awayCount: away.length
+  };
+}
+
+function expectedGoalsFromForm(h, a) {
+  const pick = (...v) => { for (const x of v) if (x !== null && x > 0) return x; return null; };
+  const blend = (x, y) => {
+    if (x !== null && y !== null) return (x + y) / 2;
+    return x !== null ? x : (y !== null ? y : null);
+  };
+  return {
+    home: blend(pick(h.gfHome, h.gf), pick(a.gaAway, a.ga)),
+    away: blend(pick(a.gfAway, a.gf), pick(h.gaHome, h.ga))
+  };
+}
+
+/* ============================================================
    Empiria z meczów bezpośrednich
    ============================================================ */
 function h2hSample(h2h, homeId, awayId) {
@@ -332,6 +421,24 @@ async function analyseFixture(fx, { force = false } = {}) {
     percent: r.predictions?.percent || null,
     stats: null            // uzupełniane osobnym przyciskiem
   };
+}
+
+// Przełączenie podstawy wyliczeń na ostatnie N meczów obu drużyn
+async function applyForm(a, n) {
+  if (!n) { a.form = null; return null; }
+  const [hf, af] = [
+    await fetchTeamForm(a.fixture.teams.home.id, n),
+    await fetchTeamForm(a.fixture.teams.away.id, n)
+  ];
+  const home = formStats(hf.matches, a.fixture.teams.home.id);
+  const away = formStats(af.matches, a.fixture.teams.away.id);
+  const lam = expectedGoalsFromForm(home, away);
+  a.form = {
+    n, home, away,
+    source: hf.source, season: hf.season,
+    lambdaHome: lam.home, lambdaAway: lam.away
+  };
+  return a.form;
 }
 
 // Statystyki szczegółowe z meczów bezpośrednich (rożne, strzały, kartki)
@@ -434,32 +541,60 @@ function matrixTable(title, sub, lines, rows) {
   </table></div>`;
 }
 
+/* Aktywna podstawa wyliczeń: forma z ostatnich N meczów, jeśli
+   pobrana, w przeciwnym razie średnie sezonowe + historia H2H. */
+function activeBasis(a) {
+  if (a.form) {
+    const hp = a.form.home.rows, ap = a.form.away.rows;
+    return {
+      lh: a.form.lambdaHome, la: a.form.lambdaAway,
+      lt: (a.form.lambdaHome ?? 0) + (a.form.lambdaAway ?? 0),
+      totals: [...hp.map(r => r.total), ...ap.map(r => r.total)],
+      homeGoals: hp.map(r => r.gf),
+      awayGoals: ap.map(r => r.gf),
+      bttsPool: [...hp, ...ap].map(r => r.btts),
+      label: `ostatnie ${a.form.n} meczów`,
+      note: a.form.source === 'last'
+        ? `${hp.length} + ${ap.length} meczów, wszystkie rozgrywki`
+        : `sezon ${a.form.season}/${String(a.form.season + 1).slice(2)} · ${hp.length} + ${ap.length} meczów`
+    };
+  }
+  return {
+    lh: a.lambdaHome, la: a.lambdaAway, lt: a.lambdaTotal,
+    totals: a.h2h.map(m => m.total),
+    homeGoals: a.h2h.map(m => m.ourHome),
+    awayGoals: a.h2h.map(m => m.ourAway),
+    bttsPool: a.h2h.map(m => m.btts),
+    label: 'sezon bieżący',
+    note: `próbka H2H: ${a.h2h.length}`
+  };
+}
+
 function buildGoalsMatrix(a) {
-  const { lambdaHome: lh, lambdaAway: la, lambdaTotal: lt } = a;
-  const s = a.h2h;
+  const b = activeBasis(a);
   const rows = [
     {
       label: 'Gole w meczu', sub: 'suma obu drużyn',
-      model: GOAL_LINES.map(l => pOver(lt, l)),
-      emp: GOAL_LINES.map(l => empiricalOver(s.map(m => m.total), l))
+      model: GOAL_LINES.map(l => pOver(b.lt, l)),
+      emp: GOAL_LINES.map(l => empiricalOver(b.totals, l))
     },
     {
       label: `Gole: ${a.fixture.teams.home.name}`, sub: 'gospodarz',
-      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(lh, l) : null)),
-      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(s.map(m => m.ourHome), l) : null))
+      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(b.lh, l) : null)),
+      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(b.homeGoals, l) : null))
     },
     {
       label: `Gole: ${a.fixture.teams.away.name}`, sub: 'gość',
-      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(la, l) : null)),
-      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(s.map(m => m.ourAway), l) : null))
+      model: GOAL_LINES.map(l => (l <= 3.5 ? pOver(b.la, l) : null)),
+      emp: GOAL_LINES.map(l => (l <= 3.5 ? empiricalOver(b.awayGoals, l) : null))
     },
     {
       label: 'Gole do przerwy', sub: `${fmtPct(a.fhShare, 0)} goli pada w 1. połowie`,
-      model: GOAL_LINES.map(l => (l <= 2.5 ? pOver(lt * a.fhShare, l) : null)),
+      model: GOAL_LINES.map(l => (l <= 2.5 ? pOver(b.lt * a.fhShare, l) : null)),
       emp: GOAL_LINES.map(() => null)
     }
   ];
-  return matrixTable('Gole', `oczekiwane ${lt.toFixed(2)} gola · próbka H2H: ${s.length}`, GOAL_LINES, rows);
+  return matrixTable('Gole', `podstawa: ${b.label} · oczekiwane ${b.lt.toFixed(2)} gola · ${b.note}`, GOAL_LINES, rows);
 }
 
 function buildStatsMatrix(a) {
@@ -489,21 +624,22 @@ function buildStatsMatrix(a) {
 }
 
 function buildExtraMarkets(a) {
-  const { lambdaHome: lh, lambdaAway: la } = a;
-  const oc = outcomeProbs(lh, la);
-  const bttsModel = (pAtLeastOne(lh) ?? 0) * (pAtLeastOne(la) ?? 0);
-  const bttsEmp = a.h2h.length ? { p: a.h2h.filter(m => m.btts).length / a.h2h.length, hits: a.h2h.filter(m => m.btts).length, n: a.h2h.length } : null;
+  const b = activeBasis(a);
+  const oc = outcomeProbs(b.lh, b.la);
+  const bttsModel = (pAtLeastOne(b.lh) ?? 0) * (pAtLeastOne(b.la) ?? 0);
+  const frac = list => list.length ? { p: list.filter(Boolean).length / list.length, hits: list.filter(Boolean).length, n: list.length } : null;
+  const h2h = a.h2h;
 
   const items = [
-    ['Obie drużyny strzelą', bttsModel, bttsEmp],
-    ['Wygrana gospodarza', oc.home, a.h2h.length ? { p: a.h2h.filter(m => m.ourHome > m.ourAway).length / a.h2h.length, hits: a.h2h.filter(m => m.ourHome > m.ourAway).length, n: a.h2h.length } : null],
-    ['Remis', oc.draw, a.h2h.length ? { p: a.h2h.filter(m => m.ourHome === m.ourAway).length / a.h2h.length, hits: a.h2h.filter(m => m.ourHome === m.ourAway).length, n: a.h2h.length } : null],
-    ['Wygrana gościa', oc.away, a.h2h.length ? { p: a.h2h.filter(m => m.ourAway > m.ourHome).length / a.h2h.length, hits: a.h2h.filter(m => m.ourAway > m.ourHome).length, n: a.h2h.length } : null],
+    ['Obie drużyny strzelą', bttsModel, frac(b.bttsPool)],
+    ['Wygrana gospodarza', oc.home, frac(h2h.map(m => m.ourHome > m.ourAway))],
+    ['Remis', oc.draw, frac(h2h.map(m => m.ourHome === m.ourAway))],
+    ['Wygrana gościa', oc.away, frac(h2h.map(m => m.ourAway > m.ourHome))],
     ['Gospodarz nie przegra', oc.home + oc.draw, null],
     ['Gość nie przegra', oc.away + oc.draw, null]
   ];
 
-  return `<div class="st-matrix-title"><strong>Rynki dodatkowe</strong><span class="sub">model Poissona z oczekiwanych goli</span></div>
+  return `<div class="st-matrix-title"><strong>Rynki dodatkowe</strong><span class="sub">model Poissona · podstawa: ${esc(b.label)}</span></div>
   <div class="st-matrix-wrap"><table class="st-matrix">
     <thead><tr><th>Rynek</th><th>Pokrycie</th><th>Kurs godziwy</th><th>H2H</th></tr></thead>
     <tbody>${items.map(([label, p, emp]) => `<tr>
@@ -616,7 +752,13 @@ function renderAnalysis() {
 
   const notes = [];
   if (a.advice) notes.push(['good', 'lightbulb', `<strong>Podpowiedź API:</strong> ${esc(a.advice)}${a.underOver ? ` · linia goli ${esc(a.underOver)}` : ''}`]);
-  if (smallSample) notes.push(['warn', 'warning', `Drużyny rozegrały w tym sezonie <strong>${hm.played}</strong> i <strong>${am.played}</strong> meczów. Przy tak małej próbce średnie sezonowe są niestabilne — traktuj model orientacyjnie.`]);
+  if (a.form) {
+    notes.push(a.form.source === 'last'
+      ? ['good', 'history', `Podstawą jest <strong>ostatnie ${a.form.n} meczów</strong> każdej drużyny ze wszystkich rozgrywek: ${a.form.home.count} i ${a.form.away.count} spotkań.`]
+      : ['warn', 'history', `Plan Free blokuje parametr „last”, więc ostatnie ${a.form.n} meczów pobrano z <strong>sezonu ${a.form.season}/${String(a.form.season + 1).slice(2)}</strong> — najnowszego, do którego masz dostęp. Próbka jest duża (${a.form.home.count} i ${a.form.away.count} meczów, wszystkie rozgrywki), ale nie odzwierciedla bieżącej formy.`]);
+  } else if (smallSample) {
+    notes.push(['warn', 'warning', `Drużyny rozegrały w tym sezonie <strong>${hm.played}</strong> i <strong>${am.played}</strong> meczów. Przy tak małej próbce średnie sezonowe są bezużyteczne — przełącz podstawę na ostatnie 10 lub 20 meczów.`]);
+  }
   if (noH2H) notes.push(['warn', 'history', 'Brak rozegranych meczów bezpośrednich — kolumna H2H pozostanie pusta, zostaje sam model.']);
   else if (a.h2h.length < 4) notes.push(['warn', 'history', `Tylko <strong>${a.h2h.length}</strong> mecze bezpośrednie w bazie. Odsetki H2H przy tak małej próbce potrafią mocno mylić.`]);
   notes.push(['', 'info', 'Model zakłada rozkład Poissona i niezależność bramek obu drużyn. Nie uwzględnia kontuzji, rotacji składu ani stawki meczu — to punkt wyjścia, nie wyrocznia.']);
@@ -625,27 +767,48 @@ function renderAnalysis() {
     ? `<button class="st-btn" id="refresh-stats"><span class="material-symbols-outlined">refresh</span>Odśwież statystyki</button>`
     : `<button class="st-btn primary" id="fetch-stats"><span class="material-symbols-outlined">download</span>Dociągnij rożne i strzały (${Math.min(a.h2h.length, 8)} zapytań)</button>`;
 
+  const basis = activeBasis(a);
   el('analysis').innerHTML = `
     <section class="tc-card">
+      <div class="st-toolbar">
+        <div class="grp">
+          <strong style="font-size:12.5px">Podstawa wyliczeń</strong>
+          <div class="st-seg" id="form-seg">
+            <button data-n="0" class="${formWindow === 0 ? 'active' : ''}">Sezon</button>
+            <button data-n="5" class="${formWindow === 5 ? 'active' : ''}">5 meczów</button>
+            <button data-n="10" class="${formWindow === 10 ? 'active' : ''}">10 meczów</button>
+            <button data-n="20" class="${formWindow === 20 ? 'active' : ''}">20 meczów</button>
+          </div>
+        </div>
+        <div class="grp">
+          <span style="font-size:11.5px;color:var(--tc-muted)">
+            ${a.form ? `${esc(basis.note)}` : 'zmiana okna kosztuje 2 zapytania (po jednym na drużynę)'}
+          </span>
+        </div>
+      </div>
       <div class="st-fixture-hero">
         <div class="st-fx-team">
           <img src="${esc(fx.teams.home.logo)}" alt="" onerror="this.style.visibility='hidden'">
-          <div><div class="n">${esc(fx.teams.home.name)}</div><div class="s">forma: ${esc(hm.form.slice(-6) || '—')}</div></div>
+          <div><div class="n">${esc(fx.teams.home.name)}</div><div class="s">${a.form
+            ? `${a.form.home.count} meczów · ${(a.form.home.gf ?? 0).toFixed(2)} gola/mecz`
+            : `forma: ${esc(hm.form.slice(-6) || '—')}`}</div></div>
         </div>
         <div class="st-fx-mid">
           <div class="k">Oczekiwane gole</div>
-          <div class="lam">${(a.lambdaHome ?? 0).toFixed(2)} – ${(a.lambdaAway ?? 0).toFixed(2)}</div>
-          <div class="k">razem ${a.lambdaTotal.toFixed(2)}</div>
+          <div class="lam">${(basis.lh ?? 0).toFixed(2)} – ${(basis.la ?? 0).toFixed(2)}</div>
+          <div class="k">razem ${basis.lt.toFixed(2)}</div>
         </div>
         <div class="st-fx-team away">
           <img src="${esc(fx.teams.away.logo)}" alt="" onerror="this.style.visibility='hidden'">
-          <div><div class="n">${esc(fx.teams.away.name)}</div><div class="s">forma: ${esc(am.form.slice(-6) || '—')}</div></div>
+          <div><div class="n">${esc(fx.teams.away.name)}</div><div class="s">${a.form
+            ? `${a.form.away.count} meczów · ${(a.form.away.gf ?? 0).toFixed(2)} gola/mecz`
+            : `forma: ${esc(am.form.slice(-6) || '—')}`}</div></div>
         </div>
       </div>
       <div class="st-fx-meta">
-        <div class="cell"><div class="k">Mecze w sezonie</div><div class="v">${hm.played} / ${am.played}</div><div class="n">gospodarz / gość</div></div>
-        <div class="cell"><div class="k">Śr. gole zdobyte</div><div class="v">${(hm.forTotal ?? 0).toFixed(2)} / ${(am.forTotal ?? 0).toFixed(2)}</div><div class="n">na mecz</div></div>
-        <div class="cell"><div class="k">Śr. gole stracone</div><div class="v">${(hm.againstTotal ?? 0).toFixed(2)} / ${(am.againstTotal ?? 0).toFixed(2)}</div><div class="n">na mecz</div></div>
+        <div class="cell"><div class="k">Próbka</div><div class="v">${a.form ? `${a.form.home.count} / ${a.form.away.count}` : `${hm.played} / ${am.played}`}</div><div class="n">${a.form ? 'ostatnich meczów' : 'meczów w sezonie'}</div></div>
+        <div class="cell"><div class="k">Śr. gole zdobyte</div><div class="v">${a.form ? `${(a.form.home.gf ?? 0).toFixed(2)} / ${(a.form.away.gf ?? 0).toFixed(2)}` : `${(hm.forTotal ?? 0).toFixed(2)} / ${(am.forTotal ?? 0).toFixed(2)}`}</div><div class="n">na mecz</div></div>
+        <div class="cell"><div class="k">Śr. gole stracone</div><div class="v">${a.form ? `${(a.form.home.ga ?? 0).toFixed(2)} / ${(a.form.away.ga ?? 0).toFixed(2)}` : `${(hm.againstTotal ?? 0).toFixed(2)} / ${(am.againstTotal ?? 0).toFixed(2)}`}</div><div class="n">na mecz</div></div>
         <div class="cell"><div class="k">Mecze bezpośrednie</div><div class="v">${a.h2h.length}</div><div class="n">w bazie API</div></div>
       </div>
       <div class="st-notes">${notes.map(([k, i, t]) => `<div class="st-note ${k}"><span class="material-symbols-outlined">${i}</span><span>${t}</span></div>`).join('')}</div>
@@ -700,6 +863,9 @@ function renderAnalysis() {
 
   const fs = el('fetch-stats') || el('refresh-stats');
   if (fs) fs.addEventListener('click', () => runStatsFetch());
+  const seg = el('form-seg');
+  if (seg) seg.querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', () => runFormChange(Number(b.dataset.n))));
 }
 
 /* ============================================================
@@ -780,6 +946,9 @@ async function runAnalysis(fixtureId) {
     <p>Pobieram formę drużyn i mecze bezpośrednie (1 zapytanie).</p></div></section>`;
   busy = true;
   try {
+    // każdy nowy mecz startuje od sezonu, żeby koszt analizy pozostał
+    // przewidywalny (1 zapytanie); okno formy dobiera się świadomie
+    formWindow = 0;
     analysis = await analyseFixture(fx);
     el('step3-sub').textContent = `${fx.teams.home.name} – ${fx.teams.away.name}`;
     el('step4-sub').textContent = `oczekiwane ${analysis.lambdaTotal.toFixed(2)} gola`;
@@ -791,6 +960,48 @@ async function runAnalysis(fixtureId) {
     analysis = null;
     el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
       <span class="material-symbols-outlined">error</span><h4>Nie udało się przeanalizować</h4><p>${esc(msg)}</p></div></section>`;
+  } finally {
+    busy = false;
+  }
+}
+
+async function runFormChange(n) {
+  if (!analysis || busy) return;
+  if (n === formWindow && (n === 0 ? !analysis.form : analysis.form?.n === n)) return;
+
+  if (n === 0) {
+    formWindow = 0;
+    analysis.form = null;
+    renderAnalysis();
+    return;
+  }
+
+  // sprawdzamy, ile zapytań realnie zejdzie (cache może pokryć oba)
+  const probe = id => cacheGet(`fixtures?team=${id}&last=${n}`, TTL.predictions)
+    || cacheGet(`fixtures?team=${id}&season=${allowedSeasonMax || 2024}&status=FT`, TTL.statistics);
+  const need = [analysis.fixture.teams.home.id, analysis.fixture.teams.away.id].filter(id => !probe(id)).length;
+  if (need > remainingQuota()) {
+    toast(`Potrzeba ${need} zapytań, a zostało ${remainingQuota()}.`, 'err');
+    return;
+  }
+
+  busy = true;
+  const seg = el('form-seg');
+  if (seg) seg.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.toggle('active', Number(b.dataset.n) === n); });
+  try {
+    await applyForm(analysis, n);
+    formWindow = n;
+    renderAnalysis();
+    const f = analysis.form;
+    toast(f.source === 'last'
+      ? `Podstawa: ostatnie ${n} meczów (${f.home.count} i ${f.away.count} spotkań).`
+      : `Plan Free blokuje „last” — wzięto ${n} ostatnich meczów z sezonu ${f.season}/${String(f.season + 1).slice(2)}.`,
+      f.source === 'last' ? 'ok' : '');
+  } catch (e) {
+    handleError(e);
+    analysis.form = null;
+    formWindow = 0;
+    renderAnalysis();
   } finally {
     busy = false;
   }
