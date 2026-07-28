@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statystyki – LifeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="trading.css">
+  <link rel="stylesheet" href="stats.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+</head>
+<body data-page="stats">
+<div class="layout">
+  <aside class="sidebar" aria-label="Główna nawigacja">
+    <div class="sidebar__header">
+      <span class="sidebar__emoji">🧭</span>
+      <span class="sidebar__brand">LifeOS</span>
+    </div>
+    <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+      <ul class="sidebar__list">
+        <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span class="sidebar__label">Dashboard</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="material-symbols-outlined">payments</span><span class="sidebar__label">Budżet</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="material-symbols-outlined">assignment</span><span class="sidebar__label">Zadania</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="material-symbols-outlined">trending_up</span><span class="sidebar__label">Progres</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="material-symbols-outlined">local_gas_station</span><span class="sidebar__label">Paliwo</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="material-symbols-outlined">credit_card</span><span class="sidebar__label">Kredyt</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="material-symbols-outlined">inventory_2</span><span class="sidebar__label">Magazyn</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="material-symbols-outlined">construction</span><span class="sidebar__label">Budowa</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="betting.html" data-page="betting"><span class="material-symbols-outlined">sports_soccer</span><span class="sidebar__label">Zakłady</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="stats.html" data-page="stats"><span class="material-symbols-outlined">query_stats</span><span class="sidebar__label">Statystyki</span></a></li>
+      </ul>
+    </nav>
+    <div class="sidebar__footer">
+      <strong>Twoje centrum dowodzenia życiem.</strong>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="site-header" role="banner">
+      <div class="site-header__left">
+        <div class="site-header__greeting">
+          <h1 class="site-header__title">Statystyki</h1>
+        </div>
+      </div>
+      <div class="site-header__right tc-hdr-actions" aria-label="Akcje strony">
+        <span class="st-quota" id="quota" title="Zapytania zużyte dzisiaj (limit planu Free: 100/dobę)">
+          <span class="bar"><i id="quota-bar" style="width:0%"></i></span>
+          <span id="quota-text">— / 100</span>
+        </span>
+        <a class="tc-hdr-btn" href="betting.html" title="Wróć do zakładów"><span class="material-symbols-outlined">arrow_back</span>Zakłady</a>
+        <div class="tc-hdr-sep"></div>
+        <button id="settings-btn" class="tc-hdr-btn"><span class="material-symbols-outlined">key</span>Klucz API</button>
+        <button id="clear-cache-btn" class="tc-hdr-btn" title="Wyczyść zapisane odpowiedzi API"><span class="material-symbols-outlined">cached</span>Cache</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <main class="content-main stack">
+
+        <!-- KROKI -->
+        <div class="st-steps" id="steps">
+          <div class="st-step active" data-step="1">
+            <span class="num">1</span>
+            <div><div class="k">Pobierz mecze</div><div class="v" id="step1-sub">Wybierz dzień i kliknij</div></div>
+          </div>
+          <div class="st-step" data-step="2">
+            <span class="num">2</span>
+            <div><div class="k">Wybierz ligę</div><div class="v" id="step2-sub">—</div></div>
+          </div>
+          <div class="st-step" data-step="3">
+            <span class="num">3</span>
+            <div><div class="k">Wybierz mecz</div><div class="v" id="step3-sub">—</div></div>
+          </div>
+          <div class="st-step" data-step="4">
+            <span class="num">4</span>
+            <div><div class="k">Macierz pokrycia</div><div class="v" id="step4-sub">—</div></div>
+          </div>
+        </div>
+
+        <!-- KROK 1 -->
+        <div class="st-section">
+          <span class="ico"><span class="material-symbols-outlined">calendar_month</span></span>
+          <h2>Mecze</h2>
+          <span class="desc">Plan Free udostępnia terminarz tylko na wczoraj, dziś i jutro</span>
+          <span class="line"></span>
+        </div>
+
+        <section class="tc-card">
+          <div class="st-toolbar">
+            <div class="grp">
+              <div class="st-seg" id="day-seg">
+                <button data-day="-1">Wczoraj</button>
+                <button data-day="0" class="active">Dziś</button>
+                <button data-day="1">Jutro</button>
+              </div>
+              <span class="desc" id="day-label" style="font-size:12px;color:var(--tc-muted)"></span>
+            </div>
+            <div class="grp">
+              <button class="st-btn primary" id="fetch-fixtures"><span class="material-symbols-outlined">download</span>Pobierz mecze</button>
+            </div>
+          </div>
+          <div id="fixtures-status"></div>
+        </section>
+
+        <!-- KROK 2: LIGI -->
+        <div id="leagues-block" style="display:none">
+          <div class="st-section">
+            <span class="ico"><span class="material-symbols-outlined">emoji_events</span></span>
+            <h2>Ligi</h2>
+            <span class="desc" id="leagues-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="st-league-search">
+              <input type="search" id="league-search" placeholder="Filtruj ligi lub kraje…">
+            </div>
+            <div class="st-leagues" id="leagues"></div>
+          </section>
+        </div>
+
+        <!-- KROK 3: MECZE LIGI -->
+        <div id="matches-block" style="display:none">
+          <div class="st-section">
+            <span class="ico"><span class="material-symbols-outlined">stadium</span></span>
+            <h2>Mecze w lidze</h2>
+            <span class="desc" id="matches-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="matches"></div>
+          </section>
+        </div>
+
+        <!-- KROK 4: ANALIZA -->
+        <div id="analysis-block" style="display:none">
+          <div class="st-section">
+            <span class="ico"><span class="material-symbols-outlined">grid_on</span></span>
+            <h2>Macierz pokrycia</h2>
+            <span class="desc" id="analysis-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <div class="st-stack" id="analysis"></div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: KLUCZ API ========== -->
+<div class="tc-modal-ov" id="settings-modal">
+  <div class="tc-modal" style="max-width:560px">
+    <div class="tc-modal-head">
+      <h3>Klucz API-Football</h3>
+      <button class="row-btn" onclick="closeSettings()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tc-modal-body">
+      <div class="st-ff">
+        <label>Klucz API</label>
+        <input id="s-key" type="password" placeholder="32 znaki z panelu API-Football" autocomplete="off">
+      </div>
+      <label class="bt-check" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--tc-ink-2);cursor:pointer">
+        <input type="checkbox" id="s-show" style="width:16px;height:16px;accent-color:var(--tc-accent)">Pokaż klucz
+      </label>
+      <div class="st-note">
+        <span class="material-symbols-outlined">lock</span>
+        <span>Klucz zapisuje się <strong>wyłącznie w tej przeglądarce</strong> (localStorage) i nigdy nie trafia do repozytorium.
+          Znajdziesz go w panelu <em>dashboard.api-football.com</em>.</span>
+      </div>
+      <div class="st-note warn">
+        <span class="material-symbols-outlined">speed</span>
+        <span>Plan <strong>Free</strong>: 100 zapytań na dobę i 10 na minutę. Moduł nigdy nie łączy się sam —
+          każde zapytanie wymaga kliknięcia przycisku, a odpowiedzi są zapisywane lokalnie.</span>
+      </div>
+      <div id="key-status"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" onclick="closeSettings()">Anuluj</button>
+      <button class="btn-small" id="test-key-btn"><span class="material-symbols-outlined">bolt</span>Sprawdź klucz</button>
+      <button class="btn-small primary" id="save-key-btn"><span class="material-symbols-outlined">check</span>Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<div class="tc-toasts" id="toasts"></div>
+<script src="stats.js"></script>
+</body>
+</html>
