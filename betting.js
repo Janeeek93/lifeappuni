@@ -52,6 +52,7 @@ let calendarState = { month: today().slice(0, 7), metric: 'pnl' };
 let entryMode = 'payout';
 let entryConf = 3;
 let settleResult = 'won';
+let settleHits = null;
 let settlePayoutTouched = false;
 let expandedBets = new Set();
 let expandedGroups = new Set();
@@ -139,6 +140,8 @@ function normalizeBet(b) {
   const taxPct = Number.isFinite(Number(b.taxPct))
     ? Math.max(Number(b.taxPct), 0)
     : (b.taxFree ? 0 : defaultStakeTaxPct());
+  const legCount = Math.max(Math.round(numberOr(b.legCount, legs.length || 1)), 1);
+  const rawHits = numberNullable(b.hitLegs);
   return {
     id: b.id || uid('bet'),
     date: b.date || today(),
@@ -149,7 +152,8 @@ function normalizeBet(b) {
     league: String(b.league || '').trim(),
     market: String(b.market || '').trim(),
     pick: String(b.pick || '').trim(),
-    legCount: Math.max(Math.round(numberOr(b.legCount, legs.length || 1)), 1),
+    legCount,
+    hitLegs: rawHits === null ? null : clamp(Math.round(rawHits), 0, legCount),
     stake: Math.max(numberOr(b.stake, 0), 0),
     odds: positiveOr(b.odds, 1),
     boostPct: Math.max(numberOr(b.boostPct, 0), 0),
@@ -311,6 +315,24 @@ function betMath(bet) {
 
 function unitValue(bankroll) { return Math.max(bankroll, 0) * (settings.unitPct / 100); }
 
+/* ------------------------------------------------------------
+   Trafione zdarzenia na kuponie.
+   Wygrany kupon = wszystkie trafione (nie ma czego wpisywać).
+   Przegrany solo = zero trafionych. W pozostałych przypadkach
+   liczba pochodzi z rozliczenia; null oznacza „nie podano”.
+   ------------------------------------------------------------ */
+function hitsOf(b) {
+  if (b.status === 'pending') return null;
+  if (b.status === 'won' || b.status === 'half_won') return b.legCount;
+  if (b.legCount === 1) return (b.status === 'lost' || b.status === 'half_lost') ? 0 : null;
+  return b.hitLegs === null ? null : clamp(b.hitLegs, 0, b.legCount);
+}
+// czy kupon przegrał o włos (zabrakło jednego zdarzenia)
+function isNearMiss(b) {
+  const h = hitsOf(b);
+  return b.legCount > 1 && h !== null && b.profit < 0 && (b.legCount - h) === 1;
+}
+
 /* ============================================================
    Agregacja
    ============================================================ */
@@ -346,6 +368,26 @@ function aggregate() {
   const lostBets = settled.filter(b => b.status === 'lost' || b.status === 'half_lost');
   const avgWinOdds = wonBets.length ? wonBets.reduce((s, b) => s + b.odds, 0) / wonBets.length : null;
   const avgLoseOdds = lostBets.length ? lostBets.reduce((s, b) => s + b.odds, 0) / lostBets.length : null;
+
+  // trafione zdarzenia — „pech czy słaby kupon”
+  const withHits = settled.filter(b => hitsOf(b) !== null);
+  const legsTotal = withHits.reduce((s, b) => s + b.legCount, 0);
+  const legsHit = withHits.reduce((s, b) => s + hitsOf(b), 0);
+  const legHitRate = legsTotal > 0 ? (legsHit / legsTotal) * 100 : null;
+  const lostMulti = settled.filter(b => b.profit < 0 && b.legCount > 1 && hitsOf(b) !== null);
+  const missDist = new Map();
+  for (const b of lostMulti) {
+    const miss = b.legCount - hitsOf(b);
+    const key = miss >= 4 ? 4 : miss;
+    if (!missDist.has(key)) missDist.set(key, { count: 0, loss: 0 });
+    const e = missDist.get(key);
+    e.count += 1;
+    e.loss += b.profit;
+  }
+  const nearMisses = lostMulti.filter(isNearMiss);
+  const nearMissLoss = nearMisses.reduce((s, b) => s + b.profit, 0);
+  const nearMissWouldWin = nearMisses.reduce((s, b) => s + (b.payoutIfWon - b.stake), 0);
+  const unknownHits = settled.filter(b => b.legCount > 1 && b.profit < 0 && hitsOf(b) === null).length;
 
   const clvValues = all.filter(b => b.closingOdds > 0).map(b => (b.odds / b.closingOdds - 1) * 100);
   const avgClv = clvValues.length ? clvValues.reduce((a, c) => a + c, 0) / clvValues.length : null;
@@ -402,6 +444,8 @@ function aggregate() {
     turnover, yieldPct, wins, losses, pushes, winRate,
     avgOdds, avgStake, avgWinOdds, avgLoseOdds,
     avgClv, beatClose, clvCount: clvValues.length,
+    legHitRate, legsHit, legsTotal, missDist, lostMulti,
+    nearMisses, nearMissLoss, nearMissWouldWin, unknownHits,
     byDay, turnoverByDay, countByDay, winsByDay, lossesByDay, flowByDay,
     points, maxDd, maxDdPct, bestWin, worstLoss,
     todayPnl, todayBets, todayStaked, monthPnl, monthBets,
@@ -450,6 +494,33 @@ function setTone(id, tone) {
 }
 function slipRows(rows) {
   return rows.map(r => `<div class="bt-slip-row ${r[3] || ''}"><span class="k">${r[0]}</span><span class="v ${r[2] || ''}">${r[1]}</span></div>`).join('');
+}
+
+/* Wizualizacja trafień: od razu widać, czy zabrakło jednego
+   zdarzenia (pech), czy kupon posypał się od początku. */
+function hitsCell(b) {
+  if (!b.settled) return `<span class="muted">${b.legCount}</span>`;
+  const h = hitsOf(b);
+  if (h === null) {
+    return b.legCount > 1
+      ? `<button class="bt-hits-ask" title="Uzupełnij liczbę trafionych zdarzeń" onclick="openSettleModal('${b.id}')">? / ${b.legCount}</button>`
+      : `<span class="muted">${b.legCount}</span>`;
+  }
+  const miss = b.legCount - h;
+  const tone = miss === 0 ? 'full' : h === 0 ? 'none' : miss === 1 ? 'near' : 'weak';
+  const frac = `<span class="frac">${h}/${b.legCount}</span>`;
+  const badge = (tone === 'near' && b.profit < 0) ? `<span class="badge">pech</span>` : '';
+  const title = `Trafione ${h} z ${b.legCount}`;
+
+  if (b.legCount === 1) {
+    return `<span class="bt-hits ${tone}" title="${title}"><span class="pips"><i class="${h ? 'on' : ''}"></i></span>${frac}</span>`;
+  }
+  if (b.legCount > 10) {
+    return `<span class="bt-hits ${tone}" title="${title}">
+      <span class="meter"><i style="width:${(h / b.legCount) * 100}%"></i></span>${frac}${badge}</span>`;
+  }
+  const pips = Array.from({ length: b.legCount }, (_, i) => `<i class="${i < h ? 'on' : ''}"></i>`).join('');
+  return `<span class="bt-hits ${tone}" title="${title}"><span class="pips">${pips}</span>${frac}${badge}</span>`;
 }
 
 function betEventCell(b, compact = false) {
@@ -915,6 +986,64 @@ function renderCharts(agg) {
   });
 }
 
+function renderHitsCard(agg) {
+  const near = agg.nearMisses.length;
+  const missKeys = [1, 2, 3, 4].filter(k => agg.missDist.has(k));
+  const missVals = missKeys.map(k => agg.missDist.get(k).count);
+
+  el('hits-stats').innerHTML = `
+    <div class="bt-hits-stat">
+      <div class="k">Trafialność zdarzeń</div>
+      <div class="v ${agg.legHitRate === null ? '' : agg.legHitRate >= 50 ? 'pos' : 'neg'}">${agg.legHitRate === null ? '—' : agg.legHitRate.toFixed(1) + '%'}</div>
+      <div class="n">${agg.legsTotal ? `${agg.legsHit} z ${agg.legsTotal} zdarzeń na rozliczonych kuponach` : 'uzupełnij trafienia przy rozliczaniu'}</div>
+    </div>
+    <div class="bt-hits-stat">
+      <div class="k">Przegrane o włos</div>
+      <div class="v warn">${near || '—'}</div>
+      <div class="n">${near
+      ? `strata ${fmtPLN(agg.nearMissLoss)} · gdyby weszły: <strong>${fmtPLN(agg.nearMissWouldWin, true)}</strong>`
+      : 'żaden kupon nie przegrał o jedno zdarzenie'}</div>
+    </div>
+    <div class="bt-hits-stat">
+      <div class="k">Werdykt</div>
+      <div class="v">${agg.lostMulti.length ? `${Math.round(near / agg.lostMulti.length * 100)}%` : '—'}</div>
+      <div class="n">${agg.lostMulti.length
+      ? `przegranych kuponów wielozdarzeniowych to pech (zabrakło jednego)${agg.unknownHits ? ` · ${agg.unknownHits} bez uzupełnionych trafień` : ''}`
+      : 'brak przegranych kuponów wielozdarzeniowych'}</div>
+    </div>`;
+
+  makeChart('chart-miss', {
+    type: 'bar',
+    data: {
+      labels: missKeys.map(k => k === 4 ? 'o 4+' : `o ${k}`),
+      datasets: [{
+        data: missVals,
+        backgroundColor: missKeys.map(k => k === 1 ? '#b45309' : '#c0362c'),
+        borderRadius: 5, maxBarThickness: 46
+      }]
+    },
+    options: {
+      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...TOOLTIP, callbacks: {
+            title: items => `Zabrakło ${items[0].label.replace('o ', '')} zdarzeń`,
+            label: c => {
+              const e = agg.missDist.get(missKeys[c.dataIndex]);
+              return [`${nKupon(e.count)}`, `Strata: ${fmtPLN(e.loss)}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: axisCat(),
+        y: { grid: { color: 'rgba(226,232,240,0.7)' }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, precision: 0 } }
+      }
+    }
+  });
+}
+
 /* ============================================================
    Kalendarz P&L
    ============================================================ */
@@ -1348,7 +1477,7 @@ function betRow(b, agg) {
       <td class="nowrap"><button class="expand-btn ${expandedBets.has(b.id) ? 'open' : ''}" onclick="toggleBet('${b.id}')"><span class="material-symbols-outlined">chevron_right</span></button></td>
       <td class="nowrap">${esc(b.settled ? b.settledDate : b.date)}</td>
       <td>${betEventCell(b)}</td>
-      <td class="num">${b.legCount}</td>
+      <td>${hitsCell(b)}</td>
       <td class="num"><span class="bt-odds">${fmtOdds(b.odds)}</span>${clv !== null ? `<br><span class="muted" style="font-size:10px">CLV ${fmtPct(clv, true, 1)}</span>` : ''}</td>
       <td class="num">${fmtPLN(b.stake)}${unit > 0 ? `<br><span class="muted" style="font-size:10.5px">${(b.stake / unit).toFixed(2)}u</span>` : ''}</td>
       <td><span class="bt-tag ${b.status}">${STATUS_LABEL[b.status]}</span></td>
@@ -1375,6 +1504,7 @@ function betDetailRow(b) {
     ['Rozgrywki', b.league || '—'],
     ['Rynek', b.market || '—'],
     ['Zdarzenia', String(b.legCount)],
+    ['Trafione', hitsOf(b) === null ? '—' : `${hitsOf(b)} / ${b.legCount}`],
     ['Kurs', fmtOdds(b.odds)],
     ['Śr. kurs / zdarzenie', b.legCount > 1 ? fmtOdds(Math.pow(b.odds, 1 / b.legCount)) : '—'],
     ['Kurs efektywny', b.stake > 0 ? fmtOdds(b.payoutIfWon / b.stake) : '—'],
@@ -1400,7 +1530,7 @@ function betDetailRow(b) {
 function betsTable(list, agg) {
   return `<div class="tc-tbl-wrap"><table class="tc-tbl">
     <thead><tr>
-      <th style="width:34px"></th><th>Data</th><th>Kupon</th><th class="num">Zdarz.</th><th class="num">Kurs</th>
+      <th style="width:34px"></th><th>Data</th><th>Kupon</th><th>Trafienia</th><th class="num">Kurs</th>
       <th class="num">Stawka</th><th>Status</th><th class="num">Zwrot</th><th class="num">P&L</th><th style="width:100px"></th>
     </tr></thead>
     <tbody>${list.map(b => betRow(b, agg)).join('')}</tbody></table></div>`;
@@ -1480,6 +1610,7 @@ function openSettleModal(id) {
   el('st-id').value = id;
   el('st-date').value = bet.settledAt || today();
   settleResult = bet.status === 'pending' ? 'won' : bet.status;
+  settleHits = bet.hitLegs;
   settlePayoutTouched = false;
 
   el('st-info').innerHTML = slipRows([
@@ -1499,11 +1630,47 @@ function openSettleModal(id) {
 }
 function closeSettleModal() { el('settle-modal').classList.remove('on'); }
 
+// Ile zdarzeń mogło wejść przy danym wyniku — przy przegranej
+// komplet jest z definicji niemożliwy.
+function maxHitsFor(bet, result) {
+  return (result === 'lost' || result === 'half_lost') ? bet.legCount - 1 : bet.legCount;
+}
+
+function renderHitPicker(bet) {
+  const box = el('st-hits-box');
+  if (bet.legCount <= 1 || settleResult === 'won' || settleResult === 'half_won') {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = '';
+  const max = maxHitsFor(bet, settleResult);
+  if (settleHits !== null && settleHits > max) settleHits = max;
+
+  const buttons = Array.from({ length: max + 1 }, (_, i) =>
+    `<button type="button" data-h="${i}" class="${i === 0 ? 'zero ' : ''}${settleHits === i ? 'active' : ''}">${i}</button>`).join('');
+  el('st-hits').innerHTML = buttons +
+    `<button type="button" data-h="" class="${settleHits === null ? 'active' : ''}" title="Nie pamiętam / nie podaję">—</button>`;
+  el('st-hits').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    settleHits = b.dataset.h === '' ? null : Number(b.dataset.h);
+    renderHitPicker(bet);
+  }));
+
+  const miss = settleHits === null ? null : bet.legCount - settleHits;
+  el('st-hits-note').innerHTML = settleHits === null
+    ? `Ile z ${nZdarz(bet.legCount)} weszło? Dzięki temu na liście odróżnisz pecha od słabego kuponu.`
+    : miss === 1
+      ? `Zabrakło jednego zdarzenia — kupon trafi na listę jako <strong>pech</strong>.`
+      : miss === 0
+        ? `Komplet trafiony.`
+        : `Nie weszło ${nZdarz(miss)} — to raczej słaby kupon niż pech.`;
+}
+
 function setSettleResult(r, force) {
   settleResult = r;
   el('st-result').querySelectorAll('.bt-result-btn').forEach(b => b.classList.toggle('active', b.dataset.r === r));
   const bet = state.bets.find(b => b.id === el('st-id').value);
   if (!bet) return;
+  renderHitPicker(bet);
   if (force || !settlePayoutTouched) {
     // cashout nie ma wzoru — proponujemy 60% pełnej wypłaty jako punkt startowy
     const auto = r === 'cashout'
@@ -1536,10 +1703,15 @@ function saveSettle() {
   if (idx < 0) return;
   const payout = Math.max(numberOr(el('st-payout').value, 0), 0);
   const auto = computeSettlePayout(state.bets[idx], settleResult);
+  const bet = state.bets[idx];
+  const hits = (bet.legCount > 1 && settleResult !== 'won' && settleResult !== 'half_won' && settleHits !== null)
+    ? clamp(settleHits, 0, maxHitsFor(bet, settleResult))
+    : null;
   state.bets[idx] = {
-    ...state.bets[idx],
+    ...bet,
     status: settleResult,
     settledAt: el('st-date').value || today(),
+    hitLegs: hits,
     payoutOverride: (settleResult === 'cashout' || Math.abs(payout - auto) > 0.01) ? payout : null
   };
   saveState();
@@ -1820,11 +1992,11 @@ function importJSON(file) {
 
 function exportCSV() {
   const rows = [['Data', 'Rozliczono', 'Kupon', 'Bukmacher', 'Dyscyplina', 'Rozgrywki', 'Rynek', 'Typ',
-    'Zdarzenia', 'Stawka', 'Kurs', 'Podatek %', 'Boost %', 'Wygrana', 'Kurs zamkniecia',
+    'Zdarzenia', 'Trafione', 'Stawka', 'Kurs', 'Podatek %', 'Boost %', 'Wygrana', 'Kurs zamkniecia',
     'Status', 'Zwrot', 'Zysk', 'Podatek', 'Pewnosc', 'Live', 'Freebet', 'Tagi', 'Notatka']];
   for (const b of aggregate().all) {
     rows.push([b.date, b.settledDate || '', b.title, b.bookmaker, b.sport, b.league, b.market, b.pick,
-    b.legCount, b.stake.toFixed(2), b.odds.toFixed(4), b.taxPct, b.boostPct, b.payoutIfWon.toFixed(2),
+    b.legCount, hitsOf(b) === null ? '' : hitsOf(b), b.stake.toFixed(2), b.odds.toFixed(4), b.taxPct, b.boostPct, b.payoutIfWon.toFixed(2),
     b.closingOdds ? b.closingOdds.toFixed(2) : '', STATUS_LABEL[b.status],
     b.settled ? b.returned.toFixed(2) : '', b.settled ? b.profit.toFixed(2) : '',
     b.settled ? b.taxPaid.toFixed(2) : '', b.confidence, b.live ? 'tak' : 'nie', b.freebet ? 'tak' : 'nie',
@@ -1892,6 +2064,7 @@ function renderAll() {
   renderOpenBets(agg);
   renderCalendar(agg);
   renderCharts(agg);
+  renderHitsCard(agg);
   renderRankList('sport-perf-wrap', groupBy(agg.settled, b => b.sport || 'Bez dyscypliny'), 'Uzupełnij dyscyplinę w szczegółach kuponu.');
   renderRankList('book-perf-wrap', groupBy(agg.settled, b => b.bookmaker || 'Bez nazwy'), 'Uzupełnij bukmachera w kuponach.');
   const tagMap = new Map();
