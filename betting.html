@@ -306,118 +306,12 @@
         <!-- ================= KUPONY ================= -->
         <div class="tab-panel" id="tab-bets">
 
-          <div class="bt-entry" id="entry-card">
-            <div class="bt-entry-head">
-              <div class="title">
-                <span class="ico"><span class="material-symbols-outlined">confirmation_number</span></span>
-                <div>
-                  <h3 id="entry-title">Nowy kupon</h3>
-                  <div class="sub" id="entry-sub">Wpisz stawkę i wygraną z kuponu — kurs policzy się sam</div>
-                </div>
-              </div>
-              <div class="bt-mode" id="entry-mode">
-                <button type="button" data-m="payout" class="active"><span class="material-symbols-outlined">payments</span>Podaję wygraną</button>
-                <button type="button" data-m="odds"><span class="material-symbols-outlined">percent</span>Podaję kurs</button>
-              </div>
-            </div>
-
-            <form class="bt-entry-body" id="entry-form" autocomplete="off">
-              <input type="hidden" id="e-id">
-
-              <div class="bt-fields">
-                <div class="bt-f c-5">
-                  <label>Nazwa kuponu</label>
-                  <input id="e-title" type="text" list="dl-titles" placeholder="Liga Mistrzów 28/07 – BetClic" required>
-                </div>
-                <div class="bt-f c-3">
-                  <label>Bukmacher</label>
-                  <input id="e-book" type="text" list="dl-books" placeholder="BetClic">
-                </div>
-                <div class="bt-f c-2">
-                  <label>Data</label>
-                  <input id="e-date" type="date">
-                </div>
-                <div class="bt-f c-2 num">
-                  <label>Zdarzenia <span class="hint">szt.</span></label>
-                  <input id="e-legs" type="number" min="1" step="1" value="1">
-                </div>
-
-                <div class="bt-f c-3 num key">
-                  <label>Stawka <span class="hint">zł</span></label>
-                  <input id="e-stake" type="number" step="any" min="0" placeholder="0,00" required>
-                  <span class="unit-hint" id="e-stake-hint"></span>
-                </div>
-                <div class="bt-f c-3 num key" id="e-payout-box">
-                  <label>Wygrana total <span class="hint">zł, tyle wypłaca bukmacher</span></label>
-                  <input id="e-payout" type="number" step="any" min="0" placeholder="0,00">
-                  <span class="unit-hint">Kwota z kuponu, po podatku i z boostem</span>
-                </div>
-                <div class="bt-f c-3 num key" id="e-odds-box" style="display:none">
-                  <label>Kurs <span class="hint">łączny</span></label>
-                  <input id="e-odds" type="number" step="any" min="1" placeholder="0,00">
-                  <span class="unit-hint">Kurs nominalny z kuponu</span>
-                </div>
-                <div class="bt-f c-2 num">
-                  <label>Podatek <span class="hint">%</span></label>
-                  <input id="e-tax" type="number" step="any" min="0" max="100">
-                  <span class="unit-hint" id="e-tax-hint">Promocja? Wpisz 0</span>
-                </div>
-                <div class="bt-f c-2 num">
-                  <label>Boost <span class="hint">%</span></label>
-                  <input id="e-boost" type="number" step="any" min="0" value="0">
-                  <span class="unit-hint">Bonus do wygranej</span>
-                </div>
-                <div class="bt-f c-2">
-                  <label>Pewność</label>
-                  <div class="bt-conf-pick" id="e-conf">
-                    <button type="button" data-c="1">1</button>
-                    <button type="button" data-c="2">2</button>
-                    <button type="button" data-c="3" class="active">3</button>
-                    <button type="button" data-c="4">4</button>
-                    <button type="button" data-c="5">5</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="bt-calc-strip" id="entry-calc"></div>
-
-              <button type="button" class="bt-more-btn" id="more-btn">
-                <span class="material-symbols-outlined">expand_more</span>Więcej szczegółów (opcjonalnie)
-              </button>
-              <div class="bt-more" id="more-panel">
-                <div class="bt-more-inner">
-                  <div class="bt-fields">
-                    <div class="bt-f c-3"><label>Dyscyplina</label><input id="e-sport" type="text" list="dl-sports" placeholder="Piłka nożna"></div>
-                    <div class="bt-f c-3"><label>Rozgrywki</label><input id="e-league" type="text" list="dl-leagues" placeholder="Liga Mistrzów"></div>
-                    <div class="bt-f c-3"><label>Rynek / typ zakładu</label><input id="e-market" type="text" list="dl-markets" placeholder="Bet builder"></div>
-                    <div class="bt-f c-3"><label>Tagi / strategia</label><input id="e-tags" type="text" list="dl-tags" placeholder="value, faworyci"></div>
-                    <div class="bt-f c-6"><label>Typ / opis wyboru</label><input id="e-pick" type="text" list="dl-picks" placeholder="Real wygra + powyżej 2.5 gola"></div>
-                    <div class="bt-f c-3 num"><label>Kurs zamknięcia <span class="hint">CLV</span></label><input id="e-closing" type="number" step="any" min="1" placeholder="opcjonalnie"></div>
-                    <div class="bt-f c-3">
-                      <label>Znaczniki</label>
-                      <div class="bt-checks">
-                        <label class="bt-check"><input type="checkbox" id="e-live">Live</label>
-                        <label class="bt-check"><input type="checkbox" id="e-freebet">Freebet</label>
-                      </div>
-                    </div>
-                    <div class="bt-f c-12"><label>Notatka / uzasadnienie</label><input id="e-note" type="text" placeholder="Dlaczego ten typ? Jakie założenia?"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="bt-alerts" id="entry-warnings"></div>
-            </form>
-
-            <div class="bt-entry-foot">
-              <button type="button" class="bt-btn ghost" id="entry-reset"><span class="material-symbols-outlined">close</span>Wyczyść</button>
-              <button type="button" class="bt-btn primary" id="entry-save"><span class="material-symbols-outlined">add</span>Dodaj kupon</button>
-            </div>
-          </div>
-
-          <div class="bt-section">
+          <div class="bt-section" style="margin-top:0">
             <span class="ico"><span class="material-symbols-outlined">receipt_long</span></span>
             <h2>Historia kuponów</h2>
+            <span class="desc" id="bets-desc">—</span>
             <span class="line"></span>
+            <button class="btn-small primary" onclick="openEntryModal()"><span class="material-symbols-outlined">add</span>Dodaj kupon</button>
           </div>
 
           <section class="tc-card">
@@ -521,6 +415,123 @@
 <datalist id="dl-titles"></datalist>
 <datalist id="dl-picks"></datalist>
 <datalist id="dl-tags"></datalist>
+
+<!-- ========== MODAL: KUPON ========== -->
+<div class="tc-modal-ov" id="entry-modal">
+  <div class="bt-entry" id="entry-card">
+    <div class="bt-entry-head">
+      <div class="title">
+        <span class="ico"><span class="material-symbols-outlined">confirmation_number</span></span>
+        <div>
+          <h3 id="entry-title">Nowy kupon</h3>
+          <div class="sub" id="entry-sub">Wpisz stawkę i wygraną z kuponu — kurs policzy się sam</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="bt-mode" id="entry-mode">
+          <button type="button" data-m="payout" class="active"><span class="material-symbols-outlined">payments</span>Podaję wygraną</button>
+          <button type="button" data-m="odds"><span class="material-symbols-outlined">percent</span>Podaję kurs</button>
+        </div>
+        <button class="row-btn" type="button" onclick="closeEntryModal()" title="Zamknij"><span class="material-symbols-outlined">close</span></button>
+      </div>
+    </div>
+
+    <form class="bt-entry-body" id="entry-form" autocomplete="off">
+      <input type="hidden" id="e-id">
+
+      <div class="bt-fields">
+        <div class="bt-f c-5">
+          <label>Nazwa kuponu</label>
+          <input id="e-title" type="text" list="dl-titles" placeholder="Liga Mistrzów 28/07 – BetClic" required>
+        </div>
+        <div class="bt-f c-3">
+          <label>Bukmacher</label>
+          <input id="e-book" type="text" list="dl-books" placeholder="BetClic">
+        </div>
+        <div class="bt-f c-2">
+          <label>Data</label>
+          <input id="e-date" type="date">
+        </div>
+        <div class="bt-f c-2 num">
+          <label>Zdarzenia <span class="hint">szt.</span></label>
+          <input id="e-legs" type="number" min="1" step="1" value="1">
+        </div>
+
+        <div class="bt-f c-3 num key">
+          <label>Stawka <span class="hint">zł</span></label>
+          <input id="e-stake" type="number" step="any" min="0" placeholder="0,00" required>
+          <span class="unit-hint" id="e-stake-hint"></span>
+        </div>
+        <div class="bt-f c-3 num key" id="e-payout-box">
+          <label>Wygrana total <span class="hint">zł</span></label>
+          <input id="e-payout" type="number" step="any" min="0" placeholder="0,00">
+          <span class="unit-hint">Tyle wypłaca bukmacher — z podatkiem i boostem</span>
+        </div>
+        <div class="bt-f c-3 num key" id="e-odds-box" style="display:none">
+          <label>Kurs <span class="hint">łączny</span></label>
+          <input id="e-odds" type="number" step="any" min="1" placeholder="0,00">
+          <span class="unit-hint">Kurs nominalny z kuponu</span>
+        </div>
+        <div class="bt-f c-2 num">
+          <label>Podatek <span class="hint">%</span></label>
+          <input id="e-tax" type="number" step="any" min="0" max="100">
+          <span class="unit-hint" id="e-tax-hint">Promocja? Wpisz 0</span>
+        </div>
+        <div class="bt-f c-2 num">
+          <label>Boost <span class="hint">%</span></label>
+          <input id="e-boost" type="number" step="any" min="0" value="0">
+          <span class="unit-hint">Bonus do wygranej</span>
+        </div>
+        <div class="bt-f c-2">
+          <label>Pewność</label>
+          <div class="bt-conf-pick" id="e-conf">
+            <button type="button" data-c="1">1</button>
+            <button type="button" data-c="2">2</button>
+            <button type="button" data-c="3" class="active">3</button>
+            <button type="button" data-c="4">4</button>
+            <button type="button" data-c="5">5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bt-calc-strip" id="entry-calc"></div>
+
+      <button type="button" class="bt-more-btn" id="more-btn">
+        <span class="material-symbols-outlined">expand_more</span>Więcej szczegółów (opcjonalnie)
+      </button>
+      <div class="bt-more" id="more-panel">
+        <div class="bt-more-inner">
+          <div class="bt-fields">
+            <div class="bt-f c-3"><label>Dyscyplina</label><input id="e-sport" type="text" list="dl-sports" placeholder="Piłka nożna"></div>
+            <div class="bt-f c-3"><label>Rozgrywki</label><input id="e-league" type="text" list="dl-leagues" placeholder="Liga Mistrzów"></div>
+            <div class="bt-f c-3"><label>Rynek / typ zakładu</label><input id="e-market" type="text" list="dl-markets" placeholder="Bet builder"></div>
+            <div class="bt-f c-3"><label>Tagi / strategia</label><input id="e-tags" type="text" list="dl-tags" placeholder="value, faworyci"></div>
+            <div class="bt-f c-6"><label>Typ / opis wyboru</label><input id="e-pick" type="text" list="dl-picks" placeholder="Real wygra + powyżej 2.5 gola"></div>
+            <div class="bt-f c-3 num"><label>Kurs zamknięcia <span class="hint">CLV</span></label><input id="e-closing" type="number" step="any" min="1" placeholder="opcjonalnie"></div>
+            <div class="bt-f c-3">
+              <label>Znaczniki</label>
+              <div class="bt-checks">
+                <label class="bt-check"><input type="checkbox" id="e-live">Live</label>
+                <label class="bt-check"><input type="checkbox" id="e-freebet">Freebet</label>
+              </div>
+            </div>
+            <div class="bt-f c-12"><label>Notatka / uzasadnienie</label><input id="e-note" type="text" placeholder="Dlaczego ten typ? Jakie założenia?"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bt-alerts" id="entry-warnings"></div>
+    </form>
+
+    <div class="bt-entry-foot">
+      <button type="button" class="bt-btn ghost" id="entry-reset"><span class="material-symbols-outlined">restart_alt</span>Wyczyść</button>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="bt-btn" onclick="closeEntryModal()">Anuluj</button>
+        <button type="button" class="bt-btn primary" id="entry-save"><span class="material-symbols-outlined">add</span>Dodaj kupon</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ========== MODAL: ROZLICZENIE ========== -->
 <div class="tc-modal-ov" id="settle-modal">

@@ -1332,15 +1332,23 @@ function resetEntry() {
   el('e-live').checked = false;
   el('e-freebet').checked = false;
   setEntryConf(3);
+  openMore(false);
   setText('entry-title', 'Nowy kupon');
   el('entry-save').innerHTML = '<span class="material-symbols-outlined">add</span>Dodaj kupon';
   updateEntryCalc();
 }
 
+function openEntryModal(id) {
+  if (id) editBet(id); else resetEntry();
+  el('entry-modal').classList.add('on');
+  if (!id) setTimeout(() => el('e-title').focus(), 30);
+}
+function closeEntryModal() { el('entry-modal').classList.remove('on'); }
+
 function editBet(id) {
   const b = state.bets.find(x => x.id === id);
   if (!b) return;
-  switchTab('bets');
+  el('entry-modal').classList.add('on');
   el('e-id').value = b.id;
   el('e-title').value = b.title;
   el('e-book').value = b.bookmaker;
@@ -1366,11 +1374,10 @@ function editBet(id) {
   } else {
     el('e-odds').value = Math.round(b.odds * 1000) / 1000;
   }
-  if (b.sport || b.league || b.market || b.pick || b.note || b.tags.length || b.closingOdds) openMore(true);
+  openMore(!!(b.sport || b.league || b.market || b.pick || b.note || b.tags.length || b.closingOdds));
   setText('entry-title', 'Edytujesz kupon');
   el('entry-save').innerHTML = '<span class="material-symbols-outlined">check</span>Zapisz zmiany';
   updateEntryCalc();
-  el('entry-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function saveEntry() {
@@ -1395,6 +1402,7 @@ function saveEntry() {
     state.bets.push(bet);
   }
   saveState();
+  closeEntryModal();
   resetEntry();
   renderAll();
   toast(existingId ? 'Kupon zaktualizowany' : 'Kupon dodany', 'ok');
@@ -1408,11 +1416,7 @@ function openMore(open) {
   btn.lastChild.textContent = willOpen ? 'Ukryj szczegóły' : 'Więcej szczegółów (opcjonalnie)';
 }
 
-function goToEntry() {
-  switchTab('bets');
-  el('e-title').focus();
-  el('entry-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+function goToEntry() { openEntryModal(); }
 
 /* ============================================================
    Zakładka: Kupony — lista
@@ -1456,6 +1460,7 @@ function groupLabelFor(key, grouping) {
 }
 
 function renderBetsSummary(list) {
+  setText('bets-desc', list.length ? `${nKupon(list.length)} po filtrach` : 'brak kuponów');
   const settled = list.filter(b => b.settled);
   const pending = list.filter(b => !b.settled);
   const s = bucketStats(settled);
@@ -1590,7 +1595,7 @@ function deleteBet(id) {
   if (!confirm('Usunąć ten kupon? Operacji nie da się cofnąć.')) return;
   state.bets = state.bets.filter(b => b.id !== id);
   expandedBets.delete(id);
-  if (el('e-id').value === id) resetEntry();
+  if (el('e-id').value === id) { closeEntryModal(); resetEntry(); }
   saveState();
   renderAll();
   toast('Kupon usunięty');
