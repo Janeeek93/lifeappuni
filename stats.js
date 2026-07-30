@@ -103,6 +103,24 @@ const PROXIES = [
 const LOCAL_PROXY_HINT = 'Uruchom `node server.js` i otwórz stronę pod http://localhost:8787 '
   + '— wtedy pliki idą przez lokalne proxy, bez publicznych pośredników.';
 
+/* Dwa układy blokują localhost niezależnie od tego, czy server.js działa:
+   strona otwarta jako plik (origin "null") i strona po https sięgająca
+   po http. W obu przypadkach fetch kończy się "Failed to fetch", więc
+   sama instrukcja "uruchom serwer" byłaby myląca. */
+function environmentHint() {
+  const protocol = typeof location === 'undefined' ? '' : location.protocol;
+  if (protocol === 'file:') {
+    return 'Strona jest otwarta bezpośrednio z dysku (file://). W tym trybie przeglądarka blokuje '
+      + 'zapytania do http://localhost — lokalne proxy nie zadziała, nawet jeśli server.js jest uruchomiony. '
+      + 'Otwórz stronę pod http://localhost:8787 albo wczytaj pliki CSV z dysku (sekcja „Źródło danych”).';
+  }
+  if (protocol === 'https:') {
+    return 'Strona działa po https, a lokalne proxy po http — przeglądarka blokuje takie mieszane żądania. '
+      + 'Otwórz stronę pod http://localhost:8787 albo wczytaj pliki CSV z dysku.';
+  }
+  return LOCAL_PROXY_HINT;
+}
+
 /* ---------- API-FOOTBALL ----------
    Terminarz na dziś i jutro ze statusami live. Klucz podaje użytkownik
    w ustawieniach i trzymany jest wyłącznie w localStorage tej przeglądarki
@@ -386,8 +404,7 @@ async function fetchCsv(target) {
   if (missing === problems.length && missing > 0) return null;
   const onlyPublic = !state.localProxy;
   throw new Error(onlyPublic
-    ? `Nie udało się pobrać ${target} — żadne z publicznych proxy CORS nie odpowiedziało. ${LOCAL_PROXY_HINT} `
-      + `Szczegóły: ${problems.join('; ')}`
+    ? `Nie udało się pobrać ${target}. ${environmentHint()} Szczegóły prób: ${problems.join('; ')}`
     : `Nie udało się pobrać ${target}. Próby — ${problems.join('; ')}`);
 }
 
@@ -826,6 +843,92 @@ function tone(p) {
   return 't1';
 }
 
+/* ---------- IMPORT PLIKÓW Z DYSKU ----------
+   Ostatnia deska ratunku, gdy ani lokalne, ani publiczne proxy nie działa:
+   pobranie pliku przez kliknięcie w link to zwykła nawigacja, której CORS
+   nie dotyczy. Wczytany plik zostaje w cache i ma pierwszeństwo przed siecią. */
+
+const IMPORT_PREFIX = 'fdimport:';
+
+function neededTargets(div) {
+  const league = LEAGUE_BY_ID.get(div);
+  if (!league) return [];
+  if (league.kind === 'extra') return [`new/${div}.csv`];
+  return seasonCodes(state.seasons).map(code => `mmz4281/${code}/${div}.csv`);
+}
+
+function importedRows(div) {
+  const entry = cache[IMPORT_PREFIX + div];
+  return entry && Array.isArray(entry.rows) ? entry.rows : null;
+}
+
+async function importCsvFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+  const collected = [];
+  const rejected = [];
+  for (const file of files) {
+    let text;
+    try { text = await file.text(); } catch { rejected.push(`${file.name}: nie udało się odczytać`); continue; }
+    const clean = unwrapCsv(text);
+    if (!looksLikeCsv(clean)) { rejected.push(`${file.name}: to nie jest plik z football-data.co.uk`); continue; }
+    const rows = parseCsv(clean).map(normalizeRow).filter(Boolean);
+    if (!rows.length) { rejected.push(`${file.name}: brak rozegranych meczów`); continue; }
+    collected.push(...rows);
+  }
+
+  if (!collected.length) {
+    renderImportStatus(`<span class="material-symbols-outlined bad">error</span>Nie wczytano nic. ${esc(rejected.join('; '))}`);
+    return;
+  }
+
+  const seen = new Set();
+  const merged = collected
+    .filter(match => {
+      const key = `${match.ts}|${match.home}|${match.away}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => b.ts - a.ts);
+
+  cache[IMPORT_PREFIX + state.leagueId] = { ts: Date.now(), rows: merged.map(packMatch) };
+  saveCache();
+  divisionPool.clear();
+  const league = LEAGUE_BY_ID.get(state.leagueId);
+  renderImportStatus(`<span class="material-symbols-outlined ok">check_circle</span>
+    Wczytano <strong>${merged.length}</strong> meczów do ligi <strong>${esc(league.country)} · ${esc(league.name)}</strong>
+    (${fmtDate(merged[merged.length - 1].ts)} – ${fmtDate(merged[0].ts)}).
+    ${rejected.length ? `Pominięto: ${esc(rejected.join('; '))}` : ''}`);
+  toast(`Zaimportowano ${merged.length} meczów`);
+  await loadLeague();
+}
+
+function clearImport() {
+  const key = IMPORT_PREFIX + state.leagueId;
+  if (!cache[key]) { toast('Ta liga nie ma zaimportowanych danych'); return; }
+  delete cache[key];
+  saveCache();
+  divisionPool.clear();
+  renderImportPanel();
+  toast('Import wyczyszczony — dane pójdą znów z sieci');
+}
+
+function renderImportStatus(html) { el('import-status').innerHTML = html; }
+
+function renderImportPanel() {
+  const div = state.leagueId;
+  const rows = importedRows(div);
+  el('import-links').innerHTML = neededTargets(div)
+    .map(target => `<a href="${UPSTREAM}/${target}" download target="_blank" rel="noopener">${esc(target)}</a>`)
+    .join('');
+  renderImportStatus(rows
+    ? `<span class="material-symbols-outlined ok">check_circle</span>
+       Ta liga korzysta z <strong>${rows.length}</strong> meczów wczytanych z dysku (mają pierwszeństwo przed siecią).`
+    : `<span class="material-symbols-outlined">info</span>
+       Pobierz pliki z linków powyżej i wskaż je przyciskiem — działa nawet bez serwera i bez proxy.`);
+}
+
 /* ---------- WCZYTYWANIE LIGI ---------- */
 
 function indexTeams(matches) {
@@ -837,6 +940,15 @@ function indexTeams(matches) {
 async function loadDivision(id, seasons) {
   const league = LEAGUE_BY_ID.get(id);
   if (!league) return [];
+
+  const imported = importedRows(id);
+  if (imported) {
+    const rows = imported.map(unpackMatch);
+    if (league.kind !== 'extra') return rows;
+    const cutoff = Date.now() - seasons * 400 * 24 * 60 * 60 * 1000;
+    return rows.filter(match => match.ts >= cutoff);
+  }
+
   if (league.kind === 'extra') {
     const rows = await getMatches(`new/${id}.csv`, TTL.season);
     const cutoff = Date.now() - seasons * 400 * 24 * 60 * 60 * 1000;
@@ -1123,6 +1235,12 @@ function renderProxyWarning(show) {
   const banner = el('proxy-warning');
   if (!banner) return;
   banner.style.display = show ? '' : 'none';
+  if (!show) return;
+  const blocked = typeof location !== 'undefined' && (location.protocol === 'file:' || location.protocol === 'https:');
+  banner.innerHTML = `<span class="material-symbols-outlined">running_with_errors</span>
+    <span><strong>${blocked ? 'Lokalne proxy jest zablokowane przez przeglądarkę.' : 'Brak lokalnego proxy.'}</strong>
+    ${esc(environmentHint())}
+    Publiczne pośredniki CORS bywają wyłączane bez ostrzeżenia i wtedy analiza kończy się błędem „Failed to fetch”.</span>`;
 }
 
 function renderProxyBadge() {
@@ -2039,12 +2157,24 @@ function init() {
   el('scan-upcoming').checked = state.scanUpcomingOnly;
   el('scan-min').value = String(state.scanMinCoverage);
   renderScanAvailability();
+  renderImportPanel();
   if (state.apiKey) el('step1-sub').textContent = 'Klucz zapisany';
   setStep(state.apiKey ? 2 : 1);
   document.querySelectorAll('.sidebar__link[data-page]').forEach(link =>
     link.classList.toggle('sidebar__link--active', link.dataset.page === 'stats'));
 
-  el('league-select').addEventListener('change', event => { state.leagueId = event.target.value; savePrefs(); });
+  el('league-select').addEventListener('change', event => {
+    state.leagueId = event.target.value;
+    savePrefs();
+    renderImportPanel();
+  });
+  el('season-select').addEventListener('change', renderImportPanel);
+  el('import-btn').addEventListener('click', () => el('import-input').click());
+  el('import-input').addEventListener('change', event => {
+    importCsvFiles(event.target.files);
+    event.target.value = '';
+  });
+  el('import-clear').addEventListener('click', clearImport);
   el('season-select').addEventListener('change', event => { state.seasons = Number(event.target.value); savePrefs(); });
   el('load-league').addEventListener('click', loadLeague);
   el('venue-toggle').addEventListener('change', event => { state.venueSplit = event.target.checked; savePrefs(); refreshAnalysis(); });

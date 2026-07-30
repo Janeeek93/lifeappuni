@@ -18,6 +18,20 @@ serwuje pliki aplikacji i pośredniczy w pobieraniu danych.
 działa w tle** — stronę możesz otwierać skąd chcesz (inny port, Live Server).
 Aplikacja wykryje proxy pod `http://localhost:8787` i użyje go.
 
+### Gdy nic nie działa: import plików z dysku
+
+Przeglądarka blokuje localhost w dwóch układach, **niezależnie od tego, czy
+`server.js` jest uruchomiony**:
+
+- strona otwarta bezpośrednio z dysku (`file://`) — origin jest wtedy „null",
+- strona po `https` sięgająca po `http://localhost` — mieszana treść.
+
+W obu przypadkach fetch kończy się „Failed to fetch". Rozwiązania są dwa:
+otworzyć stronę pod `http://localhost:8787`, albo skorzystać z **importu
+plików** w sekcji *Źródło danych*: klikasz link do pliku (zwykłe pobranie,
+CORS go nie dotyczy), a potem wskazujesz go przyciskiem. Zaimportowane dane
+mają pierwszeństwo przed siecią i przeżywają przeładowanie strony.
+
 Bez uruchomionego serwera moduł spada na publiczne proxy CORS, które są
 zawodne: w lipcu 2026 `r.jina.ai` zaczął wymagać logowania (HTTP 401),
 a `allorigins.win` i `codetabs.com` zwracały 522. W przeglądarce takie
