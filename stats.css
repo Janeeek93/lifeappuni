@@ -168,6 +168,11 @@ body[data-page="stats"] .tc-tbl thead th { background: var(--tc-surface); font-s
   cursor: pointer; user-select: none;
 }
 .st-check input { width: 15px; height: 15px; accent-color: var(--tc-accent); cursor: pointer; }
+.st-check em {
+  font-style: normal; font-family: var(--mono); font-weight: 700; font-size: 11px;
+  background: var(--tc-surface); color: var(--tc-muted); padding: 1px 6px; border-radius: 999px; margin-left: 2px;
+}
+.st-check:has(input:checked) em { background: #fff; color: var(--tc-accent-ink); }
 .st-check:has(input:checked) { border-color: var(--tc-accent); background: var(--tc-accent-tint); color: var(--tc-accent-ink); }
 
 .st-load-status {
@@ -180,6 +185,19 @@ body[data-page="stats"] .tc-tbl thead th { background: var(--tc-surface); font-s
 .st-load-status .material-symbols-outlined { font-size: 17px; color: var(--tc-muted); }
 .st-load-status .ok { color: var(--tc-pos); }
 .st-load-status .bad { color: var(--tc-neg); }
+
+/* -------------------- Zwijanie paneli -------------------- */
+.st-collapse {
+  display: inline-grid; place-items: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--tc-line); border-radius: var(--tc-radius-sm);
+  background: var(--tc-card); color: var(--tc-muted);
+  cursor: pointer; transition: all .14s;
+}
+.st-collapse:hover { border-color: var(--tc-accent); background: var(--tc-accent-tint); color: var(--tc-accent); }
+.st-collapse .material-symbols-outlined { font-size: 18px; }
+.tc-card.is-collapsed { display: none; }
 
 /* -------------------- Terminarz live (API-Football) ------ */
 .st-field input[type="password"],
@@ -222,12 +240,19 @@ body[data-page="stats"] .tc-tbl thead th { background: var(--tc-surface); font-s
 
 /* -------------------- Terminarz -------------------------- */
 .st-fx-group + .st-fx-group { border-top: 1px solid var(--tc-line); }
+.st-fx-group > summary.st-fx-head { list-style: none; cursor: pointer; user-select: none; }
+.st-fx-group > summary.st-fx-head::-webkit-details-marker { display: none; }
 .st-fx-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 16px;
   background: var(--tc-surface);
   border-bottom: 1px solid var(--tc-line);
 }
+.st-fx-group:not([open]) > .st-fx-head { border-bottom: 0; }
+.st-fx-group > summary.st-fx-head:hover { background: var(--tc-accent-tint); }
+.st-fx-head-l { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.st-fx-head .chev { font-size: 18px; color: var(--tc-muted-2); transition: transform .16s; }
+.st-fx-group[open] > .st-fx-head .chev { transform: rotate(180deg); }
 .st-fx-head strong { font-size: 12px; color: var(--tc-ink); }
 .st-fx-head span { font-size: 11px; color: var(--tc-muted); font-family: var(--mono); }
 .st-fx-tbl td { vertical-align: middle; }

@@ -126,6 +126,20 @@ potrzebna wyłącznie do **własnego zestawienia** — pary drużyn spoza termin
 np. gdy chcesz przejrzeć mecz z przyszłej kolejki albo porównać dwie dowolne
 ekipy. Przy pracy z terminarza możesz ją całkowicie pominąć.
 
+### Panele zwijane i filtr terminarza
+
+Terminarz na jutro potrafi mieć ponad 300 meczów, więc:
+
+- **„Tylko z analizą"** — chip przy filtrze pokazuje, ile meczów ma historię
+  w CSV, i zawęża listę wyłącznie do nich. Na przykładowym dniu: 341 → 16
+  meczów, wysokość strony spada z 7410 do 2371 px.
+- **Ligi bez historii startują zwinięte** — to one robią większość
+  przewijania, a i tak nic z nich nie policzymy.
+- **Każdy panel ma strzałkę zwijania** w nagłówku sekcji. Stan jest
+  zapamiętywany między wizytami.
+- **Terminarz zwija się sam** po wejściu w analizę meczu, żeby powrót do
+  macierzy nie wymagał przewijania przez całą listę.
+
 ### Co się cachuje
 
 | Warstwa | Czas życia | Uwagi |

@@ -160,7 +160,9 @@ const state = {
   afDay: 0,
   afFixtures: [],
   afLeagueFilter: '',
+  afOnlyCovered: false,
   afLoaded: false,
+  collapsed: {},
   /* Skaner dnia */
   scanRows: [],
   scanSkipped: [],
@@ -284,14 +286,18 @@ function loadPrefs() {
       seasons: [1, 2, 3, 4].includes(saved.seasons) ? saved.seasons : state.seasons,
       venueSplit: Boolean(saved.venueSplit),
       focusWindow: WINDOWS.includes(saved.focusWindow) ? saved.focusWindow : state.focusWindow,
-      proxy: saved.proxy || null
+      proxy: saved.proxy || null,
+      afOnlyCovered: Boolean(saved.afOnlyCovered),
+      collapsed: saved.collapsed && typeof saved.collapsed === 'object' ? saved.collapsed : {}
     });
   } catch { /* domyślne ustawienia wystarczą */ }
 }
 
 function savePrefs() {
-  const { leagueId, seasons, venueSplit, focusWindow, proxy } = state;
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ leagueId, seasons, venueSplit, focusWindow, proxy })); } catch { /* opcjonalne */ }
+  const { leagueId, seasons, venueSplit, focusWindow, proxy, afOnlyCovered, collapsed } = state;
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ leagueId, seasons, venueSplit, focusWindow, proxy, afOnlyCovered, collapsed }));
+  } catch { /* opcjonalne */ }
 }
 
 /* Klucz API trzymamy osobno od reszty ustawień i wyłącznie w tej
@@ -1181,13 +1187,22 @@ function afStatusTag(fixture) {
 function renderAfFixtures() {
   if (!state.afLoaded) return;
   const query = state.afLeagueFilter.trim().toLowerCase();
+  const covered = state.afFixtures.filter(fixture => fixture.div).length;
   const visible = state.afFixtures.filter(fixture =>
-    !query || `${fixture.leagueName} ${fixture.country} ${fixture.home} ${fixture.away}`.toLowerCase().includes(query));
+    (!state.afOnlyCovered || fixture.div) &&
+    (!query || `${fixture.leagueName} ${fixture.country} ${fixture.home} ${fixture.away}`.toLowerCase().includes(query)));
+
+  el('af-only-covered').checked = state.afOnlyCovered;
+  el('af-covered-count').textContent = covered;
 
   if (!visible.length) {
-    el('af-summary').textContent = `0 z ${state.afFixtures.length} meczów pasuje do filtra`;
+    el('af-summary').textContent = state.afOnlyCovered && !covered
+      ? `Żaden z ${state.afFixtures.length} meczów nie ma historii w CSV`
+      : `0 z ${state.afFixtures.length} meczów pasuje do filtra`;
     el('af-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined">event_busy</span>
-      <span>Brak meczów pasujących do filtra (pobrano ${state.afFixtures.length}).</span></div>`;
+      <span>${state.afOnlyCovered && !covered
+        ? 'Odznacz „tylko z analizą”, żeby zobaczyć pozostałe mecze terminarza.'
+        : `Brak meczów pasujących do filtra (pobrano ${state.afFixtures.length}).`}</span></div>`;
     return;
   }
 
@@ -1201,18 +1216,22 @@ function renderAfFixtures() {
   const ordered = [...groups.values()].sort((a, b) =>
     (b.div ? 1 : 0) - (a.div ? 1 : 0) || a.key.localeCompare(b.key, 'pl'));
 
-  const covered = ordered.filter(group => group.div).length;
   el('af-summary').textContent =
-    `${visible.length} meczów · ${ordered.length} rozgrywek · ${covered} z pełną statystyką historyczną`;
+    `${visible.length} z ${state.afFixtures.length} meczów · ${ordered.length} rozgrywek · ${covered} z analizą`;
 
+  /* Ligi bez historii startują zwinięte — przy 300 meczach to one robią
+     większość przewijania, a i tak nie da się z nich nic policzyć. */
   el('af-body').innerHTML = ordered.map(group => `
-    <div class="st-fx-group">
-      <div class="st-fx-head">
-        <strong>${esc(group.key)}</strong>
+    <details class="st-fx-group" ${group.div ? 'open' : ''}>
+      <summary class="st-fx-head">
+        <span class="st-fx-head-l">
+          <span class="material-symbols-outlined chev">expand_more</span>
+          <strong>${esc(group.key)}</strong>
+        </span>
         <span>${group.div
-          ? `<span class="st-badge ok">macierze dostępne</span>`
-          : `<span class="st-badge">brak historii w CSV</span>`} ${group.list.length} mecz(e)</span>
-      </div>
+          ? '<span class="st-badge ok">macierze dostępne</span>'
+          : '<span class="st-badge">brak historii w CSV</span>'} ${group.list.length} mecz(e)</span>
+      </summary>
       <div class="tc-tbl-wrap">
         <table class="tc-tbl st-fx-tbl">
           <tbody>${group.list.map(fixture => `
@@ -1227,7 +1246,7 @@ function renderAfFixtures() {
             </tr>`).join('')}</tbody>
         </table>
       </div>
-    </div>`).join('');
+    </details>`).join('');
 
   el('af-body').querySelectorAll('[data-af]').forEach(button =>
     button.addEventListener('click', () => analyseAfFixture(Number(button.dataset.af))));
@@ -1266,6 +1285,9 @@ async function analyseAfFixture(fixtureId) {
       renderBridgePrompt(fixture, home, away);
       return;
     }
+    /* Lista meczów zrobiła swoje — chowamy ją, żeby powrót do macierzy
+       nie wymagał przewijania przez cały terminarz. */
+    if (!state.collapsed['af-block']) setCollapsed('af-block', true);
     runAnalysis(home, away, null);
   } catch (error) {
     state.busy = false;
@@ -1297,6 +1319,31 @@ function renderBridgePrompt(fixture, home, away) {
     runAnalysis(picked[0], picked[1], null);
   });
 }
+
+/* ---------- ZWIJANIE PANELI ----------
+   Terminarz potrafi mieć 300 pozycji, więc panele muszą dać się schować,
+   żeby dojście do macierzy nie było przewijaniem przez pół strony. */
+
+function applyCollapse(id) {
+  const card = el(id);
+  if (!card) return;
+  const hidden = Boolean(state.collapsed[id]);
+  card.classList.toggle('is-collapsed', hidden);
+  const button = document.querySelector(`[data-collapse="${id}"]`);
+  if (button) {
+    button.querySelector('.material-symbols-outlined').textContent = hidden ? 'expand_more' : 'expand_less';
+    button.setAttribute('aria-expanded', String(!hidden));
+    button.title = hidden ? 'Rozwiń' : 'Zwiń';
+  }
+}
+
+function setCollapsed(id, hidden) {
+  state.collapsed[id] = hidden;
+  applyCollapse(id);
+  savePrefs();
+}
+
+function toggleCollapse(id) { setCollapsed(id, !state.collapsed[id]); }
 
 /* ---------- SKANER DNIA ----------
    Zamiast otwierać mecz po meczu, przeliczamy cały terminarz i układamy
@@ -1927,6 +1974,7 @@ function init() {
   renderProxyBadge();
   renderKeyPanel();
   el('af-day-label').textContent = afDayLabel(state.afDay);
+  el('af-only-covered').checked = state.afOnlyCovered;
   el('scan-upcoming').checked = state.scanUpcomingOnly;
   el('scan-min').value = String(state.scanMinCoverage);
   renderScanAvailability();
@@ -1970,6 +2018,7 @@ function init() {
       state.afDay = Number(button.dataset.day);
       el('af-day-seg').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button));
       el('af-day-label').textContent = afDayLabel(state.afDay);
+  el('af-only-covered').checked = state.afOnlyCovered;
   el('scan-upcoming').checked = state.scanUpcomingOnly;
   el('scan-min').value = String(state.scanMinCoverage);
   renderScanAvailability();
@@ -1979,6 +2028,16 @@ function init() {
     }));
   el('af-load').addEventListener('click', loadAfFixtures);
   el('af-filter').addEventListener('input', event => { state.afLeagueFilter = event.target.value; renderAfFixtures(); });
+
+  document.querySelectorAll('[data-collapse]').forEach(button =>
+    button.addEventListener('click', () => toggleCollapse(button.dataset.collapse)));
+  ['key-block', 'af-block', 'scan-block', 'source-block'].forEach(applyCollapse);
+
+  el('af-only-covered').addEventListener('change', event => {
+    state.afOnlyCovered = event.target.checked;
+    savePrefs();
+    renderAfFixtures();
+  });
 
   el('scan-run').addEventListener('click', scanDay);
   el('scan-upcoming').addEventListener('change', event => { state.scanUpcomingOnly = event.target.checked; });
