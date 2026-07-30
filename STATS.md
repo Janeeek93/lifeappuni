@@ -18,7 +18,60 @@ Aplikacja działa też bez serwera (otwarta z dowolnego innego hosta lokalnego),
 ale wtedy przechodzi na publiczne proxy CORS — wolniejsze i zawodne. Nagłówek
 strony pokazuje, które proxy jest aktualnie używane.
 
-## Skąd biorą się dane
+## Dwa źródła i podział obowiązków
+
+| | Terminarz | Historia do macierzy |
+|---|---|---|
+| **API-Football** | ✅ dziś i jutro, 39 lig, statusy live | ❌ zablokowane na planie Free |
+| **football-data.co.uk** | ⚠️ ok. tygodnia, tylko w sezonie | ✅ bez limitów, komplet statystyk |
+
+Terminarz idzie więc z API-Football, a macierze liczą się z CSV. Kliknięcie
+**Analizuj** przy meczu z terminarza automatycznie wczytuje odpowiednią
+dywizję CSV i dopasowuje nazwy drużyn.
+
+### Klucz API-Football
+
+Wklej klucz z [dashboard.api-football.com](https://dashboard.api-football.com)
+w sekcji **Klucz API-Football**. Zostaje wyłącznie w `localStorage` tej
+przeglądarki — nie ma go w żadnym pliku repozytorium. Przycisk **Sprawdź
+połączenie** pokazuje plan i zużycie limitu.
+
+Bez klucza moduł działa dalej, tylko terminarz live jest wyłączony.
+
+### Ograniczenia planu Free (sprawdzone na żywo)
+
+- `/fixtures?date=` — **tylko dziś ±1 dzień**. Dalsze daty: *„Free plans do not
+  have access to this date"*.
+- Sezony — **wyłącznie 2022–2024**. Sezon bieżący: *„Free plans do not have
+  access to this season"*.
+- Parametr `last` — zablokowany, więc „ostatnie N meczów drużyny" jest
+  nieosiągalne.
+- Budżet — 100 zapytań na dobę, 10 na minutę.
+
+Dlatego **statystyki za ostatnie mecze nie idą z API-Football**: najnowszy
+dostępny sezon skończył się w maju 2025. Płatny plan zdejmuje te limity, ale
+przy 20-meczowym oknie jedna analiza to ok. 41 zapytań (1 na listę meczów + 1
+na statystyki każdego meczu), więc CSV pozostaje sensowniejszym źródłem
+historii nawet wtedy.
+
+Licznik zapytań w nagłówku jest **lokalny**. api-sports.io wysyła wprawdzie
+nagłówki `x-ratelimit-*`, ale bez `Access-Control-Expose-Headers`, więc
+przeglądarka ich nie ujawnia — wartość autorytatywną pobiera przycisk
+**Sprawdź połączenie**.
+
+### Mostek nazw drużyn
+
+API-Football pisze „Manchester City", CSV — „Man City". Dopasowanie idzie
+tokenami: równe, prefiks, albo skrót jako podciąg ze wspólnym prefiksem
+(„nottm" wewnątrz „nottingham"). Sam podciąg nie wystarcza — bez wymogu
+prefiksu „real" pasowałoby do „arsenal". Gdy pewności brak, moduł prosi
+o ręczne wskazanie zamiast zgadywać.
+
+Sprawdzone na pełnych składach Premier League i Serie A: 40/40 automatycznie,
+w tym „Nottingham Forest" → „Nott'm Forest", „AC Milan" → „Milan",
+„Hellas Verona" → „Verona".
+
+## Skąd biorą się dane historyczne
 
 [football-data.co.uk](https://www.football-data.co.uk) — darmowe pliki CSV,
 bez klucza API i bez limitów zapytań. Jeden plik to cały sezon ligi z kompletem

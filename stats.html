@@ -46,7 +46,8 @@
         </div>
       </div>
       <div class="site-header__right tc-hdr-actions" aria-label="Akcje strony">
-        <span class="st-quota" id="proxy-badge" title="Źródło danych"></span>
+        <span class="st-quota" id="af-quota" title="Limit zapytań API-Football"></span>
+        <span class="st-quota" id="proxy-badge" title="Źródło danych historycznych"></span>
         <a class="tc-hdr-btn" href="betting.html" title="Wróć do zakładów"><span class="material-symbols-outlined">arrow_back</span>Zakłady</a>
         <div class="tc-hdr-sep"></div>
         <button id="clear-cache-btn" class="tc-hdr-btn" title="Wyczyść pobrane pliki CSV"><span class="material-symbols-outlined">cached</span>Cache</button>
@@ -64,7 +65,7 @@
           </div>
           <div class="st-step" data-step="2">
             <span class="num">2</span>
-            <div><div class="k">Terminarz</div><div class="v" id="step2-sub">Mecze na dziś, jutro i tydzień</div></div>
+            <div><div class="k">Terminarz</div><div class="v" id="step2-sub">Mecze na dziś i jutro</div></div>
           </div>
           <div class="st-step" data-step="3">
             <span class="num">3</span>
@@ -75,6 +76,53 @@
             <div><div class="k">Macierze pokrycia</div><div class="v" id="step4-sub">—</div></div>
           </div>
         </div>
+
+        <!-- KLUCZ API -->
+        <div class="st-section">
+          <span class="ico"><span class="material-symbols-outlined">key</span></span>
+          <h2>Klucz API-Football</h2>
+          <span class="desc">Terminarz live z 39 lig — klucz zostaje wyłącznie w tej przeglądarce</span>
+          <span class="line"></span>
+        </div>
+
+        <section class="tc-card">
+          <div class="st-controls">
+            <label class="st-field wide">
+              <span>Klucz z dashboard.api-football.com</span>
+              <input type="password" id="api-key" autocomplete="off" spellcheck="false" placeholder="wklej klucz…">
+            </label>
+            <button class="st-btn" id="save-key"><span class="material-symbols-outlined">save</span>Zapisz</button>
+            <button class="st-btn primary" id="test-key"><span class="material-symbols-outlined">wifi_tethering</span>Sprawdź połączenie</button>
+          </div>
+          <div class="st-load-status" id="key-state"></div>
+        </section>
+
+        <!-- TERMINARZ LIVE -->
+        <div class="st-section">
+          <span class="ico"><span class="material-symbols-outlined">bolt</span></span>
+          <h2>Terminarz live</h2>
+          <span class="desc" id="af-day-label">—</span>
+          <span class="line"></span>
+        </div>
+
+        <section class="tc-card" id="af-block">
+          <div class="st-controls">
+            <label class="st-field">
+              <span>Dzień</span>
+              <div class="st-seg" id="af-day-seg">
+                <button data-day="0" class="active">Dziś</button>
+                <button data-day="1">Jutro</button>
+              </div>
+            </label>
+            <label class="st-field wide">
+              <span>Filtruj ligę lub drużynę</span>
+              <input type="search" id="af-filter" placeholder="np. Premier League, Ekstraklasa, Arsenal…">
+            </label>
+            <button class="st-btn primary" id="af-load"><span class="material-symbols-outlined">download</span>Pobierz terminarz</button>
+          </div>
+          <div class="st-load-status"><span class="material-symbols-outlined">insights</span><span id="af-summary">Pobranie terminarza kosztuje 1 zapytanie z dziennego limitu.</span></div>
+          <div id="af-body"></div>
+        </section>
 
         <!-- KROK 1: ŹRÓDŁO -->
         <div class="st-section">

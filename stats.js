@@ -85,6 +85,48 @@ const PROXIES = [
   { id: 'jina', label: 'r.jina.ai', build: url => `https://r.jina.ai/${url}` }
 ];
 
+/* ---------- API-FOOTBALL ----------
+   Terminarz na dziś i jutro ze statusami live. Klucz podaje użytkownik
+   w ustawieniach i trzymany jest wyłącznie w localStorage tej przeglądarki
+   — nigdy w repozytorium.
+
+   Ograniczenia planu Free (sprawdzone na żywo):
+     • /fixtures?date=      tylko dziś ±1 dzień
+     • sezony               wyłącznie 2022–2024
+     • parametr last        zablokowany
+     • budżet               100 zapytań na dobę, 10 na minutę
+   Dlatego terminarz idzie z API-Football, a historia do macierzy
+   domyślnie z football-data.co.uk, gdzie limitów nie ma. */
+
+const AF_BASE = 'https://v3.football.api-sports.io';
+const AF_KEY_STORE = 'lifeos_apifootball_key_v1';
+const AF_CACHE_KEY = 'lifeos_af_cache_v1';
+const AF_TTL = { fixtures: 3 * 60 * 1000, season: 6 * 60 * 60 * 1000, stats: 30 * 24 * 60 * 60 * 1000 };
+const AF_RATE = { max: 9, windowMs: 60 * 1000 };
+const AF_QUOTA_STORE = 'lifeos_af_quota_v1';
+
+/* Identyfikatory lig API-Football sprawdzone przez /leagues i zestawione
+   z kodami dywizji football-data.co.uk. */
+const AF_LEAGUE_TO_DIV = {
+  39: 'E0', 40: 'E1', 41: 'E2', 42: 'E3', 43: 'EC',
+  179: 'SC0', 180: 'SC1', 183: 'SC2', 184: 'SC3',
+  78: 'D1', 79: 'D2', 135: 'I1', 136: 'I2', 140: 'SP1', 141: 'SP2',
+  61: 'F1', 62: 'F2', 88: 'N1', 144: 'B1', 94: 'P1', 203: 'T1', 197: 'G1',
+  106: 'POL', 253: 'USA', 71: 'BRA', 128: 'ARG', 218: 'AUT', 207: 'SWZ',
+  119: 'DNK', 103: 'NOR', 113: 'SWE', 98: 'JPN', 262: 'MEX', 283: 'ROU',
+  235: 'RUS', 169: 'CHN', 244: 'FIN', 357: 'IRL'
+};
+const DIV_TO_AF_LEAGUE = Object.fromEntries(Object.entries(AF_LEAGUE_TO_DIV).map(([id, div]) => [div, Number(id)]));
+
+/* Nazwy statystyk API-Football przełożone na pola naszego modelu meczu. */
+const AF_STAT_MAP = {
+  'Corner Kicks': 'c', 'Total Shots': 's', 'Shots on Goal': 'st',
+  Fouls: 'f', 'Yellow Cards': 'y', 'Red Cards': 'r', expected_goals: 'xg'
+};
+
+const AF_STATUS_LIVE = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT']);
+const AF_STATUS_DONE = new Set(['FT', 'AET', 'PEN']);
+
 /* ---------- STAŁE ---------- */
 
 const CACHE_KEY = 'lifeos_fd_cache_v1';
@@ -111,10 +153,18 @@ const state = {
   analysis: null,
   proxy: null,
   busy: false,
-  loadedLabel: ''
+  loadedLabel: '',
+  /* API-Football */
+  apiKey: '',
+  afQuota: null,
+  afDay: 0,
+  afFixtures: [],
+  afLeagueFilter: '',
+  afLoaded: false
 };
 
 let cache = {};
+let afCache = {};
 
 /* ---------- NARZĘDZIA ---------- */
 
@@ -144,6 +194,14 @@ function toast(message, kind = '') {
 function mean(values) {
   const valid = values.filter(Number.isFinite);
   return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+}
+
+/* Data w formacie YYYY-MM-DD liczona lokalnie, bo terminarz pytamy
+   o „dziś” w strefie użytkownika, a nie w UTC. */
+function todayISO(offset = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 /* Kody sezonów football-data: 2526 = 2025/26. Nowy sezon liczymy od lipca. */
@@ -229,12 +287,26 @@ function savePrefs() {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify({ leagueId, seasons, venueSplit, focusWindow, proxy })); } catch { /* opcjonalne */ }
 }
 
+/* Klucz API trzymamy osobno od reszty ustawień i wyłącznie w tej
+   przeglądarce — nie trafia do żadnego pliku w repozytorium. */
+function loadApiKey() {
+  try { state.apiKey = localStorage.getItem(AF_KEY_STORE) || ''; } catch { state.apiKey = ''; }
+}
+
+function saveApiKey(value) {
+  state.apiKey = value.trim();
+  try {
+    if (state.apiKey) localStorage.setItem(AF_KEY_STORE, state.apiKey);
+    else localStorage.removeItem(AF_KEY_STORE);
+  } catch { /* prywatny tryb przeglądarki */ }
+}
+
 /* ---------- POBIERANIE ---------- */
 
-async function fetchWithTimeout(url, ms = 30000) {
+async function fetchWithTimeout(url, ms = 30000, headers = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  try { return await fetch(url, { signal: controller.signal }); }
+  try { return await fetch(url, headers ? { signal: controller.signal, headers } : { signal: controller.signal }); }
   finally { clearTimeout(timer); }
 }
 
@@ -284,6 +356,215 @@ async function getMatches(target, ttl) {
   cache[target] = { ts: Date.now(), rows: rows.map(packMatch) };
   saveCache();
   return rows;
+}
+
+/* ---------- WARSTWA API-FOOTBALL ---------- */
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const afCalls = [];
+
+function loadAfCache() {
+  try { afCache = JSON.parse(localStorage.getItem(AF_CACHE_KEY) || '{}') || {}; } catch { afCache = {}; }
+}
+
+function saveAfCache() {
+  try {
+    let payload = JSON.stringify(afCache);
+    while (payload.length > CACHE_BUDGET) {
+      const oldest = Object.entries(afCache).sort((a, b) => a[1].ts - b[1].ts)[0];
+      if (!oldest) break;
+      delete afCache[oldest[0]];
+      payload = JSON.stringify(afCache);
+    }
+    localStorage.setItem(AF_CACHE_KEY, payload);
+  } catch { /* cache jest opcjonalny */ }
+}
+
+/* Plan Free dopuszcza 10 zapytań na minutę — kolejkujemy, zamiast dostawać 429. */
+async function afThrottle(onWait) {
+  for (;;) {
+    const now = Date.now();
+    while (afCalls.length && now - afCalls[0] >= AF_RATE.windowMs) afCalls.shift();
+    if (afCalls.length < AF_RATE.max) { afCalls.push(now); return; }
+    const wait = AF_RATE.windowMs - (now - afCalls[0]) + 300;
+    if (onWait) onWait(Math.ceil(wait / 1000));
+    await sleep(Math.min(wait, 5000));
+  }
+}
+
+/* Licznik zapytań trzymamy sami. Nagłówki x-ratelimit-* są wprawdzie
+   wysyłane, ale api-sports.io nie ustawia Access-Control-Expose-Headers,
+   więc z poziomu przeglądarki headers.get() zwraca dla nich null.
+   Wartość autorytatywną pobiera przycisk „Sprawdź połączenie” z /status. */
+function afQuotaLoad() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AF_QUOTA_STORE) || 'null');
+    if (saved && saved.date === todayISO()) return saved;
+  } catch { /* licznik odtworzymy od zera */ }
+  return { date: todayISO(), used: 0, limit: 100 };
+}
+
+function afQuotaSave(quota) {
+  state.afQuota = quota;
+  try { localStorage.setItem(AF_QUOTA_STORE, JSON.stringify(quota)); } catch { /* opcjonalne */ }
+  renderQuota();
+}
+
+function afQuotaBump() {
+  const quota = afQuotaLoad();
+  afQuotaSave({ ...quota, used: quota.used + 1 });
+}
+
+function afQuotaSync(used, limit) {
+  afQuotaSave({ date: todayISO(), used, limit: limit || 100 });
+}
+
+async function afGet(path, params, ttl, onWait) {
+  if (!state.apiKey) throw new Error('Brak klucza API-Football. Wklej go w sekcji „Klucz API-Football”.');
+  const query = new URLSearchParams(params).toString();
+  const key = `${path}?${query}`;
+  const hit = afCache[key];
+  if (hit && Date.now() - hit.ts < ttl) return hit.data;
+
+  await afThrottle(onWait);
+  let response;
+  try {
+    response = await fetchWithTimeout(`${AF_BASE}/${path}?${query}`, 30000, { 'x-apisports-key': state.apiKey });
+  } catch (error) {
+    throw new Error(`API-Football nie odpowiada: ${error.name === 'AbortError' ? 'przekroczony czas' : error.message}`);
+  }
+  afQuotaBump();
+  if (response.status === 429) throw new Error('API-Football: wyczerpany limit zapytań. Spróbuj za chwilę lub jutro.');
+  if (!response.ok) throw new Error(`API-Football zwróciło HTTP ${response.status}.`);
+  const data = await response.json();
+
+  /* Błędy przychodzą w polu errors z kodem 200 — czasem jako obiekt, czasem jako pusta tablica. */
+  const errors = data.errors;
+  if (errors && !Array.isArray(errors) && Object.keys(errors).length) {
+    throw new Error(`API-Football: ${Object.values(errors).join(' ')}`);
+  }
+  afCache[key] = { ts: Date.now(), data };
+  saveAfCache();
+  return data;
+}
+
+function afStatusKind(short) {
+  if (AF_STATUS_DONE.has(short)) return 'done';
+  if (AF_STATUS_LIVE.has(short)) return 'live';
+  if (['PST', 'CANC', 'ABD', 'SUSP', 'AWD', 'WO'].includes(short)) return 'off';
+  return 'next';
+}
+
+function afNormalizeFixture(entry) {
+  const { fixture, league, teams, goals } = entry;
+  return {
+    id: fixture.id,
+    ts: Date.parse(fixture.date),
+    status: fixture.status.short,
+    kind: afStatusKind(fixture.status.short),
+    elapsed: fixture.status.elapsed,
+    leagueId: league.id,
+    leagueName: league.name,
+    country: league.country,
+    season: league.season,
+    round: league.round || '',
+    div: AF_LEAGUE_TO_DIV[league.id] || null,
+    home: teams.home.name,
+    away: teams.away.name,
+    homeId: teams.home.id,
+    awayId: teams.away.id,
+    goalsHome: goals.home,
+    goalsAway: goals.away
+  };
+}
+
+async function afFetchFixtures(offset) {
+  const date = todayISO(offset);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Warsaw';
+  const data = await afGet('fixtures', { date, timezone }, AF_TTL.fixtures);
+  return (data.response || []).map(afNormalizeFixture).sort((a, b) => a.ts - b.ts);
+}
+
+/* Statystyki jednego meczu -> nasz kanoniczny rekord. Kosztuje 1 zapytanie. */
+async function afFetchStats(fixtureId, onWait) {
+  const data = await afGet('fixtures/statistics', { fixture: fixtureId }, AF_TTL.stats, onWait);
+  const rows = data.response || [];
+  if (rows.length < 2) return null;
+  const read = row => {
+    const out = {};
+    for (const item of row.statistics || []) {
+      const field = AF_STAT_MAP[item.type];
+      if (!field) continue;
+      const raw = item.value;
+      out[field] = raw === null || raw === undefined ? null : Number(String(raw).replace('%', ''));
+    }
+    return out;
+  };
+  return { homeId: rows[0].team.id, home: read(rows[0]), away: read(rows[1]) };
+}
+
+/* ---------- MOSTEK NAZW DRUŻYN ----------
+   API-Football pisze „Manchester City", football-data.co.uk „Man City".
+   Dopasowujemy tokenami: równe, prefiks albo podciąg liter w kolejności
+   („nottm" wewnątrz „nottingham"). Gdy pewności brak — użytkownik wybiera ręcznie. */
+
+const NAME_NOISE = new Set(['fc', 'cf', 'afc', 'sc', 'ac', 'as', 'ss', 'us', 'sv', 'vfb', 'vfl',
+  'bv', 'bsc', 'cd', 'ud', 'rc', 'sd', 'ca', 'club', 'de', 'the', 'calcio', 'futbol', 'football', 'sport']);
+
+function nameTokens(name) {
+  return String(name).toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim().split(' ')
+    .filter(token => token && !NAME_NOISE.has(token));
+}
+
+function isSubsequence(short, long) {
+  let i = 0;
+  for (const char of long) if (char === short[i] && ++i === short.length) return true;
+  return i === short.length;
+}
+
+function commonPrefix(a, b) {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i;
+}
+
+function tokenMatch(a, b) {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (short.length < 3) return false;
+  if (long.startsWith(short)) return true;
+  /* Skróty typu „nottm” wewnątrz „nottingham”. Sam podciąg to za mało —
+     bez wspólnego prefiksu „real” pasowałoby do „arsenal”. */
+  return short.length >= 4
+    && long.length <= short.length * 2.5
+    && commonPrefix(short, long) >= 3
+    && isSubsequence(short, long);
+}
+
+function nameScore(a, b) {
+  const left = nameTokens(a), right = nameTokens(b);
+  if (!left.length || !right.length) return 0;
+  const used = new Set();
+  let hits = 0;
+  for (const token of left) {
+    const index = right.findIndex((other, i) => !used.has(i) && tokenMatch(token, other));
+    if (index >= 0) { used.add(index); hits++; }
+  }
+  return (2 * hits) / (left.length + right.length);
+}
+
+/* Zwraca najlepszą nazwę z listy kandydatów albo null, gdy wybór jest niepewny. */
+function bridgeTeam(name, candidates) {
+  const ranked = candidates
+    .map(candidate => ({ candidate, score: nameScore(name, candidate) }))
+    .sort((a, b) => b.score - a.score);
+  if (!ranked.length || ranked[0].score < 0.6) return null;
+  const runnerUp = ranked[1]?.score ?? 0;
+  if (ranked[0].score === runnerUp) return null;
+  return ranked[0].candidate;
 }
 
 /* ---------- NORMALIZACJA ---------- */
@@ -774,6 +1055,210 @@ function renderProxyBadge() {
     : '<strong>football-data.co.uk</strong> · darmowe CSV';
 }
 
+function renderQuota() {
+  const node = el('af-quota');
+  if (!node) return;
+  if (!state.apiKey) { node.innerHTML = '<span class="material-symbols-outlined">key_off</span>Brak klucza'; node.className = 'st-quota'; return; }
+  const quota = state.afQuota || afQuotaLoad();
+  const remaining = Math.max(quota.limit - quota.used, 0);
+  const share = quota.limit ? remaining / quota.limit : 1;
+  node.className = `st-quota ${share <= 0.1 ? 'bad' : share <= 0.3 ? 'warn' : ''}`;
+  node.title = 'Licznik lokalny; „Sprawdź połączenie” synchronizuje go z serwerem';
+  node.innerHTML = `<strong>${remaining}</strong> / ${quota.limit} zapytań dziś`;
+}
+
+function renderKeyPanel() {
+  el('api-key').value = state.apiKey;
+  el('key-state').innerHTML = state.apiKey
+    ? '<span class="material-symbols-outlined ok">check_circle</span>Klucz zapisany w tej przeglądarce'
+    : '<span class="material-symbols-outlined">info</span>Bez klucza działa terminarz z pliku CSV; klucz włącza terminarz live z 39 lig';
+  el('af-block').classList.toggle('is-locked', !state.apiKey);
+  renderQuota();
+}
+
+async function testApiKey() {
+  const button = el('test-key');
+  button.disabled = true;
+  el('key-state').innerHTML = '<span class="material-symbols-outlined spin">progress_activity</span>Sprawdzam klucz…';
+  try {
+    const data = await afGet('status', {}, 0);
+    const account = data.response || {};
+    const plan = account.subscription?.plan || '—';
+    const used = account.requests?.current ?? 0;
+    const limit = account.requests?.limit_day ?? 100;
+    afQuotaSync(used, limit);
+    const free = String(plan).toLowerCase() === 'free';
+    el('key-state').innerHTML = `<span class="material-symbols-outlined ok">check_circle</span>
+      Plan <strong>${esc(plan)}</strong> · wykorzystano ${used} z ${limit} zapytań
+      ${free ? '· terminarz dziś/jutro dostępny, historia meczów zablokowana na tym planie' : ''}`;
+    el('af-block').classList.remove('is-locked');
+  } catch (error) {
+    el('key-state').innerHTML = `<span class="material-symbols-outlined bad">error</span>${esc(error.message)}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+/* ---------- TERMINARZ LIVE ---------- */
+
+function afDayLabel(offset) {
+  const date = new Date(`${todayISO(offset)}T12:00:00`);
+  return date.toLocaleDateString('pl-PL', { weekday: 'long', day: '2-digit', month: 'long' });
+}
+
+async function loadAfFixtures() {
+  if (state.busy) return;
+  if (!state.apiKey) { toast('Najpierw zapisz klucz API-Football', 'err'); return; }
+  state.busy = true;
+  el('af-load').disabled = true;
+  el('af-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined spin">progress_activity</span>
+    <span>Pobieram terminarz na ${esc(afDayLabel(state.afDay))}…</span></div>`;
+  try {
+    state.afFixtures = await afFetchFixtures(state.afDay);
+    state.afLoaded = true;
+    renderAfFixtures();
+    setStep(2);
+    el('step2-sub').textContent = `${state.afFixtures.length} meczów`;
+  } catch (error) {
+    state.afLoaded = false;
+    el('af-body').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>${esc(error.message)}</span></div>`;
+    toast(error.message, 'err');
+  } finally {
+    state.busy = false;
+    el('af-load').disabled = false;
+  }
+}
+
+function afStatusTag(fixture) {
+  if (fixture.kind === 'live') {
+    return `<span class="st-status live">${esc(fixture.status)}${fixture.elapsed ? ` ${fixture.elapsed}'` : ''}</span>`;
+  }
+  if (fixture.kind === 'done') return '<span class="st-status ft">Koniec</span>';
+  if (fixture.kind === 'off') return `<span class="st-status off">${esc(fixture.status)}</span>`;
+  return `<span class="st-status ns">${new Date(fixture.ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</span>`;
+}
+
+function renderAfFixtures() {
+  if (!state.afLoaded) return;
+  const query = state.afLeagueFilter.trim().toLowerCase();
+  const visible = state.afFixtures.filter(fixture =>
+    !query || `${fixture.leagueName} ${fixture.country} ${fixture.home} ${fixture.away}`.toLowerCase().includes(query));
+
+  if (!visible.length) {
+    el('af-summary').textContent = `0 z ${state.afFixtures.length} meczów pasuje do filtra`;
+    el('af-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined">event_busy</span>
+      <span>Brak meczów pasujących do filtra (pobrano ${state.afFixtures.length}).</span></div>`;
+    return;
+  }
+
+  /* Ligi, które mamy w CSV, idą na górę — tylko dla nich policzymy macierze. */
+  const groups = new Map();
+  for (const fixture of visible) {
+    const key = `${fixture.country} — ${fixture.leagueName}`;
+    if (!groups.has(key)) groups.set(key, { key, div: fixture.div, list: [] });
+    groups.get(key).list.push(fixture);
+  }
+  const ordered = [...groups.values()].sort((a, b) =>
+    (b.div ? 1 : 0) - (a.div ? 1 : 0) || a.key.localeCompare(b.key, 'pl'));
+
+  const covered = ordered.filter(group => group.div).length;
+  el('af-summary').textContent =
+    `${visible.length} meczów · ${ordered.length} rozgrywek · ${covered} z pełną statystyką historyczną`;
+
+  el('af-body').innerHTML = ordered.map(group => `
+    <div class="st-fx-group">
+      <div class="st-fx-head">
+        <strong>${esc(group.key)}</strong>
+        <span>${group.div
+          ? `<span class="st-badge ok">macierze dostępne</span>`
+          : `<span class="st-badge">brak historii w CSV</span>`} ${group.list.length} mecz(e)</span>
+      </div>
+      <div class="tc-tbl-wrap">
+        <table class="tc-tbl st-fx-tbl">
+          <tbody>${group.list.map(fixture => `
+            <tr>
+              <td class="st-fx-status">${afStatusTag(fixture)}</td>
+              <td class="st-fx-name"><strong>${esc(fixture.home)}</strong></td>
+              <td class="mono num st-fx-score">${fixture.goalsHome === null ? '–' : `${fixture.goalsHome} : ${fixture.goalsAway}`}</td>
+              <td class="st-fx-name">${esc(fixture.away)}</td>
+              <td class="num">${group.div
+                ? `<button class="st-btn primary" data-af="${fixture.id}"><span class="material-symbols-outlined">insights</span>Analizuj</button>`
+                : '<span class="st-muted">—</span>'}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`).join('');
+
+  el('af-body').querySelectorAll('[data-af]').forEach(button =>
+    button.addEventListener('click', () => analyseAfFixture(Number(button.dataset.af))));
+}
+
+/* Wczytuje dywizję CSV odpowiadającą meczowi, jeśli nie jest jeszcze w pamięci. */
+async function ensureLeague(div) {
+  if (state.leagueId === div && state.matches.length) return;
+  const matches = await loadDivision(div, state.seasons);
+  if (!matches.length) throw new Error(`Brak danych CSV dla ligi ${div}.`);
+  state.leagueId = div;
+  state.matches = matches.sort((a, b) => b.ts - a.ts);
+  state.teams = indexTeams(state.matches);
+  const league = LEAGUE_BY_ID.get(div);
+  state.loadedLabel = `${league.country} · ${league.name}`;
+  savePrefs();
+  renderLeaguePicker();
+  renderTeamPickers();
+  el('step1-sub').textContent = state.loadedLabel;
+}
+
+async function analyseAfFixture(fixtureId) {
+  const fixture = state.afFixtures.find(item => item.id === fixtureId);
+  if (!fixture || !fixture.div) return;
+  if (state.busy) return;
+  state.busy = true;
+  el('analysis-block').style.display = '';
+  el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
+    <span class="material-symbols-outlined spin">progress_activity</span><h4>Przygotowuję analizę…</h4>
+    <p>Wczytuję historię ligi ${esc(fixture.div)} i dopasowuję nazwy drużyn.</p></div></section>`;
+  try {
+    await ensureLeague(fixture.div);
+    const home = bridgeTeam(fixture.home, state.teams);
+    const away = bridgeTeam(fixture.away, state.teams);
+    state.busy = false;
+    if (!home || !away) {
+      renderBridgePrompt(fixture, home, away);
+      return;
+    }
+    runAnalysis(home, away, null);
+  } catch (error) {
+    state.busy = false;
+    el('analysis').innerHTML = `<section class="tc-card"><div class="tc-empty">
+      <span class="material-symbols-outlined">error</span><h4>Nie udało się przygotować analizy</h4>
+      <p>${esc(error.message)}</p></div></section>`;
+    toast(error.message, 'err');
+  }
+}
+
+/* Gdy automat nie ma pewności, kogo dotyczy mecz, pytamy zamiast zgadywać. */
+function renderBridgePrompt(fixture, home, away) {
+  const options = selected => ['<option value="">— wybierz —</option>',
+    ...state.teams.map(team => `<option value="${esc(team)}" ${team === selected ? 'selected' : ''}>${esc(team)}</option>`)].join('');
+  el('analysis').innerHTML = `<section class="tc-card">
+    <div class="tc-card-head"><h3><span class="material-symbols-outlined">link_off</span>Dopasuj drużyny</h3></div>
+    <div class="st-note warn"><span class="material-symbols-outlined">info</span>
+      <span>API-Football podaje <strong>${esc(fixture.home)}</strong> i <strong>${esc(fixture.away)}</strong>,
+      ale w danych CSV nie znalazłem jednoznacznego odpowiednika. Wskaż drużyny ręcznie.</span></div>
+    <div class="st-controls">
+      <label class="st-field wide"><span>Gospodarz (${esc(fixture.home)})</span><select id="bridge-home">${options(home)}</select></label>
+      <label class="st-field wide"><span>Gość (${esc(fixture.away)})</span><select id="bridge-away">${options(away)}</select></label>
+      <button class="st-btn primary" id="bridge-go"><span class="material-symbols-outlined">insights</span>Analizuj</button>
+    </div>
+  </section>`;
+  el('bridge-go').addEventListener('click', () => {
+    const picked = [el('bridge-home').value, el('bridge-away').value];
+    if (!picked[0] || !picked[1]) { toast('Wybierz obie drużyny', 'err'); return; }
+    runAnalysis(picked[0], picked[1], null);
+  });
+}
+
 function renderLeaguePicker() {
   const optionsFor = list => list.map(league =>
     `<option value="${esc(league.id)}" ${state.leagueId === league.id ? 'selected' : ''}>${esc(league.country)} — ${esc(league.name)}</option>`).join('');
@@ -1243,16 +1728,22 @@ async function detectLocalProxy() {
 
 function clearCache() {
   cache = {};
-  try { localStorage.removeItem(CACHE_KEY); } catch { /* nic nie szkodzi */ }
+  afCache = {};
+  try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(AF_CACHE_KEY); } catch { /* nic nie szkodzi */ }
   fetch('api/fd/purge').catch(() => {});
   toast('Cache wyczyszczony — kolejne pobranie pójdzie do źródła');
 }
 
 function init() {
   loadPrefs();
+  loadApiKey();
   loadCache();
+  loadAfCache();
+  state.afQuota = afQuotaLoad();
   renderLeaguePicker();
   renderProxyBadge();
+  renderKeyPanel();
+  el('af-day-label').textContent = afDayLabel(state.afDay);
   setStep(1);
   document.querySelectorAll('.sidebar__link[data-page]').forEach(link =>
     link.classList.toggle('sidebar__link--active', link.dataset.page === 'stats'));
@@ -1278,6 +1769,24 @@ function init() {
     el('away-select').value = home;
   });
   el('clear-cache-btn').addEventListener('click', clearCache);
+
+  el('save-key').addEventListener('click', () => {
+    saveApiKey(el('api-key').value);
+    renderKeyPanel();
+    toast(state.apiKey ? 'Klucz zapisany lokalnie' : 'Klucz usunięty');
+  });
+  el('test-key').addEventListener('click', () => { saveApiKey(el('api-key').value); testApiKey(); });
+  el('af-day-seg').querySelectorAll('button').forEach(button =>
+    button.addEventListener('click', () => {
+      state.afDay = Number(button.dataset.day);
+      el('af-day-seg').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button));
+      el('af-day-label').textContent = afDayLabel(state.afDay);
+      state.afLoaded = false;
+      el('af-body').innerHTML = '';
+      el('af-summary').textContent = '';
+    }));
+  el('af-load').addEventListener('click', loadAfFixtures);
+  el('af-filter').addEventListener('input', event => { state.afLeagueFilter = event.target.value; renderAfFixtures(); });
 
   detectLocalProxy();
 }
