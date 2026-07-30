@@ -160,7 +160,14 @@ const state = {
   afDay: 0,
   afFixtures: [],
   afLeagueFilter: '',
-  afLoaded: false
+  afLoaded: false,
+  /* Skaner dnia */
+  scanRows: [],
+  scanSkipped: [],
+  scanDone: false,
+  scanUpcomingOnly: true,
+  scanMinCoverage: 0.6,
+  scanGroup: 'all'
 };
 
 let cache = {};
@@ -705,13 +712,17 @@ const GROUPS = [
 ];
 
 /* Rynki zerojedynkowe — bez linii, liczone tak samo jak pokrycie. */
+/* „Czyste konto" to dokładnie „gole stracone pon. 0,5", a „drużyna nie
+   strzeli" to „gole strzelone pon. 0,5". W macierzy zdarzeń zostają, bo
+   pod tymi nazwami szuka się ich u bukmachera, ale ze skrótu typów i ze
+   skanera są wyłączone — inaczej ten sam rynek zajmowałby dwa wiersze. */
 const BOOLEAN_MARKETS = [
   { key: 'btts', label: 'Obie drużyny strzelą', no: 'Któraś drużyna nie strzeli', scope: 'match' },
   { key: 'won', label: 'Wygrana drużyny', no: 'Drużyna nie wygra', scope: 'team' },
   { key: 'lost', label: 'Porażka drużyny', no: 'Drużyna nie przegra', scope: 'team' },
   { key: 'drew', label: 'Remis', no: 'Rozstrzygnięcie', scope: 'match' },
-  { key: 'clean', label: 'Czyste konto', no: 'Drużyna straci gola', scope: 'team' },
-  { key: 'blank', label: 'Drużyna nie strzeli', no: 'Drużyna strzeli gola', scope: 'team' }
+  { key: 'clean', label: 'Czyste konto', no: 'Drużyna straci gola', scope: 'team', duplicateOf: 'gole stracone' },
+  { key: 'blank', label: 'Drużyna nie strzeli', no: 'Drużyna strzeli gola', scope: 'team', duplicateOf: 'gole strzelone' }
 ];
 
 /* ---------- STATYSTYKA ---------- */
@@ -848,12 +859,25 @@ async function loadFixtures() {
   } catch { state.fixtures = []; }
 }
 
+/* Skaner przerabia mecze z wielu lig naraz, więc sparsowane dywizje
+   trzymamy w pamięci — klucz zawiera liczbę sezonów, bo jej zmiana
+   unieważnia pulę. */
+const divisionPool = new Map();
+
+async function getDivisionMatches(div) {
+  const key = `${div}:${state.seasons}`;
+  if (divisionPool.has(key)) return divisionPool.get(key);
+  const matches = (await loadDivision(div, state.seasons)).sort((a, b) => b.ts - a.ts);
+  divisionPool.set(key, matches);
+  return matches;
+}
+
 /* Drużyna po awansie/spadku ma za mało meczów — dobieramy z ligi sąsiedniej. */
-async function topUpTeam(team, needed) {
-  const related = RELATED_DIVISIONS[state.leagueId] || [];
+async function topUpTeam(team, needed, div) {
+  const related = RELATED_DIVISIONS[div] || [];
   const extra = [];
-  for (const div of related) {
-    const rows = await loadDivision(div, state.seasons).catch(() => []);
+  for (const other of related) {
+    const rows = await getDivisionMatches(other).catch(() => []);
     extra.push(...rows.filter(match => match.home === team || match.away === team));
     if (extra.length >= needed) break;
   }
@@ -862,9 +886,10 @@ async function topUpTeam(team, needed) {
 
 /* ---------- ANALIZA ---------- */
 
-async function buildAnalysis(homeTeam, awayTeam, fixture = null) {
+async function buildAnalysis(homeTeam, awayTeam, fixture = null, context = null) {
+  const { div, matches: pool } = context || { div: state.leagueId, matches: state.matches };
   const maxWindow = Math.max(...WINDOWS);
-  const forTeam = team => state.matches
+  const forTeam = team => pool
     .filter(match => match.home === team || match.away === team)
     .map(match => perspective(match, team))
     .sort((a, b) => b.ts - a.ts);
@@ -875,7 +900,7 @@ async function buildAnalysis(homeTeam, awayTeam, fixture = null) {
 
   for (const [team, list, label] of [[homeTeam, home, 'home'], [awayTeam, away, 'away']]) {
     if (list.length >= maxWindow) continue;
-    const extra = await topUpTeam(team, maxWindow - list.length);
+    const extra = await topUpTeam(team, maxWindow - list.length, div);
     if (!extra.length) continue;
     const merged = [...list, ...extra.map(match => perspective(match, team))]
       .filter((record, index, all) => all.findIndex(other => other.ts === record.ts && other.opponent === record.opponent) === index)
@@ -888,7 +913,7 @@ async function buildAnalysis(homeTeam, awayTeam, fixture = null) {
   const homeRecs = state.venueSplit ? home.filter(record => record.venue === 'H') : home;
   const awayRecs = state.venueSplit ? away.filter(record => record.venue === 'A') : away;
 
-  const h2h = state.matches
+  const h2h = pool
     .filter(match => (match.home === homeTeam && match.away === awayTeam) || (match.home === awayTeam && match.away === homeTeam))
     .map(match => perspective(match, homeTeam))
     .sort((a, b) => b.ts - a.ts)
@@ -955,7 +980,7 @@ function modelProb(analysis, key, line) {
    kurs godziwy 1,00, więc na taki rynek i tak nie ma jak zagrać. */
 const CERTAINTY_CAP = 0.93;
 
-function shortlist(analysis) {
+function shortlist(analysis, limit = 12) {
   const picks = [];
   const push = (label, group, samples, modelP) => {
     const pooled = samples.pooled;
@@ -964,7 +989,15 @@ function shortlist(analysis) {
     if (consistent.length < 2) return;
     const worst = Math.min(...consistent.map(w => w.p));
     const lower = wilsonLower(pooled.hits, pooled.n);
-    picks.push({ label, group, p: pooled.p, hits: pooled.hits, n: pooled.n, lower, worst, modelP });
+    /* Najszersze dostępne okno daje najwięcej obserwacji, więc jego granica
+       Wilsona różnicuje typy znacznie lepiej niż okno główne, gdzie próbki
+       bywają identyczne (18/20 wszędzie to ten sam wynik 78%). */
+    const deep = consistent[consistent.length - 1];
+    picks.push({
+      label, group, p: pooled.p, hits: pooled.hits, n: pooled.n, lower, worst, modelP,
+      windows: samples.windows,
+      deepHits: deep.hits, deepN: deep.n, lowerDeep: wilsonLower(deep.hits, deep.n)
+    });
   };
 
   /* Rynki drużynowe pooluje się z prób obu ekip — etykieta musi to mówić. */
@@ -983,6 +1016,7 @@ function shortlist(analysis) {
     }
   }
   for (const market of BOOLEAN_MARKETS) {
+    if (market.duplicateOf) continue;
     const pack = poolBoolean(analysis, market);
     push(scoped(market, market.label), 'Zdarzenia', pack.yes, null);
     push(scoped(market, market.no), 'Zdarzenia', pack.no, null);
@@ -991,7 +1025,7 @@ function shortlist(analysis) {
   return picks
     .filter(pick => pick.worst >= 0.5 && pick.lower >= 0.5 && pick.p <= CERTAINTY_CAP)
     .sort((a, b) => (b.lower - a.lower) || (b.worst - a.worst))
-    .slice(0, 12);
+    .slice(0, limit);
 }
 
 const invert = p => Number.isFinite(p) ? 1 - p : null;
@@ -1116,7 +1150,12 @@ async function loadAfFixtures() {
   try {
     state.afFixtures = await afFetchFixtures(state.afDay);
     state.afLoaded = true;
+    state.scanDone = false;
+    state.scanRows = [];
+    state.scanSkipped = [];
+    el('scan-body').innerHTML = '';
     renderAfFixtures();
+    renderScanAvailability();
     setStep(2);
     el('step2-sub').textContent = `${state.afFixtures.length} meczów`;
   } catch (error) {
@@ -1196,10 +1235,10 @@ function renderAfFixtures() {
 /* Wczytuje dywizję CSV odpowiadającą meczowi, jeśli nie jest jeszcze w pamięci. */
 async function ensureLeague(div) {
   if (state.leagueId === div && state.matches.length) return;
-  const matches = await loadDivision(div, state.seasons);
+  const matches = await getDivisionMatches(div);
   if (!matches.length) throw new Error(`Brak danych CSV dla ligi ${div}.`);
   state.leagueId = div;
-  state.matches = matches.sort((a, b) => b.ts - a.ts);
+  state.matches = matches;
   state.teams = indexTeams(state.matches);
   const league = LEAGUE_BY_ID.get(div);
   state.loadedLabel = `${league.country} · ${league.name}`;
@@ -1257,6 +1296,148 @@ function renderBridgePrompt(fixture, home, away) {
     if (!picked[0] || !picked[1]) { toast('Wybierz obie drużyny', 'err'); return; }
     runAnalysis(picked[0], picked[1], null);
   });
+}
+
+/* ---------- SKANER DNIA ----------
+   Zamiast otwierać mecz po meczu, przeliczamy cały terminarz i układamy
+   jeden ranking rynków. Dane historyczne siedzą już w cache, więc koszt
+   to wyłącznie procesor — żadnych dodatkowych zapytań do API. */
+
+async function scanDay() {
+  if (state.busy) return;
+  const pool = state.afFixtures.filter(fixture => fixture.div);
+  if (!pool.length) {
+    el('scan-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined">info</span>
+      <span>W pobranym terminarzu nie ma meczów z lig, dla których mamy historię CSV. Pobierz terminarz na inny dzień.</span></div>`;
+    return;
+  }
+  const candidates = state.scanUpcomingOnly ? pool.filter(fixture => fixture.kind !== 'done') : pool;
+  if (!candidates.length) {
+    el('scan-body').innerHTML = `<div class="st-note warn"><span class="material-symbols-outlined">info</span>
+      <span>Wszystkie ${pool.length} meczów z pokryciem CSV jest już rozegranych. Odznacz „tylko nierozpoczęte”, żeby je mimo to przeliczyć.</span></div>`;
+    return;
+  }
+
+  state.busy = true;
+  el('scan-run').disabled = true;
+  const rows = [];
+  const skipped = [];
+  try {
+    for (let i = 0; i < candidates.length; i++) {
+      const fixture = candidates[i];
+      el('scan-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined spin">progress_activity</span>
+        <span>Przeliczam ${i + 1} z ${candidates.length}: ${esc(fixture.home)} – ${esc(fixture.away)}…</span></div>`;
+      await sleep(0);
+      let matches;
+      try { matches = await getDivisionMatches(fixture.div); }
+      catch { skipped.push({ fixture, why: 'nie udało się pobrać historii ligi' }); continue; }
+      if (!matches.length) { skipped.push({ fixture, why: 'brak danych w CSV' }); continue; }
+
+      const teams = indexTeams(matches);
+      const home = bridgeTeam(fixture.home, teams);
+      const away = bridgeTeam(fixture.away, teams);
+      if (!home || !away) { skipped.push({ fixture, why: 'nie rozpoznano nazw drużyn' }); continue; }
+
+      const analysis = await buildAnalysis(home, away, fixture, { div: fixture.div, matches });
+      for (const pick of shortlist(analysis, 40)) rows.push({ fixture, home, away, pick });
+    }
+    state.scanRows = rows.sort((a, b) =>
+      (b.pick.lowerDeep - a.pick.lowerDeep) || (b.pick.worst - a.pick.worst) || (b.pick.p - a.pick.p));
+    state.scanSkipped = skipped;
+    state.scanDone = true;
+    renderScan();
+  } catch (error) {
+    el('scan-body').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>${esc(error.message)}</span></div>`;
+    toast(error.message, 'err');
+  } finally {
+    state.busy = false;
+    el('scan-run').disabled = false;
+  }
+}
+
+function scanWindowCell(sample) {
+  if (!sample) return '<td class="mx-td"><div class="mx empty"><span class="p">—</span></div></td>';
+  return `<td class="mx-td"><div class="mx ${tone(sample.p)}" title="${sample.hits} z ${sample.n}">
+    <span class="p">${fmtPct(sample.p)}</span><span class="h">${sample.hits}/${sample.n}</span></div></td>`;
+}
+
+function renderScan() {
+  if (!state.scanDone) return;
+  const minCoverage = state.scanMinCoverage;
+  const group = state.scanGroup;
+  /* Filtrujemy po surowym pokryciu puli, bo to wartość z etykiety progu.
+     Granica Wilsona zostaje jako kolumna i kryterium sortowania — przy
+     20 obserwacjach nie przekracza ~78%, więc próg 80% byłby nieosiągalny. */
+  const visible = state.scanRows.filter(row =>
+    row.pick.p >= minCoverage && (group === 'all' || row.pick.group === group));
+
+  const groups = [...new Set(state.scanRows.map(row => row.pick.group))].sort((a, b) => a.localeCompare(b, 'pl'));
+  el('scan-group').innerHTML = ['<option value="all">Wszystkie rynki</option>',
+    ...groups.map(name => `<option value="${esc(name)}" ${group === name ? 'selected' : ''}>${esc(name)}</option>`)].join('');
+
+  const fixtures = new Set(visible.map(row => row.fixture.id));
+  el('scan-summary').textContent = state.scanRows.length
+    ? `${visible.length} typów z ${fixtures.size} meczów (przeliczono ${new Set(state.scanRows.map(r => r.fixture.id)).size})`
+    : 'Żaden mecz nie dał typu spełniającego kryteria spójności';
+
+  if (!visible.length) {
+    el('scan-body').innerHTML = `<div class="st-note"><span class="material-symbols-outlined">filter_alt_off</span>
+      <span>Brak typów spełniających filtr. Obniż próg pokrycia albo zmień grupę rynków.</span></div>
+      ${renderScanSkipped()}`;
+    return;
+  }
+
+  const shown = visible.slice(0, 80);
+  el('scan-body').innerHTML = `
+    <div class="st-matrix-wrap">
+      <table class="st-matrix st-scan">
+        <thead>
+          <tr>
+            <th class="lbl">Mecz</th>
+            <th class="lbl">Rynek</th>
+            <th>5</th><th>10</th><th>20</th>
+            <th>Najsłabsze<br><small>okno</small></th>
+            <th>Wilson<br><small>80%</small></th>
+            <th>Kurs<br><small>godziwy</small></th><th></th>
+          </tr>
+        </thead>
+        <tbody>${shown.map(row => `
+          <tr>
+            <td class="lbl">
+              <div class="st-scan-fx"><strong>${esc(row.fixture.home)}</strong> – ${esc(row.fixture.away)}</div>
+              <div class="st-scan-meta">${afStatusTag(row.fixture)} ${esc(row.fixture.country)} · ${esc(row.fixture.leagueName)}</div>
+            </td>
+            <td class="lbl"><span class="st-scan-grp">${esc(row.pick.group)}</span> ${esc(row.pick.label)}</td>
+            ${row.pick.windows.map(scanWindowCell).join('')}
+            <td class="mx-td"><div class="mx ${tone(row.pick.worst)} pooled" title="Najniższe pokrycie wśród okien 5/10/20"><span class="p">${fmtPct(row.pick.worst)}</span><span class="h">min</span></div></td>
+            <td class="mx-td"><div class="mx ${tone(row.pick.lowerDeep)} model" title="Dolna granica Wilsona na najszerszej próbce ${row.pick.deepHits}/${row.pick.deepN}"><span class="p">${fmtPct(row.pick.lowerDeep)}</span><span class="h">${row.pick.deepHits}/${row.pick.deepN}</span></div></td>
+            <td class="mono num strong">${fairOdds(row.pick.lowerDeep)}</td>
+            <td><button class="st-btn" data-scan="${row.fixture.id}"><span class="material-symbols-outlined">insights</span></button></td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${visible.length > shown.length ? `<div class="st-note"><span class="material-symbols-outlined">more_horiz</span><span>Pokazano 80 najlepszych z ${visible.length}. Zawęź filtr, żeby zobaczyć resztę.</span></div>` : ''}
+    ${renderScanSkipped()}`;
+
+  el('scan-body').querySelectorAll('[data-scan]').forEach(button =>
+    button.addEventListener('click', () => analyseAfFixture(Number(button.dataset.scan))));
+}
+
+function renderScanSkipped() {
+  if (!state.scanSkipped.length) return '';
+  return `<div class="st-note warn"><span class="material-symbols-outlined">info</span>
+    <span>Pominięto ${state.scanSkipped.length}: ${state.scanSkipped
+      .map(item => `${esc(item.fixture.home)} – ${esc(item.fixture.away)} (${esc(item.why)})`).join('; ')}</span></div>`;
+}
+
+/* Skaner ma sens tylko dla lig z historią w CSV — pokazujemy ile ich jest. */
+function renderScanAvailability() {
+  const covered = state.afFixtures.filter(fixture => fixture.div);
+  const upcoming = covered.filter(fixture => fixture.kind !== 'done');
+  el('scan-block').classList.toggle('is-locked', !covered.length);
+  el('scan-summary').textContent = covered.length
+    ? `${covered.length} meczów z historią CSV (${upcoming.length} nierozpoczętych) — przeliczenie nie zużywa limitu API`
+    : 'Pobierz terminarz, żeby zobaczyć, ile meczów ma pokrycie historyczne';
 }
 
 function renderLeaguePicker() {
@@ -1729,6 +1910,7 @@ async function detectLocalProxy() {
 function clearCache() {
   cache = {};
   afCache = {};
+  divisionPool.clear();
   try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(AF_CACHE_KEY); } catch { /* nic nie szkodzi */ }
   fetch('api/fd/purge').catch(() => {});
   toast('Cache wyczyszczony — kolejne pobranie pójdzie do źródła');
@@ -1744,6 +1926,9 @@ function init() {
   renderProxyBadge();
   renderKeyPanel();
   el('af-day-label').textContent = afDayLabel(state.afDay);
+  el('scan-upcoming').checked = state.scanUpcomingOnly;
+  el('scan-min').value = String(state.scanMinCoverage);
+  renderScanAvailability();
   setStep(1);
   document.querySelectorAll('.sidebar__link[data-page]').forEach(link =>
     link.classList.toggle('sidebar__link--active', link.dataset.page === 'stats'));
@@ -1781,12 +1966,20 @@ function init() {
       state.afDay = Number(button.dataset.day);
       el('af-day-seg').querySelectorAll('button').forEach(item => item.classList.toggle('active', item === button));
       el('af-day-label').textContent = afDayLabel(state.afDay);
+  el('scan-upcoming').checked = state.scanUpcomingOnly;
+  el('scan-min').value = String(state.scanMinCoverage);
+  renderScanAvailability();
       state.afLoaded = false;
       el('af-body').innerHTML = '';
       el('af-summary').textContent = '';
     }));
   el('af-load').addEventListener('click', loadAfFixtures);
   el('af-filter').addEventListener('input', event => { state.afLeagueFilter = event.target.value; renderAfFixtures(); });
+
+  el('scan-run').addEventListener('click', scanDay);
+  el('scan-upcoming').addEventListener('change', event => { state.scanUpcomingOnly = event.target.checked; });
+  el('scan-min').addEventListener('change', event => { state.scanMinCoverage = Number(event.target.value); renderScan(); });
+  el('scan-group').addEventListener('change', event => { state.scanGroup = event.target.value; renderScan(); });
 
   detectLocalProxy();
 }

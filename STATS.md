@@ -118,6 +118,27 @@ międzysezonowej.
 **3. Własne zestawienie** — dowolna para drużyn z wczytanej ligi. Działa
 niezależnie od terminarza, więc analiza jest możliwa zawsze.
 
+**Skaner dnia** — jeden ranking rynków ze **wszystkich** meczów terminarza,
+zamiast otwierania meczu po meczu. Przeliczenie nie zużywa limitu API: dane
+historyczne siedzą już w cache, liczy się tylko procesor.
+
+```
+Mecz                              Rynek                     5     10     20    najsłabsze  Wilson
+Talleres – Velez    22:00  GOLE   Gole w meczu pon. 3,5    90%    90%    95%      90%       89%
+                                                          9/10  18/20  38/40                38/40
+```
+
+- **Najsłabsze okno** — najniższe pokrycie wśród okien 5/10/20. Odsiewa typy
+  oparte na jednej dobrej serii.
+- **Wilson** — dolna granica przedziału na **najszerszej** próbce (okno 20 ×
+  dwie drużyny, czyli do 40 obserwacji). To po niej idzie ranking: okno główne
+  daje zbyt wiele remisów, bo przy próbce 18/20 każdy typ wychodzi na 78%.
+- **Filtry** — minimalne pokrycie, grupa rynków, pomijanie meczów rozegranych.
+- Strzałka w ostatniej kolumnie otwiera pełne macierze dla danego meczu.
+
+Skaner działa tylko dla lig obecnych w CSV — pozostałe mecze terminarza są
+oznaczone „brak historii w CSV" i pomijane.
+
 **4. Macierze pokrycia** — sedno narzędzia. Dla każdej linii:
 
 ```
