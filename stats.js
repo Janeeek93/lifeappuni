@@ -1236,11 +1236,18 @@ function renderProxyWarning(show) {
   if (!banner) return;
   banner.style.display = show ? '' : 'none';
   if (!show) return;
-  const blocked = typeof location !== 'undefined' && (location.protocol === 'file:' || location.protocol === 'https:');
+  const isFile = typeof location !== 'undefined' && location.protocol === 'file:';
+  const blocked = isFile || (typeof location !== 'undefined' && location.protocol === 'https:');
+  /* Przejście na http://localhost to zmiana origin, a więc inny magazyn
+     localStorage — bez uprzedzenia wyglądałoby to jak utrata danych. */
+  const migration = isFile
+    ? ' <br><strong>Uwaga przy przejściu na http://localhost:</strong> to inny origin, więc dane pozostałych modułów '
+      + '(budżet, zadania, zakłady) nie przeniosą się same. Zrób najpierw <em>Eksport</em> na Dashboardzie, '
+      + 'a po otwarciu nowego adresu <em>Import</em>. Terminarz live działa też z file:// — blokowane są tylko pliki CSV.'
+    : '';
   banner.innerHTML = `<span class="material-symbols-outlined">running_with_errors</span>
     <span><strong>${blocked ? 'Lokalne proxy jest zablokowane przez przeglądarkę.' : 'Brak lokalnego proxy.'}</strong>
-    ${esc(environmentHint())}
-    Publiczne pośredniki CORS bywają wyłączane bez ostrzeżenia i wtedy analiza kończy się błędem „Failed to fetch”.</span>`;
+    ${esc(environmentHint())}${migration}</span>`;
 }
 
 function renderProxyBadge() {

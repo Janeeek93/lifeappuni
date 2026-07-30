@@ -18,6 +18,28 @@ serwuje pliki aplikacji i pośredniczy w pobieraniu danych.
 działa w tle** — stronę możesz otwierać skąd chcesz (inny port, Live Server).
 Aplikacja wykryje proxy pod `http://localhost:8787` i użyje go.
 
+### Windows: uruchomienie jednym kliknięciem
+
+W repozytorium jest `start-windows.cmd`. Kliknij go dwukrotnie — sprawdzi
+Node.js, wystartuje serwer i otworzy aplikację pod właściwym adresem. Okno
+konsoli musi pozostać otwarte; jego zamknięcie zatrzymuje serwer.
+
+> **Zanim przejdziesz z `file://` na `http://localhost:8787`**
+>
+> To dwa różne originy, więc mają **osobny `localStorage`**. Dane pozostałych
+> modułów (budżet, zadania, kredyt, zakłady) nie przeniosą się same i nowy
+> adres wyglądałby na pustą aplikację.
+>
+> Migracja: na Dashboardzie kliknij **Eksport**, otwórz
+> `http://localhost:8787/index.html` i kliknij **Import**, wskazując pobrany
+> plik `lifeos_backup_*.json`. Eksport obejmuje wszystkie moduły łącznie
+> z zakładami i ustawieniami.
+
+Jeśli nie chcesz nic przenosić — zostań przy `file://`. Terminarz live działa
+tam bez przeszkód (api-sports.io wysyła `Access-Control-Allow-Origin: *`, co
+dopuszcza origin „null"); blokowane są wyłącznie pliki CSV, które wczytasz
+importem opisanym niżej.
+
 ### Gdy nic nie działa: import plików z dysku
 
 Przeglądarka blokuje localhost w dwóch układach, **niezależnie od tego, czy
