@@ -84,6 +84,7 @@ async function handleCsv(req, res, url) {
       res.writeHead(200, {
         'Content-Type': 'text/csv; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Expose-Headers': 'X-Fd-Missing, X-Fd-Cache',
         'X-Fd-Cache': 'hit'
       });
       return res.end(hit);
@@ -96,23 +97,33 @@ async function handleCsv(req, res, url) {
       signal: AbortSignal.timeout(30000)
     });
     if (!upstream.ok) {
-      /* Sezon jeszcze nieopublikowany zwraca 404 — to normalny stan, nie awaria. */
+      /* Sezon jeszcze nieopublikowany zwraca 404 — to normalny stan, nie awaria.
+         Oznaczamy to nagłówkiem, żeby klient odróżnił "u źródła nie ma pliku"
+         od "404 z serwera, który w ogóle nie zna tego endpointu". */
       const stale = await readCache(target, Infinity);
       if (stale !== null) {
         res.writeHead(200, {
           'Content-Type': 'text/csv; charset=utf-8',
           'Access-Control-Allow-Origin': '*',
+          'Access-Control-Expose-Headers': 'X-Fd-Missing, X-Fd-Cache',
           'X-Fd-Cache': 'stale'
         });
         return res.end(stale);
       }
-      return sendCors(res, upstream.status, `football-data.co.uk: HTTP ${upstream.status} dla ${target}`);
+      res.writeHead(upstream.status, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Expose-Headers': 'X-Fd-Missing, X-Fd-Cache',
+        'X-Fd-Missing': upstream.status === 404 ? '1' : '0'
+      });
+      return res.end(`football-data.co.uk: HTTP ${upstream.status} dla ${target}`);
     }
     const body = await upstream.text();
     await writeCache(target, body);
     res.writeHead(200, {
       'Content-Type': 'text/csv; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Expose-Headers': 'X-Fd-Missing, X-Fd-Cache',
       'X-Fd-Cache': 'miss'
     });
     res.end(body);
@@ -122,6 +133,7 @@ async function handleCsv(req, res, url) {
       res.writeHead(200, {
         'Content-Type': 'text/csv; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Expose-Headers': 'X-Fd-Missing, X-Fd-Cache',
         'X-Fd-Cache': 'stale'
       });
       return res.end(stale);

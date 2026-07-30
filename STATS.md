@@ -14,9 +14,17 @@ node server.js
 Serwer wymaga Node 18+ i nie ma żadnych zależności. Robi dwie rzeczy:
 serwuje pliki aplikacji i pośredniczy w pobieraniu danych.
 
-Aplikacja działa też bez serwera (otwarta z dowolnego innego hosta lokalnego),
-ale wtedy przechodzi na publiczne proxy CORS — wolniejsze i zawodne. Nagłówek
-strony pokazuje, które proxy jest aktualnie używane.
+`server.js` wysyła `Access-Control-Allow-Origin: *`, więc **wystarczy, że
+działa w tle** — stronę możesz otwierać skąd chcesz (inny port, Live Server).
+Aplikacja wykryje proxy pod `http://localhost:8787` i użyje go.
+
+Bez uruchomionego serwera moduł spada na publiczne proxy CORS, które są
+zawodne: w lipcu 2026 `r.jina.ai` zaczął wymagać logowania (HTTP 401),
+a `allorigins.win` i `codetabs.com` zwracały 522. W przeglądarce takie
+odpowiedzi nie niosą nagłówka CORS, więc `fetch` nie może ich odczytać
+i zgłasza generyczne **„Failed to fetch"** zamiast kodu HTTP — stąd cztery
+identyczne komunikaty w błędzie. Nagłówek strony ostrzega wtedy
+**„Bez lokalnego proxy"**.
 
 ## Dwa źródła i podział obowiązków
 

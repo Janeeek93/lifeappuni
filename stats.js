@@ -78,12 +78,30 @@ const LEAGUE_BY_ID = new Map([...MAIN_LEAGUES.map(l => [l.id, { ...l, kind: 'mai
 /* ---------- PROXY ---------- */
 
 const UPSTREAM = 'https://www.football-data.co.uk';
+
+/* server.js odpowiada z Access-Control-Allow-Origin: *, więc lokalne proxy
+   działa także wtedy, gdy strona jest otwarta z innego miejsca (file://,
+   Live Server, inny port). Dlatego obok ścieżki względnej próbujemy też
+   pełnego adresu. */
+const LOCAL_PROXY_ORIGIN = 'http://localhost:8787';
+const LOCAL_PROXY_IDS = ['local', 'local-abs'];
+
 const PROXIES = [
-  { id: 'local', label: 'lokalne proxy (server.js)', build: (_url, target) => `api/fd/csv?path=${encodeURIComponent(target)}` },
+  { id: 'local', label: 'lokalne proxy (ta sama strona)', local: true,
+    build: (_url, target) => `api/fd/csv?path=${encodeURIComponent(target)}` },
+  { id: 'local-abs', label: `lokalne proxy (${LOCAL_PROXY_ORIGIN})`, local: true,
+    build: (_url, target) => `${LOCAL_PROXY_ORIGIN}/api/fd/csv?path=${encodeURIComponent(target)}` },
   { id: 'allorigins', label: 'allorigins.win', build: url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
   { id: 'codetabs', label: 'codetabs.com', build: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
   { id: 'jina', label: 'r.jina.ai', build: url => `https://r.jina.ai/${url}` }
 ];
+
+/* Publiczne proxy bywają wyłączane bez ostrzeżenia — r.jina.ai zaczął
+   wymagać logowania, a allorigins i codetabs potrafią nie dosięgnąć
+   źródła. Ich awarie widać w przeglądarce jako „Failed to fetch”, bo
+   odpowiedź błędu nie niesie nagłówka CORS i skrypt nie może jej odczytać. */
+const LOCAL_PROXY_HINT = 'Uruchom `node server.js` i otwórz stronę pod http://localhost:8787 '
+  + '— wtedy pliki idą przez lokalne proxy, bez publicznych pośredników.';
 
 /* ---------- API-FOOTBALL ----------
    Terminarz na dziś i jutro ze statusami live. Klucz podaje użytkownik
@@ -152,6 +170,7 @@ const state = {
   fixtures: [],
   analysis: null,
   proxy: null,
+  localProxy: null,
   busy: false,
   loadedLabel: '',
   /* API-Football */
@@ -335,16 +354,22 @@ function looksLikeCsv(text) {
 
 async function fetchCsv(target) {
   const url = `${UPSTREAM}/${target}`;
-  const ordered = state.proxy
-    ? [...PROXIES.filter(p => p.id === state.proxy), ...PROXIES.filter(p => p.id !== state.proxy)]
-    : PROXIES;
+  /* Lokalne proxy zawsze idzie pierwsze — jest szybsze i nie znika bez
+     ostrzeżenia. Dopiero potem to, które ostatnio zadziałało. */
+  const rank = proxy => (proxy.local ? 0 : proxy.id === state.proxy ? 1 : 2);
+  const ordered = [...PROXIES].sort((a, b) => rank(a) - rank(b));
   const problems = [];
+  let missing = 0;
   for (const proxy of ordered) {
     try {
       const response = await fetchWithTimeout(proxy.build(url, target));
       if (!response.ok) {
-        /* 404 to brak sezonu u źródła, a nie wina proxy — nie próbujemy dalej. */
-        if (response.status === 404) return null;
+        /* 404 potwierdzone nagłówkiem znaczy, że pliku nie ma u źródła —
+           tylko wtedy wolno przerwać. Samo 404 może pochodzić z serwera,
+           który nie zna endpointu proxy (np. inny serwer statyczny),
+           więc idziemy do kolejnego pośrednika. */
+        if (response.status === 404 && response.headers.get('x-fd-missing') === '1') return null;
+        if (response.status === 404) missing++;
         problems.push(`${proxy.label}: HTTP ${response.status}`);
         continue;
       }
@@ -357,7 +382,13 @@ async function fetchCsv(target) {
       problems.push(`${proxy.label}: ${error.name === 'AbortError' ? 'przekroczony czas' : error.message}`);
     }
   }
-  throw new Error(`Nie udało się pobrać ${target}. Próby — ${problems.join('; ')}`);
+  /* Gdy każde proxy odpowiedziało 404, plik faktycznie nie istnieje. */
+  if (missing === problems.length && missing > 0) return null;
+  const onlyPublic = !state.localProxy;
+  throw new Error(onlyPublic
+    ? `Nie udało się pobrać ${target} — żadne z publicznych proxy CORS nie odpowiedziało. ${LOCAL_PROXY_HINT} `
+      + `Szczegóły: ${problems.join('; ')}`
+    : `Nie udało się pobrać ${target}. Próby — ${problems.join('; ')}`);
 }
 
 async function getMatches(target, ttl) {
@@ -1088,11 +1119,32 @@ function setStep(n) {
 
 function renderLoadStatus(html) { el('load-status').innerHTML = html; }
 
+function renderProxyWarning(show) {
+  const banner = el('proxy-warning');
+  if (!banner) return;
+  banner.style.display = show ? '' : 'none';
+}
+
 function renderProxyBadge() {
+  const node = el('proxy-badge');
   const proxy = PROXIES.find(item => item.id === state.proxy);
-  el('proxy-badge').innerHTML = proxy
-    ? `<strong>${esc(proxy.id === 'local' ? 'Proxy lokalne' : 'Proxy publiczne')}</strong> · ${esc(proxy.label)}`
-    : '<strong>football-data.co.uk</strong> · darmowe CSV';
+  if (proxy && proxy.local) {
+    node.className = 'st-quota';
+    node.title = 'Pliki CSV idą przez lokalne proxy — bez limitów i pośredników';
+    node.innerHTML = `<strong>Proxy lokalne</strong> · ${esc(proxy.label)}`;
+    renderProxyWarning(false);
+    return;
+  }
+  if (state.localProxy === false) {
+    node.className = 'st-quota warn';
+    node.title = LOCAL_PROXY_HINT;
+    node.innerHTML = `<strong>Bez lokalnego proxy</strong> · ${esc(proxy ? proxy.label : 'publiczne pośredniki')}`;
+    renderProxyWarning(true);
+    return;
+  }
+  node.className = 'st-quota';
+  node.title = 'Źródło danych historycznych';
+  node.innerHTML = '<strong>football-data.co.uk</strong> · darmowe CSV';
 }
 
 function renderQuota() {
@@ -1948,10 +2000,19 @@ function refreshAnalysis() {
 /* ---------- START ---------- */
 
 async function detectLocalProxy() {
-  try {
-    const response = await fetchWithTimeout('api/fd/health', 4000);
-    if (response.ok) { state.proxy = 'local'; savePrefs(); }
-  } catch { /* brak lokalnego proxy — zadziała łańcuch publicznych */ }
+  for (const [id, url] of [['local', 'api/fd/health'], ['local-abs', `${LOCAL_PROXY_ORIGIN}/api/fd/health`]]) {
+    try {
+      const response = await fetchWithTimeout(url, 4000);
+      if (response.ok) {
+        state.proxy = id;
+        state.localProxy = true;
+        savePrefs();
+        renderProxyBadge();
+        return;
+      }
+    } catch { /* próbujemy następnego wariantu */ }
+  }
+  state.localProxy = false;
   renderProxyBadge();
 }
 
