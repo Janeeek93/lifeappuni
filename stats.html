@@ -46,10 +46,10 @@
         </div>
       </div>
       <div class="site-header__right tc-hdr-actions" aria-label="Akcje strony">
-        <span class="st-quota" title="Publiczne API TheSportsDB"><strong>TheSportsDB</strong> · Free</span>
+        <span class="st-quota" id="proxy-badge" title="Źródło danych"></span>
         <a class="tc-hdr-btn" href="betting.html" title="Wróć do zakładów"><span class="material-symbols-outlined">arrow_back</span>Zakłady</a>
         <div class="tc-hdr-sep"></div>
-        <button id="clear-cache-btn" class="tc-hdr-btn" title="Wyczyść zapisane odpowiedzi API"><span class="material-symbols-outlined">cached</span>Cache</button>
+        <button id="clear-cache-btn" class="tc-hdr-btn" title="Wyczyść pobrane pliki CSV"><span class="material-symbols-outlined">cached</span>Cache</button>
       </div>
     </header>
 
@@ -60,11 +60,11 @@
         <div class="st-steps" id="steps">
           <div class="st-step active" data-step="1">
             <span class="num">1</span>
-            <div><div class="k">Pobierz mecze</div><div class="v" id="step1-sub">Wybierz dzień i kliknij</div></div>
+            <div><div class="k">Wczytaj ligę</div><div class="v" id="step1-sub">Wybierz rozgrywki i zakres sezonów</div></div>
           </div>
           <div class="st-step" data-step="2">
             <span class="num">2</span>
-            <div><div class="k">Wybierz ligę</div><div class="v" id="step2-sub">—</div></div>
+            <div><div class="k">Terminarz</div><div class="v" id="step2-sub">Mecze na dziś, jutro i tydzień</div></div>
           </div>
           <div class="st-step" data-step="3">
             <span class="num">3</span>
@@ -72,69 +72,94 @@
           </div>
           <div class="st-step" data-step="4">
             <span class="num">4</span>
-            <div><div class="k">Macierz pokrycia</div><div class="v" id="step4-sub">—</div></div>
+            <div><div class="k">Macierze pokrycia</div><div class="v" id="step4-sub">—</div></div>
           </div>
         </div>
 
-        <!-- KROK 1 -->
+        <!-- KROK 1: ŹRÓDŁO -->
         <div class="st-section">
-          <span class="ico"><span class="material-symbols-outlined">calendar_month</span></span>
-          <h2>Mecze</h2>
-          <span class="desc">Terminarz piłkarski z publicznego API TheSportsDB</span>
+          <span class="ico"><span class="material-symbols-outlined">database</span></span>
+          <h2>Źródło danych</h2>
+          <span class="desc">football-data.co.uk — komplet statystyk meczowych, bez klucza API</span>
           <span class="line"></span>
         </div>
 
         <section class="tc-card">
-          <div class="st-toolbar">
-            <div class="grp">
-              <div class="st-seg" id="day-seg">
-                <button data-day="-1">Wczoraj</button>
-                <button data-day="0" class="active">Dziś</button>
-                <button data-day="1">Jutro</button>
+          <div class="st-controls">
+            <label class="st-field wide">
+              <span>Liga</span>
+              <select id="league-select"></select>
+            </label>
+            <label class="st-field">
+              <span>Zakres historii</span>
+              <select id="season-select">
+                <option value="1">Bieżący sezon</option>
+                <option value="2">2 sezony</option>
+                <option value="3">3 sezony</option>
+                <option value="4">4 sezony</option>
+              </select>
+            </label>
+            <label class="st-field">
+              <span>Okno główne</span>
+              <div class="st-seg" id="focus-seg">
+                <button data-window="5">5</button>
+                <button data-window="10">10</button>
+                <button data-window="20">20</button>
               </div>
-              <span class="desc" id="day-label" style="font-size:12px;color:var(--tc-muted)"></span>
-            </div>
-            <div class="grp">
-              <button class="st-btn primary" id="fetch-fixtures"><span class="material-symbols-outlined">download</span>Pobierz mecze</button>
-            </div>
+            </label>
+            <label class="st-check" title="Gospodarz liczony tylko z meczów u siebie, gość tylko z wyjazdowych">
+              <input type="checkbox" id="venue-toggle">
+              <span>Filtr dom–wyjazd</span>
+            </label>
+            <button class="st-btn primary" id="load-league"><span class="material-symbols-outlined">download</span>Wczytaj ligę</button>
           </div>
-          <div id="fixtures-status"></div>
+          <div class="st-load-status" id="load-status">
+            <span class="material-symbols-outlined">info</span>
+            Wybierz ligę i kliknij <strong>Wczytaj ligę</strong>. Pobrane pliki zostają w pamięci przeglądarki.
+          </div>
         </section>
 
-        <!-- KROK 2: LIGI -->
-        <div id="leagues-block" style="display:none">
+        <!-- KROK 2: TERMINARZ -->
+        <div id="fixtures-block" style="display:none">
           <div class="st-section">
-            <span class="ico"><span class="material-symbols-outlined">emoji_events</span></span>
-            <h2>Ligi</h2>
-            <span class="desc" id="leagues-desc">—</span>
+            <span class="ico"><span class="material-symbols-outlined">calendar_month</span></span>
+            <h2>Terminarz</h2>
+            <span class="desc">Nadchodzące mecze wybranej ligi wraz z kursami</span>
             <span class="line"></span>
           </div>
           <section class="tc-card">
-            <div class="st-league-search">
-              <input type="search" id="league-search" placeholder="Filtruj ligi lub kraje…">
-            </div>
-            <div class="st-leagues" id="leagues"></div>
+            <div id="fixtures-body"></div>
           </section>
-        </div>
 
-        <!-- KROK 3: MECZE LIGI -->
-        <div id="matches-block" style="display:none">
-          <div class="st-section">
-            <span class="ico"><span class="material-symbols-outlined">stadium</span></span>
-            <h2>Mecze w lidze</h2>
-            <span class="desc" id="matches-desc">—</span>
-            <span class="line"></span>
+          <div id="custom-block">
+            <div class="st-section">
+              <span class="ico"><span class="material-symbols-outlined">tune</span></span>
+              <h2>Własne zestawienie</h2>
+              <span class="desc">Dowolna para drużyn — działa też poza terminarzem</span>
+              <span class="line"></span>
+            </div>
+            <section class="tc-card">
+              <div class="st-controls">
+                <label class="st-field wide">
+                  <span>Gospodarz</span>
+                  <select id="home-select"></select>
+                </label>
+                <button class="st-btn" id="swap-teams" title="Zamień strony"><span class="material-symbols-outlined">swap_horiz</span></button>
+                <label class="st-field wide">
+                  <span>Gość</span>
+                  <select id="away-select"></select>
+                </label>
+                <button class="st-btn primary" id="analyse-custom"><span class="material-symbols-outlined">insights</span>Analizuj</button>
+              </div>
+            </section>
           </div>
-          <section class="tc-card">
-            <div class="tc-tbl-wrap" id="matches"></div>
-          </section>
         </div>
 
         <!-- KROK 4: ANALIZA -->
         <div id="analysis-block" style="display:none">
           <div class="st-section">
             <span class="ico"><span class="material-symbols-outlined">grid_on</span></span>
-            <h2>Macierz pokrycia</h2>
+            <h2>Macierze pokrycia</h2>
             <span class="desc" id="analysis-desc">—</span>
             <span class="line"></span>
           </div>
