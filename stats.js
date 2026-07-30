@@ -831,8 +831,8 @@ async function loadLeague() {
     renderTeamPickers();
     renderFixtures();
     renderAnalysis();
-    setStep(2);
-    el('step1-sub').textContent = state.loadedLabel;
+    setStep(3);
+    el('step3-sub').textContent = `${state.loadedLabel} · wybierz drużyny`;
   } catch (error) {
     renderLoadStatus(`<span class="material-symbols-outlined bad">error</span>${esc(error.message)}`);
     toast(error.message, 'err');
@@ -1156,8 +1156,9 @@ async function loadAfFixtures() {
     el('scan-body').innerHTML = '';
     renderAfFixtures();
     renderScanAvailability();
-    setStep(2);
-    el('step2-sub').textContent = `${state.afFixtures.length} meczów`;
+    setStep(3);
+    el('step1-sub').textContent = 'Klucz zapisany';
+    el('step2-sub').textContent = `${state.afFixtures.length} meczów · ${afDayLabel(state.afDay)}`;
   } catch (error) {
     state.afLoaded = false;
     el('af-body').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>${esc(error.message)}</span></div>`;
@@ -1245,7 +1246,6 @@ async function ensureLeague(div) {
   savePrefs();
   renderLeaguePicker();
   renderTeamPickers();
-  el('step1-sub').textContent = state.loadedLabel;
 }
 
 async function analyseAfFixture(fixtureId) {
@@ -1346,6 +1346,7 @@ async function scanDay() {
     state.scanSkipped = skipped;
     state.scanDone = true;
     renderScan();
+    el('step3-sub').textContent = `${rows.length} typów z ${new Set(rows.map(row => row.fixture.id)).size} meczów`;
   } catch (error) {
     el('scan-body').innerHTML = `<div class="st-note bad"><span class="material-symbols-outlined">error</span><span>${esc(error.message)}</span></div>`;
     toast(error.message, 'err');
@@ -1929,7 +1930,8 @@ function init() {
   el('scan-upcoming').checked = state.scanUpcomingOnly;
   el('scan-min').value = String(state.scanMinCoverage);
   renderScanAvailability();
-  setStep(1);
+  if (state.apiKey) el('step1-sub').textContent = 'Klucz zapisany';
+  setStep(state.apiKey ? 2 : 1);
   document.querySelectorAll('.sidebar__link[data-page]').forEach(link =>
     link.classList.toggle('sidebar__link--active', link.dataset.page === 'stats'));
 
@@ -1958,6 +1960,8 @@ function init() {
   el('save-key').addEventListener('click', () => {
     saveApiKey(el('api-key').value);
     renderKeyPanel();
+    el('step1-sub').textContent = state.apiKey ? 'Klucz zapisany' : 'Jednorazowo, zostaje w przeglądarce';
+    setStep(state.apiKey ? 2 : 1);
     toast(state.apiKey ? 'Klucz zapisany lokalnie' : 'Klucz usunięty');
   });
   el('test-key').addEventListener('click', () => { saveApiKey(el('api-key').value); testApiKey(); });

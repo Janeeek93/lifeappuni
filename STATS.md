@@ -105,6 +105,39 @@ ligowej zwracał 3 mecze, przez co terminarz był praktycznie pusty. Endpoint
 `lookupeventstats.php` tnie z kolei do 5 pozycji i zwraca same strzały:
 rożnych, kartek ani fauli nie ma tam w ogóle.
 
+## Przepływ pracy
+
+**Historia z CSV dociąga się sama** przy pierwszej analizie danej ligi. Nie ma
+kroku „najpierw pobierz wyniki".
+
+```
+1. Klucz API          jednorazowo, zostaje w przeglądarce
+2. Pobierz terminarz  1 zapytanie · dziś albo jutro
+3. Skanuj  ────────►  ranking typów z całego dnia   ─┐
+   albo Analizuj ───► pojedynczy mecz               ─┴─► 4. Macierze pokrycia
+```
+
+Krok 3 i 4 nie kosztują ani jednego zapytania API. Realne zużycie to
+**2 zapytania dziennie** ze 100 dostępnych: jedno na terminarz na dziś, drugie
+na jutro.
+
+Sekcja **Źródło danych** (wybór ligi, zakres sezonów, „Wczytaj ligę") jest
+potrzebna wyłącznie do **własnego zestawienia** — pary drużyn spoza terminarza,
+np. gdy chcesz przejrzeć mecz z przyszłej kolejki albo porównać dwie dowolne
+ekipy. Przy pracy z terminarza możesz ją całkowicie pominąć.
+
+### Co się cachuje
+
+| Warstwa | Czas życia | Uwagi |
+|---|---|---|
+| Terminarz API-Football | 3 min | ponowne kliknięcie w tym oknie nie kosztuje zapytania |
+| CSV w przeglądarce | 12 h | `localStorage`, budżet 3,5 MB |
+| CSV na serwerze | 6 h | katalog `.stats-cache/` |
+| Sparsowane ligi | do przeładowania strony | pula w pamięci, zerowy koszt |
+
+W praktyce: pierwsza analiza z danej ligi trwa chwilę (pobranie 1–3 plików
+CSV), każda kolejna z tej samej ligi jest natychmiastowa.
+
 ## Jak czytać dashboard
 
 **1. Źródło danych** — liga, zakres historii (1–4 sezony), okno główne,
