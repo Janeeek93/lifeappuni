@@ -114,9 +114,9 @@ bezpośrednie starcia i pełne dane źródłowe stojące za macierzami.
 ## Cache
 
 - **Przeglądarka** — `localStorage`, budżet ok. 3,5 MB, najstarsze wpisy
-  usuwane automatycznie.
+  usuwane automatycznie. Terminarz 30 minut, sezony 12 godzin.
 - **Serwer** — katalog `.stats-cache/` (poza repozytorium). Terminarz 30 minut,
-  sezony 12 godzin. Gdy źródło nie odpowiada, serwer oddaje ostatnią znaną
+  sezony 6 godzin. Gdy źródło nie odpowiada, serwer oddaje ostatnią znaną
   wersję zamiast błędu.
 
 Przycisk **Cache** w nagłówku czyści oba naraz.
