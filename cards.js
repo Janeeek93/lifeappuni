@@ -772,7 +772,7 @@ function renderTodo() {
     items.push(['info', 'gavel', `<strong>${nCards(taxSoon.length)}</strong> zbliża się do progu 6 miesięcy. Po nim sprzedaż rzeczy ruchomych jest poza PIT — czasem warto poczekać kilka tygodni.`, 'goTab("analytics")']);
   }
   if (M.emptyBreaks.length) {
-    items.push(['bad', 'report', `<strong>${nBoxes(M.emptyBreaks.length)}</strong> ${plural(M.emptyBreaks.length, 'jest oznaczony', 'są oznaczone', 'jest oznaczonych')} jako otwarte, ale bez wpisanej karty. ${fmtPLN0(M.emptyBreakCost)} wisi w kosztach bez pokrycia — dopisz pully albo wartość bulku.`, 'goTab("boxes")']);
+    items.push(['bad', 'report', `<strong>${nBoxes(M.emptyBreaks.length)}</strong> ${plural(M.emptyBreaks.length, 'jest oznaczony', 'są oznaczone', 'jest oznaczonych')} jako otwarte, ale bez wpisanej karty. ${fmtPLN0(M.emptyBreakCost)} wisi w kosztach bez pokrycia — dopisz pully, cofnij otwarcie albo usuń box.`, 'goTab("boxes")']);
   }
   if (!items.length) {
     items.push(['good', 'check_circle', 'Nic nie wisi. Wyceny świeże, nic nie zalega, ogłoszenia w normie.', null]);
@@ -1093,6 +1093,8 @@ function renderBreaks() {
       <div class="cd-break-foot">
         <button class="btn-small" onclick="openBreakModal('${b.id}')"><span class="material-symbols-outlined">edit</span>Popraw pully</button>
         <button class="btn-small ghost" onclick="openBoxModal('${b.id}')">Dane boxa</button>
+        ${b.pulls.length ? '' : `<button class="btn-small ghost" onclick="reopenBox('${b.id}')" title="Cofnij do sealed — box wróci na stan jako nieotwarty"><span class="material-symbols-outlined">undo</span>Cofnij otwarcie</button>`}
+        <button class="btn-small ghost" onclick="deleteBox('${b.id}')" style="margin-left:auto;color:var(--tc-neg)"><span class="material-symbols-outlined">delete</span>Usuń box</button>
       </div>
     </article>`;
   }).join('');
@@ -2258,6 +2260,7 @@ function openBoxModal(boxId) {
   setVal('bf-shipping', src.shipping); setVal('bf-customs', src.customs); setVal('bf-fees', src.fees);
   setVal('bf-source', src.source); setVal('bf-notes', src.notes);
   el('bf-qty').closest('.ff').style.display = b ? 'none' : '';
+  el('bf-delete').style.display = b ? '' : 'none';
   updateBoxCalc();
   openModal('box-modal');
   setTimeout(() => el('bf-name').focus(), 60);
@@ -2316,15 +2319,51 @@ function deleteBox(id) {
   const b = state.boxes.find(x => x.id === id);
   if (!b) return;
   const pulls = state.cards.filter(c => c.boxId === id);
-  const msg = pulls.length
-    ? `Usunąć „${b.name}"? ${nCards(pulls.length)} z tego boxa straci powiązanie i zostanie w kolekcji z zerowym kosztem.`
-    : `Usunąć „${b.name}"?`;
-  if (!confirm(msg)) return;
+  if (!confirm(`Usunąć „${b.name}"? Zniknie też jego zakup z budżetu.`)) return;
+
+  let removedCards = 0;
+  if (pulls.length) {
+    // Karty z boxa bez samego boxa nie mają skąd wziąć kosztu — pytamy wprost,
+    // zamiast po cichu zostawiać w kolekcji pozycje z zerową bazą.
+    const alsoCards = confirm(
+      `Z tego boxa pochodzi ${nCards(pulls.length)}.\n\n` +
+      `OK — usuń razem z boxem.\n` +
+      `Anuluj — zostaw w kolekcji jako single z zerowym kosztem.`
+    );
+    if (alsoCards) {
+      const ids = new Set(pulls.map(c => c.id));
+      state.cards = state.cards.filter(c => !ids.has(c.id));
+      state.valuations = state.valuations.filter(v => !ids.has(v.cardId));
+      state.gradings.forEach(g => { g.cardIds = (g.cardIds || []).filter(x => !ids.has(x)); });
+      removedCards = pulls.length;
+    } else {
+      state.cards.forEach(c => { if (c.boxId === id) { c.boxId = ''; c.acq = 'single'; delete c.allocCost; } });
+    }
+  }
+
   state.boxes = state.boxes.filter(x => x.id !== id);
-  state.cards.forEach(c => { if (c.boxId === id) { c.boxId = ''; c.acq = 'single'; delete c.allocCost; } });
   saveState();
   renderAll();
-  toast('Box usunięty');
+  closeModal('box-modal');
+  toast(removedCards ? `Box i ${nCards(removedCards)} usunięte` : 'Box usunięty');
+}
+
+/** Cofa otwarcie boxa — wraca na stan jako sealed. Tylko gdy nie ma pulli. */
+function reopenBox(id) {
+  const box = state.boxes.find(x => x.id === id);
+  if (!box) return;
+  if (state.cards.some(c => c.boxId === id)) {
+    toast('Najpierw usuń karty przypisane do tego boxa', 'err');
+    return;
+  }
+  if (!confirm(`Cofnąć otwarcie „${box.name}"? Box wróci na stan jako nieotwarty sealed.`)) return;
+  box.status = 'sealed';
+  delete box.openedDate;
+  delete box.breakNote;
+  box.bulkValue = 0;
+  saveState();
+  renderAll();
+  toast('Box wrócił na stan jako sealed', 'ok');
 }
 
 /* ============================================================
@@ -3529,6 +3568,7 @@ function bindEvents() {
   });
   el('box-modal').addEventListener('input', updateBoxCalc);
   el('bf-save').addEventListener('click', saveBox);
+  el('bf-delete').addEventListener('click', () => { if (editing.box) deleteBox(editing.box); });
 
   /* Modal: break */
   el('of-box').addEventListener('change', () => { renderPullRows(); updateBreakCalc(); });
