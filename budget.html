@@ -14758,12 +14758,50 @@
     return b().eomInvestmentBridge;
   }
 
+  /* Moduł Karty publikuje swoje podsumowanie do wspólnego magazynu KPI —
+     dzięki temu Salda EOM nie muszą znać jego modelu danych. */
+  function getCardsSnapshot(){
+    try{
+      const kpis=JSON.parse(localStorage.getItem('lifeos_kpis_v1')||'{}');
+      const c=kpis&&kpis.cards;
+      if(!c||typeof c!=='object') return null;
+      return c;
+    }catch{ return null; }
+  }
+
+  function cardsAccount(){
+    return (b().accounts||[]).find(a=>a&&a.source==='cards')||null;
+  }
+
+  /* Konto „Karty" zakładamy raz, gdy moduł Karty ma już jakiekolwiek dane.
+     Skasowane przez użytkownika nie wraca — stąd flaga cardsAccountSeeded. */
+  function ensureCardsEomAccount(){
+    const existing=cardsAccount();
+    if(existing) return existing;
+    if(b().cardsAccountSeeded) return null;
+    const snap=getCardsSnapshot();
+    if(!snap||(!snap.cardCount&&!snap.sealedCount&&!snap.totalAssets)) return null;
+    const acc={id:'a_cards',name:'Karty',kind:'inwestycje',source:'cards'};
+    if(!Array.isArray(b().accounts)) b().accounts=[];
+    b().accounts.push(acc);
+    b().cardsAccountSeeded=true;
+    save(state);
+    return acc;
+  }
+
   function getInvestmentSnapshot(){
     const stats=computePortfolioStats();
+    const cards=getCardsSnapshot();
     const sourceMap={
       portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis,
       reinvestPool:stats.reinvestPool
     };
+    if(cards){
+      sourceMap.cards=num(cards.totalAssets);
+      sourceMap.cardsCollection=num(cards.collectionValue);
+      sourceMap.cardsSealed=num(cards.sealedValue);
+      sourceMap.cardsCost=num(cards.collectionCost);
+    }
     for(const h of stats.holdings){
       if(h.qty<=0.000001) continue;
       const val=h.marketValue!==null?h.marketValue:h.costBasis;
@@ -14777,6 +14815,12 @@
   function getInvestmentBridgeOptions(snapshot){
     const opts=[{value:'portfolio',label:'Cały portfel inwestycyjny'}];
     opts.push({value:'reinvestPool',label:'Pula reinwestycyjna (gotówka maklerska)'});
+    if(snapshot.sourceMap.cards!==undefined){
+      opts.push({value:'cards',label:'Karty: majątek łącznie (kolekcja + sealed)'});
+      opts.push({value:'cardsCollection',label:'Karty: wartość kolekcji'});
+      opts.push({value:'cardsSealed',label:'Karty: sealed w cenie zakupu'});
+      opts.push({value:'cardsCost',label:'Karty: koszt kolekcji (baza)'});
+    }
     const groupPairs=Object.keys(snapshot.sourceMap)
       .filter(k=>k.startsWith('group:'))
       .map(k=>({key:k,name:k.slice(6)}))
@@ -14795,6 +14839,7 @@
   }
 
   function renderEomV2(){
+    ensureCardsEomAccount();
     const ctx=buildEomContext();
     const cur=state.currency;
     const accounts=ctx.accounts;
@@ -14882,7 +14927,7 @@
             <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
             <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
             <div class="eom2-booking-actions">
-              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="Pobierz aktualne z inwestycji">⭳</button>`:''}
+              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="${acc.source==='cards'?'Pobierz aktualną wartość kolekcji kart':'Pobierz aktualne z inwestycji'}">⭳</button>`:''}
               <button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button>
             </div>`;
           groupDiv.appendChild(row);
@@ -14966,6 +15011,14 @@
       const applyMappedInvestmentValue=(accId)=>{
         const bridgeRows=eom2InvestmentBridge().filter(r=>r.targetAccountId===accId);
         if(!bridgeRows.length){
+          const acc=accounts.find(a=>a.id===accId);
+          if(acc&&acc.source==='cards'){
+            if(investmentSnapshot.sourceMap.cards===undefined){
+              alert('Moduł Karty nie ma jeszcze danych. Otwórz zakładkę Karty i dodaj pierwszą pozycję.');
+              return false;
+            }
+            return setInvestmentInput(accId,valueForBridgeSource(investmentSnapshot,'cards'));
+          }
           const currentTotal=investmentSnapshot.stats.hasAnyPrice?investmentSnapshot.stats.totalMarketValue:investmentSnapshot.stats.totalCostBasis;
           return setInvestmentInput(accId,currentTotal);
         }
@@ -15567,12 +15620,25 @@
       if(!grid) return;
       const snapshot=getInvestmentSnapshot();
       const rows=eom2InvestmentBridge();
+      const fillInput=(accId,val)=>{
+        const input=grid.querySelector(`input[data-acc-id="${accId}"]`);
+        if(!input) return false;
+        input.value=String(Number(val.toFixed(2))).replace('.',',');
+        input.dispatchEvent(new Event('input'));
+        return true;
+      };
+      /* Konto „Karty" nigdy nie bierze wartości portfela inwestycyjnego —
+         ma własne źródło, niezależnie od tego, czy mostek jest skonfigurowany. */
+      const cardsAcc=cardsAccount();
+      const cardsMapped=cardsAcc&&rows.some(r=>r.targetAccountId===cardsAcc.id);
+      if(cardsAcc&&!cardsMapped&&snapshot.sourceMap.cards!==undefined){
+        fillInput(cardsAcc.id,valueForBridgeSource(snapshot,'cards'));
+      }
       if(!rows.length){
-        const defaultAcc=(b().accounts||[]).find(acc=>inferAccountType(acc)==='inwestycje');
-        if(!defaultAcc){ alert('Brak konta EOM typu Inwestycje.'); return; }
+        const defaultAcc=(b().accounts||[]).find(acc=>inferAccountType(acc)==='inwestycje'&&acc.source!=='cards');
+        if(!defaultAcc){ if(!cardsAcc) alert('Brak konta EOM typu Inwestycje.'); return; }
         const total=snapshot.stats.hasAnyPrice?snapshot.stats.totalMarketValue:snapshot.stats.totalCostBasis;
-        const input=grid.querySelector(`input[data-acc-id="${defaultAcc.id}"]`);
-        if(input){ input.value=String(Number(total.toFixed(2))).replace('.',','); input.dispatchEvent(new Event('input')); }
+        fillInput(defaultAcc.id,total);
         return;
       }
       const totals={};

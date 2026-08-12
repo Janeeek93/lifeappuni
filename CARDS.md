@@ -12,9 +12,7 @@ node server.js
 Pliki: `cards.html` (widok), `cards.css` (tokeny + komponenty), `cards.js` (logika).
 System komponentów dziedziczy z `styles.css` i `trading.css` — tak samo jak moduł Zakłady.
 
-Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**. Moduł jest samodzielny:
-nie dotyka jeszcze budżetu ani innych sekcji. Wpięcie zakupów w wydatki budżetowe
-to osobny krok, do zrobienia po ustaleniu finalnego kształtu modułu.
+Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 
 ## Co ogarnia
 
@@ -131,6 +129,61 @@ zakupie boxa. Inaczej ten sam koszt liczyłby się dwa razy.
 - **EV produktów** — po kilku breakach widać, który produkt realnie się opłaca ripować,
   a który tylko wygląda atrakcyjnie.
 
+## Połączenie z Budżetem
+
+Moduł Karty jest źródłem prawdy, budżet dostaje odbicie. Wszystko dzieje się
+automatycznie przy każdym zapisie; status i kwoty widać w zakładce **Koszty →
+Połączenie z budżetem**, przełączniki w **Ustawieniach**.
+
+| Zdarzenie w Kartach | Co ląduje w Budżecie |
+|---|---|
+| Zakup boxa | wydatek zmienny: pełny koszt z wysyłką, cłem i prowizją |
+| Zakup karty single | wydatek zmienny: cena + wysyłka + prowizja + cło |
+| Pull z boxa | **nic** — pieniądze wyszły już przy zakupie boxa |
+| Wysyłka do gradingu | wydatek zmienny: opłaty + wysyłka + ubezpieczenie |
+| Koszt ogólny | wydatek zmienny |
+| Sprzedaż karty lub sealed | przychód w miesiącu sprzedaży, kwota **netto** po prowizjach i wysyłce |
+| Karty i sealed na stanie | nie są kosztem, który przepadł — wchodzą do Sald EOM jako aktywo |
+
+Kategoria wydatków dobiera się sama: moduł szuka istniejącej kategorii wydatków
+zmiennych z „kart" w nazwie, a jeśli takiej nie ma, zakłada **Karty piłkarskie**.
+W Ustawieniach można wskazać dowolną inną.
+
+### Synchronizacja jest uzgadniająca, nie doklejająca
+
+Każdy wpis w budżecie ma deterministyczne id (`tx_cards_box_…`, `inc_cards_card_…`),
+więc przy każdym zapisie moduł liczy zbiór docelowy i doprowadza budżet do zgodności:
+dodaje brakujące, poprawia zmienione, kasuje nieaktualne. W praktyce:
+
+- zmiana ceny boxa aktualizuje istniejący wydatek zamiast dokładać drugi,
+- usunięcie karty zabiera jej wpis z budżetu,
+- kilkukrotny zapis niczego nie mnoży,
+- wpisy spoza modułu (własne transakcje, przychody z pracy) są nietykalne.
+
+**Dane demo wyłączają księgowanie**, żeby przykładowa kolekcja nie zaśmieciła
+prawdziwego budżetu. Po wyczyszczeniu modułu przełącznik wraca na „tak".
+
+### Salda EOM — konto „Karty"
+
+Moduł publikuje podsumowanie do wspólnego magazynu `lifeos_kpis_v1` (klucz `cards`),
+a Salda EOM tylko je odczytują — budżet nie musi znać modelu danych kolekcji.
+
+Przy pierwszym wejściu w Salda EOM, gdy moduł Karty ma już jakieś dane, zakłada się
+konto **Karty** typu Inwestycje. Przycisk **Pobierz aktualne** (globalny albo ⭳ przy
+wierszu) wstawia w nie **majątek łącznie**: wycena kolekcji + sealed w cenie zakupu
++ wartość bulku. Konto Karty nigdy nie dostanie wartości portfela inwestycyjnego,
+nawet gdy nie ma skonfigurowanego mostka.
+
+W panelu *Połączenie z inwestycjami* można zmapować dokładniej — dostępne źródła:
+majątek łącznie, sama wartość kolekcji, sam sealed, sama baza kosztowa.
+
+Skasowane konto „Karty" nie wraca (flaga `cardsAccountSeeded` w budżecie).
+Publikowanie wartości do EOM działa niezależnie od księgowania wydatków — można
+wyłączyć jedno, zostawiając drugie.
+
+> Obie zakładki czytają `localStorage` przy wejściu, więc jeśli trzymasz Budżet
+> i Karty otwarte jednocześnie, odśwież Budżet, żeby zobaczyć świeże wpisy.
+
 ## Import, eksport, kopie
 
 - **Import wklejką** (Kolekcja → Import): `zawodnik; produkt; parallel; nakład; cena; wartość dziś; data`.
@@ -144,6 +197,5 @@ zakupie boxa. Inaczej ten sam koszt liczyłby się dwa razy.
 - Nie pobiera cen automatycznie. Wyceny są ręczne — świadomie, bo przy kilkunastu
   kartach miesięczna sesja to kilka minut, a żadne darmowe API nie poda sensownej
   ceny parallela z niskim nakładem.
-- Nie księguje zakupów w module Budżet. To następny krok integracji.
 - Nie obsługuje wielu egzemplarzy tej samej karty w jednym rekordzie — każda karta
   to osobna pozycja, bo każda ma własny stan, wycenę i historię.

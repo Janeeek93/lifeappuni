@@ -21,6 +21,10 @@ const DEFAULT_SETTINGS = {
   sealedDays: 90,          // sealed czekający na decyzję
   targetMargin: 30,
   concAlert: 25,
+  budgetSync: 'on',        // księgowanie w module Budżet
+  budgetIncome: 'on',      // sprzedaże jako przychody
+  budgetCategoryId: '',    // kategoria wydatków zmiennych
+  budgetSyncedAt: null,
   channels: [
     { name: 'Vinted', fee: 0 },
     { name: 'eBay', fee: 11 },
@@ -206,6 +210,15 @@ function saveState() {
     localStorage.setItem(CARDS_KEY, JSON.stringify(state));
   } catch (e) {
     toast('Nie udało się zapisać — pamięć przeglądarki pełna', 'err');
+    return;
+  }
+  /* Budżet i wspólne KPI dostają odbicie po każdym udanym zapisie. */
+  try {
+    const snapshot = compute();
+    publishCardsSummary(snapshot);
+    syncBudget(true);
+  } catch (e) {
+    console.warn('Synchronizacja z budżetem nie powiodła się:', e);
   }
 }
 
@@ -1440,6 +1453,7 @@ function renderCosts() {
   renderCostChart(c);
   renderCashflowChart();
   renderExpenses();
+  renderBudgetPanel();
 }
 
 function renderExpenses() {
@@ -3011,8 +3025,30 @@ function openSettingsModal() {
   setVal('sf-sealed-days', settings.sealedDays);
   setVal('sf-target-margin', settings.targetMargin);
   setVal('sf-conc', settings.concAlert);
+  setVal('sf-budget-sync', settings.budgetSync);
+  setVal('sf-budget-income', settings.budgetIncome);
+  renderBudgetCategoryPicker();
   renderChannelEditor();
   openModal('settings-modal');
+}
+
+function renderBudgetCategoryPicker() {
+  const env = readBudgetEnvelope();
+  const info = el('sf-budget-info');
+  if (!env) {
+    fillSelect('sf-budget-category', [], '', 'Budżet niedostępny');
+    if (info) info.textContent = 'Nie znalazłem danych budżetu — otwórz raz zakładkę Budżet.';
+    return;
+  }
+  const cats = (env.budget.categories || [])
+    .filter(c => c && c.type === 'expense' && c.id !== 'c_fixed')
+    .map(c => ({ value: c.id, label: `${c.emoji ? c.emoji + ' ' : ''}${c.name}` }));
+  const current = settings.budgetCategoryId
+    || (env.budget.categories || []).filter(c => c && c.type === 'expense' && c.id !== 'c_fixed')
+      .find(c => /kart/i.test(String(c.name || '')))?.id
+    || '';
+  fillSelect('sf-budget-category', cats, current, '— utwórz „Karty piłkarskie" —');
+  if (info) info.textContent = `${cats.length} ${plural(cats.length, 'kategoria wydatków zmiennych', 'kategorie wydatków zmiennych', 'kategorii wydatków zmiennych')} w budżecie.`;
 }
 
 function renderChannelEditor() {
@@ -3058,8 +3094,12 @@ function saveSettings() {
   settings.concAlert = Math.max(1, Math.round(num(getVal('sf-conc')) || 25));
   const channels = readChannelEditor();
   if (channels.length) settings.channels = channels;
+  settings.budgetSync = getVal('sf-budget-sync');
+  settings.budgetIncome = getVal('sf-budget-income');
+  settings.budgetCategoryId = getVal('sf-budget-category');
   reallocateAll();
   saveState();
+  if (settings.budgetSync === 'on') syncBudget(false);
   renderAll();
   closeModal('settings-modal');
   toast('Ustawienia zapisane', 'ok');
@@ -3399,10 +3439,11 @@ function loadDemo() {
   state.expenses = expenses;
   state.watchlist = watchlist;
   reallocateAll();
+  settings.budgetSync = 'off';
   saveState();
   renderAll();
   closeModal('settings-modal');
-  toast('Dane demo wczytane — obejrzyj i wyczyść, gdy zaczniesz wpisywać swoje', 'ok');
+  toast('Dane demo wczytane. Księgowanie w budżecie wyłączone, żeby demo go nie zaśmieciło', 'ok');
 }
 
 /* ============================================================
@@ -3539,6 +3580,8 @@ function bindEvents() {
 
   /* Modal: ustawienia */
   el('sf-save-settings').addEventListener('click', saveSettings);
+  el('sf-budget-now').addEventListener('click', () => { syncBudget(false); renderAll(); });
+  el('budget-sync-now').addEventListener('click', () => { syncBudget(false); renderAll(); });
   el('sf-add-channel').addEventListener('click', addChannel);
   el('sf-fetch-fx').addEventListener('click', fetchNbpRates);
   el('sf-export-json').addEventListener('click', exportJson);
@@ -3575,3 +3618,293 @@ function init() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
+
+/* ============================================================
+   Integracja z Budżetem
+   ------------------------------------------------------------
+   Zasada: moduł Karty jest źródłem prawdy, budżet dostaje odbicie.
+   Każdy wpis w budżecie ma deterministyczne id (tx_cards_… / inc_cards_…),
+   więc synchronizacja jest uzgadniająca, nie doklejająca: liczymy zbiór
+   docelowy, po czym dodajemy brakujące, aktualizujemy zmienione i kasujemy
+   te, których już nie ma. Dzięki temu edycja ceny boxa albo usunięcie karty
+   przenosi się do budżetu, a wielokrotne zapisy nie mnożą duplikatów.
+
+   Co idzie do wydatków zmiennych (kwoty ujemne, kategoria „Karty piłkarskie"):
+     • zakup boxa — pełny koszt z wysyłką, cłem i prowizją
+     • zakup karty single (pull z boxa NIE, bo pieniądze wyszły przy boxie)
+     • wysyłka do gradingu
+     • koszt ogólny z zakładki Koszty
+   Co idzie do przychodów:
+     • sprzedaż karty i sprzedaż sealed — kwota netto, czyli to, co realnie
+       zostaje w kieszeni po prowizjach i wysyłce
+   ============================================================ */
+
+const BUDGET_KEY = 'lifeos_budget_v4';
+const KPI_KEY = 'lifeos_kpis_v1';
+const TX_PREFIX = 'tx_cards_';
+const INC_PREFIX = 'inc_cards_';
+
+function readBudgetEnvelope() {
+  let raw = null;
+  try { raw = localStorage.getItem(BUDGET_KEY); } catch { return null; }
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.modules && parsed.modules.budget && typeof parsed.modules.budget === 'object') {
+      return { root: parsed, budget: parsed.modules.budget };
+    }
+    if (parsed.budget && typeof parsed.budget === 'object') return { root: parsed, budget: parsed.budget };
+    return { root: parsed, budget: parsed };
+  } catch { return null; }
+}
+
+function writeBudgetEnvelope(env) {
+  if (!env || !env.root) return false;
+  try { localStorage.setItem(BUDGET_KEY, JSON.stringify(env.root)); return true; }
+  catch { return false; }
+}
+
+/** Znajduje kategorię wskazaną w ustawieniach, a jak jej nie ma — po nazwie. */
+function resolveCardsCategory(budget) {
+  if (!Array.isArray(budget.categories)) budget.categories = [];
+  const expenses = budget.categories.filter(c => c && c.type === 'expense');
+  if (settings.budgetCategoryId) {
+    const picked = expenses.find(c => c.id === settings.budgetCategoryId);
+    if (picked) return picked.id;
+  }
+  const byName = expenses.find(c => /kart/i.test(String(c.name || '')) && c.id !== 'c_fixed');
+  if (byName) return byName.id;
+  const id = 'c_cards_' + Date.now().toString(36);
+  budget.categories.push({ id, name: 'Karty piłkarskie', type: 'expense', emoji: '🃏', budget: 0 });
+  return id;
+}
+
+function budgetAccountId(budget) {
+  if (!Array.isArray(budget.accounts) || !budget.accounts.length) {
+    budget.accounts = [{ id: 'a_main', name: 'Konto główne' }];
+  }
+  return budget.accounts[0].id || 'a_main';
+}
+
+function ensureMonthlyBucket(budget, ym) {
+  if (!budget.monthly || typeof budget.monthly !== 'object') budget.monthly = {};
+  if (!budget.monthly[ym] || typeof budget.monthly[ym] !== 'object') budget.monthly[ym] = { incomes: [], fixed: [] };
+  if (!Array.isArray(budget.monthly[ym].incomes)) budget.monthly[ym].incomes = [];
+  if (!Array.isArray(budget.monthly[ym].fixed)) budget.monthly[ym].fixed = [];
+}
+
+/** Zbiór docelowy wpisów budżetowych wynikający z obecnego stanu modułu. */
+function desiredBudgetEntries(m) {
+  const expenses = [];
+  const incomes = [];
+
+  for (const box of m.boxes) {
+    if (box.date && box.landed > 0.005) {
+      expenses.push({
+        id: `${TX_PREFIX}box_${box.id}`, date: box.date, amount: box.landed,
+        note: `Karty — box: ${box.name}${box.source ? ` (${box.source})` : ''}`
+      });
+    }
+    if (box.sale && box.sale.date) {
+      const net = saleNet(box.sale);
+      if (Math.abs(net) > 0.005) {
+        incomes.push({
+          id: `${INC_PREFIX}box_${box.id}`, date: box.sale.date, amount: net,
+          note: `Karty — sprzedaż sealed: ${box.name}${box.sale.channel ? ` (${box.sale.channel})` : ''}`
+        });
+      }
+    }
+  }
+
+  for (const card of m.cards) {
+    if (card.acq !== 'box' && card.date) {
+      const own = cardOwnCost(card);
+      if (own > 0.005) {
+        expenses.push({
+          id: `${TX_PREFIX}card_${card.id}`, date: card.date, amount: own,
+          note: `Karty — zakup: ${cardTitle(card)}${card.source ? ` (${card.source})` : ''}`
+        });
+      }
+    }
+    if (card.sale && card.sale.date) {
+      const net = card.net;
+      if (Math.abs(net) > 0.005) {
+        incomes.push({
+          id: `${INC_PREFIX}card_${card.id}`, date: card.sale.date, amount: net,
+          note: `Karty — sprzedaż: ${cardTitle(card)}${card.sale.channel ? ` (${card.sale.channel})` : ''}`
+        });
+      }
+    }
+  }
+
+  for (const g of state.gradings) {
+    const total = num(g.feePerCard) * (g.cardIds || []).length + num(g.shipping) + num(g.extra);
+    if (g.date && total > 0.005) {
+      expenses.push({
+        id: `${TX_PREFIX}grad_${g.id}`, date: g.date, amount: total,
+        note: `Karty — grading ${g.company}${g.tier ? ` ${g.tier}` : ''} (${(g.cardIds || []).length} szt.)`
+      });
+    }
+  }
+
+  for (const e of state.expenses) {
+    const amount = num(e.amount);
+    if (e.date && amount > 0.005) {
+      expenses.push({
+        id: `${TX_PREFIX}exp_${e.id}`, date: e.date, amount,
+        note: `Karty — ${EXPENSE_LABEL[e.category] || 'koszt'}${e.note ? `: ${e.note}` : ''}`
+      });
+    }
+  }
+
+  return { expenses, incomes };
+}
+
+/**
+ * Uzgadnia budżet ze stanem modułu.
+ * @param {boolean} silent – bez powiadomień (wywołania automatyczne przy zapisie)
+ * @returns {{ok:boolean, reason?:string, added:number, updated:number, removed:number}}
+ */
+function syncBudget(silent = true) {
+  const result = { ok: false, added: 0, updated: 0, removed: 0 };
+  if (settings.budgetSync !== 'on') { result.reason = 'off'; return result; }
+
+  const env = readBudgetEnvelope();
+  if (!env || !env.budget || typeof env.budget !== 'object') { result.reason = 'noBudget'; return result; }
+  const budget = env.budget;
+  if (!Array.isArray(budget.transactions)) budget.transactions = [];
+
+  const m = compute();
+  const { expenses, incomes } = desiredBudgetEntries(m);
+  const catId = resolveCardsCategory(budget);
+  const accId = budgetAccountId(budget);
+
+  /* --- Wydatki (transakcje) --- */
+  const wanted = new Map(expenses.map(e => [e.id, e]));
+  const kept = [];
+  for (const tx of budget.transactions) {
+    if (!String(tx.id || '').startsWith(TX_PREFIX)) { kept.push(tx); continue; }
+    const want = wanted.get(tx.id);
+    if (!want) { result.removed++; continue; }
+    const amount = -Math.abs(want.amount);
+    if (num(tx.amount) !== amount || tx.date !== want.date || tx.note !== want.note || tx.categoryId !== catId) {
+      result.updated++;
+    }
+    kept.push({ ...tx, date: want.date, amount, categoryId: catId, accountId: tx.accountId || accId, note: want.note, src: 'cards' });
+    wanted.delete(tx.id);
+  }
+  for (const want of wanted.values()) {
+    kept.unshift({
+      id: want.id, date: want.date, amount: -Math.abs(want.amount),
+      categoryId: catId, accountId: accId, note: want.note, src: 'cards'
+    });
+    result.added++;
+  }
+  budget.transactions = kept;
+
+  /* --- Przychody (kubełki miesięczne) --- */
+  const wantIncome = settings.budgetIncome === 'on';
+  const wantedInc = new Map(wantIncome ? incomes.map(i => [i.id, i]) : []);
+  if (!budget.monthly || typeof budget.monthly !== 'object') budget.monthly = {};
+  for (const ym of Object.keys(budget.monthly)) {
+    const bucket = budget.monthly[ym];
+    if (!bucket || !Array.isArray(bucket.incomes)) continue;
+    bucket.incomes = bucket.incomes.filter(inc => {
+      if (!String(inc.id || '').startsWith(INC_PREFIX)) return true;
+      const want = wantedInc.get(inc.id);
+      // Wpis z innego miesiąca niż docelowy trzeba przenieść, więc tu go kasujemy.
+      if (!want || want.date.slice(0, 7) !== ym) { if (!want) result.removed++; return false; }
+      if (num(inc.amount) !== want.amount || inc.note !== want.note) result.updated++;
+      inc.amount = want.amount;
+      inc.note = want.note;
+      inc.src = 'cards';
+      wantedInc.delete(inc.id);
+      return true;
+    });
+  }
+  for (const want of wantedInc.values()) {
+    const ym = want.date.slice(0, 7);
+    ensureMonthlyBucket(budget, ym);
+    budget.monthly[ym].incomes.unshift({ id: want.id, amount: want.amount, note: want.note, src: 'cards' });
+    result.added++;
+  }
+
+  if (!writeBudgetEnvelope(env)) { result.reason = 'writeFailed'; return result; }
+
+  result.ok = true;
+  result.categoryName = (budget.categories.find(c => c.id === catId) || {}).name || '—';
+  settings.budgetSyncedAt = new Date().toISOString();
+  settings.budgetCategoryId = catId;
+  try { localStorage.setItem(CARDS_KEY, JSON.stringify(state)); } catch { /* zapis stanu i tak zaraz nastąpi */ }
+
+  if (!silent) {
+    const parts = [];
+    if (result.added) parts.push(`dodano ${result.added}`);
+    if (result.updated) parts.push(`zaktualizowano ${result.updated}`);
+    if (result.removed) parts.push(`usunięto ${result.removed}`);
+    toast(parts.length ? `Budżet: ${parts.join(', ')}` : 'Budżet już aktualny', 'ok');
+  }
+  return result;
+}
+
+/** Podsumowanie dla innych modułów — stąd Salda EOM biorą wartość kolekcji. */
+function publishCardsSummary(m) {
+  let kpis = {};
+  try { kpis = JSON.parse(localStorage.getItem(KPI_KEY) || '{}') || {}; } catch { kpis = {}; }
+  kpis.cards = {
+    collectionValue: Number(m.heldValue.toFixed(2)),
+    collectionCost: Number(m.heldBasis.toFixed(2)),
+    sealedValue: Number(m.sealedValue.toFixed(2)),
+    bulkValue: Number(m.bulkValue.toFixed(2)),
+    totalAssets: Number(m.assets.toFixed(2)),
+    unrealized: Number(m.unrealized.toFixed(2)),
+    realized: Number(m.realized.toFixed(2)),
+    cardCount: m.held.length,
+    sealedCount: m.sealed.length,
+    updatedAt: new Date().toISOString()
+  };
+  kpis.timestamp = new Date().toISOString();
+  try { localStorage.setItem(KPI_KEY, JSON.stringify(kpis)); } catch { /* brak miejsca — pominięte świadomie */ }
+}
+
+/* --- Panel „Połączenie z budżetem" w zakładce Koszty --- */
+function renderBudgetPanel() {
+  const wrap = el('budget-panel');
+  if (!wrap) return;
+  const env = readBudgetEnvelope();
+  const on = settings.budgetSync === 'on';
+  const { expenses, incomes } = desiredBudgetEntries(M);
+  const catName = (() => {
+    if (!env) return null;
+    const cats = (env.budget.categories || []).filter(c => c && c.type === 'expense');
+    const picked = cats.find(c => c.id === settings.budgetCategoryId) || cats.find(c => /kart/i.test(String(c.name || '')) && c.id !== 'c_fixed');
+    return picked ? picked.name : null;
+  })();
+
+  const expenseTotal = sum(expenses, e => e.amount);
+  const incomeTotal = sum(incomes, i => i.amount);
+  const when = settings.budgetSyncedAt ? new Date(settings.budgetSyncedAt) : null;
+
+  wrap.innerHTML = `
+    <div class="cd-calc-strip">
+      <div class="cell"><div class="k">Status</div><div class="v ${on && env ? 'pos' : 'warn'}">${!env ? 'brak budżetu' : on ? 'włączone' : 'wyłączone'}</div></div>
+      <div class="cell"><div class="k">Kategoria</div><div class="v" style="font-size:12px">${esc(catName || 'Karty piłkarskie')}</div></div>
+      <div class="cell"><div class="k">Wydatki</div><div class="v">${expenses.length}</div></div>
+      <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
+      <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
+      <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.assets)}</div></div>
+      <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
+    </div>
+    ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
+      <span class="material-symbols-outlined">link_off</span>
+      <span>Nie znalazłem danych budżetu w tej przeglądarce. Otwórz raz <strong>Budżet</strong>, żeby moduł się zainicjował, i wróć tutaj.</span>
+    </div>` : ''}
+    <div class="cd-note" style="margin-top:10px">
+      Do <strong>wydatków zmiennych</strong> trafiają zakupy boxów i kart single, wysyłki do gradingu oraz koszty ogólne —
+      pull z boxa nie, bo pieniądze wyszły już przy jego zakupie. Do <strong>przychodów</strong> idzie kwota netto ze sprzedaży,
+      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — ich wartość wchodzi do
+      <strong>Salda EOM</strong> jako aktywo (konto „Karty”, przycisk „Pobierz aktualne”).
+    </div>`;
+}
