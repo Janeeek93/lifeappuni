@@ -209,8 +209,11 @@
           <section class="tc-card" style="margin-top:14px">
             <div class="cd-toolbar">
               <div class="cd-filters">
-                <input type="search" id="f-q" class="wide" placeholder="Szukaj: zawodnik, produkt, parallel, notatka…" />
-                <select id="f-status">
+                <div class="cd-search">
+                  <span class="material-symbols-outlined">search</span>
+                  <input type="search" id="f-q" placeholder="Szukaj: zawodnik, produkt, parallel, notatka…" />
+                </div>
+                <select id="f-status" title="Status pozycji">
                   <option value="active">Aktywne (na stanie)</option>
                   <option value="held">Tylko trzymane</option>
                   <option value="listed">Wystawione</option>
@@ -218,8 +221,23 @@
                   <option value="sold">Sprzedane</option>
                   <option value="all">Wszystkie</option>
                 </select>
-                <select id="f-player"></select>
-                <select id="f-product"></select>
+                <button class="btn-small ghost" id="f-toggle" aria-expanded="false" aria-controls="f-advanced">
+                  <span class="material-symbols-outlined">tune</span>Filtry
+                  <span class="cd-filter-badge" id="f-badge" hidden>0</span>
+                  <span class="material-symbols-outlined chev">expand_more</span>
+                </button>
+              </div>
+              <div class="cd-filters">
+                <span class="cd-count" id="f-count">—</span>
+                <button class="btn-small" id="btn-import"><span class="material-symbols-outlined">content_paste</span>Import</button>
+                <button class="btn-small primary" id="btn-add-card-2"><span class="material-symbols-outlined">add</span>Dodaj kartę</button>
+              </div>
+            </div>
+
+            <div class="cd-adv" id="f-advanced" hidden>
+              <label class="cd-adv-field"><span>Zawodnik</span><select id="f-player"></select></label>
+              <label class="cd-adv-field"><span>Produkt</span><select id="f-product"></select></label>
+              <label class="cd-adv-field"><span>Typ karty</span>
                 <select id="f-type">
                   <option value="">Każdy typ</option>
                   <option value="auto">Autograf</option>
@@ -230,6 +248,8 @@
                   <option value="raw">Raw</option>
                   <option value="oneofone">1/1</option>
                 </select>
+              </label>
+              <label class="cd-adv-field"><span>Źródło</span>
                 <select id="f-origin">
                   <option value="">Każde źródło</option>
                   <option value="box">Z boxa</option>
@@ -237,13 +257,10 @@
                   <option value="trade">Wymiana</option>
                   <option value="gift">Prezent</option>
                 </select>
-              </div>
-              <div class="cd-filters">
-                <span class="cd-count" id="f-count">—</span>
-                <button class="btn-small" id="btn-import"><span class="material-symbols-outlined">content_paste</span>Import</button>
-                <button class="btn-small primary" id="btn-add-card-2"><span class="material-symbols-outlined">add</span>Dodaj kartę</button>
-              </div>
+              </label>
             </div>
+
+            <div class="cd-chips" id="f-chips" hidden></div>
             <div class="cd-sub-bar" id="col-summary"></div>
             <div class="tc-tbl-wrap" id="collection-wrap"></div>
           </section>

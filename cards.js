@@ -904,6 +904,7 @@ function renderCollection() {
   setKpi('c-stale', String(stale), stale ? `próg ${nDays(settings.valDays)}` : 'wszystko świeże', stale ? 'warn' : '');
 
   el('f-count').textContent = `${rows.length} / ${M.cards.length}`;
+  renderFilterChips();
   const shownValue = sum(rows, c => (c.sold ? c.net : c.marketValue));
   const shownBasis = sum(rows, c => c.basis);
   el('col-summary').innerHTML = rows.length
@@ -969,6 +970,80 @@ function renderCollection() {
 }
 
 const ACQ_LABEL = { single: 'Single', box: 'Pull z boxa', trade: 'Wymiana', gift: 'Prezent' };
+
+/* Filtry zaawansowane (poza wyszukiwarką i statusem) — one liczą się do odznaki. */
+const ADV_FILTERS = [
+  { key: 'player', id: 'f-player', label: 'Zawodnik' },
+  { key: 'product', id: 'f-product', label: 'Produkt' },
+  { key: 'type', id: 'f-type', label: 'Typ' },
+  { key: 'origin', id: 'f-origin', label: 'Źródło' }
+];
+
+function selectedLabel(id) {
+  const sel = el(id);
+  if (!sel || sel.selectedIndex < 0) return '';
+  return sel.options[sel.selectedIndex].textContent.trim();
+}
+
+function activeAdvCount() {
+  return ADV_FILTERS.filter(f => colFilters[f.key]).length;
+}
+
+/** Pigułki pokazują, co realnie zawęża widok — bez zaglądania w rozwinięty panel. */
+function renderFilterChips() {
+  const wrap = el('f-chips');
+  const chips = [];
+  if (colFilters.q.trim()) {
+    chips.push({ key: 'q', label: 'Szukaj', value: colFilters.q.trim() });
+  }
+  if (colFilters.status !== 'active') {
+    chips.push({ key: 'status', label: 'Status', value: selectedLabel('f-status') });
+  }
+  for (const f of ADV_FILTERS) {
+    if (colFilters[f.key]) chips.push({ key: f.key, label: f.label, value: selectedLabel(f.id) });
+  }
+
+  const badge = el('f-badge');
+  const n = activeAdvCount();
+  badge.hidden = n === 0;
+  badge.textContent = n;
+
+  if (!chips.length) { wrap.hidden = true; wrap.innerHTML = ''; return; }
+  wrap.hidden = false;
+  wrap.innerHTML = `<span class="lbl">Filtry</span>` + chips.map(c => `
+    <span class="cd-chip" title="${esc(c.label)}: ${esc(c.value)}">
+      <span class="v">${esc(c.value)}</span>
+      <button type="button" title="Usuń filtr" onclick="clearFilter('${c.key}')"><span class="material-symbols-outlined">close</span></button>
+    </span>`).join('')
+    + `<button type="button" class="clear-all" onclick="clearFilters()">Wyczyść wszystko</button>`;
+}
+
+function clearFilter(key) {
+  if (key === 'q') { colFilters.q = ''; el('f-q').value = ''; }
+  else if (key === 'status') { colFilters.status = 'active'; el('f-status').value = 'active'; }
+  else {
+    colFilters[key] = '';
+    const f = ADV_FILTERS.find(x => x.key === key);
+    if (f && el(f.id)) el(f.id).value = '';
+  }
+  renderCollection();
+}
+
+function clearFilters() {
+  colFilters = { q: '', status: 'active', player: '', product: '', type: '', origin: '' };
+  el('f-q').value = '';
+  el('f-status').value = 'active';
+  ADV_FILTERS.forEach(f => { if (el(f.id)) el(f.id).value = ''; });
+  renderCollection();
+}
+
+function toggleAdvancedFilters(force) {
+  const panel = el('f-advanced');
+  const btn = el('f-toggle');
+  const open = force === undefined ? panel.hidden : force;
+  panel.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+}
 
 function median(arr) {
   if (!arr.length) return 0;
@@ -3527,6 +3602,7 @@ function bindEvents() {
   el('btn-add-card-2').addEventListener('click', () => openCardModal(null));
   el('btn-import').addEventListener('click', openImportModal);
   el('f-q').addEventListener('input', e => { colFilters.q = e.target.value; renderCollection(); });
+  el('f-toggle').addEventListener('click', () => toggleAdvancedFilters());
   ['status', 'player', 'product', 'type', 'origin'].forEach(k => {
     el('f-' + k).addEventListener('change', e => { colFilters[k] = e.target.value; renderCollection(); });
   });

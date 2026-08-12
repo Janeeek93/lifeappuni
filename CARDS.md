@@ -191,6 +191,8 @@ wyłączyć jedno, zostawiając drugie.
 - **Eksport CSV** — pełna tabela kart z policzoną bazą kosztową, wyceną, P&L i ROI.
   Średnik jako separator i BOM, więc Excel otwiera bez kombinowania.
 - **Eksport / import JSON** — kompletny backup modułu.
+- **Backup całej aplikacji** (Dashboard → Eksport / Import) obejmuje też Karty —
+  cały moduł siedzi w pliku pod kluczem `cards`, razem z historią wycen i ustawieniami.
 
 ## Czego moduł jeszcze nie robi
 

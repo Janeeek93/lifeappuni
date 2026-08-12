@@ -334,6 +334,7 @@ const TRADING_STORAGE_KEY = 'lifeos_trading_v2';
 const TRADING_SETTINGS_KEY = 'lifeos_trading_settings_v1';
 const BETTING_STORAGE_KEY = 'lifeos_betting_v1';
 const BETTING_SETTINGS_KEY = 'lifeos_betting_settings_v1';
+const CARDS_STORAGE_KEY = 'lifeos_cards_v1';
 const DEF_WORKHUB_MEMBERS = [
   { id:'m1', name:'Pracownik 1', role:'', color:'#6366f1', profileNote:'', specialties:[] },
   { id:'m2', name:'Pracownik 2', role:'', color:'#f59e0b', profileNote:'', specialties:[] },
@@ -1677,6 +1678,7 @@ exportBtn.onclick = ()=>{
     trading_settings: JSON.parse(localStorage.getItem(TRADING_SETTINGS_KEY) || 'null'),
     betting_state: JSON.parse(localStorage.getItem(BETTING_STORAGE_KEY) || 'null'),
     betting_settings: JSON.parse(localStorage.getItem(BETTING_SETTINGS_KEY) || 'null'),
+    cards: JSON.parse(localStorage.getItem(CARDS_STORAGE_KEY) || 'null'),
     inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
     inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
     inv_cal_goal: localStorage.getItem(INV_CAL_GOAL_KEY) || null,
@@ -1752,6 +1754,10 @@ importInput.onchange = (e)=>{
       if(Object.prototype.hasOwnProperty.call(data,'betting_settings')){
         if(data.betting_settings && typeof data.betting_settings==='object') localStorage.setItem(BETTING_SETTINGS_KEY, JSON.stringify(data.betting_settings));
         else if(data.betting_settings===null) localStorage.removeItem(BETTING_SETTINGS_KEY);
+      }
+      if(Object.prototype.hasOwnProperty.call(data,'cards')){
+        if(data.cards && typeof data.cards==='object') localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(data.cards));
+        else if(data.cards===null) localStorage.removeItem(CARDS_STORAGE_KEY);
       }
       if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
       if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);

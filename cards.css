@@ -595,6 +595,9 @@ body[data-page="cards"] .tc-kpi .v { font-size: 20px; }
   background: var(--tc-surface);
 }
 .cd-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* styles.css nadaje wszystkim polom width:100% — tu potrzebujemy szerokości
+   od treści, inaczej każdy filtr zajmuje osobny wiersz. */
 .cd-filters select,
 .cd-filters input {
   height: 30px;
@@ -605,11 +608,142 @@ body[data-page="cards"] .tc-kpi .v { font-size: 20px; }
   font-size: 12px;
   color: var(--tc-ink);
   font-family: inherit;
+  width: auto;
   min-width: 0;
+  max-width: 210px;
 }
 .cd-filters select:focus,
 .cd-filters input:focus { outline: none; border-color: var(--tc-accent); }
-.cd-filters input.wide { min-width: 190px; }
+
+.cd-search { position: relative; display: flex; align-items: center; }
+.cd-search .material-symbols-outlined {
+  position: absolute;
+  left: 8px;
+  font-size: 16px;
+  color: var(--tc-muted-2);
+  pointer-events: none;
+}
+.cd-search input {
+  width: 280px;
+  max-width: 100%;
+  padding-left: 29px;
+}
+@media (max-width: 700px) { .cd-search input { width: 100%; } .cd-search { flex: 1; } }
+
+#f-toggle .chev { transition: transform .15s; font-size: 16px; }
+#f-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+#f-toggle[aria-expanded="true"] { border-color: var(--tc-accent); color: var(--tc-accent-ink); }
+.cd-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--tc-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rozwijany panel filtrów zaawansowanych */
+.cd-adv {
+  display: grid;
+  /* Górny limit szerokości — bez niego cztery selecty rozciągają się na pół ekranu */
+  grid-template-columns: repeat(auto-fit, minmax(170px, 230px));
+  justify-content: start;
+  gap: 10px 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--tc-line);
+  background: linear-gradient(180deg, #fbfcfe 0%, var(--tc-surface) 100%);
+  animation: cd-adv-in .14s ease-out;
+}
+.cd-adv[hidden] { display: none; }
+@keyframes cd-adv-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.cd-adv-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cd-adv-field > span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+}
+.cd-adv-field select {
+  width: 100%;
+  max-width: none;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--tc-line);
+  border-radius: 7px;
+  background: var(--tc-card);
+  font-size: 12.5px;
+  color: var(--tc-ink);
+  font-family: inherit;
+}
+.cd-adv-field select:focus { outline: none; border-color: var(--tc-accent); box-shadow: 0 0 0 3px rgba(0, 87, 192, .12); }
+
+/* Aktywne filtry jako zdejmowalne pigułki */
+.cd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--tc-line);
+  background: var(--tc-card);
+}
+.cd-chips[hidden] { display: none; }
+.cd-chips .lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tc-muted);
+  margin-right: 2px;
+}
+.cd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  background: var(--tc-accent-tint);
+  border: 1px solid rgba(0, 87, 192, .22);
+  color: var(--tc-accent-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.cd-chip .v { overflow: hidden; text-overflow: ellipsis; }
+.cd-chip button {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  opacity: .65;
+  line-height: 1;
+}
+.cd-chip button:hover { opacity: 1; }
+.cd-chip button .material-symbols-outlined { font-size: 14px; }
+.cd-chips .clear-all {
+  border: 0;
+  background: transparent;
+  color: var(--tc-muted);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-left: 2px;
+}
+.cd-chips .clear-all:hover { color: var(--tc-neg); }
 .cd-count { font-size: 11.5px; color: var(--tc-muted); font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 /* ============================================================
