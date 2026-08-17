@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Karty – LifeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="trading.css">
+  <link rel="stylesheet" href="cards.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%230f172a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='32' cy='23' r='10'/%3E%3Cpath d='M14 51c0-9.94 8.06-18 18-18s18 8.06 18 18'/%3E%3C/svg%3E">
+</head>
+<body data-page="cards">
+<div class="layout">
+  <aside class="sidebar" aria-label="Główna nawigacja">
+    <div class="sidebar__header">
+      <span class="sidebar__emoji">🧭</span>
+      <span class="sidebar__brand">LifeOS</span>
+    </div>
+    <nav class="sidebar__nav" aria-label="Sekcje LifeOS">
+      <ul class="sidebar__list">
+        <li class="sidebar__item"><a class="sidebar__link" href="index.html" data-page="dashboard"><span class="material-symbols-outlined">dashboard</span><span class="sidebar__label">Dashboard</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="budget.html" data-page="budget"><span class="material-symbols-outlined">payments</span><span class="sidebar__label">Budżet</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="tasks.html" data-page="tasks"><span class="material-symbols-outlined">assignment</span><span class="sidebar__label">Zadania</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="trainings.html" data-page="trainings"><span class="material-symbols-outlined">trending_up</span><span class="sidebar__label">Progres</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="fuel.html" data-page="fuel"><span class="material-symbols-outlined">local_gas_station</span><span class="sidebar__label">Paliwo</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="loan.html" data-page="loan"><span class="material-symbols-outlined">credit_card</span><span class="sidebar__label">Kredyt</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="inventory.html" data-page="inventory"><span class="material-symbols-outlined">inventory_2</span><span class="sidebar__label">Magazyn</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="cards.html" data-page="cards"><span class="material-symbols-outlined">style</span><span class="sidebar__label">Karty</span></a></li>
+        <li class="sidebar__item"><a class="sidebar__link" href="house.html" data-page="house"><span class="material-symbols-outlined">construction</span><span class="sidebar__label">Budowa</span></a></li>
+      </ul>
+    </nav>
+    <div class="sidebar__footer">
+      <strong>Twoje centrum dowodzenia życiem.</strong>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="site-header" role="banner">
+      <div class="site-header__left">
+        <div class="site-header__greeting">
+          <h1 class="site-header__title">Karty piłkarskie</h1>
+        </div>
+      </div>
+      <div class="site-header__right tc-hdr-actions" aria-label="Akcje strony">
+        <span class="tc-rate-badge" id="fx-badge">kursy —</span>
+        <div class="tc-hdr-sep"></div>
+        <button class="tc-hdr-btn" id="btn-valuation"><span class="material-symbols-outlined">update</span>Sesja wyceny</button>
+        <button class="tc-hdr-btn" id="btn-settings"><span class="material-symbols-outlined">tune</span>Ustawienia</button>
+        <button class="tc-hdr-btn" id="btn-export"><span class="material-symbols-outlined">download</span>CSV</button>
+        <button class="tc-hdr-btn" id="btn-new-box"><span class="material-symbols-outlined">inventory_2</span>Box</button>
+        <button class="tc-hdr-btn primary" id="btn-new-card"><span class="material-symbols-outlined">add</span>Karta</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <main class="content-main stack">
+
+        <div class="trade-tabs" role="tablist">
+          <button class="trade-tab active" data-tab="overview"><span class="material-symbols-outlined">insights</span>Przegląd</button>
+          <button class="trade-tab" data-tab="collection"><span class="material-symbols-outlined">style</span>Kolekcja<span class="cd-tab-count" id="cnt-collection">0</span></button>
+          <button class="trade-tab" data-tab="boxes"><span class="material-symbols-outlined">package_2</span>Boxy i breaki<span class="cd-tab-count" id="cnt-boxes">0</span></button>
+          <button class="trade-tab" data-tab="sales"><span class="material-symbols-outlined">sell</span>Sprzedaż<span class="cd-tab-count" id="cnt-sales">0</span></button>
+          <button class="trade-tab" data-tab="grading"><span class="material-symbols-outlined">workspace_premium</span>Grading<span class="cd-tab-count" id="cnt-grading">0</span></button>
+          <button class="trade-tab" data-tab="costs"><span class="material-symbols-outlined">receipt_long</span>Koszty</button>
+          <button class="trade-tab" data-tab="analytics"><span class="material-symbols-outlined">query_stats</span>Analityka</button>
+          <button class="trade-tab" data-tab="watchlist"><span class="material-symbols-outlined">visibility</span>Watchlista<span class="cd-tab-count" id="cnt-watch">0</span></button>
+        </div>
+
+        <!-- ══════════════════ PRZEGLĄD ══════════════════ -->
+        <div class="tab-panel active" id="tab-overview">
+
+          <div class="cd-hero">
+            <div class="cd-hero-main">
+              <div class="cd-hero-label">Wartość kolekcji</div>
+              <div class="cd-hero-value" id="hero-value">—</div>
+              <div class="cd-hero-sub">
+                <span class="cd-hero-chip" id="hero-unreal">—</span>
+                <span class="cd-hero-chip" id="hero-mom">—</span>
+              </div>
+              <div class="cd-hero-note" id="hero-note">—</div>
+            </div>
+            <div class="cd-hero-stats">
+              <div class="cd-hero-stat"><div class="k">Koszt kolekcji</div><div class="v" id="hero-cost">—</div><div class="n" id="hero-cost-n">—</div></div>
+              <div class="cd-hero-stat"><div class="k">Zysk zrealizowany</div><div class="v" id="hero-real">—</div><div class="n" id="hero-real-n">—</div></div>
+              <div class="cd-hero-stat"><div class="k">Kapitał w grze</div><div class="v" id="hero-capital">—</div><div class="n" id="hero-capital-n">—</div></div>
+              <div class="cd-hero-stat"><div class="k">Wynik łączny</div><div class="v" id="hero-total">—</div><div class="n" id="hero-total-n">—</div></div>
+            </div>
+          </div>
+
+          <div class="cd-section" style="margin-top:22px">
+            <span class="ico"><span class="material-symbols-outlined">bolt</span></span>
+            <h2>Szybkie akcje</h2>
+            <span class="line"></span>
+          </div>
+          <div class="cd-quick">
+            <button class="cd-quick-btn" id="q-add-box">
+              <span class="ico"><span class="material-symbols-outlined">package_2</span></span>
+              <span><span class="t">Kupiłem box</span><span class="s">Sealed do ripu lub flipu</span></span>
+            </button>
+            <button class="cd-quick-btn" id="q-open-box">
+              <span class="ico"><span class="material-symbols-outlined">auto_awesome</span></span>
+              <span><span class="t">Otwieram box</span><span class="s">Zapisz pully i policz break</span></span>
+            </button>
+            <button class="cd-quick-btn" id="q-add-card">
+              <span class="ico"><span class="material-symbols-outlined">add_card</span></span>
+              <span><span class="t">Kupiłem single</span><span class="s">Vinted, eBay, Cardmarket…</span></span>
+            </button>
+            <button class="cd-quick-btn" id="q-valuation">
+              <span class="ico"><span class="material-symbols-outlined">update</span></span>
+              <span><span class="t">Sesja wyceny</span><span class="s">Miesięczny mark-to-market</span></span>
+            </button>
+            <button class="cd-quick-btn" id="q-sell">
+              <span class="ico"><span class="material-symbols-outlined">sell</span></span>
+              <span><span class="t">Sprzedałem</span><span class="s">Rozlicz kartę lub box</span></span>
+            </button>
+            <button class="cd-quick-btn" id="q-expense">
+              <span class="ico"><span class="material-symbols-outlined">receipt_long</span></span>
+              <span><span class="t">Koszt ogólny</span><span class="s">Toplo, koperty, wysyłka…</span></span>
+            </button>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">query_stats</span></span>
+            <h2>Kluczowe wskaźniki</h2>
+            <span class="desc" id="kpi-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <div class="tc-grid-kpi" id="kpi-rail">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Wynik łączny</span><span class="v mono" id="k-total">—</span><span class="n" id="k-total-n">—</span></div>
+            <div class="tc-kpi"><span class="k">ROI kolekcji</span><span class="v mono" id="k-roi">—</span><span class="n" id="k-roi-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Zrealizowane ROI</span><span class="v mono" id="k-roi-real">—</span><span class="n" id="k-roi-real-n">—</span></div>
+            <div class="tc-kpi"><span class="k">EV z boxów</span><span class="v mono" id="k-box-ev">—</span><span class="n" id="k-box-ev-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Trafione breaki</span><span class="v mono" id="k-box-hit">—</span><span class="n" id="k-box-hit-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Śr. czas do sprzedaży</span><span class="v mono" id="k-dts">—</span><span class="n" id="k-dts-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Koszty ogólne</span><span class="v mono" id="k-overhead">—</span><span class="n" id="k-overhead-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Gotówka netto</span><span class="v mono" id="k-cash">—</span><span class="n" id="k-cash-n">—</span></div>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">monitoring</span></span>
+            <h2>Wartość kolekcji w czasie</h2>
+            <span class="line"></span>
+          </div>
+          <div class="tc-row-2">
+            <section class="tc-card">
+              <div class="tc-eq-head">
+                <div class="tc-eq-title">
+                  <h3>Wycena vs koszt</h3>
+                  <span class="net mono" id="eq-net">—</span>
+                  <span class="delta mono" id="eq-delta">—</span>
+                </div>
+                <div class="seg" id="eq-range">
+                  <button data-range="90">3M</button>
+                  <button data-range="180">6M</button>
+                  <button data-range="365" class="active">1R</button>
+                  <button data-range="all">ALL</button>
+                </div>
+              </div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-equity"></canvas></div></div>
+            </section>
+
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Do zrobienia</h3><span class="sub" id="todo-sub">—</span></div>
+              <div class="tc-card-body pad-sm" id="todo-list"></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">trending_up</span></span>
+            <h2>Ruchy wyceny</h2>
+            <span class="desc">Od ostatniej sesji wyceny</span>
+            <span class="line"></span>
+          </div>
+          <div class="tc-row-2">
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Największe wzrosty</h3><span class="sub">Top 8</span></div>
+              <div id="movers-up"></div>
+            </section>
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Największe spadki</h3><span class="sub">Top 8</span></div>
+              <div id="movers-down"></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">emoji_events</span></span>
+            <h2>Najcenniejsze karty</h2>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="top-cards-wrap"></div>
+          </section>
+        </div>
+
+        <!-- ══════════════════ KOLEKCJA ══════════════════ -->
+        <div class="tab-panel" id="tab-collection">
+          <div class="tc-grid-kpi" id="col-kpi">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Wycena</span><span class="v mono" id="c-value">—</span><span class="n" id="c-value-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Koszt (baza)</span><span class="v mono" id="c-cost">—</span><span class="n" id="c-cost-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Niezrealizowany P&L</span><span class="v mono" id="c-unreal">—</span><span class="n" id="c-unreal-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Karty</span><span class="v mono" id="c-count">—</span><span class="n" id="c-count-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Śr. wartość karty</span><span class="v mono" id="c-avg">—</span><span class="n" id="c-avg-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Wyceny nieaktualne</span><span class="v mono" id="c-stale">—</span><span class="n" id="c-stale-n">—</span></div>
+          </div>
+
+          <section class="tc-card" style="margin-top:14px">
+            <div class="cd-toolbar">
+              <div class="cd-filters">
+                <div class="cd-search">
+                  <span class="material-symbols-outlined">search</span>
+                  <input type="search" id="f-q" placeholder="Szukaj: zawodnik, produkt, parallel, notatka…" />
+                </div>
+                <select id="f-status" title="Status pozycji">
+                  <option value="active">Aktywne (na stanie)</option>
+                  <option value="held">Tylko trzymane</option>
+                  <option value="listed">Wystawione</option>
+                  <option value="grading">W gradingu</option>
+                  <option value="sold">Sprzedane</option>
+                  <option value="all">Wszystkie</option>
+                </select>
+                <button class="btn-small ghost" id="f-toggle" aria-expanded="false" aria-controls="f-advanced">
+                  <span class="material-symbols-outlined">tune</span>Filtry
+                  <span class="cd-filter-badge" id="f-badge" hidden>0</span>
+                  <span class="material-symbols-outlined chev">expand_more</span>
+                </button>
+              </div>
+              <div class="cd-filters">
+                <span class="cd-count" id="f-count">—</span>
+                <button class="btn-small" id="btn-import"><span class="material-symbols-outlined">content_paste</span>Import</button>
+                <button class="btn-small primary" id="btn-add-card-2"><span class="material-symbols-outlined">add</span>Dodaj kartę</button>
+              </div>
+            </div>
+
+            <div class="cd-adv" id="f-advanced" hidden>
+              <label class="cd-adv-field"><span>Zawodnik</span><select id="f-player"></select></label>
+              <label class="cd-adv-field"><span>Produkt</span><select id="f-product"></select></label>
+              <label class="cd-adv-field"><span>Typ karty</span>
+                <select id="f-type">
+                  <option value="">Każdy typ</option>
+                  <option value="auto">Autograf</option>
+                  <option value="patch">Patch / mem</option>
+                  <option value="numbered">Numerowana</option>
+                  <option value="rookie">Rookie</option>
+                  <option value="graded">Gradowana</option>
+                  <option value="raw">Raw</option>
+                  <option value="oneofone">1/1</option>
+                </select>
+              </label>
+              <label class="cd-adv-field"><span>Źródło</span>
+                <select id="f-origin">
+                  <option value="">Każde źródło</option>
+                  <option value="box">Z boxa</option>
+                  <option value="single">Single</option>
+                  <option value="trade">Wymiana</option>
+                  <option value="gift">Prezent</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="cd-chips" id="f-chips" hidden></div>
+            <div class="cd-sub-bar" id="col-summary"></div>
+            <div class="tc-tbl-wrap" id="collection-wrap"></div>
+          </section>
+        </div>
+
+        <!-- ══════════════════ BOXY I BREAKI ══════════════════ -->
+        <div class="tab-panel" id="tab-boxes">
+          <div class="tc-grid-kpi">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Wynik breaków</span><span class="v mono" id="b-pnl">—</span><span class="n" id="b-pnl-n">—</span></div>
+            <div class="tc-kpi"><span class="k">ROI breaków</span><span class="v mono" id="b-roi">—</span><span class="n" id="b-roi-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Trafione</span><span class="v mono" id="b-hit">—</span><span class="n" id="b-hit-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Śr. zwrot z boxa</span><span class="v mono" id="b-avg">—</span><span class="n" id="b-avg-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Wynik flipów</span><span class="v mono" id="b-flip">—</span><span class="n" id="b-flip-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Sealed na stanie</span><span class="v mono" id="b-sealed">—</span><span class="n" id="b-sealed-n">—</span></div>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">inventory_2</span></span>
+            <h2>Sealed na stanie</h2>
+            <span class="desc">Boxy kupione, jeszcze nieotwarte i niesprzedane</span>
+            <span class="line"></span>
+            <span class="act"><button class="btn-small primary" id="btn-add-box-2"><span class="material-symbols-outlined">add</span>Dodaj box</button></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="sealed-wrap"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">auto_awesome</span></span>
+            <h2>Wyniki breaków</h2>
+            <span class="desc" id="breaks-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <div class="cd-breaks" id="breaks-wrap"></div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">analytics</span></span>
+            <h2>EV produktów</h2>
+            <span class="desc">Który produkt realnie się opłaca ripować</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="product-ev-wrap"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">local_shipping</span></span>
+            <h2>Flipy sealed</h2>
+            <span class="desc">Kupione za granicą, sprzedane bez otwierania</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="flips-wrap"></div>
+          </section>
+        </div>
+
+        <!-- ══════════════════ SPRZEDAŻ ══════════════════ -->
+        <div class="tab-panel" id="tab-sales">
+          <div class="tc-grid-kpi">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Zysk zrealizowany</span><span class="v mono" id="s-pnl">—</span><span class="n" id="s-pnl-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Przychód brutto</span><span class="v mono" id="s-gross">—</span><span class="n" id="s-gross-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Prowizje i wysyłka</span><span class="v mono" id="s-fees">—</span><span class="n" id="s-fees-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Marża netto</span><span class="v mono" id="s-margin">—</span><span class="n" id="s-margin-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Win rate</span><span class="v mono" id="s-wr">—</span><span class="n" id="s-wr-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Sell-through</span><span class="v mono" id="s-sto">—</span><span class="n" id="s-sto-n">—</span></div>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">storefront</span></span>
+            <h2>Wystawione</h2>
+            <span class="desc">Pipeline sprzedażowy — co czeka na kupca</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="listed-wrap"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">receipt</span></span>
+            <h2>Historia sprzedaży</h2>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="cd-toolbar">
+              <div class="cd-filters">
+                <select id="f-sale-channel"><option value="">Każdy kanał</option></select>
+                <select id="f-sale-period">
+                  <option value="all">Cały okres</option>
+                  <option value="30">30 dni</option>
+                  <option value="90">90 dni</option>
+                  <option value="365">12 miesięcy</option>
+                  <option value="ytd">Ten rok</option>
+                </select>
+                <select id="f-sale-kind">
+                  <option value="">Karty i boxy</option>
+                  <option value="card">Tylko karty</option>
+                  <option value="box">Tylko sealed</option>
+                </select>
+              </div>
+              <div class="cd-filters"><span class="cd-count" id="f-sale-count">—</span></div>
+            </div>
+            <div class="tc-tbl-wrap" id="sales-wrap"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">hub</span></span>
+            <h2>Kanały sprzedaży</h2>
+            <span class="desc">Gdzie realnie zostaje najwięcej w kieszeni</span>
+            <span class="line"></span>
+          </div>
+          <div class="tc-row-2">
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Wynik wg kanału</h3></div>
+              <div id="channel-rank"></div>
+            </section>
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Marża netto wg kanału</h3></div>
+              <div class="cd-an-body"><div class="cd-chart-box short"><canvas id="chart-channel"></canvas></div></div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ══════════════════ GRADING ══════════════════ -->
+        <div class="tab-panel" id="tab-grading">
+          <div class="tc-grid-kpi">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Wynik gradingu</span><span class="v mono" id="g-pnl">—</span><span class="n" id="g-pnl-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Koszt gradingu</span><span class="v mono" id="g-cost">—</span><span class="n" id="g-cost-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Przyrost wartości</span><span class="v mono" id="g-uplift">—</span><span class="n" id="g-uplift-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Karty w drodze</span><span class="v mono" id="g-open">—</span><span class="n" id="g-open-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Śr. ocena</span><span class="v mono" id="g-avg">—</span><span class="n" id="g-avg-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Gem rate</span><span class="v mono" id="g-gem">—</span><span class="n" id="g-gem-n">—</span></div>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">workspace_premium</span></span>
+            <h2>Wysyłki do gradingu</h2>
+            <span class="line"></span>
+            <span class="act"><button class="btn-small primary" id="btn-add-grading"><span class="material-symbols-outlined">add</span>Nowa wysyłka</button></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="grading-wrap"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">calculate</span></span>
+            <h2>Kalkulator opłacalności</h2>
+            <span class="desc">Czy warto wysłać tę kartę?</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-card-body">
+              <div class="ff-grid cols-4">
+                <div class="ff"><label>Wartość raw (zł)</label><input id="gc-raw" inputmode="decimal" value="200" /></div>
+                <div class="ff"><label>Koszt gradingu / kartę (zł)</label><input id="gc-cost" inputmode="decimal" value="120" /></div>
+                <div class="ff"><label>Wartość przy 10 (zł)</label><input id="gc-v10" inputmode="decimal" value="900" /></div>
+                <div class="ff"><label>Wartość przy 9 (zł)</label><input id="gc-v9" inputmode="decimal" value="320" /></div>
+                <div class="ff"><label>Wartość przy 8 i niżej (zł)</label><input id="gc-v8" inputmode="decimal" value="170" /></div>
+                <div class="ff"><label>Szansa na 10 (%)</label><input id="gc-p10" inputmode="decimal" value="25" /></div>
+                <div class="ff"><label>Szansa na 9 (%)</label><input id="gc-p9" inputmode="decimal" value="45" /></div>
+                <div class="ff"><label>Prowizja przy sprzedaży (%)</label><input id="gc-fee" inputmode="decimal" value="12" /></div>
+              </div>
+              <div class="cd-calc-strip" style="margin-top:12px" id="gc-out"></div>
+              <div class="cd-note" style="margin-top:10px">
+                Kalkulator liczy wartość oczekiwaną: <strong>EV = Σ (szansa × wartość netto po prowizji) − koszt gradingu</strong>,
+                i porównuje ją ze sprzedażą raw od ręki. Szansa na 8 i niżej dopełnia się do 100%.
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══════════════════ KOSZTY ══════════════════ -->
+        <div class="tab-panel" id="tab-costs">
+          <div class="tc-grid-kpi">
+            <div class="tc-kpi" data-tone="accent"><span class="k">Koszty łącznie</span><span class="v mono" id="e-total">—</span><span class="n" id="e-total-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Zakup kart</span><span class="v mono" id="e-cards">—</span><span class="n" id="e-cards-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Zakup boxów</span><span class="v mono" id="e-boxes">—</span><span class="n" id="e-boxes-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Wysyłka i cło</span><span class="v mono" id="e-ship">—</span><span class="n" id="e-ship-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Prowizje</span><span class="v mono" id="e-fees">—</span><span class="n" id="e-fees-n">—</span></div>
+            <div class="tc-kpi"><span class="k">Grading i materiały</span><span class="v mono" id="e-other">—</span><span class="n" id="e-other-n">—</span></div>
+          </div>
+
+          <div class="tc-row-2" style="margin-top:14px">
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Struktura kosztów</h3><span class="sub">Wszystko, co wyszło z portfela</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-costs"></canvas></div></div>
+            </section>
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Przepływy miesięczne</h3><span class="sub">Wydatki vs wpływy</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-cashflow"></canvas></div></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">account_balance</span></span>
+            <h2>Połączenie z budżetem</h2>
+            <span class="desc">Zakupy w wydatkach zmiennych, sprzedaże w przychodach, kolekcja w Saldach EOM</span>
+            <span class="line"></span>
+            <span class="act"><button class="btn-small" id="budget-sync-now"><span class="material-symbols-outlined">sync</span>Synchronizuj teraz</button></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-card-body" id="budget-panel"></div>
+          </section>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">receipt_long</span></span>
+            <h2>Koszty ogólne</h2>
+            <span class="desc">Materiały, przesyłki, subskrypcje, dojazdy — wszystko poza ceną towaru</span>
+            <span class="line"></span>
+            <span class="act"><button class="btn-small primary" id="btn-add-expense"><span class="material-symbols-outlined">add</span>Dodaj koszt</button></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="expenses-wrap"></div>
+          </section>
+        </div>
+
+        <!-- ══════════════════ ANALITYKA ══════════════════ -->
+        <div class="tab-panel" id="tab-analytics">
+          <div class="cd-section" style="margin-top:0">
+            <span class="ico"><span class="material-symbols-outlined">pie_chart</span></span>
+            <h2>Struktura portfela</h2>
+            <span class="desc" id="an-desc">—</span>
+            <span class="line"></span>
+          </div>
+          <div class="cd-an-grid">
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Ekspozycja na zawodników</h3><span class="sub">Udział w wartości kolekcji</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-players"></canvas></div></div>
+              <div class="cd-stat-strip" id="conc-strip"></div>
+            </section>
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Podział wg produktu</h3></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-products"></canvas></div></div>
+            </section>
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Typ karty</h3><span class="sub">Wartość wg rzadkości</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-types"></canvas></div></div>
+            </section>
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Wiek pozycji</h3><span class="sub">Ile leży w kolekcji</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-aging"></canvas></div></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">show_chart</span></span>
+            <h2>Wyniki w czasie</h2>
+            <span class="line"></span>
+          </div>
+          <div class="cd-an-grid">
+            <section class="tc-card cd-an wide">
+              <div class="tc-card-head"><h3>Kapitał, wycena i wynik narastająco</h3><span class="sub">Zainwestowana gotówka vs wartość majątku</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box tall"><canvas id="chart-portfolio"></canvas></div></div>
+              <div class="cd-stat-strip" id="recon-strip"></div>
+              <div class="cd-note" style="margin:12px 14px">
+                <strong>Rozbicie wyniku:</strong> zysk zrealizowany ze sprzedaży + zysk na papierze z kart trzymanych
+                + wartość bulku − koszt breaków nieprzypisany do żadnej karty − koszty ogólne.
+                Suma tych pozycji równa się wynikowi łącznemu co do grosza — jeśli kolumna „różnica" nie jest zerowa, coś w danych się nie spina.
+              </div>
+            </section>
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Zysk zrealizowany miesięcznie</h3></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-monthly-pnl"></canvas></div></div>
+            </section>
+            <section class="tc-card cd-an">
+              <div class="tc-card-head"><h3>Rozkład ROI sprzedaży</h3><span class="sub">Ile transakcji w którym przedziale</span></div>
+              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-roi-dist"></canvas></div></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">leaderboard</span></span>
+            <h2>Rankingi</h2>
+            <span class="line"></span>
+          </div>
+          <div class="tc-row-2">
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Zawodnicy — wynik narastający</h3><span class="sub">Zrealizowany + niezrealizowany</span></div>
+              <div id="rank-players"></div>
+            </section>
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Produkty — wynik narastający</h3></div>
+              <div id="rank-products"></div>
+            </section>
+          </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">gavel</span></span>
+            <h2>Podatki i płynność</h2>
+            <span class="desc">Sprzedaż rzeczy ruchomych po 6 miesiącach od nabycia jest poza PIT</span>
+            <span class="line"></span>
+          </div>
+          <div class="tc-row-2">
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Próg 6 miesięcy</h3><span class="sub" id="tax-sub">—</span></div>
+              <div class="cd-stat-strip" id="tax-strip"></div>
+              <div class="tc-tbl-wrap" id="tax-wrap"></div>
+            </section>
+            <section class="tc-card">
+              <div class="tc-card-head"><h3>Płynność kolekcji</h3><span class="sub">Rotacja i martwy stock</span></div>
+              <div class="cd-stat-strip" id="liq-strip"></div>
+              <div class="cd-an-body"><div class="cd-chart-box short"><canvas id="chart-dts"></canvas></div></div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ══════════════════ WATCHLISTA ══════════════════ -->
+        <div class="tab-panel" id="tab-watchlist">
+          <div class="cd-section" style="margin-top:0">
+            <span class="ico"><span class="material-symbols-outlined">visibility</span></span>
+            <h2>Karty na celowniku</h2>
+            <span class="desc">Cel zakupowy i dzisiejsza cena rynkowa</span>
+            <span class="line"></span>
+            <span class="act"><button class="btn-small primary" id="btn-add-watch"><span class="material-symbols-outlined">add</span>Dodaj cel</button></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-tbl-wrap" id="watch-wrap"></div>
+          </section>
+          <div class="cd-note" style="margin-top:12px">
+            <strong>Po co to?</strong> Watchlista trzyma dyscyplinę zakupową: zapisujesz cenę, przy której karta jest dla Ciebie okazją,
+            zanim emocje z pojedynczej aukcji podniosą Ci próg. Kolumna <strong>Luka</strong> pokazuje, ile brakuje do Twojego celu.
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: KARTA ══════════════════ -->
+<div class="tc-modal-ov" id="card-modal">
+  <div class="tc-modal wide">
+    <div class="tc-modal-head"><h3 id="card-modal-title">Nowa karta</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="cd-fieldset">
+        <span class="lg">Identyfikacja</span>
+        <div class="ff-grid cols-4">
+          <div class="ff span-2"><label>Zawodnik *</label><input id="cf-player" list="dl-players" placeholder="np. Jude Bellingham" /></div>
+          <div class="ff"><label>Klub / reprezentacja</label><input id="cf-team" list="dl-teams" placeholder="np. Real Madryt" /></div>
+          <div class="ff"><label>Sezon</label><input id="cf-season" list="dl-seasons" placeholder="np. 2024/25" /></div>
+          <div class="ff span-2"><label>Produkt / set</label><input id="cf-product" list="dl-products" placeholder="np. Topps Chrome UCL" /></div>
+          <div class="ff"><label>Producent</label><input id="cf-brand" list="dl-brands" placeholder="Topps / Panini…" /></div>
+          <div class="ff"><label>Nr karty</label><input id="cf-number" placeholder="np. 118" /></div>
+          <div class="ff span-2"><label>Parallel / wariant</label><input id="cf-parallel" list="dl-parallels" placeholder="np. Gold Refractor" /></div>
+          <div class="ff"><label>Nakład (/X)</label><input id="cf-run" inputmode="numeric" placeholder="np. 50" /><div class="hint">Puste = nienumerowana</div></div>
+          <div class="ff"><label>Numer egzemplarza</label><input id="cf-serial" placeholder="np. 12" /></div>
+        </div>
+        <div class="cd-check-row">
+          <label class="cd-check rc"><input type="checkbox" id="cf-rookie" />Rookie (RC)</label>
+          <label class="cd-check auto"><input type="checkbox" id="cf-auto" />Autograf</label>
+          <label class="cd-check patch"><input type="checkbox" id="cf-patch" />Patch / memorabilia</label>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Stan i grading</span>
+        <div class="ff-grid cols-4">
+          <div class="ff"><label>Stan (raw)</label><select id="cf-condition">
+            <option value="NM-MT">NM-MT</option><option value="NM">NM</option><option value="EX">EX</option><option value="VG">VG</option><option value="Uszkodzona">Uszkodzona</option>
+          </select></div>
+          <div class="ff"><label>Firma gradingowa</label><select id="cf-grade-company">
+            <option value="">Raw (bez gradingu)</option><option value="PSA">PSA</option><option value="BGS">BGS</option><option value="SGC">SGC</option><option value="CGC">CGC</option>
+          </select></div>
+          <div class="ff"><label>Ocena</label><input id="cf-grade-value" inputmode="decimal" placeholder="np. 10" /></div>
+          <div class="ff"><label>Nr certyfikatu</label><input id="cf-grade-cert" placeholder="opcjonalnie" /></div>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Nabycie</span>
+        <div class="ff-grid cols-4">
+          <div class="ff"><label>Sposób nabycia</label><select id="cf-acq">
+            <option value="single">Zakup single</option><option value="box">Pull z boxa</option><option value="trade">Wymiana</option><option value="gift">Prezent / gratis</option>
+          </select></div>
+          <div class="ff span-2" id="cf-box-wrap" style="display:none"><label>Z którego boxa</label><select id="cf-box"></select></div>
+          <div class="ff"><label>Data nabycia</label><input id="cf-date" type="date" /></div>
+          <div class="ff"><label>Cena</label><input id="cf-price" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Waluta</label><select id="cf-currency"><option>PLN</option><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+          <div class="ff"><label>Kurs</label><input id="cf-fx" inputmode="decimal" /><div class="hint">Podstawia się z ustawień</div></div>
+          <div class="ff"><label>Wysyłka (w walucie)</label><input id="cf-shipping" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Prowizja / ochrona kupującego</label><input id="cf-fees" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Cło / VAT (zł)</label><input id="cf-customs" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Kanał zakupu</label><input id="cf-source" list="dl-channels" placeholder="Vinted, eBay, Cardmarket…" /></div>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Wycena i notatki</span>
+        <div class="ff-grid cols-4">
+          <div class="ff"><label>Wartość rynkowa dziś (zł)</label><input id="cf-market" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Data wyceny</label><input id="cf-market-date" type="date" /></div>
+          <div class="ff span-2"><label>Źródło wyceny</label><input id="cf-market-source" list="dl-val-sources" placeholder="np. eBay sold, Cardmarket, 130point" /></div>
+          <div class="ff span-all"><label>Notatki</label><textarea id="cf-notes" placeholder="Stan rogów, powód zakupu, teza inwestycyjna…"></textarea></div>
+        </div>
+        <div class="cd-calc-strip" id="cf-calc"></div>
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small" id="cf-save-next" style="display:none">Zapisz i dodaj kolejną</button>
+      <button class="btn-small primary" id="cf-save">Zapisz kartę</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: BOX ══════════════════ -->
+<div class="tc-modal-ov" id="box-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="box-modal-title">Nowy box</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="cd-fieldset">
+        <span class="lg">Produkt</span>
+        <div class="ff-grid cols-3">
+          <div class="ff span-2"><label>Nazwa produktu *</label><input id="bf-name" list="dl-box-products" placeholder="np. Topps Chrome UCL 2024/25" /></div>
+          <div class="ff"><label>Producent</label><input id="bf-brand" list="dl-brands" placeholder="Topps / Panini…" /></div>
+          <div class="ff"><label>Sezon</label><input id="bf-season" list="dl-seasons" placeholder="np. 2024/25" /></div>
+          <div class="ff"><label>Format</label><select id="bf-format">
+            <option value="hobby">Hobby box</option><option value="blaster">Blaster</option><option value="mega">Mega box</option>
+            <option value="tin">Tin / puszka</option><option value="retail">Retail / saszetki</option><option value="case">Case</option><option value="other">Inne</option>
+          </select></div>
+          <div class="ff"><label>Plan</label><select id="bf-purpose">
+            <option value="rip">Do otwarcia (rip)</option><option value="flip">Do odsprzedaży (flip)</option><option value="undecided">Jeszcze nie wiem</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="cd-fieldset">
+        <span class="lg">Zakup</span>
+        <div class="ff-grid cols-3">
+          <div class="ff"><label>Data zakupu</label><input id="bf-date" type="date" /></div>
+          <div class="ff"><label>Cena (za sztukę)</label><input id="bf-price" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Sztuk</label><input id="bf-qty" inputmode="numeric" value="1" /><div class="hint">Więcej niż 1 utworzy osobne rekordy</div></div>
+          <div class="ff"><label>Waluta</label><select id="bf-currency"><option>PLN</option><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+          <div class="ff"><label>Kurs</label><input id="bf-fx" inputmode="decimal" /></div>
+          <div class="ff"><label>Wysyłka (w walucie)</label><input id="bf-shipping" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Cło / VAT (zł)</label><input id="bf-customs" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Inne opłaty (w walucie)</label><input id="bf-fees" inputmode="decimal" placeholder="0,00" /></div>
+          <div class="ff"><label>Sklep / źródło</label><input id="bf-source" list="dl-channels" placeholder="np. Kartenhaus DE" /></div>
+          <div class="ff span-all"><label>Notatki</label><textarea id="bf-notes" placeholder="Promocja, kod rabatowy, stan opakowania…"></textarea></div>
+        </div>
+        <div class="cd-calc-strip" id="bf-calc"></div>
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" id="bf-delete" style="display:none;margin-right:auto;color:var(--tc-neg)"><span class="material-symbols-outlined">delete</span>Usuń box</button>
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="bf-save">Zapisz box</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: OTWARCIE BOXA ══════════════════ -->
+<div class="tc-modal-ov" id="open-modal">
+  <div class="tc-modal wide">
+    <div class="tc-modal-head"><h3>Otwieram box</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-3">
+        <div class="ff span-2"><label>Który box</label><select id="of-box"></select></div>
+        <div class="ff"><label>Data otwarcia</label><input id="of-date" type="date" /></div>
+      </div>
+      <div class="cd-calc-strip" id="of-calc"></div>
+      <div class="cd-fieldset">
+        <span class="lg">Karty wyciągnięte z boxa</span>
+        <div id="of-pulls"></div>
+        <div><button class="btn-small" id="of-add-pull"><span class="material-symbols-outlined">add</span>Dodaj kartę</button></div>
+      </div>
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Wartość reszty / bulku (zł)</label><input id="of-bulk" inputmode="decimal" placeholder="0,00" /><div class="hint">Basicy i inserty, których nie wpisujesz pojedynczo</div></div>
+        <div class="ff span-2"><label>Notatka z breaka</label><input id="of-note" placeholder="np. słaby box, 2 autografy niskiej klasy" /></div>
+      </div>
+      <div class="cd-note">
+        Karty dopisane tutaj trafiają do kolekcji z <strong>rozliczonym kosztem</strong> — koszt boxa rozkłada się na pully
+        zgodnie z metodą wybraną w ustawieniach. Dzięki temu ROI pojedynczej karty i ROI całego breaka zawsze się spinają.
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="of-save">Zamknij break</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: SPRZEDAŻ ══════════════════ -->
+<div class="tc-modal-ov" id="sell-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="sell-modal-title">Sprzedaż</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-3" id="sf-picker-wrap">
+        <div class="ff span-all"><label>Co sprzedajesz</label><select id="sf-item"></select></div>
+      </div>
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Data sprzedaży</label><input id="sf-date" type="date" /></div>
+        <div class="ff"><label>Cena sprzedaży</label><input id="sf-price" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Waluta</label><select id="sf-currency"><option>PLN</option><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+        <div class="ff"><label>Kurs</label><input id="sf-fx" inputmode="decimal" /></div>
+        <div class="ff"><label>Kanał</label><select id="sf-channel"></select></div>
+        <div class="ff"><label>Prowizja (%)</label><input id="sf-fee-pct" inputmode="decimal" placeholder="0" /><div class="hint">Podstawia się z kanału</div></div>
+        <div class="ff"><label>Prowizja kwotowa (w walucie)</label><input id="sf-fee-abs" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Koszt wysyłki po mojej stronie (zł)</label><input id="sf-shipping" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Dopłata kupującego do wysyłki (zł)</label><input id="sf-shipping-in" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff span-all"><label>Notatka</label><input id="sf-note" placeholder="np. kupiec z Niemiec, szybka płatność" /></div>
+      </div>
+      <div class="cd-calc-strip" id="sf-calc"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="sf-save">Zaksięguj sprzedaż</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: WYSTAWIENIE ══════════════════ -->
+<div class="tc-modal-ov" id="list-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3>Wystaw na sprzedaż</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Cena wystawienia (zł)</label><input id="lf-price" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Data wystawienia</label><input id="lf-date" type="date" /></div>
+        <div class="ff"><label>Kanał</label><select id="lf-channel"></select></div>
+      </div>
+      <div class="cd-calc-strip" id="lf-calc"></div>
+      <div class="cd-note">Wystawienie nie zmienia wyceny — służy do pilnowania pipeline'u i wieku ogłoszeń.</div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small" id="lf-unlist" style="display:none">Zdejmij z aukcji</button>
+      <button class="btn-small primary" id="lf-save">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: SESJA WYCENY ══════════════════ -->
+<div class="tc-modal-ov" id="val-modal">
+  <div class="tc-modal wide">
+    <div class="tc-modal-head">
+      <div>
+        <h3>Sesja wyceny</h3>
+        <div style="font-size:11.5px;color:var(--tc-muted);margin-top:3px">Wpisz aktualne ceny — puste pola zostają bez zmian</div>
+      </div>
+      <button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Data wyceny</label><input id="vf-date" type="date" /></div>
+        <div class="ff"><label>Źródło</label><input id="vf-source" list="dl-val-sources" placeholder="np. eBay sold last 30d" /></div>
+        <div class="ff"><label>Pokaż</label><select id="vf-filter">
+          <option value="stale">Tylko nieaktualne</option><option value="all">Wszystkie na stanie</option><option value="top">Top 25 wartości</option>
+        </select></div>
+      </div>
+      <div class="cd-calc-strip" id="vf-calc"></div>
+      <section class="tc-card" style="box-shadow:none">
+        <div class="cd-val-list" id="vf-list"></div>
+      </section>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small" id="vf-carry">Przenieś resztę bez zmian</button>
+      <button class="btn-small primary" id="vf-save">Zapisz wyceny</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: GRADING ══════════════════ -->
+<div class="tc-modal-ov" id="grading-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="grading-modal-title">Wysyłka do gradingu</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-3">
+        <div class="ff"><label>Firma</label><select id="gf-company"><option>PSA</option><option>BGS</option><option>SGC</option><option>CGC</option></select></div>
+        <div class="ff"><label>Poziom usługi</label><input id="gf-tier" placeholder="np. Value Bulk" /></div>
+        <div class="ff"><label>Data wysyłki</label><input id="gf-date" type="date" /></div>
+        <div class="ff"><label>Opłata za kartę (zł)</label><input id="gf-fee" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Wysyłka tam i z powrotem (zł)</label><input id="gf-shipping" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Ubezpieczenie / inne (zł)</label><input id="gf-extra" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff span-all"><label>Karty w wysyłce</label><div id="gf-cards" style="max-height:220px;overflow:auto;border:1px solid var(--tc-line);border-radius:8px;padding:8px"></div></div>
+      </div>
+      <div class="cd-calc-strip" id="gf-calc"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="gf-save">Zapisz wysyłkę</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: POWRÓT Z GRADINGU ══════════════════ -->
+<div class="tc-modal-ov" id="grading-return-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3>Powrót z gradingu</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-2">
+        <div class="ff"><label>Data powrotu</label><input id="grf-date" type="date" /></div>
+        <div class="ff"><label>Źródło nowych wycen</label><input id="grf-source" list="dl-val-sources" placeholder="np. eBay sold graded" /></div>
+      </div>
+      <div id="grf-list"></div>
+      <div class="cd-note">Wpisz ocenę i nową wartość rynkową dla każdej karty. Koszt gradingu dolicza się do bazy kosztowej automatycznie.</div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="grf-save">Zapisz wyniki</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: KOSZT ══════════════════ -->
+<div class="tc-modal-ov" id="expense-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="expense-modal-title">Koszt ogólny</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-2">
+        <div class="ff"><label>Data</label><input id="ef-date" type="date" /></div>
+        <div class="ff"><label>Kategoria</label><select id="ef-category">
+          <option value="supplies">Materiały (toplo, sleeves, koperty)</option>
+          <option value="shipping">Wysyłka</option>
+          <option value="storage">Przechowywanie / segregatory</option>
+          <option value="tools">Narzędzia i subskrypcje</option>
+          <option value="travel">Dojazdy, giełdy, wejściówki</option>
+          <option value="insurance">Ubezpieczenie</option>
+          <option value="other">Inne</option>
+        </select></div>
+        <div class="ff"><label>Kwota (zł)</label><input id="ef-amount" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Powtarzalny miesięcznie?</label><select id="ef-recurring"><option value="no">Nie</option><option value="yes">Tak</option></select></div>
+        <div class="ff span-all"><label>Opis</label><input id="ef-note" placeholder="np. 100x toploader + koperty bąbelkowe" /></div>
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="ef-save">Zapisz koszt</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: WATCHLISTA ══════════════════ -->
+<div class="tc-modal-ov" id="watch-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="watch-modal-title">Cel zakupowy</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff-grid cols-2">
+        <div class="ff"><label>Zawodnik / karta *</label><input id="wf-name" list="dl-players" placeholder="np. Lamine Yamal RC" /></div>
+        <div class="ff"><label>Produkt / parallel</label><input id="wf-product" list="dl-products" placeholder="np. Topps Chrome UCL Gold /50" /></div>
+        <div class="ff"><label>Cena docelowa (zł)</label><input id="wf-target" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Cena rynkowa dziś (zł)</label><input id="wf-market" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Priorytet</label><select id="wf-priority"><option value="high">Wysoki</option><option value="mid" selected>Średni</option><option value="low">Niski</option></select></div>
+        <div class="ff"><label>Budżet maksymalny (zł)</label><input id="wf-budget" inputmode="decimal" placeholder="opcjonalnie" /></div>
+        <div class="ff span-all"><label>Teza / notatka</label><textarea id="wf-note" placeholder="Dlaczego ta karta? Co ma się wydarzyć, żeby urosła?"></textarea></div>
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small primary" id="wf-save">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: IMPORT ══════════════════ -->
+<div class="tc-modal-ov" id="import-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3>Import kart</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="cd-note">
+        Jedna karta na linię, pola rozdzielone średnikiem:<br>
+        <strong>zawodnik; produkt; parallel; nakład; cena zakupu; wartość dziś; data</strong><br>
+        Wystarczy sam zawodnik — reszta jest opcjonalna. Przykład:<br>
+        <code style="font-size:11px">Lamine Yamal; Topps Chrome UCL 2024/25; Gold Refractor; 50; 420; 690; 2026-03-14</code>
+      </div>
+      <div class="ff"><label>Dane</label><textarea id="imf-data" style="min-height:190px" placeholder="Jude Bellingham; Topps Chrome UCL; Refractor; ; 150; 210; 2026-02-01"></textarea></div>
+      <div class="ff"><label>Przypisz do boxa (opcjonalnie)</label><select id="imf-box"></select></div>
+      <div id="imf-preview"></div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Anuluj</button>
+      <button class="btn-small" id="imf-check">Sprawdź</button>
+      <button class="btn-small primary" id="imf-save">Importuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MODAL: USTAWIENIA ══════════════════ -->
+<div class="tc-modal-ov" id="settings-modal">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3>Ustawienia modułu</h3><button class="row-btn" data-close><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="cd-fieldset">
+        <span class="lg">Kursy walut</span>
+        <div class="ff-grid cols-3">
+          <div class="ff"><label>EUR → PLN</label><input id="sf-eur" inputmode="decimal" /></div>
+          <div class="ff"><label>USD → PLN</label><input id="sf-usd" inputmode="decimal" /></div>
+          <div class="ff"><label>GBP → PLN</label><input id="sf-gbp" inputmode="decimal" /></div>
+        </div>
+        <div>
+          <button class="btn-small" id="sf-fetch-fx"><span class="material-symbols-outlined">sync</span>Pobierz z NBP</button>
+          <span class="cd-count" id="sf-fx-info" style="margin-left:8px">—</span>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Rozliczanie breaków</span>
+        <div class="ff-grid cols-2">
+          <div class="ff"><label>Podział kosztu boxa na karty</label><select id="sf-alloc">
+            <option value="value">Proporcjonalnie do wartości karty</option>
+            <option value="equal">Po równo na każdą kartę</option>
+            <option value="none">Karty z zerowym kosztem</option>
+          </select><div class="hint">
+            „Proporcjonalnie" to standard księgowy — droga karta bierze na siebie większą część ceny boxa. Skutek uboczny:
+            wszystkie karty z jednego boxa mają wtedy identyczne ROI (równe mnożnikowi breaka), więc ROI pojedynczego pulla
+            nic nie mówi. Jeśli chcesz porównywać karty z różnych boxów po ROI, wybierz „po równo".
+          </div></div>
+          <div class="ff"><label>Czy bulk pomniejsza koszt pulli?</label><select id="sf-bulk-offset">
+            <option value="yes">Tak — najpierw odliczam bulk</option>
+            <option value="no">Nie — bulk to osobny zysk</option>
+          </select></div>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Progi i przypomnienia</span>
+        <div class="ff-grid cols-3">
+          <div class="ff"><label>Wycena nieaktualna po (dni)</label><input id="sf-val-days" inputmode="numeric" /></div>
+          <div class="ff"><label>Martwy stock po (dni)</label><input id="sf-aging" inputmode="numeric" /></div>
+          <div class="ff"><label>Stare ogłoszenie po (dni)</label><input id="sf-listing-days" inputmode="numeric" /></div>
+          <div class="ff"><label>Sealed do decyzji po (dni)</label><input id="sf-sealed-days" inputmode="numeric" /></div>
+          <div class="ff"><label>Docelowa marża (%)</label><input id="sf-target-margin" inputmode="numeric" /></div>
+          <div class="ff"><label>Alert koncentracji (%)</label><input id="sf-conc" inputmode="numeric" /><div class="hint">Gdy jeden zawodnik przekroczy ten udział</div></div>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Połączenie z budżetem</span>
+        <div class="ff-grid cols-3">
+          <div class="ff"><label>Księguj w budżecie</label><select id="sf-budget-sync">
+            <option value="on">Tak — automatycznie</option>
+            <option value="off">Nie</option>
+          </select></div>
+          <div class="ff"><label>Sprzedaże jako przychody</label><select id="sf-budget-income">
+            <option value="on">Tak</option>
+            <option value="off">Nie</option>
+          </select></div>
+          <div class="ff"><label>Kategoria wydatków zmiennych</label><select id="sf-budget-category"></select>
+            <div class="hint" id="sf-budget-info">—</div></div>
+        </div>
+        <div><button class="btn-small" id="sf-budget-now"><span class="material-symbols-outlined">sync</span>Synchronizuj teraz</button></div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Kanały sprzedaży i prowizje</span>
+        <div id="sf-channels"></div>
+        <div><button class="btn-small" id="sf-add-channel"><span class="material-symbols-outlined">add</span>Dodaj kanał</button></div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">Dane</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-small" id="sf-export-json"><span class="material-symbols-outlined">download</span>Eksport JSON</button>
+          <button class="btn-small" id="sf-import-json"><span class="material-symbols-outlined">upload</span>Import JSON</button>
+          <button class="btn-small" id="sf-demo"><span class="material-symbols-outlined">science</span>Wgraj dane demo</button>
+          <button class="btn-small danger" id="sf-reset"><span class="material-symbols-outlined">delete</span>Wyczyść moduł</button>
+          <input type="file" id="sf-file" accept="application/json" style="display:none" />
+        </div>
+        <div class="hint" style="font-size:11px;color:var(--tc-muted)">Wszystko siedzi w localStorage tej przeglądarki pod kluczem <code>lifeos_cards_v1</code>.</div>
+      </div>
+    </div>
+    <div class="tc-modal-foot">
+      <button class="btn-small ghost" data-close>Zamknij</button>
+      <button class="btn-small primary" id="sf-save-settings">Zapisz ustawienia</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DRAWER: SZCZEGÓŁY KARTY ══════════════════ -->
+<div class="cd-drawer-ov" id="card-drawer">
+  <div class="cd-drawer">
+    <div class="cd-drawer-head">
+      <div>
+        <h3 id="dr-title">—</h3>
+        <div class="s" id="dr-sub">—</div>
+      </div>
+      <button class="row-btn" data-close-drawer><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="cd-drawer-body" id="dr-body"></div>
+    <div class="cd-drawer-foot" id="dr-foot"></div>
+  </div>
+</div>
+
+<datalist id="dl-players"></datalist>
+<datalist id="dl-teams"></datalist>
+<datalist id="dl-products"></datalist>
+<datalist id="dl-box-products"></datalist>
+<datalist id="dl-brands"></datalist>
+<datalist id="dl-parallels"></datalist>
+<datalist id="dl-seasons"></datalist>
+<datalist id="dl-channels"></datalist>
+<datalist id="dl-val-sources"></datalist>
+
+<div class="tc-toasts" id="toasts"></div>
+
+<script>
+  (function activateSidebarLink() {
+    const currentPage = document.body.dataset.page;
+    if (!currentPage) return;
+    document.querySelectorAll('.sidebar__link[data-page]').forEach((link) => {
+      if (link.dataset.page === currentPage) {
+        link.classList.add('sidebar__link--active');
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.classList.remove('sidebar__link--active');
+        link.removeAttribute('aria-current');
+      }
+    });
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="cards.js"></script>
+</body>
+</html>
