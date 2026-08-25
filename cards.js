@@ -677,16 +677,60 @@ function renderOverview() {
   renderTopCards();
 }
 
+/** Rozbicie sprzedaży na karty single i sealed — jedna miara dla obu stron. */
+function saleSplit(list) {
+  const withDays = list.filter(sale => sale.days != null);
+  const cost = sum(list, sale => sale.basis);
+  const pnl = sum(list, sale => sale.pnl);
+  return {
+    count: list.length,
+    cost,
+    value: sum(list, sale => sale.net),
+    pnl,
+    roi: cost > 0 ? pnl / cost * 100 : null,
+    avgDays: withDays.length ? sum(withDays, sale => sale.days) / withDays.length : null
+  };
+}
+
 function renderCapitalFunnel() {
   const soldBasis = sum(M.sales, sale => sale.basis);
   const otherCost = Math.max(0, M.cashOut - soldBasis - M.heldBasis - M.sealedValue);
   const otherValue = M.bulkValue;
+
+  /* Karty i boxy sprzedają się inaczej — rozbicie pokazuje, która noga
+     biznesu realnie zarabia. Podwiersze mają sens dopiero wtedy, gdy jest
+     co porównywać, więc przy jednej nodze zostaje sam wiersz zbiorczy. */
+  const cardSplit = saleSplit(M.sales.filter(sale => sale.kind === 'card'));
+  const boxSplit = saleSplit(M.sales.filter(sale => sale.kind === 'box'));
+  const bothSides = cardSplit.count > 0 && boxSplit.count > 0;
+  const soldSub = `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`;
+  const splitNote = (() => {
+    if (bothSides) {
+      if (cardSplit.roi === null || boxSplit.roi === null) return '';
+      if (Math.abs(cardSplit.roi - boxSplit.roi) < 0.05) return ' · obie nogi po równo';
+      return cardSplit.roi > boxSplit.roi ? ' · lepiej idą karty' : ' · lepiej idą boxy';
+    }
+    if (cardSplit.count) return ' · same karty';
+    if (boxSplit.count) return ' · same boxy';
+    return '';
+  })();
+
+  const splitRow = (split, label, icon) => ({
+    tone: 'realized', icon, label,
+    sub: `${split.count} ${plural(split.count, 'sprzedaż', 'sprzedaże', 'sprzedaży')}${split.avgDays != null ? ` · śr. ${Math.round(split.avgDays)} dni do sprzedaży` : ''}`,
+    cost: split.cost, value: split.value, pnl: split.pnl, paper: false, child: true
+  });
+
   const rows = [
     {
       tone: 'realized', icon: 'check_circle', label: 'Sprzedany towar',
-      sub: `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`,
+      sub: soldSub + splitNote,
       cost: soldBasis, value: M.cashIn, pnl: M.cashIn - soldBasis, paper: false
     },
+    ...(bothSides ? [
+      splitRow(cardSplit, 'Karty single', 'style'),
+      splitRow(boxSplit, 'Sealed / boxy', 'package_2')
+    ] : []),
     {
       tone: 'paper', icon: 'style', label: 'Karty na stanie',
       sub: `${nCards(M.held.length)} · wycena rynkowa`,
@@ -709,7 +753,7 @@ function renderCapitalFunnel() {
     <thead><tr><th>Etap</th><th class="num">Kapitał / koszt</th><th class="num">Przychód / wartość</th><th class="num">P&amp;L</th><th class="num">ROI</th></tr></thead>
     <tbody>${rows.map(row => {
       const roi = row.cost > 0 ? row.pnl / row.cost * 100 : null;
-      return `<tr class="${row.paper ? 'is-paper' : ''}">
+      return `<tr class="${row.paper ? 'is-paper' : ''}${row.child ? ' is-child' : ''}">
         <td><div class="cd-funnel-stage"><span class="cd-funnel-icon ${row.tone}"><span class="material-symbols-outlined">${row.icon}</span></span><span><strong>${row.label}</strong><small>${row.sub}</small></span></div><span class="cd-funnel-bar"><i class="${row.tone}" style="width:${row.cost / maxCost * 100}%"></i></span></td>
         <td class="num mono">${fmtPLN0(row.cost)}</td>
         <td class="num mono">${fmtPLN0(row.value)}${row.paper ? '<small>papierowo</small>' : '<small>netto</small>'}</td>
