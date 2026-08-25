@@ -14799,14 +14799,59 @@
   function cardsAccount(){ return accountBySource('cards'); }
   function bettingAccount(){ return accountBySource('betting'); }
 
+  function eomNameKey(name){
+    /* ł/Ł nie rozkłada się przez NFD, więc podmieniamy je ręcznie — bez tego
+       „Zakłady" nie dopasowałyby się do żadnego aliasu. */
+    return String(name||'').toLowerCase().replace(/ł/g,'l').normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  /* Konto założone ręcznie przed podpięciem modułu przejmujemy, zamiast obok
+     niego zakładać drugie o tej samej nazwie — inaczej historia sald zostaje
+     na starym koncie, a „Pobierz aktualne" napełnia nowe, puste. */
+  function adoptModuleAccount(source, wantedId, aliases){
+    const candidate=(b().accounts||[]).find(acc=>{
+      if(!acc||acc.source) return false;
+      return acc.id===wantedId||aliases.includes(eomNameKey(acc.name));
+    });
+    if(!candidate) return null;
+    candidate.source=source;
+    if(!candidate.kind&&!candidate.type) candidate.kind='inwestycje';
+    save(state);
+    return candidate;
+  }
+
+  /* Jeżeli konto modułowe zdążyło już powstać obok ręcznego o tej samej nazwie,
+     przepinamy źródło na to z historią sald, a puste konto-duplikat kasujemy. */
+  function mergeDuplicateModuleAccount(source, autoId, aliases){
+    const linked=accountBySource(source);
+    if(!linked||linked.id!==autoId) return linked;
+    const hasHistory=id=>(b().eom||[]).some(entry=>entry&&entry.accountId===id);
+    if(hasHistory(linked.id)) return linked;
+    const manual=(b().accounts||[]).find(acc=>acc&&!acc.source&&acc.id!==linked.id&&aliases.includes(eomNameKey(acc.name)));
+    if(!manual) return linked;
+    manual.source=source;
+    if(!manual.kind&&!manual.type) manual.kind='inwestycje';
+    b().accounts=(b().accounts||[]).filter(acc=>acc!==linked);
+    b().eomInvestmentBridge=(eom2InvestmentBridge()||[]).map(row=>
+      row.targetAccountId===linked.id?{...row,targetAccountId:manual.id}:row);
+    save(state);
+    return manual;
+  }
+
+  const CARDS_ACCOUNT_ALIASES=['karty','karty pilkarskie','karty pilka nozna','cards'];
+  const BETTING_ACCOUNT_ALIASES=['zaklady','zaklady bukmacherskie','bukmacher','betting','bankroll'];
+
   /* Konto „Karty" zakładamy raz, gdy moduł Karty ma już jakiekolwiek dane.
      Skasowane przez użytkownika nie wraca — stąd flaga cardsAccountSeeded. */
   function ensureCardsEomAccount(){
-    const existing=cardsAccount();
+    const existing=mergeDuplicateModuleAccount('cards','a_cards',CARDS_ACCOUNT_ALIASES);
     if(existing) return existing;
-    if(b().cardsAccountSeeded) return null;
     const snap=getCardsSnapshot();
     if(!snap||(!snap.cardCount&&!snap.sealedCount&&!snap.totalAssets)) return null;
+    const adopted=adoptModuleAccount('cards','a_cards',CARDS_ACCOUNT_ALIASES);
+    if(adopted) return adopted;
+    if(b().cardsAccountSeeded) return null;
     const acc={id:'a_cards',name:'Karty',kind:'inwestycje',source:'cards'};
     if(!Array.isArray(b().accounts)) b().accounts=[];
     b().accounts.push(acc);
@@ -14817,13 +14862,15 @@
 
   /* To samo dla „Zakładów" — konto pojawia się, gdy moduł ma już bankroll. */
   function ensureBettingEomAccount(){
-    const existing=bettingAccount();
+    const existing=mergeDuplicateModuleAccount('betting','a_betting',BETTING_ACCOUNT_ALIASES);
     if(existing) return existing;
-    if(b().bettingAccountSeeded) return null;
     const snap=getBettingSnapshot();
     /* Sam bankroll startowy z ustawień to za mało — konto zakładamy dopiero,
        gdy w module jest realny ruch (kupony albo operacje kasowe). */
     if(!snap||(!num(snap.betCount)&&!num(snap.ledgerNet))) return null;
+    const adopted=adoptModuleAccount('betting','a_betting',BETTING_ACCOUNT_ALIASES);
+    if(adopted) return adopted;
+    if(b().bettingAccountSeeded) return null;
     const acc={id:'a_betting',name:'Zakłady',kind:'inwestycje',source:'betting'};
     if(!Array.isArray(b().accounts)) b().accounts=[];
     b().accounts.push(acc);
