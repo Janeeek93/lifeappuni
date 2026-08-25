@@ -4019,14 +4019,19 @@ function syncBudget(silent = true) {
   return result;
 }
 
-/** Podsumowanie dla innych modułów — stąd Salda EOM biorą wartość kolekcji. */
+/** Podsumowanie dla innych modułów — stąd Salda EOM biorą kapitał zamrożony. */
 function publishCardsSummary(m) {
   let kpis = {};
   try { kpis = JSON.parse(localStorage.getItem(KPI_KEY) || '{}') || {}; } catch { kpis = {}; }
+  /* Kapitał zamrożony = to, co realnie wciąż siedzi w module: baza kosztowa kart
+     na stanie (z alokacją boxów i gradingiem) + koszt boxów nieotwartych
+     i niesprzedanych. Bez wyceny papierowej i bez bulku z otwartych boxów. */
+  const frozenCapital = m.heldBasis + m.sealedValue;
   kpis.cards = {
     collectionValue: Number(m.heldValue.toFixed(2)),
     collectionCost: Number(m.heldBasis.toFixed(2)),
     sealedValue: Number(m.sealedValue.toFixed(2)),
+    frozenCapital: Number(frozenCapital.toFixed(2)),
     bulkValue: Number(m.bulkValue.toFixed(2)),
     totalAssets: Number(m.assets.toFixed(2)),
     unrealized: Number(m.unrealized.toFixed(2)),
@@ -4065,7 +4070,7 @@ function renderBudgetPanel() {
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
-      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.assets)}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue)}</div></div>
       <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
     </div>
     ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
@@ -4075,7 +4080,8 @@ function renderBudgetPanel() {
     <div class="cd-note" style="margin-top:10px">
       Do <strong>wydatków zmiennych</strong> trafiają zakupy boxów i kart single, wysyłki do gradingu oraz koszty ogólne —
       pull z boxa nie, bo pieniądze wyszły już przy jego zakupie. Do <strong>przychodów</strong> idzie kwota netto ze sprzedaży,
-      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — ich wartość wchodzi do
-      <strong>Salda EOM</strong> jako aktywo (konto „Karty”, przycisk „Pobierz aktualne”).
+      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — do
+      <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”) idzie <strong>kapitał zamrożony</strong>:
+      baza kosztowa kart na stanie plus koszt boxów nieotwartych i niesprzedanych, bez wyceny papierowej.
     </div>`;
 }
