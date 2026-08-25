@@ -677,16 +677,60 @@ function renderOverview() {
   renderTopCards();
 }
 
+/** Rozbicie sprzedaży na karty single i sealed — jedna miara dla obu stron. */
+function saleSplit(list) {
+  const withDays = list.filter(sale => sale.days != null);
+  const cost = sum(list, sale => sale.basis);
+  const pnl = sum(list, sale => sale.pnl);
+  return {
+    count: list.length,
+    cost,
+    value: sum(list, sale => sale.net),
+    pnl,
+    roi: cost > 0 ? pnl / cost * 100 : null,
+    avgDays: withDays.length ? sum(withDays, sale => sale.days) / withDays.length : null
+  };
+}
+
 function renderCapitalFunnel() {
   const soldBasis = sum(M.sales, sale => sale.basis);
   const otherCost = Math.max(0, M.cashOut - soldBasis - M.heldBasis - M.sealedValue);
   const otherValue = M.bulkValue;
+
+  /* Karty i boxy sprzedają się inaczej — rozbicie pokazuje, która noga
+     biznesu realnie zarabia. Podwiersze mają sens dopiero wtedy, gdy jest
+     co porównywać, więc przy jednej nodze zostaje sam wiersz zbiorczy. */
+  const cardSplit = saleSplit(M.sales.filter(sale => sale.kind === 'card'));
+  const boxSplit = saleSplit(M.sales.filter(sale => sale.kind === 'box'));
+  const bothSides = cardSplit.count > 0 && boxSplit.count > 0;
+  const soldSub = `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`;
+  const splitNote = (() => {
+    if (bothSides) {
+      if (cardSplit.roi === null || boxSplit.roi === null) return '';
+      if (Math.abs(cardSplit.roi - boxSplit.roi) < 0.05) return ' · obie nogi po równo';
+      return cardSplit.roi > boxSplit.roi ? ' · lepiej idą karty' : ' · lepiej idą boxy';
+    }
+    if (cardSplit.count) return ' · same karty';
+    if (boxSplit.count) return ' · same boxy';
+    return '';
+  })();
+
+  const splitRow = (split, label, icon) => ({
+    tone: 'realized', icon, label,
+    sub: `${split.count} ${plural(split.count, 'sprzedaż', 'sprzedaże', 'sprzedaży')}${split.avgDays != null ? ` · śr. ${Math.round(split.avgDays)} dni do sprzedaży` : ''}`,
+    cost: split.cost, value: split.value, pnl: split.pnl, paper: false, child: true
+  });
+
   const rows = [
     {
       tone: 'realized', icon: 'check_circle', label: 'Sprzedany towar',
-      sub: `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`,
+      sub: soldSub + splitNote,
       cost: soldBasis, value: M.cashIn, pnl: M.cashIn - soldBasis, paper: false
     },
+    ...(bothSides ? [
+      splitRow(cardSplit, 'Karty single', 'style'),
+      splitRow(boxSplit, 'Sealed / boxy', 'package_2')
+    ] : []),
     {
       tone: 'paper', icon: 'style', label: 'Karty na stanie',
       sub: `${nCards(M.held.length)} · wycena rynkowa`,
@@ -709,7 +753,7 @@ function renderCapitalFunnel() {
     <thead><tr><th>Etap</th><th class="num">Kapitał / koszt</th><th class="num">Przychód / wartość</th><th class="num">P&amp;L</th><th class="num">ROI</th></tr></thead>
     <tbody>${rows.map(row => {
       const roi = row.cost > 0 ? row.pnl / row.cost * 100 : null;
-      return `<tr class="${row.paper ? 'is-paper' : ''}">
+      return `<tr class="${row.paper ? 'is-paper' : ''}${row.child ? ' is-child' : ''}">
         <td><div class="cd-funnel-stage"><span class="cd-funnel-icon ${row.tone}"><span class="material-symbols-outlined">${row.icon}</span></span><span><strong>${row.label}</strong><small>${row.sub}</small></span></div><span class="cd-funnel-bar"><i class="${row.tone}" style="width:${row.cost / maxCost * 100}%"></i></span></td>
         <td class="num mono">${fmtPLN0(row.cost)}</td>
         <td class="num mono">${fmtPLN0(row.value)}${row.paper ? '<small>papierowo</small>' : '<small>netto</small>'}</td>
@@ -4019,14 +4063,19 @@ function syncBudget(silent = true) {
   return result;
 }
 
-/** Podsumowanie dla innych modułów — stąd Salda EOM biorą wartość kolekcji. */
+/** Podsumowanie dla innych modułów — stąd Salda EOM biorą kapitał zamrożony. */
 function publishCardsSummary(m) {
   let kpis = {};
   try { kpis = JSON.parse(localStorage.getItem(KPI_KEY) || '{}') || {}; } catch { kpis = {}; }
+  /* Kapitał zamrożony = to, co realnie wciąż siedzi w module: baza kosztowa kart
+     na stanie (z alokacją boxów i gradingiem) + koszt boxów nieotwartych
+     i niesprzedanych. Bez wyceny papierowej i bez bulku z otwartych boxów. */
+  const frozenCapital = m.heldBasis + m.sealedValue;
   kpis.cards = {
     collectionValue: Number(m.heldValue.toFixed(2)),
     collectionCost: Number(m.heldBasis.toFixed(2)),
     sealedValue: Number(m.sealedValue.toFixed(2)),
+    frozenCapital: Number(frozenCapital.toFixed(2)),
     bulkValue: Number(m.bulkValue.toFixed(2)),
     totalAssets: Number(m.assets.toFixed(2)),
     unrealized: Number(m.unrealized.toFixed(2)),
@@ -4065,7 +4114,7 @@ function renderBudgetPanel() {
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
-      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.assets)}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue)}</div></div>
       <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
     </div>
     ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
@@ -4075,7 +4124,8 @@ function renderBudgetPanel() {
     <div class="cd-note" style="margin-top:10px">
       Do <strong>wydatków zmiennych</strong> trafiają zakupy boxów i kart single, wysyłki do gradingu oraz koszty ogólne —
       pull z boxa nie, bo pieniądze wyszły już przy jego zakupie. Do <strong>przychodów</strong> idzie kwota netto ze sprzedaży,
-      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — ich wartość wchodzi do
-      <strong>Salda EOM</strong> jako aktywo (konto „Karty”, przycisk „Pobierz aktualne”).
+      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — do
+      <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”) idzie <strong>kapitał zamrożony</strong>:
+      baza kosztowa kart na stanie plus koszt boxów nieotwartych i niesprzedanych, bez wyceny papierowej.
     </div>`;
 }

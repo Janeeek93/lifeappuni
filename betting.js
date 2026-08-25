@@ -9,6 +9,7 @@
 
 const BET_KEY = 'lifeos_betting_v1';
 const BET_SETTINGS_KEY = 'lifeos_betting_settings_v1';
+const KPI_KEY = 'lifeos_kpis_v1';
 
 const DEFAULT_SETTINGS = {
   bankrollStart: 1000,
@@ -2057,10 +2058,37 @@ function refreshDatalists(agg) {
 }
 
 /* ============================================================
+   Podsumowanie dla innych modułów — stąd Salda EOM biorą bankroll.
+   Publikujemy przy każdym renderze, bo bankroll zmienia się z każdym
+   rozliczonym kuponem i każdą operacją kasową.
+   ============================================================ */
+function publishBettingSummary(agg) {
+  let kpis = {};
+  try { kpis = JSON.parse(localStorage.getItem(KPI_KEY) || '{}') || {}; } catch { kpis = {}; }
+  const r2 = v => Number(numberOr(v, 0).toFixed(2));
+  kpis.betting = {
+    bankroll: r2(agg.bankroll),
+    available: r2(agg.available),
+    openExposure: r2(agg.openExposure),
+    cashBase: r2(agg.cashBase),
+    realizedPnl: r2(agg.realizedPnl),
+    ledgerNet: r2(agg.ledgerNet),
+    bankrollStart: r2(settings.bankrollStart),
+    pendingCount: agg.pending.length,
+    settledCount: agg.settled.length,
+    betCount: agg.all.length,
+    updatedAt: new Date().toISOString()
+  };
+  kpis.timestamp = new Date().toISOString();
+  try { localStorage.setItem(KPI_KEY, JSON.stringify(kpis)); } catch { /* brak miejsca — pominięte świadomie */ }
+}
+
+/* ============================================================
    Render główny
    ============================================================ */
 function renderAll() {
   const agg = aggregate();
+  publishBettingSummary(agg);
   refreshDatalists(agg);
   renderHero(agg);
   renderKpis(agg);

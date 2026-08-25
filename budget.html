@@ -5885,7 +5885,7 @@
 	              </div>
 	            </div>
 	            <div id="eom2-bridge-panel" hidden>
-	              <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo) do kont EOM typu „Inwestycje”.</div>
+	              <div class="tiny muted">Zmapuj składniki z zakładki Inwestycje (cały portfel, grupa lub aktywo), a także kapitał zamrożony w Kartach i bankroll z Zakładów, do kont EOM typu „Inwestycje”.</div>
 	              <div class="row" style="justify-content:flex-end;margin-top:8px">
 	                <button class="btn soft" type="button" id="eom2-bridge-add">Dodaj mapowanie</button>
 	              </div>
@@ -14758,20 +14758,46 @@
     return b().eomInvestmentBridge;
   }
 
-  /* Moduł Karty publikuje swoje podsumowanie do wspólnego magazynu KPI —
-     dzięki temu Salda EOM nie muszą znać jego modelu danych. */
-  function getCardsSnapshot(){
+  /* Moduły Karty i Zakłady publikują swoje podsumowania do wspólnego magazynu
+     KPI — dzięki temu Salda EOM nie muszą znać ich modeli danych. */
+  function getModuleKpi(name){
     try{
       const kpis=JSON.parse(localStorage.getItem('lifeos_kpis_v1')||'{}');
-      const c=kpis&&kpis.cards;
-      if(!c||typeof c!=='object') return null;
-      return c;
+      const m=kpis&&kpis[name];
+      if(!m||typeof m!=='object') return null;
+      return m;
     }catch{ return null; }
   }
 
-  function cardsAccount(){
-    return (b().accounts||[]).find(a=>a&&a.source==='cards')||null;
+  function getCardsSnapshot(){ return getModuleKpi('cards'); }
+  function getBettingSnapshot(){ return getModuleKpi('betting'); }
+
+  /* Konta zasilane z innych modułów: jedno źródło prawdy dla przycisku
+     „Pobierz aktualne", tytułów podpowiedzi i komunikatów o braku danych. */
+  const EOM_MODULE_ACCOUNTS={
+    cards:{
+      defaultSource:'cardsFrozen',
+      pullTitle:'Pobierz kapitał zamrożony w kartach i boxach',
+      missingMsg:'Moduł Karty nie ma jeszcze danych. Otwórz zakładkę Karty i dodaj pierwszą pozycję.'
+    },
+    betting:{
+      defaultSource:'betting',
+      pullTitle:'Pobierz bieżący bankroll z modułu Zakłady',
+      missingMsg:'Moduł Zakłady nie ma jeszcze danych. Otwórz zakładkę Zakłady, aby opublikował bankroll.'
+    }
+  };
+
+  function moduleAccountConfig(acc){
+    const src=acc&&acc.source;
+    return (src&&EOM_MODULE_ACCOUNTS[src])?EOM_MODULE_ACCOUNTS[src]:null;
   }
+
+  function accountBySource(source){
+    return (b().accounts||[]).find(a=>a&&a.source===source)||null;
+  }
+
+  function cardsAccount(){ return accountBySource('cards'); }
+  function bettingAccount(){ return accountBySource('betting'); }
 
   /* Konto „Karty" zakładamy raz, gdy moduł Karty ma już jakiekolwiek dane.
      Skasowane przez użytkownika nie wraca — stąd flaga cardsAccountSeeded. */
@@ -14789,18 +14815,47 @@
     return acc;
   }
 
+  /* To samo dla „Zakładów" — konto pojawia się, gdy moduł ma już bankroll. */
+  function ensureBettingEomAccount(){
+    const existing=bettingAccount();
+    if(existing) return existing;
+    if(b().bettingAccountSeeded) return null;
+    const snap=getBettingSnapshot();
+    /* Sam bankroll startowy z ustawień to za mało — konto zakładamy dopiero,
+       gdy w module jest realny ruch (kupony albo operacje kasowe). */
+    if(!snap||(!num(snap.betCount)&&!num(snap.ledgerNet))) return null;
+    const acc={id:'a_betting',name:'Zakłady',kind:'inwestycje',source:'betting'};
+    if(!Array.isArray(b().accounts)) b().accounts=[];
+    b().accounts.push(acc);
+    b().bettingAccountSeeded=true;
+    save(state);
+    return acc;
+  }
+
   function getInvestmentSnapshot(){
     const stats=computePortfolioStats();
     const cards=getCardsSnapshot();
+    const betting=getBettingSnapshot();
     const sourceMap={
       portfolio:stats.hasAnyPrice?stats.totalMarketValue:stats.totalCostBasis,
       reinvestPool:stats.reinvestPool
     };
     if(cards){
+      /* Kapitał zamrożony: baza kosztowa kart na stanie + koszt boxów
+         nieotwartych i niesprzedanych. Starsze zapisy modułu Karty nie mają
+         gotowego pola, więc składamy je z części, które publikował zawsze. */
+      sourceMap.cardsFrozen=cards.frozenCapital!==undefined
+        ? num(cards.frozenCapital)
+        : num(cards.collectionCost)+num(cards.sealedValue);
       sourceMap.cards=num(cards.totalAssets);
       sourceMap.cardsCollection=num(cards.collectionValue);
       sourceMap.cardsSealed=num(cards.sealedValue);
       sourceMap.cardsCost=num(cards.collectionCost);
+    }
+    if(betting){
+      sourceMap.betting=num(betting.bankroll);
+      sourceMap.bettingAvailable=num(betting.available);
+      sourceMap.bettingExposure=num(betting.openExposure);
     }
     for(const h of stats.holdings){
       if(h.qty<=0.000001) continue;
@@ -14815,11 +14870,19 @@
   function getInvestmentBridgeOptions(snapshot){
     const opts=[{value:'portfolio',label:'Cały portfel inwestycyjny'}];
     opts.push({value:'reinvestPool',label:'Pula reinwestycyjna (gotówka maklerska)'});
+    if(snapshot.sourceMap.cardsFrozen!==undefined){
+      opts.push({value:'cardsFrozen',label:'Karty: kapitał zamrożony (karty + nieotwarte boxy)'});
+    }
     if(snapshot.sourceMap.cards!==undefined){
       opts.push({value:'cards',label:'Karty: majątek łącznie (kolekcja + sealed)'});
       opts.push({value:'cardsCollection',label:'Karty: wartość kolekcji'});
       opts.push({value:'cardsSealed',label:'Karty: sealed w cenie zakupu'});
       opts.push({value:'cardsCost',label:'Karty: koszt kolekcji (baza)'});
+    }
+    if(snapshot.sourceMap.betting!==undefined){
+      opts.push({value:'betting',label:'Zakłady: bankroll'});
+      opts.push({value:'bettingAvailable',label:'Zakłady: bankroll dostępny (bez kuponów w grze)'});
+      opts.push({value:'bettingExposure',label:'Zakłady: ekspozycja w kuponach w grze'});
     }
     const groupPairs=Object.keys(snapshot.sourceMap)
       .filter(k=>k.startsWith('group:'))
@@ -14840,6 +14903,7 @@
 
   function renderEomV2(){
     ensureCardsEomAccount();
+    ensureBettingEomAccount();
     const ctx=buildEomContext();
     const cur=state.currency;
     const accounts=ctx.accounts;
@@ -14927,7 +14991,7 @@
             <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
             <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
             <div class="eom2-booking-actions">
-              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="${acc.source==='cards'?'Pobierz aktualną wartość kolekcji kart':'Pobierz aktualne z inwestycji'}">⭳</button>`:''}
+              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="${escapeHtml(moduleAccountConfig(acc)?.pullTitle||'Pobierz aktualne z inwestycji')}">⭳</button>`:''}
               <button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button>
             </div>`;
           groupDiv.appendChild(row);
@@ -15012,12 +15076,13 @@
         const bridgeRows=eom2InvestmentBridge().filter(r=>r.targetAccountId===accId);
         if(!bridgeRows.length){
           const acc=accounts.find(a=>a.id===accId);
-          if(acc&&acc.source==='cards'){
-            if(investmentSnapshot.sourceMap.cards===undefined){
-              alert('Moduł Karty nie ma jeszcze danych. Otwórz zakładkę Karty i dodaj pierwszą pozycję.');
+          const moduleCfg=moduleAccountConfig(acc);
+          if(moduleCfg){
+            if(investmentSnapshot.sourceMap[moduleCfg.defaultSource]===undefined){
+              alert(moduleCfg.missingMsg);
               return false;
             }
-            return setInvestmentInput(accId,valueForBridgeSource(investmentSnapshot,'cards'));
+            return setInvestmentInput(accId,valueForBridgeSource(investmentSnapshot,moduleCfg.defaultSource));
           }
           const currentTotal=investmentSnapshot.stats.hasAnyPrice?investmentSnapshot.stats.totalMarketValue:investmentSnapshot.stats.totalCostBasis;
           return setInvestmentInput(accId,currentTotal);
@@ -15627,16 +15692,20 @@
         input.dispatchEvent(new Event('input'));
         return true;
       };
-      /* Konto „Karty" nigdy nie bierze wartości portfela inwestycyjnego —
-         ma własne źródło, niezależnie od tego, czy mostek jest skonfigurowany. */
-      const cardsAcc=cardsAccount();
-      const cardsMapped=cardsAcc&&rows.some(r=>r.targetAccountId===cardsAcc.id);
-      if(cardsAcc&&!cardsMapped&&snapshot.sourceMap.cards!==undefined){
-        fillInput(cardsAcc.id,valueForBridgeSource(snapshot,'cards'));
+      /* Konta zasilane z modułów (Karty, Zakłady) nigdy nie biorą wartości
+         portfela inwestycyjnego — mają własne źródło, niezależnie od tego,
+         czy mostek jest skonfigurowany. */
+      const moduleAccs=(b().accounts||[]).filter(acc=>moduleAccountConfig(acc));
+      for(const acc of moduleAccs){
+        if(rows.some(r=>r.targetAccountId===acc.id)) continue;
+        const cfg=moduleAccountConfig(acc);
+        const val=snapshot.sourceMap[cfg.defaultSource];
+        if(val===undefined) continue;
+        fillInput(acc.id,valueForBridgeSource(snapshot,cfg.defaultSource));
       }
       if(!rows.length){
-        const defaultAcc=(b().accounts||[]).find(acc=>inferAccountType(acc)==='inwestycje'&&acc.source!=='cards');
-        if(!defaultAcc){ if(!cardsAcc) alert('Brak konta EOM typu Inwestycje.'); return; }
+        const defaultAcc=(b().accounts||[]).find(acc=>inferAccountType(acc)==='inwestycje'&&!moduleAccountConfig(acc));
+        if(!defaultAcc){ if(!moduleAccs.length) alert('Brak konta EOM typu Inwestycje.'); return; }
         const total=snapshot.stats.hasAnyPrice?snapshot.stats.totalMarketValue:snapshot.stats.totalCostBasis;
         fillInput(defaultAcc.id,total);
         return;
