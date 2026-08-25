@@ -18,7 +18,7 @@ Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 
 | Zakładka | Do czego służy |
 |---|---|
-| **Przegląd** | Wartość kolekcji, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
+| **Przegląd** | Wartość kolekcji, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
 | **Kolekcja** | Tabela kart z filtrami i sortowaniem, szczegóły karty z historią wyceny i osią zdarzeń |
 | **Boxy i breaki** | Sealed na stanie, wynik każdego breaka, EV produktów, flipy sealed |
 | **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, analiza kanałów |

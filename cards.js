@@ -670,10 +670,65 @@ function renderOverview() {
   setKpi('k-overhead', fmtPLN0(M.overhead), M.cashOut > 0 ? `${fmtPct(M.overhead / M.cashOut * 100, false)} wszystkich kosztów` : '—');
   setKpi('k-cash', fmtPLN0(M.netCash, true), M.netCash < 0 ? 'tyle jeszcze nie wróciło' : 'jesteś na plusie kasowo', posClass(M.netCash));
 
+  renderCapitalFunnel();
   renderEquityChart(series);
   renderTodo();
   renderMovers();
   renderTopCards();
+}
+
+function renderCapitalFunnel() {
+  const soldBasis = sum(M.sales, sale => sale.basis);
+  const otherCost = Math.max(0, M.cashOut - soldBasis - M.heldBasis - M.sealedValue);
+  const otherValue = M.bulkValue;
+  const rows = [
+    {
+      tone: 'realized', icon: 'check_circle', label: 'Sprzedany towar',
+      sub: `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`,
+      cost: soldBasis, value: M.cashIn, pnl: M.cashIn - soldBasis, paper: false
+    },
+    {
+      tone: 'paper', icon: 'style', label: 'Karty na stanie',
+      sub: `${nCards(M.held.length)} · wycena rynkowa`,
+      cost: M.heldBasis, value: M.heldValue, pnl: M.unrealized, paper: true
+    },
+    {
+      tone: 'sealed', icon: 'package_2', label: 'Nieotwarte boxy',
+      sub: `${nBoxes(M.sealed.length)} · wycenione po koszcie`,
+      cost: M.sealedValue, value: M.sealedValue, pnl: 0, paper: true
+    }
+  ];
+  if (otherCost || otherValue) rows.push({
+    tone: 'other', icon: 'inventory_2', label: 'Bulk i pozostałe koszty',
+    sub: 'Bulk z breaków, nieprzypisany koszt i koszty ogólne',
+    cost: otherCost, value: otherValue, pnl: otherValue - otherCost, paper: true
+  });
+
+  const maxCost = Math.max(...rows.map(row => row.cost), 1);
+  el('funnel-wrap').innerHTML = `<table class="cd-funnel-table">
+    <thead><tr><th>Etap</th><th class="num">Kapitał / koszt</th><th class="num">Przychód / wartość</th><th class="num">P&amp;L</th><th class="num">ROI</th></tr></thead>
+    <tbody>${rows.map(row => {
+      const roi = row.cost > 0 ? row.pnl / row.cost * 100 : null;
+      return `<tr class="${row.paper ? 'is-paper' : ''}">
+        <td><div class="cd-funnel-stage"><span class="cd-funnel-icon ${row.tone}"><span class="material-symbols-outlined">${row.icon}</span></span><span><strong>${row.label}</strong><small>${row.sub}</small></span></div><span class="cd-funnel-bar"><i class="${row.tone}" style="width:${row.cost / maxCost * 100}%"></i></span></td>
+        <td class="num mono">${fmtPLN0(row.cost)}</td>
+        <td class="num mono">${fmtPLN0(row.value)}${row.paper ? '<small>papierowo</small>' : '<small>netto</small>'}</td>
+        <td class="num mono ${posClass(row.pnl)}">${fmtPLN0(row.pnl, true)}</td>
+        <td class="num mono ${posClass(roi)}">${fmtPct(roi)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr><td>Łącznie</td><td class="num mono">${fmtPLN0(M.cashOut)}</td><td class="num mono">${fmtPLN0(M.cashIn + M.assets)}</td><td class="num mono ${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</td><td class="num mono ${posClass(M.roiTotal)}">${fmtPct(M.roiTotal)}</td></tr></tfoot>
+  </table>`;
+
+  const inventory = M.heldBasis + M.sealedValue + Math.max(0, M.unallocated);
+  const paperGain = M.totalResult - M.realized;
+  const recovery = M.cashOut > 0 ? M.cashIn / M.cashOut * 100 : 0;
+  el('funnel-recovered').textContent = `${fmtPct(recovery, false, 0)} wydatków wróciło w gotówce`;
+  el('funnel-summary').innerHTML = `
+    <div><span>Kapitał nadal w towarze</span><strong>${fmtPLN0(inventory)}</strong></div>
+    <div class="paper"><span>Wynik papierowy</span><strong class="${posClass(paperGain)}">${fmtPLN0(paperGain, true)}</strong></div>
+    <div><span>Zysk zrealizowany</span><strong class="${posClass(M.realized)}">${fmtPLN0(M.realized, true)}</strong></div>
+    <div class="total"><span>Wynik całego biznesu</span><strong class="${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</strong></div>`;
 }
 
 function setKpiHero(id, value, note, cls) {
