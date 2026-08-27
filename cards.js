@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
   listingDays: 60,         // stare ogłoszenie
   sealedDays: 90,          // sealed czekający na decyzję
   targetMargin: 30,
+  recStock: 'market',      // pasek odzysku: towar po wycenie (market) czy po cenie zakupu (cost)
   concAlert: 25,
   budgetSync: 'on',        // księgowanie w module Budżet
   budgetIncome: 'on',      // sprzedaże jako przychody
@@ -141,6 +142,11 @@ function daysBetween(a, b) {
   return Math.round((d2 - d1) / 86400000);
 }
 function daysSince(d) { return d ? daysBetween(d, today()) : null; }
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
 function addMonths(ym, n) {
   const [y, m] = ym.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1 + n, 1));
@@ -222,6 +228,16 @@ function saveState() {
   }
 }
 
+/** Zapis samej preferencji widoku — bez przeliczania i ruszania budżetu. */
+function savePrefs() {
+  state.settings = settings;
+  try {
+    localStorage.setItem(CARDS_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Nie udało się zapisać preferencji widoku:', e);
+  }
+}
+
 /* ============================================================
    Warstwa wyliczeń
    ============================================================ */
@@ -242,6 +258,12 @@ function boxLanded(box) {
 function cardOwnCost(card) {
   const fx = fxFor(card.currency, card.fx);
   return (num(card.price) + num(card.shipping) + num(card.fees)) * fx + num(card.customs);
+}
+
+/** Pełny koszt wysyłki do gradingu: opłaty za karty + wysyłka + dodatki. */
+function gradingTotal(g) {
+  if (!g) return 0;
+  return num(g.feePerCard) * ((g.cardIds || []).length) + num(g.shipping) + num(g.extra);
 }
 
 /** Wpływ netto ze sprzedaży w złotówkach. */
@@ -279,7 +301,7 @@ function gradingCostIndex() {
   for (const g of state.gradings) {
     const ids = g.cardIds || [];
     if (!ids.length) continue;
-    const total = num(g.feePerCard) * ids.length + num(g.shipping) + num(g.extra);
+    const total = gradingTotal(g);
     const per = total / ids.length;
     for (const id of ids) map.set(id, (map.get(id) || 0) + per);
   }
@@ -432,7 +454,7 @@ function compute() {
 
   /* --- Pieniądze --- */
   const goodsSpend = sum(boxes, b => b.landed) + sum(cards.filter(c => c.acq !== 'box'), c => cardOwnCost(c));
-  const gradingSpend = sum(state.gradings, g => num(g.feePerCard) * (g.cardIds || []).length + num(g.shipping) + num(g.extra));
+  const gradingSpend = sum(state.gradings, g => gradingTotal(g));
   const overhead = sum(state.expenses, e => num(e.amount));
   const cashOut = goodsSpend + gradingSpend + overhead;
   const cashIn = sum(soldCards, c => c.net) + sum(flipped, b => b.flipNet);
@@ -508,7 +530,7 @@ function compute() {
   /* --- Grading --- */
   const gradings = state.gradings.map(g => {
     const ids = g.cardIds || [];
-    const total = num(g.feePerCard) * ids.length + num(g.shipping) + num(g.extra);
+    const total = gradingTotal(g);
     const items = ids.map(id => byId.get(id)).filter(Boolean);
     const before = sum(items, c => num((g.before || {})[c.id]));
     const after = sum(items, c => (c.sold ? c.net : c.marketValue));
@@ -652,7 +674,9 @@ function renderOverview() {
 
   setKpiHero('hero-cost', fmtPLN0(M.heldBasis), `${fmtPct(M.unrealizedPct)} do wyceny`);
   setKpiHero('hero-real', fmtPLN0(M.realized, true), `${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`, posClass(M.realized));
-  setKpiHero('hero-capital', fmtPLN0(Math.max(0, -M.netCash)), 'gotówka jeszcze nieodzyskana');
+  const recoveredPct = M.cashOut > 0 ? M.cashIn / M.cashOut * 100 : null;
+  setKpiHero('hero-capital', fmtPLN0(Math.max(0, -M.netCash)),
+    recoveredPct === null ? 'gotówka jeszcze nieodzyskana' : `odzyskane ${fmtPct(recoveredPct, false, 0)} z ${fmtPLN0(M.cashOut)}`);
   setKpiHero('hero-total', fmtPLN0(M.totalResult, true), `ROI ${fmtPct(M.roiTotal)}`, posClass(M.totalResult));
 
   el('kpi-desc').textContent = `Baza: ${nCards(M.cards.length)}, ${nBoxes(M.boxes.length)}, ${M.sales.length} ${plural(M.sales.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')}`;
@@ -670,11 +694,293 @@ function renderOverview() {
   setKpi('k-overhead', fmtPLN0(M.overhead), M.cashOut > 0 ? `${fmtPct(M.overhead / M.cashOut * 100, false)} wszystkich kosztów` : '—');
   setKpi('k-cash', fmtPLN0(M.netCash, true), M.netCash < 0 ? 'tyle jeszcze nie wróciło' : 'jesteś na plusie kasowo', posClass(M.netCash));
 
+  renderCapitalRecovery();
   renderCapitalFunnel();
   renderEquityChart(series);
   renderTodo();
   renderMovers();
   renderTopCards();
+}
+
+/* ============================================================
+   ODZYSK KAPITAŁU
+   ============================================================ */
+
+/** Okno, z którego liczy się bieżące tempo wydatków i zwrotów. */
+const REC_WINDOW = 90;
+const REC_MONTH = 30.44;
+
+/* Kolejność rung od najbliższej gotówce do najdalszej — drabina płynności
+   ma się czytać jak lista „co da się upłynnić najszybciej". */
+const REC_LADDER = [
+  { key: 'listed', tone: 'listed', icon: 'sell', label: 'Wystawione', note: 'ogłoszenie żyje, czeka na kupca' },
+  { key: 'held', tone: 'held', icon: 'style', label: 'Karty na stanie', note: 'gotowe do wystawienia' },
+  { key: 'grading', tone: 'grading', icon: 'workspace_premium', label: 'W gradingu', note: 'zablokowane do powrotu z firmy' },
+  { key: 'sealed', tone: 'sealed', icon: 'package_2', label: 'Sealed', note: 'w cenie zakupu, do ripu albo flipu' },
+  { key: 'bulk', tone: 'bulk', icon: 'inventory_2', label: 'Bulk z breaków', note: 'najwolniej się upłynnia', noteCost: 'nieprzypisany koszt otwartych boxów' }
+];
+
+function recStockMode() { return settings.recStock === 'cost' ? 'cost' : 'market'; }
+
+/**
+ * Rachunek odzysku kapitału. Cała skala to wydane lifetime (`cashOut`):
+ *
+ *   wydane = odzyskane gotówką + luka pokryta towarem + luka bez pokrycia
+ *
+ * Towar wchodzi do paska w jednym z dwóch trybów:
+ *
+ *   market — po dzisiejszej wycenie: „ile da się jeszcze wyciągnąć z rynku",
+ *   cost   — po cenie zakupu: pasek wypełnia się wyłącznie realnie wydanymi
+ *            pieniędzmi, więc podniesienie wyceny go nie rusza.
+ *
+ * Tryb `cost` jest ostrzejszy z definicji: karta, która zdrożała, i tak liczy
+ * się po tym, co za nią zapłaciłeś.
+ */
+function capitalRecovery() {
+  const spent = M.cashOut;
+  const cashBack = M.cashIn;
+  const recovered = Math.min(cashBack, spent);
+  const surplus = Math.max(0, cashBack - spent);
+  const missing = Math.max(0, spent - cashBack);
+  /* Bulk nie ma własnego kosztu — przy odliczaniu bulku baza pulli jest o niego
+     mniejsza, więc jego stroną kosztową jest właśnie koszt nieprzypisany.
+     Stąd `unallocated` zamiast `bulkValue` po stronie ceny zakupu. */
+  const unallocated = Math.max(0, M.unallocated);
+  const stockMarket = M.assets;
+  const stockBasis = M.heldBasis + M.sealedValue + unallocated;
+  const mode = recStockMode();
+  const stock = mode === 'cost' ? stockBasis : stockMarket;
+  const covered = Math.min(stock, missing);
+  const gap = Math.max(0, missing - stock);
+  const share = v => (spent > 0 ? v / spent * 100 : 0);
+
+  /* Żeby na konto wpadło `missing`, wystawić trzeba za więcej — prowizje
+     i wysyłka zjadają część brutto. Stawkę bierzemy z własnej historii
+     sprzedaży, a nie z cennika kanału, bo miks kanałów jest indywidualny. */
+  const feeRate = M.grossSales > 0 ? Math.min(0.9, Math.max(0, M.feesTotal / M.grossSales)) : null;
+  const grossNeeded = missing > 0 ? missing / (1 - (feeRate || 0)) : 0;
+
+  const since = daysAgo(REC_WINDOW);
+  const spendWindow = sum(M.boxes.filter(b => b.date && b.date >= since), b => b.landed)
+    + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date >= since), c => cardOwnCost(c))
+    + sum(state.gradings.filter(g => g.date && g.date >= since), g => gradingTotal(g))
+    + sum(state.expenses.filter(e => e.date && e.date >= since), e => num(e.amount));
+  const backWindow = sum(M.sales.filter(s => s.date && s.date >= since), s => s.net);
+  const months = REC_WINDOW / REC_MONTH;
+  const spendRate = spendWindow / months;
+  const backRate = backWindow / months;
+  const netRate = backRate - spendRate;
+  const etaMonths = missing > 0 && netRate > 0 ? missing / netRate : null;
+
+  const firstDate = [
+    ...M.boxes.map(b => b.date),
+    ...M.cards.map(c => c.date),
+    ...state.expenses.map(e => e.date)
+  ].filter(Boolean).sort()[0] || null;
+  const lifeDays = firstDate ? Math.max(1, daysSince(firstDate) || 1) : null;
+  const lifeSpendRate = lifeDays ? spent / (lifeDays / REC_MONTH) : null;
+
+  /* Drabina liczy się w tym samym trybie co pasek — inaczej udziały
+     w towarze i w luce nie zgadzałyby się z liczbami nad nią. */
+  const cardVal = c => (mode === 'cost' ? c.basis : c.marketValue);
+  const plainHeld = M.held.filter(c => c.status !== 'listed' && c.status !== 'grading');
+  const ladderValue = {
+    listed: { value: sum(M.listed, cardVal), count: M.listed.length },
+    held: { value: sum(plainHeld, cardVal), count: plainHeld.length },
+    grading: { value: sum(M.inGrading, cardVal), count: M.inGrading.length },
+    sealed: { value: M.sealedValue, count: M.sealed.length },
+    bulk: { value: mode === 'cost' ? unallocated : M.bulkValue, count: M.opened.length }
+  };
+  const ladder = REC_LADDER
+    .map(rung => ({ ...rung, ...ladderValue[rung.key], note: (mode === 'cost' && rung.noteCost) ? rung.noteCost : rung.note }))
+    .filter(rung => rung.value > 0.005);
+
+  return {
+    mode, spent, cashBack, recovered, surplus, missing, stock, stockMarket, stockBasis, covered, gap,
+    pctRecovered: spent > 0 ? recovered / spent * 100 : null,
+    pctCash: spent > 0 ? cashBack / spent * 100 : null,
+    pctCovered: share(covered),
+    pctGap: share(gap),
+    share,
+    coverage: missing > 0 ? stock / missing : null,
+    cushion: Math.max(0, stock - missing),
+    feeRate, grossNeeded,
+    spendRate, backRate, netRate, etaMonths, lifeSpendRate, firstDate,
+    ladder, ladderTotal: sum(ladder, rung => rung.value)
+  };
+}
+
+function etaLabel(months) {
+  if (months == null) return null;
+  if (months < 1.5) return 'ok. miesiąca';
+  if (months < 12) return `ok. ${Math.round(months)} ${plural(Math.round(months), 'miesiąca', 'miesięcy', 'miesięcy')}`;
+  const years = months / 12;
+  return `ok. ${years.toFixed(1).replace('.', ',')} roku`;
+}
+
+function renderCapitalRecovery() {
+  const R = capitalRecovery();
+  const desc = el('rec-desc');
+  const card = el('rec-card');
+
+  card.classList.toggle('is-empty', R.spent <= 0.005);
+  if (R.spent <= 0.005) {
+    el('rec-empty').innerHTML = emptyBox('savings', 'Jeszcze nic nie wyszło z kieszeni',
+      'Dodaj pierwszy box albo single — pasek odzysku zacznie się wypełniać przy pierwszej sprzedaży.');
+    desc.textContent = 'brak wydatków';
+    return;
+  }
+  el('rec-empty').innerHTML = '';
+  desc.textContent = `Z ${fmtPLN0(R.spent)} wydanych wróciło ${fmtPLN0(R.cashBack)}`;
+
+  el('rec-mode').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === R.mode));
+  el('rec-lead').textContent = R.mode === 'cost'
+    ? 'Cały pasek to koszty poniesione lifetime. Zielone wróciło już gotówką, niebieskie stoi w towarze wycenionym po cenie zakupu — pasek wypełniają wyłącznie realnie wydane pieniądze, więc podniesienie wyceny go nie ruszy.'
+    : 'Cały pasek to koszty poniesione lifetime. Zielone wróciło już gotówką, niebieskie stoi w towarze po dzisiejszej wycenie, szare to luka, której nie pokrywa nawet cały stan magazynu.';
+
+  /* --- Pasek --- */
+  const segs = [
+    { cls: 'cash', label: 'Wróciło gotówką', value: R.recovered },
+    { cls: 'stock', label: R.mode === 'cost' ? 'Stoi w towarze (koszt)' : 'Stoi w towarze', value: R.covered },
+    { cls: 'gap', label: 'Luka bez pokrycia', value: R.gap }
+  ].filter(seg => seg.value > 0.005);
+
+  el('rec-bar').innerHTML = segs.map(seg => {
+    const pct = R.share(seg.value);
+    return `<span class="seg ${seg.cls}" style="width:${pct.toFixed(2)}%" title="${esc(seg.label)}: ${fmtPLN0(seg.value)} (${fmtPct(pct, false, 0)})">
+      ${pct >= 12 ? `<i>${esc(seg.label)}</i><b>${fmtPLN0(seg.value)}</b>` : ''}
+    </span>`;
+  }).join('');
+  el('rec-bar').setAttribute('aria-label',
+    `Odzysk kapitału, towar liczony ${R.mode === 'cost' ? 'po cenie zakupu' : 'po dzisiejszej wycenie'}: `
+    + `${fmtPct(R.pctRecovered, false, 0)} wydatków wróciło gotówką, ${fmtPct(R.pctCovered, false, 0)} stoi w towarze, ${fmtPct(R.pctGap, false, 0)} bez pokrycia.`);
+
+  el('rec-scale').innerHTML = `
+    <span>0 zł</span>
+    <span class="mid">${fmtPLN0(R.spent / 2)}</span>
+    <span class="end"><em>próg zwrotu kapitału</em>${fmtPLN0(R.spent)}</span>`;
+
+  const legend = segs.map(seg =>
+    `<span class="cd-rec-key"><i class="${seg.cls}"></i>${esc(seg.label)} <b class="mono">${fmtPLN0(seg.value)}</b> <small>${fmtPct(R.share(seg.value), false, 0)}</small></span>`);
+  if (R.surplus > 0.005) {
+    legend.push(`<span class="cd-rec-key surplus"><i class="surplus"></i>Nadwyżka ponad kapitał <b class="mono">${fmtPLN0(R.surplus, true)}</b></span>`);
+  }
+  /* Segment towaru jest przycięty do luki — pasek mierzy zwrot wydatków i nie
+     ma prawa przekroczyć 100%. Zapas ponad lukę przepadłby bez tej pozycji,
+     a to on najmocniej różni oba tryby wyceny. */
+  if (R.cushion > 0.005) {
+    legend.push(`<span class="cd-rec-key cushion"><i class="cushion"></i>Zapas towaru ponad lukę <b class="mono">${fmtPLN0(R.cushion, true)}</b> <small>poza paskiem</small></span>`);
+  }
+  el('rec-legend').innerHTML = legend.join('');
+
+  const pctEl = el('rec-pct');
+  pctEl.textContent = fmtPct(R.pctCash, false, 0);
+  pctEl.className = 'v mono ' + (R.pctCash >= 100 ? 'pos' : R.pctCash >= 50 ? '' : 'warn');
+  el('rec-pct-note').textContent = R.missing > 0
+    ? `zostało ${fmtPLN0(R.missing)}`
+    : 'kapitał wrócił w całości';
+
+  /* --- Siatka liczb --- */
+  const coverageCls = R.coverage == null ? 'pos' : R.coverage >= 1.2 ? 'pos' : R.coverage >= 1 ? '' : 'neg';
+  const eta = etaLabel(R.etaMonths);
+  const cells = [
+    {
+      k: 'Wydane lifetime', v: fmtPLN0(R.spent),
+      n: R.lifeSpendRate ? `śr. ${fmtPLN0(R.lifeSpendRate)}/mies. od ${fmtDate(R.firstDate)}` : 'wszystkie koszty razem'
+    },
+    {
+      k: 'Wróciło w gotówce', v: fmtPLN0(R.cashBack), cls: 'pos',
+      n: `${fmtPct(R.pctCash, false, 0)} wydatków · ${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`
+    },
+    {
+      k: 'Zostało do odzyskania', v: R.missing > 0.005 ? fmtPLN0(R.missing) : '0 zł',
+      cls: R.missing > 0.005 ? 'warn' : 'pos',
+      n: R.missing > 0.005
+        ? (R.feeRate ? `sprzedaj za ~${fmtPLN0(R.grossNeeded)} brutto — prowizje zjadają ${fmtPct(R.feeRate * 100, false, 0)}` : 'tyle musi jeszcze wpłynąć netto')
+        : (R.surplus > 0.005 ? `nadwyżka ${fmtPLN0(R.surplus, true)} ponad włożony kapitał` : 'kapitał wrócił co do złotówki')
+    },
+    {
+      k: 'Zamrożone w towarze', v: fmtPLN0(R.stock),
+      n: R.mode === 'cost'
+        ? `w cenie zakupu · ${fmtPLN0(R.stockMarket)} po dzisiejszej wycenie`
+        : `po dzisiejszej wycenie · ${fmtPLN0(R.stockBasis)} w cenie zakupu`
+    },
+    {
+      k: 'Pokrycie luki towarem', v: R.coverage == null ? '∞' : fmtNum(R.coverage, 2) + '×', cls: coverageCls,
+      n: R.coverage == null ? 'kapitał już wrócił, towar to czysty zysk'
+        : R.coverage >= 1 ? `towar spina lukę z zapasem ${fmtPLN0(R.stock - R.missing)}`
+          : `nawet po sprzedaży całości ${R.mode === 'cost' ? 'po cenie zakupu ' : ''}zostanie ${fmtPLN0(R.gap)} straty`
+    },
+    {
+      k: `Tempo netto (${REC_WINDOW} dni)`, v: fmtPLN0(R.netRate, true) + '/mies.', cls: posClass(R.netRate),
+      n: R.missing <= 0.005 ? 'kapitał odzyskany, to już czysty przepływ'
+        : eta ? `w tym tempie próg zwrotu za ${eta}`
+          : `wydajesz ${fmtPLN0(R.spendRate)}/mies., wraca ${fmtPLN0(R.backRate)}/mies. — luka rośnie`
+    }
+  ];
+  el('rec-grid').innerHTML = cells.map(c =>
+    `<div class="cell"><span class="k">${esc(c.k)}</span><span class="v mono ${c.cls || ''}">${c.v}</span><span class="n">${c.n}</span></div>`).join('');
+
+  el('rec-note').innerHTML = recoveryNarrative(R);
+
+  /* --- Drabina płynności --- */
+  el('rec-liq-sub').textContent = R.ladderTotal > 0
+    ? `${fmtPLN0(R.ladderTotal)} w towarze ${R.mode === 'cost' ? 'w cenie zakupu' : 'po wycenie'}, od najbliższego gotówce`
+    : 'brak towaru na stanie';
+
+  if (!R.ladder.length) {
+    el('rec-ladder').innerHTML = emptyBox('inventory_2', 'Nic nie leży na stanie',
+      'Cały kapitał jest albo w gotówce, albo już rozliczony. Nie ma czego upłynniać.');
+    return;
+  }
+
+  const ladderBar = `<div class="cd-rec-ladder-bar">${R.ladder.map(rung =>
+    `<span class="${rung.tone}" style="width:${(rung.value / R.ladderTotal * 100).toFixed(2)}%" title="${esc(rung.label)}: ${fmtPLN0(rung.value)}"></span>`).join('')}</div>`;
+
+  const ladderRows = R.ladder.map(rung => {
+    const shareOfStock = rung.value / R.ladderTotal * 100;
+    const ofMissing = R.missing > 0 ? rung.value / R.missing * 100 : null;
+    return `<div class="cd-rec-rung">
+      <span class="cd-rec-rung-ico ${rung.tone}"><span class="material-symbols-outlined">${rung.icon}</span></span>
+      <span class="cd-rec-rung-name"><strong>${esc(rung.label)}</strong><small>${rung.count ? `${rung.count} ${plural(rung.count, 'pozycja', 'pozycje', 'pozycji')} · ` : ''}${esc(rung.note)}</small></span>
+      <span class="cd-rec-rung-bar"><i class="${rung.tone}" style="width:${shareOfStock.toFixed(2)}%"></i></span>
+      <span class="cd-rec-rung-val mono">${fmtPLN0(rung.value)}<small>${fmtPct(shareOfStock, false, 0)} towaru${ofMissing != null ? ` · ${fmtPct(ofMissing, false, 0)} luki` : ''}</small></span>
+    </div>`;
+  }).join('');
+
+  el('rec-ladder').innerHTML = ladderBar + ladderRows;
+}
+
+/** Jedno zdanie po polsku zamiast czytania sześciu kafelków naraz. */
+function recoveryNarrative(R) {
+  const bits = [];
+  bits.push(`Wydałeś <strong>${fmtPLN0(R.spent)}</strong>, wróciło <strong>${fmtPLN0(R.cashBack)}</strong> — to <strong>${fmtPct(R.pctCash, false, 0)}</strong> włożonego kapitału.`);
+
+  if (R.missing <= 0.005) {
+    bits.push(`Kapitał jest z powrotem na koncie${R.surplus > 0.005 ? `, i to z nadwyżką <strong>${fmtPLN0(R.surplus, true)}</strong>` : ''}. Towar ${R.mode === 'cost' ? 'kupiony za' : 'wart dziś'} <strong>${fmtPLN0(R.stock)}</strong> to już czysty zysk — od teraz gra się o marżę, nie o wyjście na zero.`);
+    return bits.join(' ');
+  }
+
+  bits.push(`Do wyjścia na zero brakuje <strong>${fmtPLN0(R.missing)}</strong>${R.feeRate ? `, czyli sprzedaży za ok. <strong>${fmtPLN0(R.grossNeeded)}</strong> brutto po Twoich prowizjach` : ''}.`);
+
+  const stockPhrase = R.mode === 'cost'
+    ? `Za towar na stanie zapłaciłeś <strong>${fmtPLN0(R.stock)}</strong>`
+    : `Towar na stanie wyceniasz na <strong>${fmtPLN0(R.stock)}</strong>`;
+  if (R.coverage != null && R.coverage >= 1) {
+    bits.push(`${stockPhrase}, więc luka jest pokryta <strong>${fmtNum(R.coverage, 2)}×</strong> — pytanie jest o czas i płynność, nie o wypłacalność.`);
+  } else {
+    bits.push(`${stockPhrase}, czyli mniej niż luka: nawet sprzedaż całości ${R.mode === 'cost' ? 'po cenie zakupu' : 'po dzisiejszych cenach'} zostawia <strong class="neg">${fmtPLN0(R.gap)}</strong> pod kreską.`);
+  }
+
+  if (R.netRate > 0 && R.etaMonths != null) {
+    bits.push(`Przez ostatnie ${nDays(REC_WINDOW)} netto wraca <strong class="pos">${fmtPLN0(R.netRate)}</strong> miesięcznie — w tym tempie próg zwrotu wypada za ${etaLabel(R.etaMonths)}.`);
+  } else if (R.spendRate > 0.005 || R.backRate > 0.005) {
+    bits.push(`Przez ostatnie ${nDays(REC_WINDOW)} wydajesz <strong>${fmtPLN0(R.spendRate)}</strong> miesięcznie przy <strong>${fmtPLN0(R.backRate)}</strong> wpływów — w tym tempie luka się nie domknie, tylko rośnie.`);
+  } else {
+    bits.push(`Przez ostatnie ${nDays(REC_WINDOW)} nic nie kupiłeś ani nie sprzedałeś — luka stoi w miejscu.`);
+  }
+
+  return bits.join(' ');
 }
 
 /** Rozbicie sprzedaży na karty single i sealed — jedna miara dla obu stron. */
@@ -817,7 +1123,7 @@ function portfolioSeries() {
     const bulkAt = sum(M.boxes.filter(b => b.status === 'opened' && (b.openedDate || b.date) <= at), b => b.bulk);
     const outAt = sum(M.boxes.filter(b => b.date <= at), b => b.landed)
       + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date <= at), c => cardOwnCost(c))
-      + sum(state.gradings.filter(g => g.date && g.date <= at), g => num(g.feePerCard) * (g.cardIds || []).length + num(g.shipping) + num(g.extra))
+      + sum(state.gradings.filter(g => g.date && g.date <= at), g => gradingTotal(g))
       + sum(state.expenses.filter(e => e.date && e.date <= at), e => num(e.amount));
     const inAt = sum(M.cards.filter(c => c.sale && c.sale.date <= at), c => saleNet(c.sale))
       + sum(M.boxes.filter(b => b.sale && b.sale.date <= at), b => saleNet(b.sale));
@@ -1773,7 +2079,7 @@ function renderCashflowChart() {
     if (c.acq !== 'box' && c.date) events.push([c.date.slice(0, 7), -cardOwnCost(c)]);
     if (c.sale) events.push([c.sale.date.slice(0, 7), saleNet(c.sale)]);
   }
-  for (const g of state.gradings) if (g.date) events.push([g.date.slice(0, 7), -(num(g.feePerCard) * (g.cardIds || []).length + num(g.shipping) + num(g.extra))]);
+  for (const g of state.gradings) if (g.date) events.push([g.date.slice(0, 7), -(gradingTotal(g))]);
   for (const e of state.expenses) if (e.date) events.push([e.date.slice(0, 7), -num(e.amount)]);
   if (!events.length) { renderChart('chart-cashflow', null); return; }
 
@@ -3674,6 +3980,17 @@ function goTab(name) {
 function bindEvents() {
   document.querySelectorAll('.trade-tab').forEach(t => t.addEventListener('click', () => goTab(t.dataset.tab)));
 
+  /* Pasek odzysku: wycena rynkowa kontra cena zakupu. To tylko sposób
+     patrzenia na ten sam stan, więc zapisujemy preferencję bez przeliczania
+     całego modułu i bez ruszania budżetu. */
+  el('rec-mode').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn || btn.dataset.mode === recStockMode()) return;
+    settings.recStock = btn.dataset.mode;
+    savePrefs();
+    renderCapitalRecovery();
+  });
+
   el('eq-range').addEventListener('click', e => {
     const btn = e.target.closest('button[data-range]');
     if (!btn) return;
@@ -3954,7 +4271,7 @@ function desiredBudgetEntries(m) {
   }
 
   for (const g of state.gradings) {
-    const total = num(g.feePerCard) * (g.cardIds || []).length + num(g.shipping) + num(g.extra);
+    const total = gradingTotal(g);
     if (g.date && total > 0.005) {
       expenses.push({
         id: `${TX_PREFIX}grad_${g.id}`, date: g.date, amount: total,
