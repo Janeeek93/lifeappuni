@@ -5900,11 +5900,32 @@
 	              <div class="tiny muted" id="eom2-bridge-empty" style="display:none">Brak mapowań — dodaj pierwszy wiersz.</div>
 	            </div>
 	          </div>
+	          <div class="card stack" style="margin-top:8px;padding:10px 12px">
+	            <div class="eom2-bridge-head">
+	              <strong>Kategorie kont</strong>
+	              <div class="row" style="gap:8px">
+	                <button class="btn soft" type="button" id="eom2-cat-toggle" aria-expanded="false">
+	                  <span class="material-symbols-outlined" style="font-size:16px">expand_more</span>
+	                  <span>Rozwiń kategorie</span>
+	                </button>
+	              </div>
+	            </div>
+	            <div id="eom2-cat-panel" hidden>
+	              <div class="tiny muted">Kategoria decyduje o sekcji w księgowaniu i o osobnej linii na wykresach — dzięki temu odkładanie w akcjach i ETF-ach nie miesza się z kartami czy zakładami.</div>
+	              <div class="table-wrapper" style="margin-top:6px">
+	                <table class="modern-table eom2-bridge-table">
+	                  <thead><tr><th>Konto</th><th>Kategoria</th></tr></thead>
+	                  <tbody id="eom2-cat-body"></tbody>
+	                </table>
+	              </div>
+	            </div>
+	          </div>
           <form id="eom2-add-account" class="row" style="gap:8px;margin-top:8px">
             <input name="name" placeholder="Nowe konto (np. Revolut, Karta kredytowa)" style="flex:1;height:38px" required />
             <select name="type" style="height:38px;min-width:140px">
               <option value="oszczędności">Oszczędności</option>
               <option value="inwestycje">Inwestycje</option>
+              <option value="alternatywne">Alternatywne (karty, zakłady)</option>
               <option value="zadłużenie">Zadłużenie</option>
               <option value="gotówka">Gotówka</option>
               <option value="emerytura">Emerytura</option>
@@ -12100,6 +12121,7 @@
   const EOM_ACCOUNT_TYPE_OPTIONS = [
     { value:'oszczędności', label:'Oszczędności' },
     { value:'inwestycje', label:'Inwestycje' },
+    { value:'alternatywne', label:'Alternatywne' },
     { value:'zadłużenie', label:'Zadłużenie' },
     { value:'gotówka', label:'Gotówka' },
     { value:'emerytura', label:'Emerytura' },
@@ -14706,9 +14728,12 @@
   let eom2HistoryCompareA='';
   let eom2HistoryCompareB='';
   let eom2Bound=false;
-  const eom2TypeOrder=['oszczędności','inwestycje','gotówka','emerytura','zadłużenie','inne'];
-  const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
-  const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+  const eom2TypeOrder=['oszczędności','inwestycje','alternatywne','gotówka','emerytura','zadłużenie','inne'];
+  const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','alternatywne':'Alternatywne','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+  const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','alternatywne':'#f59e0b','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+  /* Konta, na których „Pobierz aktualne" ma sens: portfel inwestycyjny i aktywa
+     alternatywne (karty, zakłady) — jedne i drugie mają źródło poza budżetem. */
+  const EOM_PULLABLE_TYPES=['inwestycje','alternatywne'];
 
   function eom2AggregateMonths(months, granularity){
     if(granularity==='monthly') return months.slice();
@@ -14799,15 +14824,79 @@
   function cardsAccount(){ return accountBySource('cards'); }
   function bettingAccount(){ return accountBySource('betting'); }
 
+  function eomNameKey(name){
+    /* ł/Ł nie rozkłada się przez NFD, więc podmieniamy je ręcznie — bez tego
+       „Zakłady" nie dopasowałyby się do żadnego aliasu. */
+    return String(name||'').toLowerCase().replace(/ł/g,'l').normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  /* Konto założone ręcznie przed podpięciem modułu przejmujemy, zamiast obok
+     niego zakładać drugie o tej samej nazwie — inaczej historia sald zostaje
+     na starym koncie, a „Pobierz aktualne" napełnia nowe, puste. */
+  function adoptModuleAccount(source, wantedId, aliases){
+    const candidate=(b().accounts||[]).find(acc=>{
+      if(!acc||acc.source) return false;
+      return acc.id===wantedId||aliases.includes(eomNameKey(acc.name));
+    });
+    if(!candidate) return null;
+    candidate.source=source;
+    if(!candidate.kind&&!candidate.type) candidate.kind='alternatywne';
+    save(state);
+    return candidate;
+  }
+
+  /* Jeżeli konto modułowe zdążyło już powstać obok ręcznego o tej samej nazwie,
+     przepinamy źródło na to z historią sald, a puste konto-duplikat kasujemy. */
+  function mergeDuplicateModuleAccount(source, autoId, aliases){
+    const linked=accountBySource(source);
+    if(!linked||linked.id!==autoId) return linked;
+    const hasHistory=id=>(b().eom||[]).some(entry=>entry&&entry.accountId===id);
+    if(hasHistory(linked.id)) return linked;
+    const manual=(b().accounts||[]).find(acc=>acc&&!acc.source&&acc.id!==linked.id&&aliases.includes(eomNameKey(acc.name)));
+    if(!manual) return linked;
+    manual.source=source;
+    if(!manual.kind&&!manual.type) manual.kind='alternatywne';
+    b().accounts=(b().accounts||[]).filter(acc=>acc!==linked);
+    b().eomInvestmentBridge=(eom2InvestmentBridge()||[]).map(row=>
+      row.targetAccountId===linked.id?{...row,targetAccountId:manual.id}:row);
+    save(state);
+    return manual;
+  }
+
+  const CARDS_ACCOUNT_ALIASES=['karty','karty pilkarskie','karty pilka nozna','cards'];
+  const BETTING_ACCOUNT_ALIASES=['zaklady','zaklady bukmacherskie','bukmacher','betting','bankroll'];
+
+  /* Karty i zakłady to nie ten sam koszyk co ETF-y i akcje — na wykresach m/m
+     mieszały się z realnym odkładaniem. Przenosimy je raz do „Alternatywne";
+     późniejsza ręczna zmiana kategorii zostaje, bo migracja ma swoją flagę. */
+  function migrateModuleAccountsToAlternative(){
+    if(b().moduleAccountsAltMigrated) return;
+    const accounts=b().accounts||[];
+    let touched=false;
+    for(const acc of accounts){
+      if(!moduleAccountConfig(acc)) continue;
+      const configured=acc.type||acc.kind||'';
+      if(configured&&configured!=='inwestycje') continue;
+      delete acc.type;
+      acc.kind='alternatywne';
+      touched=true;
+    }
+    b().moduleAccountsAltMigrated=true;
+    if(touched||accounts.length) save(state);
+  }
+
   /* Konto „Karty" zakładamy raz, gdy moduł Karty ma już jakiekolwiek dane.
      Skasowane przez użytkownika nie wraca — stąd flaga cardsAccountSeeded. */
   function ensureCardsEomAccount(){
-    const existing=cardsAccount();
+    const existing=mergeDuplicateModuleAccount('cards','a_cards',CARDS_ACCOUNT_ALIASES);
     if(existing) return existing;
-    if(b().cardsAccountSeeded) return null;
     const snap=getCardsSnapshot();
     if(!snap||(!snap.cardCount&&!snap.sealedCount&&!snap.totalAssets)) return null;
-    const acc={id:'a_cards',name:'Karty',kind:'inwestycje',source:'cards'};
+    const adopted=adoptModuleAccount('cards','a_cards',CARDS_ACCOUNT_ALIASES);
+    if(adopted) return adopted;
+    if(b().cardsAccountSeeded) return null;
+    const acc={id:'a_cards',name:'Karty',kind:'alternatywne',source:'cards'};
     if(!Array.isArray(b().accounts)) b().accounts=[];
     b().accounts.push(acc);
     b().cardsAccountSeeded=true;
@@ -14817,14 +14906,16 @@
 
   /* To samo dla „Zakładów" — konto pojawia się, gdy moduł ma już bankroll. */
   function ensureBettingEomAccount(){
-    const existing=bettingAccount();
+    const existing=mergeDuplicateModuleAccount('betting','a_betting',BETTING_ACCOUNT_ALIASES);
     if(existing) return existing;
-    if(b().bettingAccountSeeded) return null;
     const snap=getBettingSnapshot();
     /* Sam bankroll startowy z ustawień to za mało — konto zakładamy dopiero,
        gdy w module jest realny ruch (kupony albo operacje kasowe). */
     if(!snap||(!num(snap.betCount)&&!num(snap.ledgerNet))) return null;
-    const acc={id:'a_betting',name:'Zakłady',kind:'inwestycje',source:'betting'};
+    const adopted=adoptModuleAccount('betting','a_betting',BETTING_ACCOUNT_ALIASES);
+    if(adopted) return adopted;
+    if(b().bettingAccountSeeded) return null;
+    const acc={id:'a_betting',name:'Zakłady',kind:'alternatywne',source:'betting'};
     if(!Array.isArray(b().accounts)) b().accounts=[];
     b().accounts.push(acc);
     b().bettingAccountSeeded=true;
@@ -14904,10 +14995,11 @@
   function renderEomV2(){
     ensureCardsEomAccount();
     ensureBettingEomAccount();
+    migrateModuleAccountsToAlternative();
     const ctx=buildEomContext();
     const cur=state.currency;
     const accounts=ctx.accounts;
-    const investmentAccounts=accounts.filter(acc=>inferAccountType(acc)==='inwestycje');
+    const investmentAccounts=accounts.filter(acc=>EOM_PULLABLE_TYPES.includes(inferAccountType(acc)));
     const investmentSnapshot=getInvestmentSnapshot();
     const bridgeOptions=getInvestmentBridgeOptions(investmentSnapshot);
     const el=id=>document.getElementById(id);
@@ -14991,7 +15083,7 @@
             <div class="eom2-booking-input"><input type="text" inputmode="decimal" data-acc-id="${acc.id}" value="${curBal!==undefined?String(curBal).replace('.',','):''}" placeholder="0,00" /></div>
             <div class="eom2-booking-delta" data-delta-for="${acc.id}"></div>
             <div class="eom2-booking-actions">
-              ${type==='inwestycje'?`<button type="button" data-pull-invest="${acc.id}" title="${escapeHtml(moduleAccountConfig(acc)?.pullTitle||'Pobierz aktualne z inwestycji')}">⭳</button>`:''}
+              ${EOM_PULLABLE_TYPES.includes(type)?`<button type="button" data-pull-invest="${acc.id}" title="${escapeHtml(moduleAccountConfig(acc)?.pullTitle||'Pobierz aktualne z inwestycji')}">⭳</button>`:''}
               <button type="button" data-del-acc="${acc.id}" title="Usuń konto">✕</button>
             </div>`;
           groupDiv.appendChild(row);
@@ -15152,6 +15244,33 @@
       }
     }
 
+    // --- Kategorie kont ---
+    const catBody=el('eom2-cat-body');
+    if(catBody){
+      catBody.innerHTML='';
+      const usedTypes=new Set(accounts.map(acc=>inferAccountType(acc)));
+      const typeValues=[...eom2TypeOrder,...[...usedTypes].filter(t=>!eom2TypeOrder.includes(t))];
+      for(const acc of accounts){
+        const current=inferAccountType(acc);
+        const tr=document.createElement('tr');
+        const moduleCfg=moduleAccountConfig(acc);
+        tr.innerHTML=`
+          <td>${escapeHtml(acc.name)}${moduleCfg?'<div class="tiny muted">zasilane z modułu</div>':''}</td>
+          <td><select data-acc-kind="${acc.id}"></select></td>`;
+        catBody.appendChild(tr);
+        const sel=tr.querySelector(`[data-acc-kind="${acc.id}"]`);
+        for(const t of typeValues) sel.add(new Option(eom2TypeLabelMap[t]||capitalizeFirst(t),t,false,t===current));
+        sel.onchange=()=>{
+          const target=(b().accounts||[]).find(item=>item.id===acc.id);
+          if(!target) return;
+          delete target.type;
+          target.kind=sel.value;
+          save(state);
+          renderEomV2();
+        };
+      }
+    }
+
 
     // --- Net Worth Trend Chart (LINE with category filter) ---
     if(eom2NwChart){eom2NwChart.destroy();eom2NwChart=null;}
@@ -15254,8 +15373,10 @@
         byType[type]=(byType[type]||0)+Math.abs(bal);
       }
       const types=Object.keys(byType).filter(t=>byType[t]>0);
-      const typeColorMap2={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#ef4444','inne':'#94a3b8'};
-      const typeLabelMap2={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+      /* Te same nazwy i kolory co w księgowaniu — inaczej nowa kategoria
+         wypada na wykresie jako szara pozycja z kluczem zamiast etykiety. */
+      const typeColorMap2={...eom2TypeColorMap,'zadłużenie':'#ef4444'};
+      const typeLabelMap2=eom2TypeLabelMap;
       const totalAbs=types.reduce((s,t)=>s+byType[t],0);
 
       eom2BreakdownChart=new Chart(bdCanvas.getContext('2d'),{
@@ -15668,10 +15789,23 @@
       };
     }
 
+    const catToggleBtn=document.getElementById('eom2-cat-toggle');
+    const catPanel=document.getElementById('eom2-cat-panel');
+    if(catToggleBtn&&catPanel){
+      catToggleBtn.onclick=()=>{
+        const isHidden=catPanel.hidden;
+        catPanel.hidden=!isHidden;
+        catToggleBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        catToggleBtn.innerHTML=isHidden
+          ? '<span class="material-symbols-outlined" style="font-size:16px">expand_less</span><span>Zwiń kategorie</span>'
+          : '<span class="material-symbols-outlined" style="font-size:16px">expand_more</span><span>Rozwiń kategorie</span>';
+      };
+    }
+
     const bridgeAddBtn=document.getElementById('eom2-bridge-add');
     if(bridgeAddBtn) bridgeAddBtn.onclick=()=>{
-      const invAccounts=(b().accounts||[]).filter(acc=>inferAccountType(acc)==='inwestycje');
-      if(!invAccounts.length){ alert('Najpierw dodaj konto EOM typu Inwestycje.'); return; }
+      const invAccounts=(b().accounts||[]).filter(acc=>EOM_PULLABLE_TYPES.includes(inferAccountType(acc)));
+      if(!invAccounts.length){ alert('Najpierw dodaj konto EOM typu Inwestycje lub Alternatywne.'); return; }
       const firstSource='portfolio';
       const id='bridge_'+Math.random().toString(36).slice(2);
       eom2InvestmentBridge().push({id,sourceKey:firstSource,targetAccountId:invAccounts[0].id,mode:'normal'});
