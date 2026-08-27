@@ -98,13 +98,37 @@ wydane lifetime = odzyskane gotówką + luka pokryta towarem + luka bez pokrycia
 
 - **odzyskane gotówką** — netto ze wszystkich sprzedaży, po prowizjach i wysyłce,
 - **luka pokryta towarem** — ta część niedoboru, którą da się zamknąć sprzedając
-  dzisiejszy stan magazynu po dzisiejszej wycenie,
+  dzisiejszy stan magazynu (po wycenie albo po cenie zakupu — patrz przełącznik niżej),
 - **luka bez pokrycia** — to, czego nie pokrywa nawet sprzedaż całości. Zero w tym
-  polu znaczy, że przy obecnych wycenach wyjście na zero jest w zasięgu ręki.
+  polu znaczy, że wyjście na zero jest w zasięgu ręki.
 
-Towar liczony jest po **wycenie rynkowej**, nie po cenie zakupu, bo pytanie brzmi
-„ile realnie da się jeszcze wyciągnąć z rynku". Wartość w cenie zakupu stoi obok,
-w podpisie kafelka *Zamrożone w towarze*.
+### Wycena rynkowa czy cena zakupu
+
+Przełącznik **Towar licz po** w nagłówku sekcji decyduje, czym wypełnia się
+niebieski segment. Wybór zapisuje się w ustawieniach modułu i przeżywa odświeżenie.
+
+| Tryb | Co liczy | Po co |
+|---|---|---|
+| **wycenie** (domyślnie) | towar po dzisiejszej wycenie rynkowej | „ile realnie da się jeszcze wyciągnąć z rynku" |
+| **cenie zakupu** | towar po tym, co za niego zapłaciłeś | pasek wypełniają **wyłącznie realnie wydane pieniądze** — podniesienie wyceny go nie ruszy |
+
+Tryb *cenie zakupu* jest ostrzejszy z definicji: karta, która zdrożała, i tak
+liczy się po cenie zakupu, więc pasek nie rośnie od samego mark-to-market.
+Najlepiej widać to na **pokryciu luki** — ta sama kolekcja potrafi pokazać
+`1,90×` po wycenie i `1,01×` po koszcie. Druga liczba mówi, że bez wzrostu cen
+wyjście na zero wisi na włosku.
+
+Drabina płynności liczy się w tym samym trybie co pasek, więc udziały w towarze
+i w luce zawsze zgadzają się z liczbami nad nią. Po stronie ceny zakupu ostatni
+szczebel to nieprzypisany koszt otwartych boxów — bulk nie ma własnego kosztu,
+bo przy odliczaniu bulku baza pulli jest już o niego mniejsza.
+
+### Segment towaru jest przycięty do luki
+
+Pasek mierzy zwrot wydatków, więc nie ma prawa przekroczyć 100%. Jeśli towar
+jest wart więcej, niż wynosi luka, nadmiar nie mieści się w pasku i pokazuje się
+w legendzie jako **zapas towaru ponad lukę**. To ta pozycja najmocniej różni oba
+tryby wyceny, kiedy sam pasek wygląda w nich identycznie.
 
 ### Sześć liczb pod paskiem
 
@@ -113,8 +137,8 @@ w podpisie kafelka *Zamrożone w towarze*.
 | **Wydane lifetime** | wszystkie koszty razem: boxy, single, grading, koszty ogólne — plus średnia miesięczna od pierwszego zakupu |
 | **Wróciło w gotówce** | suma netto ze sprzedaży; procent bywa większy niż 100%, gdy kapitał wrócił z nadwyżką |
 | **Zostało do odzyskania** | ile jeszcze musi wpłynąć **netto** — i za ile trzeba wystawić **brutto**, bo prowizje policzone z własnej historii sprzedaży zjadają swoje |
-| **Zamrożone w towarze** | wycena rynkowa stanu, obok koszt zakupu tego samego stanu |
-| **Pokrycie luki towarem** | ile razy stan magazynu pokrywa lukę. Poniżej `1,00×` sprzedaż całości nie wystarcza, żeby wyjść na zero |
+| **Zamrożone w towarze** | stan w aktywnym trybie, a obok w podpisie ta sama pozycja policzona drugim sposobem |
+| **Pokrycie luki towarem** | ile razy stan magazynu pokrywa lukę. Poniżej `1,00×` sprzedaż całości nie wystarcza, żeby wyjść na zero. Reaguje na przełącznik wyceny mocniej niż sam pasek |
 | **Tempo netto (90 dni)** | wpływy minus wydatki z ostatniego kwartału w przeliczeniu na miesiąc. Dodatnie — pokazuje termin progu zwrotu; ujemne — mówi wprost, że luka rośnie |
 
 Pod kafelkami to samo jednym zdaniem po polsku, żeby nie trzeba było czytać sześciu
@@ -122,7 +146,7 @@ liczb naraz.
 
 ### Płynność zamrożonego kapitału
 
-Drabina pokazuje, gdzie stoi kapitał, uszeregowana od najbliższego gotówce:
+Drabina pokazuje, gdzie stoi kapitał — w trybie wybranym przełącznikiem, uszeregowana od najbliższego gotówce:
 **wystawione → karty na stanie → w gradingu → sealed → bulk z breaków**. Każdy
 szczebel podaje swój udział w towarze i w luce do odzyskania — z tego widać, czy
 lukę zamyka jedna wystawiona karta, czy dopiero rozpakowanie i sprzedaż wszystkiego.

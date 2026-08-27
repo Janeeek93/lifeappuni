@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS = {
   listingDays: 60,         // stare ogłoszenie
   sealedDays: 90,          // sealed czekający na decyzję
   targetMargin: 30,
+  recStock: 'market',      // pasek odzysku: towar po wycenie (market) czy po cenie zakupu (cost)
   concAlert: 25,
   budgetSync: 'on',        // księgowanie w module Budżet
   budgetIncome: 'on',      // sprzedaże jako przychody
@@ -224,6 +225,16 @@ function saveState() {
     syncBudget(true);
   } catch (e) {
     console.warn('Synchronizacja z budżetem nie powiodła się:', e);
+  }
+}
+
+/** Zapis samej preferencji widoku — bez przeliczania i ruszania budżetu. */
+function savePrefs() {
+  state.settings = settings;
+  try {
+    localStorage.setItem(CARDS_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Nie udało się zapisać preferencji widoku:', e);
   }
 }
 
@@ -706,16 +717,24 @@ const REC_LADDER = [
   { key: 'held', tone: 'held', icon: 'style', label: 'Karty na stanie', note: 'gotowe do wystawienia' },
   { key: 'grading', tone: 'grading', icon: 'workspace_premium', label: 'W gradingu', note: 'zablokowane do powrotu z firmy' },
   { key: 'sealed', tone: 'sealed', icon: 'package_2', label: 'Sealed', note: 'w cenie zakupu, do ripu albo flipu' },
-  { key: 'bulk', tone: 'bulk', icon: 'inventory_2', label: 'Bulk z breaków', note: 'najwolniej się upłynnia' }
+  { key: 'bulk', tone: 'bulk', icon: 'inventory_2', label: 'Bulk z breaków', note: 'najwolniej się upłynnia', noteCost: 'nieprzypisany koszt otwartych boxów' }
 ];
+
+function recStockMode() { return settings.recStock === 'cost' ? 'cost' : 'market'; }
 
 /**
  * Rachunek odzysku kapitału. Cała skala to wydane lifetime (`cashOut`):
  *
  *   wydane = odzyskane gotówką + luka pokryta towarem + luka bez pokrycia
  *
- * Towar liczony jest po dzisiejszej wycenie, bo pytanie brzmi „ile realnie
- * da się jeszcze wyciągnąć z rynku", a nie „ile za to zapłaciłem".
+ * Towar wchodzi do paska w jednym z dwóch trybów:
+ *
+ *   market — po dzisiejszej wycenie: „ile da się jeszcze wyciągnąć z rynku",
+ *   cost   — po cenie zakupu: pasek wypełnia się wyłącznie realnie wydanymi
+ *            pieniędzmi, więc podniesienie wyceny go nie rusza.
+ *
+ * Tryb `cost` jest ostrzejszy z definicji: karta, która zdrożała, i tak liczy
+ * się po tym, co za nią zapłaciłeś.
  */
 function capitalRecovery() {
   const spent = M.cashOut;
@@ -723,8 +742,14 @@ function capitalRecovery() {
   const recovered = Math.min(cashBack, spent);
   const surplus = Math.max(0, cashBack - spent);
   const missing = Math.max(0, spent - cashBack);
-  const stock = M.assets;
-  const stockBasis = M.heldBasis + M.sealedValue + Math.max(0, M.unallocated);
+  /* Bulk nie ma własnego kosztu — przy odliczaniu bulku baza pulli jest o niego
+     mniejsza, więc jego stroną kosztową jest właśnie koszt nieprzypisany.
+     Stąd `unallocated` zamiast `bulkValue` po stronie ceny zakupu. */
+  const unallocated = Math.max(0, M.unallocated);
+  const stockMarket = M.assets;
+  const stockBasis = M.heldBasis + M.sealedValue + unallocated;
+  const mode = recStockMode();
+  const stock = mode === 'cost' ? stockBasis : stockMarket;
   const covered = Math.min(stock, missing);
   const gap = Math.max(0, missing - stock);
   const share = v => (spent > 0 ? v / spent * 100 : 0);
@@ -755,26 +780,30 @@ function capitalRecovery() {
   const lifeDays = firstDate ? Math.max(1, daysSince(firstDate) || 1) : null;
   const lifeSpendRate = lifeDays ? spent / (lifeDays / REC_MONTH) : null;
 
+  /* Drabina liczy się w tym samym trybie co pasek — inaczej udziały
+     w towarze i w luce nie zgadzałyby się z liczbami nad nią. */
+  const cardVal = c => (mode === 'cost' ? c.basis : c.marketValue);
   const plainHeld = M.held.filter(c => c.status !== 'listed' && c.status !== 'grading');
   const ladderValue = {
-    listed: { value: sum(M.listed, c => c.marketValue), count: M.listed.length },
-    held: { value: sum(plainHeld, c => c.marketValue), count: plainHeld.length },
-    grading: { value: sum(M.inGrading, c => c.marketValue), count: M.inGrading.length },
+    listed: { value: sum(M.listed, cardVal), count: M.listed.length },
+    held: { value: sum(plainHeld, cardVal), count: plainHeld.length },
+    grading: { value: sum(M.inGrading, cardVal), count: M.inGrading.length },
     sealed: { value: M.sealedValue, count: M.sealed.length },
-    bulk: { value: M.bulkValue, count: M.opened.length }
+    bulk: { value: mode === 'cost' ? unallocated : M.bulkValue, count: M.opened.length }
   };
   const ladder = REC_LADDER
-    .map(rung => ({ ...rung, ...ladderValue[rung.key] }))
+    .map(rung => ({ ...rung, ...ladderValue[rung.key], note: (mode === 'cost' && rung.noteCost) ? rung.noteCost : rung.note }))
     .filter(rung => rung.value > 0.005);
 
   return {
-    spent, cashBack, recovered, surplus, missing, stock, stockBasis, covered, gap,
+    mode, spent, cashBack, recovered, surplus, missing, stock, stockMarket, stockBasis, covered, gap,
     pctRecovered: spent > 0 ? recovered / spent * 100 : null,
     pctCash: spent > 0 ? cashBack / spent * 100 : null,
     pctCovered: share(covered),
     pctGap: share(gap),
     share,
     coverage: missing > 0 ? stock / missing : null,
+    cushion: Math.max(0, stock - missing),
     feeRate, grossNeeded,
     spendRate, backRate, netRate, etaMonths, lifeSpendRate, firstDate,
     ladder, ladderTotal: sum(ladder, rung => rung.value)
@@ -804,10 +833,15 @@ function renderCapitalRecovery() {
   el('rec-empty').innerHTML = '';
   desc.textContent = `Z ${fmtPLN0(R.spent)} wydanych wróciło ${fmtPLN0(R.cashBack)}`;
 
+  el('rec-mode').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === R.mode));
+  el('rec-lead').textContent = R.mode === 'cost'
+    ? 'Cały pasek to koszty poniesione lifetime. Zielone wróciło już gotówką, niebieskie stoi w towarze wycenionym po cenie zakupu — pasek wypełniają wyłącznie realnie wydane pieniądze, więc podniesienie wyceny go nie ruszy.'
+    : 'Cały pasek to koszty poniesione lifetime. Zielone wróciło już gotówką, niebieskie stoi w towarze po dzisiejszej wycenie, szare to luka, której nie pokrywa nawet cały stan magazynu.';
+
   /* --- Pasek --- */
   const segs = [
     { cls: 'cash', label: 'Wróciło gotówką', value: R.recovered },
-    { cls: 'stock', label: 'Stoi w towarze', value: R.covered },
+    { cls: 'stock', label: R.mode === 'cost' ? 'Stoi w towarze (koszt)' : 'Stoi w towarze', value: R.covered },
     { cls: 'gap', label: 'Luka bez pokrycia', value: R.gap }
   ].filter(seg => seg.value > 0.005);
 
@@ -818,7 +852,8 @@ function renderCapitalRecovery() {
     </span>`;
   }).join('');
   el('rec-bar').setAttribute('aria-label',
-    `Odzysk kapitału: ${fmtPct(R.pctRecovered, false, 0)} wydatków wróciło gotówką, ${fmtPct(R.pctCovered, false, 0)} stoi w towarze, ${fmtPct(R.pctGap, false, 0)} bez pokrycia.`);
+    `Odzysk kapitału, towar liczony ${R.mode === 'cost' ? 'po cenie zakupu' : 'po dzisiejszej wycenie'}: `
+    + `${fmtPct(R.pctRecovered, false, 0)} wydatków wróciło gotówką, ${fmtPct(R.pctCovered, false, 0)} stoi w towarze, ${fmtPct(R.pctGap, false, 0)} bez pokrycia.`);
 
   el('rec-scale').innerHTML = `
     <span>0 zł</span>
@@ -829,6 +864,12 @@ function renderCapitalRecovery() {
     `<span class="cd-rec-key"><i class="${seg.cls}"></i>${esc(seg.label)} <b class="mono">${fmtPLN0(seg.value)}</b> <small>${fmtPct(R.share(seg.value), false, 0)}</small></span>`);
   if (R.surplus > 0.005) {
     legend.push(`<span class="cd-rec-key surplus"><i class="surplus"></i>Nadwyżka ponad kapitał <b class="mono">${fmtPLN0(R.surplus, true)}</b></span>`);
+  }
+  /* Segment towaru jest przycięty do luki — pasek mierzy zwrot wydatków i nie
+     ma prawa przekroczyć 100%. Zapas ponad lukę przepadłby bez tej pozycji,
+     a to on najmocniej różni oba tryby wyceny. */
+  if (R.cushion > 0.005) {
+    legend.push(`<span class="cd-rec-key cushion"><i class="cushion"></i>Zapas towaru ponad lukę <b class="mono">${fmtPLN0(R.cushion, true)}</b> <small>poza paskiem</small></span>`);
   }
   el('rec-legend').innerHTML = legend.join('');
 
@@ -860,13 +901,15 @@ function renderCapitalRecovery() {
     },
     {
       k: 'Zamrożone w towarze', v: fmtPLN0(R.stock),
-      n: `po dzisiejszej wycenie · ${fmtPLN0(R.stockBasis)} w cenie zakupu`
+      n: R.mode === 'cost'
+        ? `w cenie zakupu · ${fmtPLN0(R.stockMarket)} po dzisiejszej wycenie`
+        : `po dzisiejszej wycenie · ${fmtPLN0(R.stockBasis)} w cenie zakupu`
     },
     {
       k: 'Pokrycie luki towarem', v: R.coverage == null ? '∞' : fmtNum(R.coverage, 2) + '×', cls: coverageCls,
       n: R.coverage == null ? 'kapitał już wrócił, towar to czysty zysk'
         : R.coverage >= 1 ? `towar spina lukę z zapasem ${fmtPLN0(R.stock - R.missing)}`
-          : `nawet po sprzedaży całości zostanie ${fmtPLN0(R.gap)} straty`
+          : `nawet po sprzedaży całości ${R.mode === 'cost' ? 'po cenie zakupu ' : ''}zostanie ${fmtPLN0(R.gap)} straty`
     },
     {
       k: `Tempo netto (${REC_WINDOW} dni)`, v: fmtPLN0(R.netRate, true) + '/mies.', cls: posClass(R.netRate),
@@ -882,7 +925,7 @@ function renderCapitalRecovery() {
 
   /* --- Drabina płynności --- */
   el('rec-liq-sub').textContent = R.ladderTotal > 0
-    ? `${fmtPLN0(R.ladderTotal)} w towarze, od najbliższego gotówce`
+    ? `${fmtPLN0(R.ladderTotal)} w towarze ${R.mode === 'cost' ? 'w cenie zakupu' : 'po wycenie'}, od najbliższego gotówce`
     : 'brak towaru na stanie';
 
   if (!R.ladder.length) {
@@ -914,16 +957,19 @@ function recoveryNarrative(R) {
   bits.push(`Wydałeś <strong>${fmtPLN0(R.spent)}</strong>, wróciło <strong>${fmtPLN0(R.cashBack)}</strong> — to <strong>${fmtPct(R.pctCash, false, 0)}</strong> włożonego kapitału.`);
 
   if (R.missing <= 0.005) {
-    bits.push(`Kapitał jest z powrotem na koncie${R.surplus > 0.005 ? `, i to z nadwyżką <strong>${fmtPLN0(R.surplus, true)}</strong>` : ''}. Towar za <strong>${fmtPLN0(R.stock)}</strong> to już czysty zysk — od teraz gra się o marżę, nie o wyjście na zero.`);
+    bits.push(`Kapitał jest z powrotem na koncie${R.surplus > 0.005 ? `, i to z nadwyżką <strong>${fmtPLN0(R.surplus, true)}</strong>` : ''}. Towar ${R.mode === 'cost' ? 'kupiony za' : 'wart dziś'} <strong>${fmtPLN0(R.stock)}</strong> to już czysty zysk — od teraz gra się o marżę, nie o wyjście na zero.`);
     return bits.join(' ');
   }
 
   bits.push(`Do wyjścia na zero brakuje <strong>${fmtPLN0(R.missing)}</strong>${R.feeRate ? `, czyli sprzedaży za ok. <strong>${fmtPLN0(R.grossNeeded)}</strong> brutto po Twoich prowizjach` : ''}.`);
 
+  const stockPhrase = R.mode === 'cost'
+    ? `Za towar na stanie zapłaciłeś <strong>${fmtPLN0(R.stock)}</strong>`
+    : `Towar na stanie wyceniasz na <strong>${fmtPLN0(R.stock)}</strong>`;
   if (R.coverage != null && R.coverage >= 1) {
-    bits.push(`Towar na stanie wyceniasz na <strong>${fmtPLN0(R.stock)}</strong>, więc luka jest pokryta <strong>${fmtNum(R.coverage, 2)}×</strong> — pytanie jest o czas i płynność, nie o wypłacalność.`);
+    bits.push(`${stockPhrase}, więc luka jest pokryta <strong>${fmtNum(R.coverage, 2)}×</strong> — pytanie jest o czas i płynność, nie o wypłacalność.`);
   } else {
-    bits.push(`Towar na stanie wyceniasz na <strong>${fmtPLN0(R.stock)}</strong>, czyli mniej niż luka: nawet sprzedaż całości po dzisiejszych cenach zostawia <strong class="neg">${fmtPLN0(R.gap)}</strong> pod kreską.`);
+    bits.push(`${stockPhrase}, czyli mniej niż luka: nawet sprzedaż całości ${R.mode === 'cost' ? 'po cenie zakupu' : 'po dzisiejszych cenach'} zostawia <strong class="neg">${fmtPLN0(R.gap)}</strong> pod kreską.`);
   }
 
   if (R.netRate > 0 && R.etaMonths != null) {
@@ -3933,6 +3979,17 @@ function goTab(name) {
 
 function bindEvents() {
   document.querySelectorAll('.trade-tab').forEach(t => t.addEventListener('click', () => goTab(t.dataset.tab)));
+
+  /* Pasek odzysku: wycena rynkowa kontra cena zakupu. To tylko sposób
+     patrzenia na ten sam stan, więc zapisujemy preferencję bez przeliczania
+     całego modułu i bez ruszania budżetu. */
+  el('rec-mode').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn || btn.dataset.mode === recStockMode()) return;
+    settings.recStock = btn.dataset.mode;
+    savePrefs();
+    renderCapitalRecovery();
+  });
 
   el('eq-range').addEventListener('click', e => {
     const btn = e.target.closest('button[data-range]');
