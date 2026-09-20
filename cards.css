@@ -313,6 +313,161 @@ body[data-page="cards"] .tc-kpi[data-tone="accent"] {
 body[data-page="cards"] .tc-kpi .v { font-size: 20px; }
 
 /* ============================================================
+   Odzysk kapitału — pasek zwrotu i drabina płynności
+   ============================================================ */
+.cd-rec { overflow: hidden; }
+/* Bez wydatków nie ma czego dzielić — zostaje sam tytuł i podpowiedź. */
+.cd-rec.is-empty .cd-rec-score,
+.cd-rec.is-empty .cd-rec-bar-wrap,
+.cd-rec.is-empty .cd-rec-grid,
+.cd-rec.is-empty .cd-rec-note,
+.cd-rec.is-empty .cd-rec-liq { display: none; }
+.cd-rec-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 24px;
+  padding: 17px 19px 15px; border-bottom: 1px solid var(--tc-line);
+}
+.cd-rec-head h3 { margin: 0; font-size: 14px; color: var(--tc-ink); }
+.cd-rec-head p { margin: 5px 0 0; max-width: 680px; font-size: 11.5px; line-height: 1.45; color: var(--tc-muted); }
+.cd-rec-mode { display: flex; align-items: center; gap: 9px; margin-top: 11px; }
+.cd-rec-mode > span {
+  color: var(--tc-muted-2); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.cd-rec-mode .seg button { padding: 3px 9px; font-size: 11px; }
+.cd-rec-score { flex: 0 0 auto; text-align: right; }
+.cd-rec-score .v { display: block; font: 700 30px/1 var(--mono); color: var(--tc-ink); letter-spacing: -.02em; }
+.cd-rec-score .v.pos { color: var(--tc-pos); }
+.cd-rec-score .v.warn { color: var(--tc-warn); }
+.cd-rec-score .k {
+  display: block; margin-top: 5px; color: var(--tc-muted);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.cd-rec-score .n { display: block; margin-top: 2px; color: var(--tc-muted-2); font-size: 10.5px; }
+
+.cd-rec-bar-wrap { padding: 18px 19px 4px; }
+.cd-rec-bar {
+  display: flex; width: 100%; height: 42px; border-radius: var(--tc-radius-sm);
+  background: var(--tc-surface); border: 1px solid var(--tc-line); overflow: hidden;
+}
+.cd-rec-bar .seg {
+  display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  min-width: 3px; padding: 0 10px; overflow: hidden; white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, .55);
+  transition: width .35s ease;
+}
+.cd-rec-bar .seg:last-child { border-right: 0; }
+.cd-rec-bar .seg i { font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
+.cd-rec-bar .seg b { font: 600 12.5px var(--mono); }
+.cd-rec-bar .seg.cash { background: var(--tc-pos); color: #fff; }
+.cd-rec-bar .seg.stock { background: var(--tc-accent); color: #fff; }
+.cd-rec-bar .seg.gap { background: repeating-linear-gradient(135deg, #e2e8f0 0 7px, #eef2f7 7px 14px); color: var(--tc-muted); }
+
+/* Grid zamiast space-between: środkowy znacznik ma wypaść dokładnie
+   w połowie paska, niezależnie od długości podpisów po bokach. */
+.cd-rec-scale {
+  display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 6px;
+  color: var(--tc-muted-2); font: 500 10px var(--mono);
+}
+.cd-rec-scale .mid { text-align: center; }
+.cd-rec-scale .end { text-align: right; color: var(--tc-ink-2); font-weight: 600; }
+.cd-rec-scale .end em {
+  display: block; font-style: normal; font-family: Inter, sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tc-muted-2);
+}
+
+.cd-rec-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; }
+.cd-rec-key { display: inline-flex; align-items: center; gap: 6px; color: var(--tc-muted); font-size: 11px; }
+.cd-rec-key i { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; }
+.cd-rec-key i.cash { background: var(--tc-pos); }
+.cd-rec-key i.stock { background: var(--tc-accent); }
+.cd-rec-key i.gap { background: #dbe2ec; }
+.cd-rec-key i.surplus { background: var(--cd-gold); }
+.cd-rec-key i.cushion { background: var(--tc-accent-tint); border: 1px solid var(--tc-accent); }
+.cd-rec-key.cushion b { color: var(--tc-accent); }
+.cd-rec-key b { color: var(--tc-ink); font-size: 11.5px; }
+.cd-rec-key small { color: var(--tc-muted-2); font-size: 10px; }
+.cd-rec-key.surplus b { color: var(--cd-gold); }
+
+.cd-rec-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin-top: 18px; border-top: 1px solid var(--tc-line);
+}
+.cd-rec-grid .cell { padding: 12px 19px; border-right: 1px solid var(--tc-line); border-bottom: 1px solid var(--tc-line); }
+.cd-rec-grid .cell:nth-child(3n) { border-right: 0; }
+.cd-rec-grid .cell .k {
+  display: block; color: var(--tc-muted); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.cd-rec-grid .cell .v { display: block; margin-top: 4px; color: var(--tc-ink); font: 600 17px var(--mono); }
+.cd-rec-grid .cell .v.pos { color: var(--tc-pos); }
+.cd-rec-grid .cell .v.neg { color: var(--tc-neg); }
+.cd-rec-grid .cell .v.warn { color: var(--tc-warn); }
+.cd-rec-grid .cell .n { display: block; margin-top: 3px; color: var(--tc-muted); font-size: 10.5px; line-height: 1.4; }
+
+.cd-rec-note {
+  margin: 0; padding: 14px 19px 16px; font-size: 12px; line-height: 1.6;
+  color: var(--tc-ink-2); background: var(--tc-surface);
+}
+.cd-rec-note strong { color: var(--tc-ink); font-weight: 600; }
+.cd-rec-note strong.pos { color: var(--tc-pos); }
+.cd-rec-note strong.neg { color: var(--tc-neg); }
+
+.cd-rec-liq { border-top: 1px solid var(--tc-line); }
+.cd-rec-liq-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+  padding: 14px 19px 10px;
+}
+.cd-rec-liq-head h4 { margin: 0; font-size: 12.5px; color: var(--tc-ink); }
+.cd-rec-liq-head span { color: var(--tc-muted); font-size: 10.5px; }
+
+.cd-rec-ladder-bar {
+  display: flex; height: 8px; margin: 0 19px 12px; border-radius: 999px; overflow: hidden; background: var(--tc-surface);
+}
+.cd-rec-ladder-bar span { min-width: 2px; border-right: 1px solid #fff; }
+.cd-rec-ladder-bar span:last-child { border-right: 0; }
+
+.cd-rec-rung {
+  display: grid; grid-template-columns: 30px minmax(150px, 1.2fr) minmax(80px, 1fr) auto;
+  align-items: center; gap: 12px; padding: 9px 19px; border-top: 1px solid var(--tc-line);
+}
+.cd-rec-rung-ico { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--tc-surface); color: var(--tc-muted); }
+.cd-rec-rung-ico .material-symbols-outlined { font-size: 17px; }
+.cd-rec-rung-name strong { display: block; color: var(--tc-ink); font-size: 12px; }
+.cd-rec-rung-name small { display: block; margin-top: 2px; color: var(--tc-muted); font-size: 10px; }
+.cd-rec-rung-bar { display: block; height: 4px; border-radius: 2px; background: var(--tc-line); overflow: hidden; }
+.cd-rec-rung-bar i { display: block; height: 100%; border-radius: inherit; }
+.cd-rec-rung-val { text-align: right; color: var(--tc-ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.cd-rec-rung-val small { display: block; margin-top: 2px; color: var(--tc-muted-2); font-family: Inter, sans-serif; font-size: 9.5px; font-weight: 500; }
+
+/* Tony drabiny — im wyżej, tym bliżej gotówki. */
+.cd-rec-rung-ico.listed { background: var(--tc-pos-tint); color: var(--tc-pos); }
+.cd-rec-ladder-bar span.listed, .cd-rec-rung-bar i.listed { background: var(--tc-pos); }
+.cd-rec-rung-ico.held { background: var(--tc-accent-tint); color: var(--tc-accent); }
+.cd-rec-ladder-bar span.held, .cd-rec-rung-bar i.held { background: var(--tc-accent); }
+.cd-rec-rung-ico.grading { background: var(--cd-auto-tint); color: var(--cd-auto); }
+.cd-rec-ladder-bar span.grading, .cd-rec-rung-bar i.grading { background: var(--cd-auto); }
+.cd-rec-rung-ico.sealed { background: var(--cd-gold-tint); color: var(--cd-gold); }
+.cd-rec-ladder-bar span.sealed, .cd-rec-rung-bar i.sealed { background: var(--cd-gold); }
+.cd-rec-rung-ico.bulk { background: var(--cd-base-tint); color: var(--cd-base); }
+.cd-rec-ladder-bar span.bulk, .cd-rec-rung-bar i.bulk { background: var(--cd-base); }
+
+@media (max-width: 900px) {
+  .cd-rec-head { flex-direction: column; gap: 12px; }
+  .cd-rec-score { text-align: left; }
+  .cd-rec-grid { grid-template-columns: repeat(2, 1fr); }
+  .cd-rec-grid .cell:nth-child(3n) { border-right: 1px solid var(--tc-line); }
+  .cd-rec-grid .cell:nth-child(2n) { border-right: 0; }
+  .cd-rec-rung { grid-template-columns: 30px 1fr auto; }
+  .cd-rec-rung-bar { display: none; }
+}
+@media (max-width: 560px) {
+  .cd-rec-bar { height: 36px; }
+  .cd-rec-bar .seg i { display: none; }
+  .cd-rec-grid { grid-template-columns: 1fr; }
+  .cd-rec-grid .cell { border-right: 0 !important; }
+}
+
+/* ============================================================
    Lejek kapitału — koszt → stock → sprzedaż
    ============================================================ */
 .cd-funnel { overflow: hidden; }

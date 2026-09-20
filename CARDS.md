@@ -18,7 +18,7 @@ Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 
 | Zakładka | Do czego służy |
 |---|---|
-| **Przegląd** | Wartość kolekcji, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
+| **Przegląd** | Wartość kolekcji, pasek odzysku kapitału, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
 | **Kolekcja** | Tabela kart z filtrami i sortowaniem, szczegóły karty z historią wyceny i osią zdarzeń |
 | **Boxy i breaki** | Sealed na stanie, wynik każdego breaka, EV produktów, flipy sealed |
 | **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, analiza kanałów |
@@ -85,6 +85,75 @@ zamkniętego miesiąca nie ma prawa się ruszać.
 
 Baza liczona jest od nowa tylko wtedy, gdy realnie się zmienia: przy edycji breaka,
 dopięciu lub usunięciu karty z boxa, zmianie ceny boxa i przy zmianie metody podziału.
+
+## Odzysk kapitału
+
+Sekcja **Przegląd → Odzysk kapitału** odpowiada na pytanie „ile z tego, co
+włożyłem, już wróciło i za ile jeszcze muszę sprzedać, żeby wyjść na zero".
+Cały pasek to koszty poniesione lifetime, a dzieli się dokładnie na trzy części:
+
+```
+wydane lifetime = odzyskane gotówką + luka pokryta towarem + luka bez pokrycia
+```
+
+- **odzyskane gotówką** — netto ze wszystkich sprzedaży, po prowizjach i wysyłce,
+- **luka pokryta towarem** — ta część niedoboru, którą da się zamknąć sprzedając
+  dzisiejszy stan magazynu (po wycenie albo po cenie zakupu — patrz przełącznik niżej),
+- **luka bez pokrycia** — to, czego nie pokrywa nawet sprzedaż całości. Zero w tym
+  polu znaczy, że wyjście na zero jest w zasięgu ręki.
+
+### Wycena rynkowa czy cena zakupu
+
+Przełącznik **Towar licz po** w nagłówku sekcji decyduje, czym wypełnia się
+niebieski segment. Wybór zapisuje się w ustawieniach modułu i przeżywa odświeżenie.
+
+| Tryb | Co liczy | Po co |
+|---|---|---|
+| **wycenie** (domyślnie) | towar po dzisiejszej wycenie rynkowej | „ile realnie da się jeszcze wyciągnąć z rynku" |
+| **cenie zakupu** | towar po tym, co za niego zapłaciłeś | pasek wypełniają **wyłącznie realnie wydane pieniądze** — podniesienie wyceny go nie ruszy |
+
+Tryb *cenie zakupu* jest ostrzejszy z definicji: karta, która zdrożała, i tak
+liczy się po cenie zakupu, więc pasek nie rośnie od samego mark-to-market.
+Najlepiej widać to na **pokryciu luki** — ta sama kolekcja potrafi pokazać
+`1,90×` po wycenie i `1,01×` po koszcie. Druga liczba mówi, że bez wzrostu cen
+wyjście na zero wisi na włosku.
+
+Drabina płynności liczy się w tym samym trybie co pasek, więc udziały w towarze
+i w luce zawsze zgadzają się z liczbami nad nią. Po stronie ceny zakupu ostatni
+szczebel to nieprzypisany koszt otwartych boxów — bulk nie ma własnego kosztu,
+bo przy odliczaniu bulku baza pulli jest już o niego mniejsza.
+
+### Segment towaru jest przycięty do luki
+
+Pasek mierzy zwrot wydatków, więc nie ma prawa przekroczyć 100%. Jeśli towar
+jest wart więcej, niż wynosi luka, nadmiar nie mieści się w pasku i pokazuje się
+w legendzie jako **zapas towaru ponad lukę**. To ta pozycja najmocniej różni oba
+tryby wyceny, kiedy sam pasek wygląda w nich identycznie.
+
+### Sześć liczb pod paskiem
+
+| Kafelek | Co mówi |
+|---|---|
+| **Wydane lifetime** | wszystkie koszty razem: boxy, single, grading, koszty ogólne — plus średnia miesięczna od pierwszego zakupu |
+| **Wróciło w gotówce** | suma netto ze sprzedaży; procent bywa większy niż 100%, gdy kapitał wrócił z nadwyżką |
+| **Zostało do odzyskania** | ile jeszcze musi wpłynąć **netto** — i za ile trzeba wystawić **brutto**, bo prowizje policzone z własnej historii sprzedaży zjadają swoje |
+| **Zamrożone w towarze** | stan w aktywnym trybie, a obok w podpisie ta sama pozycja policzona drugim sposobem |
+| **Pokrycie luki towarem** | ile razy stan magazynu pokrywa lukę. Poniżej `1,00×` sprzedaż całości nie wystarcza, żeby wyjść na zero. Reaguje na przełącznik wyceny mocniej niż sam pasek |
+| **Tempo netto (90 dni)** | wpływy minus wydatki z ostatniego kwartału w przeliczeniu na miesiąc. Dodatnie — pokazuje termin progu zwrotu; ujemne — mówi wprost, że luka rośnie |
+
+Pod kafelkami to samo jednym zdaniem po polsku, żeby nie trzeba było czytać sześciu
+liczb naraz.
+
+### Płynność zamrożonego kapitału
+
+Drabina pokazuje, gdzie stoi kapitał — w trybie wybranym przełącznikiem, uszeregowana od najbliższego gotówce:
+**wystawione → karty na stanie → w gradingu → sealed → bulk z breaków**. Każdy
+szczebel podaje swój udział w towarze i w luce do odzyskania — z tego widać, czy
+lukę zamyka jedna wystawiona karta, czy dopiero rozpakowanie i sprzedaż wszystkiego.
+
+To ta sama informacja, na którą patrzy się przy decyzji „kupować dalej czy najpierw
+upłynnić": tempo netto mówi, w którą stronę idzie płynność, a drabina — co da się
+zamienić na gotówkę najszybciej.
 
 ## Jak spina się rachunek
 
