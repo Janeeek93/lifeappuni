@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
     { name: 'eBay', fee: 11 },
     { name: 'Cardmarket', fee: 5 },
     { name: 'Allegro', fee: 9 },
+    { name: 'Empik', fee: 0 },
     { name: 'OLX', fee: 0 },
     { name: 'Facebook / grupy', fee: 0 },
     { name: 'Whatnot', fee: 8 },
@@ -200,6 +201,7 @@ function loadState() {
   settings = Object.assign(structuredClone(DEFAULT_SETTINGS), state.settings || {});
   settings.fx = Object.assign({ ...DEFAULT_SETTINGS.fx }, settings.fx || {});
   if (!Array.isArray(settings.channels) || !settings.channels.length) settings.channels = structuredClone(DEFAULT_SETTINGS.channels);
+  if (!settings.channels.some(channel => channel.name === 'Empik')) settings.channels.push({ name: 'Empik', fee: 0 });
   state.settings = settings;
 
   /* Samonaprawa: box otwarty, ale któryś pull bez zapisanej bazy kosztowej
@@ -1681,6 +1683,7 @@ function renderSales() {
 
   renderListed();
   renderSalesTable();
+  renderAccountingReport();
   renderChannelAnalysis();
 }
 
@@ -1753,7 +1756,7 @@ function renderSalesTable() {
   wrap.innerHTML = `<table class="tc-tbl">
     <thead><tr>
       <th>Data</th><th>Pozycja</th><th>Kanał</th><th class="num">Brutto</th><th class="num">Koszty transakcji</th>
-      <th class="num">Netto</th><th class="num">Baza</th><th class="num">P&L</th><th class="num">ROI</th><th class="num">Marża</th><th class="num">Dni</th>
+      <th class="num">Netto</th><th class="num">Baza</th><th class="num">P&L</th><th class="num">ROI</th><th class="num">Marża</th><th class="num">Dni</th><th></th>
     </tr></thead>
     <tbody>${rows.map(s => `
       <tr ${s.kind === 'card' ? `class="clickable" onclick="openCardDrawer('${s.id}')"` : ''}>
@@ -1768,6 +1771,7 @@ function renderSalesTable() {
         <td class="num ${posClass(s.roi)}">${fmtPct(s.roi)}</td>
         <td class="num ${posClass(s.margin)}">${fmtPct(s.margin)}</td>
         <td class="num">${s.days == null ? '—' : s.days}</td>
+        <td><button class="row-btn" title="Edytuj sprzedaż" onclick="event.stopPropagation();openEditSale('${s.kind}','${s.id}')"><span class="material-symbols-outlined">edit</span></button></td>
       </tr>`).join('')}</tbody>
     <tfoot><tr>
       <td colspan="3">Razem (widok)</td>
@@ -1777,8 +1781,38 @@ function renderSalesTable() {
       <td class="num">${fmtPLN0(sum(rows, s => s.basis))}</td>
       <td class="num ${posClass(sum(rows, s => s.pnl))}">${fmtPLN0(sum(rows, s => s.pnl), true)}</td>
       <td class="num">${sum(rows, s => s.basis) > 0 ? fmtPct(sum(rows, s => s.pnl) / sum(rows, s => s.basis) * 100) : '—'}</td>
-      <td colspan="2"></td>
+      <td colspan="3"></td>
     </tr></tfoot></table>`;
+}
+
+function saleAccountingAmount(sale) {
+  return Math.max(0, saleGross(sale) - num(sale.refund) * fxFor(sale.currency, sale.fx));
+}
+
+function accountingSales(month) {
+  return M.sales.filter(s => s.date && s.date.slice(0, 7) === month && !s.ref.sale.invoiced)
+    .map(s => ({ ...s, accounting: saleAccountingAmount(s.ref.sale), orderId: s.ref.sale.orderId || '' }))
+    .filter(s => s.accounting > 0);
+}
+
+function renderAccountingReport() {
+  const month = getVal('accounting-month') || today().slice(0, 7);
+  const rows = accountingSales(month);
+  const days = [...groupBy(rows, s => s.date).entries()].sort(([a], [b]) => a.localeCompare(b));
+  el('accounting-summary').textContent = `${rows.length} ${plural(rows.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')} bez faktury · ${fmtPLN(sum(rows, s => s.accounting))} do DW`;
+  el('accounting-wrap').innerHTML = days.length ? `<table class="tc-tbl"><thead><tr><th>Dokument ING</th><th>Rozbicie kanałów</th><th class="num">Przychód 3%</th></tr></thead><tbody>${days.map(([date, list]) => {
+    const channels = [...groupBy(list, s => s.channel).entries()].map(([name, sales]) => `${esc(name)} ${fmtPLN(sum(sales, s => s.accounting))}`).join(' · ');
+    return `<tr><td><div class="cd-name"><span class="t">DW/${date.replaceAll('-', '/')} — Sprzedaż kart kolekcjonerskich online</span><span class="s">${list.length} ${plural(list.length, 'transakcja', 'transakcje', 'transakcji')}</span></div></td><td>${channels}</td><td class="num"><strong>${fmtPLN(sum(list, s => s.accounting))}</strong></td></tr>`;
+  }).join('')}</tbody><tfoot><tr><td colspan="2">Razem miesiąc</td><td class="num">${fmtPLN(sum(rows, s => s.accounting))}</td></tr></tfoot></table>` : emptyBox('receipt_long', 'Brak sprzedaży do raportu', 'Sprzedaże z fakturą są celowo pomijane, aby nie księgować przychodu podwójnie.');
+}
+
+function exportAccountingReport() {
+  const month = getVal('accounting-month') || today().slice(0, 7);
+  const rows = accountingSales(month);
+  const head = ['data', 'dokument_ing', 'platforma', 'id_zamowienia', 'produkt', 'sprzedaz_klienta_pln', 'zwrot_pln', 'kwota_do_dw_pln', 'stawka_ryczaltu'];
+  const data = rows.map(s => [s.date, `DW/${s.date.replaceAll('-', '/')}`, s.channel, s.orderId, s.name, s.gross.toFixed(2), (s.gross - s.accounting).toFixed(2), s.accounting.toFixed(2), '3%']);
+  download(`raport_ksiegowy_${month}.csv`, [head, ...data].map(r => r.map(csvCell).join(';')).join('\n'));
+  toast('Raport księgowy pobrany', 'ok');
 }
 
 function channelStats() {
@@ -2987,6 +3021,8 @@ function saveBreak() {
    ============================================================ */
 function openSell(kind, id) {
   editing.sellTarget = kind && id ? { kind, id } : null;
+  el('sf-item').disabled = false;
+  el('sf-save').textContent = 'Zaksięguj sprzedaż';
   const options = [
     ...M.held.map(c => ({ value: `card:${c.id}`, label: `${cardTitle(c)} · wycena ${fmtPLN0(c.marketValue)}` })),
     ...M.sealed.map(b => ({ value: `box:${b.id}`, label: `[SEALED] ${b.name} · koszt ${fmtPLN0(b.landed)}` }))
@@ -2997,7 +3033,7 @@ function openSell(kind, id) {
   setVal('sf-date', today());
   setVal('sf-currency', 'PLN');
   setVal('sf-fx', '');
-  setVal('sf-fee-abs', ''); setVal('sf-shipping', ''); setVal('sf-shipping-in', ''); setVal('sf-note', '');
+  setVal('sf-fee-abs', ''); setVal('sf-shipping', ''); setVal('sf-shipping-in', ''); setVal('sf-order-id', ''); setVal('sf-refund', ''); setChecked('sf-invoiced', false); setVal('sf-note', '');
   fillSelect('sf-channel', settings.channels.map(c => c.name), settings.channels[0] && settings.channels[0].name);
 
   const sel = getVal('sf-item');
@@ -3014,15 +3050,33 @@ function openSell(kind, id) {
   openModal('sell-modal');
 }
 
+function openEditSale(kind, id) {
+  const ref = kind === 'card' ? state.cards.find(c => c.id === id) : state.boxes.find(b => b.id === id);
+  if (!ref || !ref.sale) return;
+  editing.sellTarget = { kind, id, edit: true };
+  fillSelect('sf-item', [{ value: `${kind}:${id}`, label: kind === 'card' ? cardTitle(ref) : `[SEALED] ${ref.name}` }], `${kind}:${id}`);
+  el('sf-item').disabled = true;
+  el('sell-modal-title').textContent = 'Edytuj sprzedaż';
+  const sale = ref.sale;
+  setVal('sf-date', sale.date); setVal('sf-price', sale.price); setVal('sf-currency', sale.currency || 'PLN'); setVal('sf-fx', sale.fx || '');
+  fillSelect('sf-channel', settings.channels.map(c => c.name), sale.channel);
+  setVal('sf-fee-pct', sale.feePct); setVal('sf-fee-abs', sale.feeAbs); setVal('sf-shipping', sale.shippingOut); setVal('sf-shipping-in', sale.shippingIn);
+  setVal('sf-order-id', sale.orderId || ''); setVal('sf-refund', sale.refund || ''); setChecked('sf-invoiced', sale.invoiced); setVal('sf-note', sale.note || '');
+  el('sf-save').textContent = 'Zapisz zmiany';
+  updateSellCalc(); openModal('sell-modal');
+}
+
 function resolveSellTarget(value) {
   if (!value) return null;
   const [kind, id] = value.split(':');
   if (kind === 'card') {
-    const card = M.byId.get(id);
-    return card ? { kind, id, card, basis: card.basis, suggest: card.marketValue } : null;
+    const card = M.byId.get(id) || M.sales.find(s => s.kind === 'card' && s.id === id)?.ref;
+    const computed = M.sales.find(s => s.kind === 'card' && s.id === id);
+    return card ? { kind, id, card, basis: computed ? computed.basis : card.basis, suggest: card.marketValue } : null;
   }
-  const box = M.boxes.find(b => b.id === id);
-  return box ? { kind, id, box, basis: box.landed, suggest: box.landed * 1.3 } : null;
+  const box = M.boxes.find(b => b.id === id) || M.sales.find(s => s.kind === 'box' && s.id === id)?.ref;
+  const computed = M.sales.find(s => s.kind === 'box' && s.id === id);
+  return box ? { kind, id, box, basis: computed ? computed.basis : box.landed, suggest: box.landed * 1.3 } : null;
 }
 
 function syncChannelFee() {
@@ -3057,6 +3111,9 @@ function readSaleForm() {
     feeAbs: num(getVal('sf-fee-abs')),
     shippingOut: num(getVal('sf-shipping')),
     shippingIn: num(getVal('sf-shipping-in')),
+    orderId: getVal('sf-order-id').trim(),
+    refund: num(getVal('sf-refund')),
+    invoiced: isChecked('sf-invoiced'),
     note: getVal('sf-note').trim()
   };
 }
@@ -4030,6 +4087,8 @@ function bindEvents() {
   ['channel', 'period', 'kind'].forEach(k => {
     el('f-sale-' + k).addEventListener('change', e => { saleFilters[k] = e.target.value; renderSalesTable(); });
   });
+  el('accounting-month').addEventListener('change', renderAccountingReport);
+  el('accounting-export').addEventListener('click', exportAccountingReport);
 
   /* Grading */
   el('btn-add-grading').addEventListener('click', openGradingModal);
@@ -4143,6 +4202,7 @@ function bindEvents() {
    ============================================================ */
 function init() {
   loadState();
+  setVal('accounting-month', today().slice(0, 7));
   bindEvents();
   renderAll();
   renderGradingCalc();
