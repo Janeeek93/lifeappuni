@@ -21,7 +21,7 @@ Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 | **Przegląd** | Wartość kolekcji, pasek odzysku kapitału, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
 | **Kolekcja** | Tabela kart z filtrami i sortowaniem, szczegóły karty z historią wyceny i osią zdarzeń |
 | **Boxy i breaki** | Sealed na stanie, wynik każdego breaka, EV produktów, flipy sealed |
-| **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, analiza kanałów, próg 6 miesięcy (PIT) |
+| **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, zwroty, raport ING, analiza kanałów, próg 6 miesięcy (PIT) |
 | **Grading** | Wysyłki do PSA/BGS/SGC/CGC, wynik gradingu, kalkulator opłacalności |
 | **Koszty** | Struktura wszystkich kosztów, przepływy miesięczne, rozbicie wyniku (kontrola spójności), rejestr kosztów ogólnych |
 | **Analityka** | Zarządczy dashboard sprzedaży: tempo do tego samego dnia, dzień po dniu ze średnią 7-dniową, rentowność kanałów w wybranym okresie, trend tygodniowy i miesięczny |
@@ -154,6 +154,34 @@ lukę zamyka jedna wystawiona karta, czy dopiero rozpakowanie i sprzedaż wszyst
 To ta sama informacja, na którą patrzy się przy decyzji „kupować dalej czy najpierw
 upłynnić": tempo netto mówi, w którą stronę idzie płynność, a drabina — co da się
 zamienić na gotówkę najszybciej.
+
+## Zwroty
+
+Zwrot księgujesz ikoną **↩** przy sprzedaży w *Sprzedaż → Historia sprzedaży*.
+Podajesz datę, ile oddałeś kupującemu (domyślnie pełna cena), czy platforma
+oddała prowizję i ile kosztowała wysyłka zwrotna. Karta wraca do kolekcji
+(opcjonalnie od razu jako wystawiona), box wraca do sealed na stanie — oba z tą
+samą bazą kosztową, gotowe do ponownej sprzedaży.
+
+Zwrot **nie kasuje** sprzedaży. Pierwotna transakcja zostaje w swoim dniu jako
+*zwrócona*, a w dniu zwrotu pojawia się korekta:
+
+| | Sprzedaż (dzień sprzedaży) | Korekta (dzień zwrotu) |
+|---|---|---|
+| Przychód | + cena | − oddane kupującemu |
+| Koszt towaru | + baza | − baza (towar wrócił) |
+| Prowizje | + prowizja | − prowizja, jeśli platforma ją oddała |
+| Wysyłka | + wysyłka | + wysyłka zwrotna |
+
+Razem obie linie dają dokładnie tyle, ile zwrot realnie kosztował:
+`netto ze sprzedaży − oddane kupującemu + zwrócona prowizja − wysyłka zwrotna`.
+Dzięki temu zamknięty miesiąc się nie zmienia, raport ING dostaje korektę ujemną
+w dniu zwrotu, budżet — wydatek „zwrot” w dniu zwrotu, a dashboard pokazuje
+przychód netto po zwrotach. Liczniki transakcji, win rate i czas do sprzedaży
+liczą tylko sprzedaże, które nie wróciły.
+
+Zwrot da się cofnąć (↩ w tabeli *Zwroty*), dopóki pozycja nie została
+sprzedana ponownie ani — w przypadku boxa — otwarta.
 
 ## Analityka — dashboard sprzedaży
 
