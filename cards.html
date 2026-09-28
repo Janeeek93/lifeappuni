@@ -461,6 +461,18 @@
               <div class="cd-an-body"><div class="cd-chart-box short"><canvas id="chart-channel"></canvas></div></div>
             </section>
           </div>
+
+          <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">gavel</span></span>
+            <h2>Próg 6 miesięcy</h2>
+            <span class="desc">Sprzedaż rzeczy ruchomych po 6 miesiącach od nabycia jest poza PIT</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="tc-card-head"><h3>Karty blisko progu</h3><span class="sub" id="tax-sub">—</span></div>
+            <div class="cd-stat-strip" id="tax-strip"></div>
+            <div class="tc-tbl-wrap" id="tax-wrap"></div>
+          </section>
         </div>
 
         <!-- ══════════════════ GRADING ══════════════════ -->
@@ -534,6 +546,21 @@
           </div>
 
           <div class="cd-section">
+            <span class="ico"><span class="material-symbols-outlined">balance</span></span>
+            <h2>Rozbicie wyniku</h2>
+            <span class="desc">Kontrola spójności danych</span>
+            <span class="line"></span>
+          </div>
+          <section class="tc-card">
+            <div class="cd-stat-strip" id="recon-strip" style="border-top:0"></div>
+            <div class="cd-note" style="margin:12px 14px">
+              <strong>Rozbicie wyniku:</strong> zysk zrealizowany ze sprzedaży + zysk na papierze z kart trzymanych
+              + wartość bulku − koszt breaków nieprzypisany do żadnej karty − koszty ogólne.
+              Suma tych pozycji równa się wynikowi łącznemu co do grosza — jeśli kolumna „różnica" nie jest zerowa, coś w danych się nie spina.
+            </div>
+          </section>
+
+          <div class="cd-section">
             <span class="ico"><span class="material-symbols-outlined">account_balance</span></span>
             <h2>Połączenie z budżetem</h2>
             <span class="desc">Zakupy w wydatkach zmiennych, sprzedaże w przychodach, kolekcja w Saldach EOM</span>
@@ -558,91 +585,152 @@
 
         <!-- ══════════════════ ANALITYKA ══════════════════ -->
         <div class="tab-panel" id="tab-analytics">
-          <div class="cd-section" style="margin-top:0">
-            <span class="ico"><span class="material-symbols-outlined">pie_chart</span></span>
-            <h2>Struktura portfela</h2>
-            <span class="desc" id="an-desc">—</span>
-            <span class="line"></span>
-          </div>
-          <div class="cd-an-grid">
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Ekspozycja na zawodników</h3><span class="sub">Udział w wartości kolekcji</span></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-players"></canvas></div></div>
-              <div class="cd-stat-strip" id="conc-strip"></div>
-            </section>
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Podział wg produktu</h3></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-products"></canvas></div></div>
-            </section>
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Typ karty</h3><span class="sub">Wartość wg rzadkości</span></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-types"></canvas></div></div>
-            </section>
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Wiek pozycji</h3><span class="sub">Ile leży w kolekcji</span></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-aging"></canvas></div></div>
-            </section>
-          </div>
-
-          <div class="cd-section">
-            <span class="ico"><span class="material-symbols-outlined">show_chart</span></span>
-            <h2>Wyniki w czasie</h2>
-            <span class="line"></span>
-          </div>
-          <div class="cd-an-grid">
-            <section class="tc-card cd-an wide">
-              <div class="tc-card-head"><h3>Kapitał, wycena i wynik narastająco</h3><span class="sub">Zainwestowana gotówka vs wartość majątku</span></div>
-              <div class="cd-an-body"><div class="cd-chart-box tall"><canvas id="chart-portfolio"></canvas></div></div>
-              <div class="cd-stat-strip" id="recon-strip"></div>
-              <div class="cd-note" style="margin:12px 14px">
-                <strong>Rozbicie wyniku:</strong> zysk zrealizowany ze sprzedaży + zysk na papierze z kart trzymanych
-                + wartość bulku − koszt breaków nieprzypisany do żadnej karty − koszty ogólne.
-                Suma tych pozycji równa się wynikowi łącznemu co do grosza — jeśli kolumna „różnica" nie jest zerowa, coś w danych się nie spina.
+          <div class="cd-dash-bar">
+            <div class="cd-dash-title">
+              <h2>Wyniki sprzedaży</h2>
+              <span id="dash-asof">—</span>
+            </div>
+            <div class="cd-dash-ctrl">
+              <span class="lbl">Miara tempa</span>
+              <div class="seg" id="dash-metric" role="group" aria-label="Miara na wykresach tempa">
+                <button type="button" data-v="gross" class="active">Przychód</button>
+                <button type="button" data-v="pnl">Zysk</button>
               </div>
-            </section>
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Zysk zrealizowany miesięcznie</h3></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-monthly-pnl"></canvas></div></div>
-            </section>
-            <section class="tc-card cd-an">
-              <div class="tc-card-head"><h3>Rozkład ROI sprzedaży</h3><span class="sub">Ile transakcji w którym przedziale</span></div>
-              <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-roi-dist"></canvas></div></div>
-            </section>
+              <span class="lbl">Towar</span>
+              <div class="seg" id="dash-kind" role="group" aria-label="Rodzaj sprzedanego towaru">
+                <button type="button" data-v="" class="active">Wszystko</button>
+                <button type="button" data-v="card">Karty</button>
+                <button type="button" data-v="box">Sealed</button>
+              </div>
+            </div>
           </div>
+          <p class="cd-dash-narr" id="dash-narr"></p>
+          <div id="dash-empty"></div>
 
-          <div class="cd-section">
-            <span class="ico"><span class="material-symbols-outlined">leaderboard</span></span>
-            <h2>Rankingi</h2>
-            <span class="line"></span>
-          </div>
-          <div class="tc-row-2">
-            <section class="tc-card">
-              <div class="tc-card-head"><h3>Zawodnicy — wynik narastający</h3><span class="sub">Zrealizowany + niezrealizowany</span></div>
-              <div id="rank-players"></div>
-            </section>
-            <section class="tc-card">
-              <div class="tc-card-head"><h3>Produkty — wynik narastający</h3></div>
-              <div id="rank-products"></div>
-            </section>
-          </div>
+          <div id="dash-body">
+            <div class="cd-pace" id="dash-pace"></div>
 
-          <div class="cd-section">
-            <span class="ico"><span class="material-symbols-outlined">gavel</span></span>
-            <h2>Podatki i płynność</h2>
-            <span class="desc">Sprzedaż rzeczy ruchomych po 6 miesiącach od nabycia jest poza PIT</span>
-            <span class="line"></span>
-          </div>
-          <div class="tc-row-2">
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">speed</span></span>
+              <h2>Tempo do tego samego dnia</h2>
+              <span class="desc">Narastająco — bieżący okres kontra poprzedni</span>
+              <span class="line"></span>
+            </div>
+            <div class="tc-row-2-even">
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Tydzień vs poprzedni</h3><span class="sub" id="pace-week-sub">—</span></div>
+                <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-pace-week"></canvas></div></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Miesiąc vs poprzedni</h3><span class="sub" id="pace-month-sub">—</span></div>
+                <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-pace-month"></canvas></div></div>
+              </section>
+            </div>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">calendar_view_day</span></span>
+              <h2>Dzień po dniu</h2>
+              <span class="desc">Słupki to pojedyncze dni, linie wygładzają szum</span>
+              <span class="line"></span>
+              <span class="act">
+                <div class="seg" id="dash-daily" role="group" aria-label="Zakres wykresu dziennego">
+                  <button type="button" data-v="30">30D</button>
+                  <button type="button" data-v="90" class="active">90D</button>
+                  <button type="button" data-v="180">6M</button>
+                  <button type="button" data-v="365">1R</button>
+                </div>
+              </span>
+            </div>
             <section class="tc-card">
-              <div class="tc-card-head"><h3>Próg 6 miesięcy</h3><span class="sub" id="tax-sub">—</span></div>
-              <div class="cd-stat-strip" id="tax-strip"></div>
-              <div class="tc-tbl-wrap" id="tax-wrap"></div>
+              <div class="cd-an-body"><div class="cd-chart-box tall"><canvas id="chart-daily"></canvas></div></div>
+              <div class="cd-stat-strip" id="daily-strip"></div>
             </section>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">hub</span></span>
+              <h2>Rentowność kanałów</h2>
+              <span class="desc">Gdzie jest przychód, a gdzie realnie zostaje zysk</span>
+              <span class="line"></span>
+            </div>
             <section class="tc-card">
-              <div class="tc-card-head"><h3>Płynność kolekcji</h3><span class="sub">Rotacja i martwy stock</span></div>
-              <div class="cd-stat-strip" id="liq-strip"></div>
-              <div class="cd-an-body"><div class="cd-chart-box short"><canvas id="chart-dts"></canvas></div></div>
+              <div class="cd-toolbar">
+                <div class="cd-filters">
+                  <div class="seg" id="chan-preset" role="group" aria-label="Okres analizy kanałów">
+                    <button type="button" data-v="week">Tydzień</button>
+                    <button type="button" data-v="month" class="active">Miesiąc</button>
+                    <button type="button" data-v="year">Rok</button>
+                    <button type="button" data-v="r30">30 dni</button>
+                    <button type="button" data-v="all">Całość</button>
+                  </div>
+                  <div class="cd-period">
+                    <button type="button" class="row-btn" id="chan-prev" title="Poprzedni okres"><span class="material-symbols-outlined">chevron_left</span></button>
+                    <span class="cd-period-label" id="chan-label">—</span>
+                    <button type="button" class="row-btn" id="chan-next" title="Następny okres"><span class="material-symbols-outlined">chevron_right</span></button>
+                  </div>
+                </div>
+                <div class="cd-filters">
+                  <label class="cd-dates">od <input type="date" id="chan-from"></label>
+                  <label class="cd-dates">do <input type="date" id="chan-to"></label>
+                </div>
+              </div>
+              <div class="cd-stat-strip cd-kpi-strip" id="chan-kpi"></div>
+              <div class="cd-cmp-note" id="chan-cmp">—</div>
             </section>
+
+            <div class="tc-row-2" style="margin-top:14px">
+              <section class="tc-card">
+                <div class="tc-card-head">
+                  <h3>Na co idzie przychód</h3>
+                  <div class="seg" id="chan-unit" role="group" aria-label="Jednostka wykresu kanałów">
+                    <button type="button" data-v="pln" class="active">zł</button>
+                    <button type="button" data-v="pct">% przychodu</button>
+                  </div>
+                </div>
+                <div class="cd-an-body"><div class="cd-chart-box" id="chan-mix-box"><canvas id="chart-chan-mix"></canvas></div></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Wnioski</h3><span class="sub">Dla wybranego okresu</span></div>
+                <div class="tc-card-body" id="chan-insights"></div>
+              </section>
+            </div>
+
+            <section class="tc-card" style="margin-top:14px">
+              <div class="tc-tbl-wrap" id="chan-table"></div>
+            </section>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">stacked_line_chart</span></span>
+              <h2>Trend w czasie</h2>
+              <span class="desc">Przychód i zysk per okres oraz narastająco</span>
+              <span class="line"></span>
+              <span class="act">
+                <div class="seg" id="dash-gran" role="group" aria-label="Agregacja trendu">
+                  <button type="button" data-v="week">Tygodnie</button>
+                  <button type="button" data-v="month" class="active">Miesiące</button>
+                </div>
+              </span>
+            </div>
+            <div class="tc-row-2-even">
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Przychód i zysk</h3><span class="sub" id="trend-sub">—</span></div>
+                <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-trend"></canvas></div></div>
+              </section>
+              <section class="tc-card">
+                <div class="tc-card-head"><h3>Sprzedaż skumulowana</h3><span class="sub" id="cum-sub">—</span></div>
+                <div class="cd-an-body"><div class="cd-chart-box"><canvas id="chart-cum"></canvas></div></div>
+              </section>
+            </div>
+            <section class="tc-card" style="margin-top:14px">
+              <div class="tc-card-head"><h3>Rachunek wyników per okres</h3><span class="sub" id="pl-sub">—</span></div>
+              <div class="tc-tbl-wrap" id="trend-table"></div>
+            </section>
+
+            <div class="cd-note" style="margin-top:14px">
+              <strong>Definicje:</strong> przychód = cena sprzedaży brutto · koszt towaru = baza kosztowa sprzedanej pozycji
+              (z alokacją boxa i gradingiem) · prowizje = procent i opłaty stałe platformy · wysyłka = wysyłka wychodząca minus dopłata kupującego ·
+              zysk = przychód − koszt towaru − prowizje − wysyłka · marża = zysk / przychód · ROI = zysk / koszt towaru.
+              Porównania „do tego samego dnia" zestawiają bieżący okres od jego początku do dziś z poprzednim od początku do analogicznego dnia.
+            </div>
           </div>
         </div>
 

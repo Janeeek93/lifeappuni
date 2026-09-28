@@ -285,6 +285,16 @@ function saleGross(sale) {
   if (!sale) return 0;
   return num(sale.price) * fxFor(sale.currency, sale.fx);
 }
+/** Koszty transakcji rozbite na dwie części: prowizja platformy i wysyłka netto
+    (wysłana minus to, co kupujący dopłacił). Razem dają dokładnie saleFees. */
+function saleCommission(sale) {
+  if (!sale) return 0;
+  return (num(sale.price) * num(sale.feePct) / 100 + num(sale.feeAbs)) * fxFor(sale.currency, sale.fx);
+}
+function saleShipping(sale) {
+  if (!sale) return 0;
+  return num(sale.shippingOut) - num(sale.shippingIn);
+}
 
 /** Historia wycen karty, posortowana rosnąco po dacie. */
 function valuationIndex() {
@@ -488,6 +498,7 @@ function compute() {
     ...soldCards.map(c => ({
       kind: 'card', id: c.id, ref: c, date: c.sale.date, name: cardTitle(c),
       channel: c.sale.channel || '—', gross: saleGross(c.sale), fees: saleFees(c.sale),
+      commission: saleCommission(c.sale), shipping: saleShipping(c.sale),
       net: c.net, basis: c.basis, pnl: c.pnl,
       roi: c.basis > 0 ? c.pnl / c.basis * 100 : null,
       margin: saleGross(c.sale) > 0 ? c.pnl / saleGross(c.sale) * 100 : null,
@@ -496,6 +507,7 @@ function compute() {
     ...flipped.map(b => ({
       kind: 'box', id: b.id, ref: b, date: b.sale.date, name: b.name,
       channel: b.sale.channel || '—', gross: saleGross(b.sale), fees: saleFees(b.sale),
+      commission: saleCommission(b.sale), shipping: saleShipping(b.sale),
       net: b.flipNet, basis: b.landed, pnl: b.pnl,
       roi: b.landed > 0 ? b.pnl / b.landed * 100 : null,
       margin: saleGross(b.sale) > 0 ? b.pnl / saleGross(b.sale) * 100 : null,
@@ -1685,6 +1697,7 @@ function renderSales() {
   renderSalesTable();
   renderAccountingReport();
   renderChannelAnalysis();
+  renderTaxPanel();
 }
 
 function renderListed() {
@@ -1968,6 +1981,7 @@ function renderCosts() {
 
   renderCostChart(c);
   renderCashflowChart();
+  renderReconStrip();
   renderExpenses();
   renderBudgetPanel();
 }
@@ -2147,184 +2161,670 @@ function renderCashflowChart() {
 }
 
 /* ============================================================
-   ANALITYKA
+   ANALITYKA — dashboard zarządczy sprzedaży
+   ------------------------------------------------------------
+   Jedno pytanie: jak idzie biznes. Wszystko liczy się z M.sales
+   (karty + flipy sealed) po dacie sprzedaży:
+     przychód     = cena sprzedaży brutto w zł
+     koszt towaru = baza kosztowa sprzedanej pozycji
+     prowizje     = procent + opłata stała platformy
+     wysyłka      = wysyłka wychodząca − dopłata kupującego
+     zysk         = przychód − koszt towaru − prowizje − wysyłka  (= P&L transakcji)
+     marża        = zysk / przychód,  ROI = zysk / koszt towaru
+   Porównania są „do tego samego dnia": bieżący tydzień od
+   poniedziałku do dziś kontra poprzedni od poniedziałku do tego
+   samego dnia tygodnia; tak samo miesiąc (1…N vs 1…N) i rok.
+   Daty liczone w UTC, tak jak today().
+   ============================================================ */
+const MONTHS_FULL = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+const DOW_PL = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
+const DC = {
+  accent: '#0057c0', accentSoft: 'rgba(0,87,192,0.24)', ink: '#0f172a', muted: '#94a3b8',
+  cogs: '#94a3b8', commission: '#b45309', shipping: '#7c3aed', profit: '#0b8a4a', loss: '#c0362c', lossSoft: 'rgba(192,54,44,0.28)'
+};
+const DASH_DEFAULTS = { metric: 'gross', kind: '', daily: '90', gran: 'month', preset: 'month', unit: 'pln' };
+const DASH_CHARTS = ['chart-pace-week', 'chart-pace-month', 'chart-daily', 'chart-chan-mix', 'chart-trend', 'chart-cum'];
+
+let dash = null;                                        // preferencje widoku, trzymane w ustawieniach
+let chanRange = { anchor: null, from: null, to: null }; // okres analizy kanałów
+
+function dashPrefs() {
+  if (!dash) {
+    dash = Object.assign({ ...DASH_DEFAULTS }, settings.dash || {});
+    if (dash.preset === 'custom') dash.preset = 'month'; // własny zakres nie przeżywa odświeżenia
+  }
+  return dash;
+}
+function saveDashPrefs() { settings.dash = { ...dash }; savePrefs(); }
+
+/* --- daty ISO (UTC) --- */
+function isoAdd(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function isoDiff(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000); }
+function isoDow(iso) { return (new Date(iso + 'T00:00:00Z').getUTCDay() + 6) % 7; } // 0 = poniedziałek
+function isoWeekStart(iso) { return isoAdd(iso, -isoDow(iso)); }
+function isoWeekNo(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 3 - isoDow(iso)); // czwartek tego tygodnia wyznacza rok ISO
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+function daysInMonth(ym) { return Number(monthEnd(ym).slice(8, 10)); }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function monthName(ym) { return `${MONTHS_FULL[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`; }
+function shortDate(iso) { return `${iso.slice(8, 10)}.${iso.slice(5, 7)}`; }
+function fmtRange(a, b) { return a === b ? fmtDate(a) : `${shortDate(a)}–${fmtDate(b)}`; }
+
+/* --- agregaty --- */
+function dashSales() {
+  const kind = dashPrefs().kind;
+  return M.sales.filter(s => s.date && (!kind || s.kind === kind));
+}
+function aggSales(list) {
+  const a = { n: list.length, gross: 0, cogs: 0, commission: 0, shipping: 0, pnl: 0 };
+  for (const s of list) {
+    a.gross += s.gross; a.cogs += s.basis; a.commission += s.commission; a.shipping += s.shipping; a.pnl += s.pnl;
+  }
+  a.margin = a.gross > 0 ? a.pnl / a.gross * 100 : null;
+  a.roi = a.cogs > 0 ? a.pnl / a.cogs * 100 : null;
+  a.feePct = a.gross > 0 ? a.commission / a.gross * 100 : null;
+  a.aov = a.n ? a.gross / a.n : null;
+  a.ppu = a.n ? a.pnl / a.n : null;
+  return a;
+}
+function salesBetween(list, from, to) { return list.filter(s => s.date >= from && s.date <= to); }
+function aggBetween(list, from, to) { return aggSales(salesBetween(list, from, to)); }
+function metricOf(a) { return dash.metric === 'pnl' ? a.pnl : a.gross; }
+function metricName() { return dash.metric === 'pnl' ? 'zysk' : 'przychód'; }
+
+function dailyIndex(list) {
+  const map = new Map();
+  for (const s of list) {
+    if (!map.has(s.date)) map.set(s.date, { gross: 0, pnl: 0, n: 0 });
+    const d = map.get(s.date);
+    d.gross += s.gross; d.pnl += s.pnl; d.n++;
+  }
+  return map;
+}
+function dayVal(daily, iso) {
+  const d = daily.get(iso);
+  return d ? (dash.metric === 'pnl' ? d.pnl : d.gross) : 0;
+}
+
+/* --- zmiany --- */
+function pctChange(cur, prev) {
+  if (!Number.isFinite(prev) || Math.abs(prev) < 0.005) return null;
+  return (cur - prev) / Math.abs(prev) * 100;
+}
+/** Chip ze zmianą procentową. invert — dla kosztów wzrost jest zły. */
+function deltaChip(cur, prev, invert = false) {
+  const d = pctChange(cur, prev);
+  if (d == null) {
+    return Math.abs(cur) > 0.005 ? '<span class="cd-delta new">nowe</span>' : '<span class="cd-delta flat">—</span>';
+  }
+  const good = invert ? d < 0 : d > 0;
+  const cls = Math.abs(d) < 0.5 ? 'flat' : good ? 'pos' : 'neg';
+  const icon = Math.abs(d) < 0.5 ? 'trending_flat' : d > 0 ? 'trending_up' : 'trending_down';
+  const txt = Math.abs(d) >= 999.5 ? (d > 0 ? '>+999%' : '<−999%') : fmtPct(d, true, 0);
+  return `<span class="cd-delta ${cls}"><span class="material-symbols-outlined">${icon}</span>${txt}</span>`;
+}
+/** Zmiana wskaźnika procentowego w punktach procentowych. */
+function ppChip(cur, prev) {
+  if (cur == null || prev == null) return '<span class="cd-delta flat">—</span>';
+  const d = cur - prev;
+  const cls = Math.abs(d) < 0.05 ? 'flat' : d > 0 ? 'pos' : 'neg';
+  return `<span class="cd-delta ${cls}">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d).toFixed(1)} pp</span>`;
+}
+/** Zmiana opisana słowami, razem z tym, do czego porównujemy. */
+function deltaWord(cur, prev, what) {
+  const d = pctChange(cur, prev);
+  if (d == null) return Math.abs(cur) > 0.005 ? `${what} był na zerze` : `zero, tak jak ${what}`;
+  if (Math.abs(d) < 0.5) return `tyle samo co ${what}`;
+  return `<b class="${d > 0 ? 'pos' : 'neg'}">${fmtPct(d, true, 0)}</b> vs ${what}`;
+}
+
+/* --- okna tempa: bieżący okres do dziś kontra poprzedni do analogicznego dnia --- */
+function paceWindows(t) {
+  const dow = isoDow(t);
+  const ym = t.slice(0, 7), day = Number(t.slice(8, 10));
+  const pym = addMonths(ym, -1);
+  const pDay = Math.min(day, daysInMonth(pym));
+  const y = Number(t.slice(0, 4));
+  const pyMd = t.slice(5) === '02-29' ? '02-28' : t.slice(5);
+  const lastWeekDay = isoAdd(t, -7);
+  return {
+    today: { label: 'Dziś', cur: [t, t], prev: [lastWeekDay, lastWeekDay], vs: `vs ${DOW_PL[dow]} ${shortDate(lastWeekDay)}` },
+    wtd: {
+      label: 'Tydzień do dziś', cur: [isoAdd(t, -dow), t], prev: [isoAdd(t, -dow - 7), lastWeekDay],
+      vs: dow === 0 ? 'vs pn poprz. tygodnia' : `vs pn–${DOW_PL[dow]} poprz. tygodnia`
+    },
+    mtd: {
+      label: 'Miesiąc do dziś', cur: [`${ym}-01`, t], prev: [`${pym}-01`, `${pym}-${pad2(pDay)}`],
+      vs: `vs 1–${pDay} ${MONTHS_PL[Number(pym.slice(5, 7)) - 1]}`
+    },
+    r30: { label: 'Ostatnie 30 dni', cur: [isoAdd(t, -29), t], prev: [isoAdd(t, -59), isoAdd(t, -30)], vs: 'vs poprzednie 30 dni' },
+    ytd: { label: 'Rok do dziś', cur: [`${y}-01-01`, t], prev: [`${y - 1}-01-01`, `${y - 1}-${pyMd}`], vs: `vs ${y - 1} do ${pyMd.slice(3)}.${pyMd.slice(0, 2)}` }
+  };
+}
+
+/* ============================================================
+   Render dashboardu
    ============================================================ */
 function renderAnalytics() {
-  const conc = concentration();
-  el('an-desc').textContent = M.held.length
-    ? `${nCards(M.held.length)} · ${fmtPLN0(M.heldValue)} · ${new Set(M.held.map(c => c.player)).size} ${plural(new Set(M.held.map(c => c.player)).size, 'zawodnik', 'zawodników', 'zawodników')}`
-    : 'brak danych';
+  dashPrefs();
+  syncDashControls();
+  const t = today();
+  el('dash-asof').textContent = `Stan na ${DOW_PL[isoDow(t)]} ${fmtDate(t)} · tydzień ${isoWeekNo(t)}`;
 
-  renderPlayerChart(conc);
-  renderProductChart();
-  renderTypeChart();
-  renderAgingChart();
-  renderPortfolioChart();
-  renderReconStrip();
-  renderMonthlyPnlChart();
-  renderRoiDistChart();
-  renderRankings();
-  renderTaxPanel();
-  renderLiquidityPanel();
-}
-
-function renderPlayerChart(conc) {
-  const strip = el('conc-strip');
-  if (!conc.rows.length) {
-    strip.innerHTML = '';
-    renderChart('chart-players', null);
+  const list = dashSales();
+  const empty = !list.length;
+  el('dash-body').hidden = empty;
+  el('dash-empty').innerHTML = empty
+    ? emptyBox('query_stats', 'Brak sprzedaży w tym widoku', M.sales.length
+      ? 'W tej kategorii nie ma jeszcze transakcji — przełącz filtr Towar.'
+      : 'Dashboard ożyje po pierwszej sprzedaży: tempo dzień po dniu, tydzień i miesiąc do tego samego dnia, rentowność kanałów.')
+    : '';
+  if (empty) {
+    el('dash-narr').hidden = true;
+    DASH_CHARTS.forEach(id => renderChart(id, null));
     return;
   }
-  const top = conc.rows.slice(0, 12);
-  const rest = conc.rows.slice(12);
-  const labels = top.map(r => r.name);
-  const data = top.map(r => r.value);
-  if (rest.length) { labels.push(`Pozostali (${rest.length})`); data.push(sum(rest, r => r.value)); }
+  el('dash-narr').hidden = false;
 
-  const hhiLabel = conc.hhi > 2500 ? 'skrajna' : conc.hhi > 1500 ? 'wysoka' : 'zdrowa';
-  strip.innerHTML = `
-    <div class="cell"><div class="k">Największa pozycja</div><div class="v ${conc.top.share > settings.concAlert ? 'warn' : ''}">${fmtPct(conc.top.share, false)}</div></div>
-    <div class="cell"><div class="k">Top 5</div><div class="v">${fmtPct(conc.top5, false)}</div></div>
-    <div class="cell"><div class="k">HHI</div><div class="v ${conc.hhi > 2500 ? 'neg' : conc.hhi > 1500 ? 'warn' : 'pos'}">${Math.round(conc.hhi)}</div></div>
-    <div class="cell"><div class="k">Dywersyfikacja</div><div class="v">${hhiLabel}</div></div>`;
-
-  renderChart('chart-players', {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => PALETTE[i % PALETTE.length]), borderRadius: 4, maxBarThickness: 22 }] },
-    options: {
-      indexAxis: 'y', maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...TOOLTIP, callbacks: { label: c => `${fmtPLN0(c.parsed.x)} · ${fmtPct(c.parsed.x / conc.total * 100, false)}` } }
-      },
-      scales: { x: axisPLN(), y: axisCat() }
-    }
-  });
+  const daily = dailyIndex(list);
+  renderDashNarrative(list, daily, t);
+  renderPaceTiles(list, t);
+  renderPaceWeek(daily, t);
+  renderPaceMonth(daily, t);
+  renderDailyChart(daily, t);
+  renderChannelBoard(list, t);
+  renderTrend(list, t);
 }
 
-function renderProductChart() {
-  const held = M.held;
-  if (!held.length) { renderChart('chart-products', null); return; }
-  const byProduct = groupBy(held, c => c.product || 'Bez produktu');
-  const rows = [...byProduct.entries()].map(([name, list]) => ({ name, value: sum(list, c => c.marketValue) }))
-    .sort((a, b) => b.value - a.value);
-  const top = rows.slice(0, 8);
-  const rest = rows.slice(8);
-  const labels = top.map(r => r.name);
-  const data = top.map(r => r.value);
-  if (rest.length) { labels.push(`Pozostałe (${rest.length})`); data.push(sum(rest, r => r.value)); }
-  const total = sum(data);
-
-  renderChart('chart-products', {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }] },
-    options: {
-      maintainAspectRatio: false, responsive: true, cutout: '58%', animation: { duration: 220 },
-      plugins: {
-        legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.label}: ${fmtPLN0(c.parsed)} (${fmtPct(c.parsed / total * 100, false)})` } }
-      }
-    }
-  });
+function syncDashControls() {
+  const setSeg = (id, v) => el(id).querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === String(v)));
+  setSeg('dash-metric', dash.metric);
+  setSeg('dash-kind', dash.kind);
+  setSeg('dash-daily', dash.daily);
+  setSeg('dash-gran', dash.gran);
+  setSeg('chan-preset', dash.preset);
+  setSeg('chan-unit', dash.unit);
 }
 
-function renderTypeChart() {
-  const held = M.held;
-  if (!held.length) { renderChart('chart-types', null); return; }
-  const buckets = [
-    ['1/1', c => num(c.run) === 1],
-    ['Auto + patch', c => c.auto && c.patch && num(c.run) !== 1],
-    ['Autograf', c => c.auto && !c.patch && num(c.run) !== 1],
-    ['Patch / mem', c => c.patch && !c.auto && num(c.run) !== 1],
-    ['Numerowana', c => !c.auto && !c.patch && c.run && num(c.run) !== 1],
-    ['Rookie', c => !c.auto && !c.patch && !c.run && c.rookie],
-    ['Parallel / insert', c => !c.auto && !c.patch && !c.run && !c.rookie && c.parallel && c.parallel.toLowerCase() !== 'base'],
-    ['Base', () => true]
-  ];
-  const assigned = new Set();
-  const rows = [];
-  for (const [label, test] of buckets) {
-    const list = held.filter(c => !assigned.has(c.id) && test(c));
-    list.forEach(c => assigned.add(c.id));
-    if (list.length) rows.push({ label, value: sum(list, c => c.marketValue), count: list.length });
+/* --- podsumowanie jednym akapitem --- */
+function renderDashNarrative(list, daily, t) {
+  const W = paceWindows(t);
+  const m = metricName();
+  const mtd = aggBetween(list, ...W.mtd.cur), mtdPrev = aggBetween(list, ...W.mtd.prev);
+  const wtd = aggBetween(list, ...W.wtd.cur), wtdPrev = aggBetween(list, ...W.wtd.prev);
+  const day = Number(t.slice(8, 10));
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const prevMonthShort = MONTHS_PL[Number(pym.slice(5, 7)) - 1];
+
+  const parts = [];
+  parts.push(`${cap(MONTHS_FULL[Number(ym.slice(5, 7)) - 1])} do ${day}. dnia: <b>${fmtPLN0(metricOf(mtd))}</b> ${m === 'zysk' ? 'zysku' : 'przychodu'}
+    z ${mtd.n} transakcji, ${deltaWord(metricOf(mtd), metricOf(mtdPrev), `${prevMonthShort} do tego samego dnia`)}.`);
+  parts.push(`Bieżący tydzień: <b>${fmtPLN0(metricOf(wtd))}</b>, ${deltaWord(metricOf(wtd), metricOf(wtdPrev), `poprzedni tydzień do ${isoDow(t) === 0 ? 'poniedziałku' : 'tego samego dnia'}`)}.`);
+
+  /* Trend średniej 7-dniowej: dziś vs tydzień temu. */
+  const ma7 = end => { let s = 0; for (let i = 0; i < 7; i++) s += dayVal(daily, isoAdd(end, -i)); return s / 7; };
+  const maNow = ma7(t), maPrev = ma7(isoAdd(t, -7));
+  const maD = pctChange(maNow, maPrev);
+  if (maD != null && Math.abs(maD) >= 0.5) {
+    parts.push(`Średnia 7-dniowa ${maD > 0 ? 'rośnie' : 'spada'} (<b class="${maD > 0 ? 'pos' : 'neg'}">${fmtPct(maD, true, 0)}</b> tydzień do tygodnia, ${fmtPLN0(maNow)}/dzień).`);
   }
-  const total = sum(rows, r => r.value) || 1;
 
-  renderChart('chart-types', {
-    type: 'bar',
+  /* Prognoza liniowa miesiąca. */
+  const dim = daysInMonth(ym);
+  if (day < dim && mtd.n) {
+    const fc = metricOf(mtd) / day * dim;
+    const prevFull = metricOf(aggBetween(list, `${pym}-01`, monthEnd(pym)));
+    parts.push(`W tym tempie miesiąc zamknie się na ok. <b>${fmtPLN0(fc)}</b> (cały ${prevMonthShort}: ${fmtPLN0(prevFull)}).`);
+  }
+
+  /* Kanały z ostatnich 30 dni. */
+  const rows = channelRows(salesBetween(list, ...W.r30.cur));
+  if (rows.length >= 2) {
+    const best = rows[0];
+    const bestRoi = [...rows].filter(r => r.roi != null).sort((a, b) => b.roi - a.roi)[0];
+    const feeTop = [...rows].filter(r => r.feePct != null && r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0];
+    let s = `W 30 dni najwięcej zarobił <b>${esc(best.name)}</b> (${fmtPLN0(best.pnl, true)})`;
+    if (bestRoi && bestRoi.name !== best.name) s += `, najwyższy ROI ma <b>${esc(bestRoi.name)}</b> (${fmtPct(bestRoi.roi, true, 0)})`;
+    if (feeTop) s += `, a najwięcej prowizji zjada <b>${esc(feeTop.name)}</b> — ${fmtPct(feeTop.feePct, false, 1)} przychodu`;
+    parts.push(s + '.');
+  }
+  el('dash-narr').innerHTML = parts.join(' ');
+}
+
+/* --- kafle tempa --- */
+function renderPaceTiles(list, t) {
+  const W = paceWindows(t);
+  const tile = (w, accent) => {
+    const cur = aggBetween(list, ...w.cur), prev = aggBetween(list, ...w.prev);
+    const v = metricOf(cur), pv = metricOf(prev);
+    const sub = dash.metric === 'pnl'
+      ? `przychód ${fmtPLN0(cur.gross)} · ROI ${fmtPct(cur.roi, true, 0)} · ${cur.n} szt.`
+      : `zysk ${fmtPLN0(cur.pnl, true)} · marża ${fmtPct(cur.margin, false, 0)} · ${cur.n} szt.`;
+    return `<div class="cd-pace-tile${accent ? ' accent' : ''}">
+      <div class="k">${w.label}</div>
+      <div class="row"><span class="v ${dash.metric === 'pnl' ? posClass(v) : ''}">${fmtPLN0(v)}</span>${deltaChip(v, pv)}</div>
+      <div class="n">${esc(w.vs)}: <b>${fmtPLN0(pv)}</b></div>
+      <div class="s">${sub}</div>
+    </div>`;
+  };
+
+  /* Prognoza: liniowe tempo bieżącego miesiąca kontra cały poprzedni miesiąc. */
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const day = Number(t.slice(8, 10)), dim = daysInMonth(ym);
+  const mtd = aggBetween(list, ...W.mtd.cur);
+  const prevFull = aggBetween(list, `${pym}-01`, monthEnd(pym));
+  const fc = metricOf(mtd) / day * dim;
+  const forecast = `<div class="cd-pace-tile">
+      <div class="k">Prognoza miesiąca</div>
+      <div class="row"><span class="v ${dash.metric === 'pnl' ? posClass(fc) : ''}">${fmtPLN0(fc)}</span>${deltaChip(fc, metricOf(prevFull))}</div>
+      <div class="n">vs cały ${MONTHS_PL[Number(pym.slice(5, 7)) - 1]}: <b>${fmtPLN0(metricOf(prevFull))}</b></div>
+      <div class="s">tempo ${fmtPLN0(metricOf(mtd) / day)}/dzień · zostało ${nDays(dim - day)}</div>
+    </div>`;
+
+  el('dash-pace').innerHTML = tile(W.today) + tile(W.wtd, true) + tile(W.mtd, true) + tile(W.r30) + tile(W.ytd) + forecast;
+}
+
+function paceChartOptions(titleFn) {
+  return {
+    maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: legendBottom(),
+      tooltip: {
+        ...TOOLTIP, displayColors: true,
+        filter: item => item.parsed.y != null,
+        callbacks: {
+          title: items => (items.length ? titleFn(items[0].dataIndex) : ''),
+          label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`
+        }
+      }
+    },
+    scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 16 } }, y: axisPLN() }
+  };
+}
+
+/* --- tydzień narastająco: bieżący, poprzedni i średnia 4 tygodni --- */
+function renderPaceWeek(daily, t) {
+  const ws = isoWeekStart(t), dow = isoDow(t);
+  const cum = (start, upto) => { let acc = 0; return DOW_PL.map((_, i) => (i > upto ? null : (acc += dayVal(daily, isoAdd(start, i))))); };
+  const cur = cum(ws, dow);
+  const prev = cum(isoAdd(ws, -7), 6);
+  const weeks = [1, 2, 3, 4].map(w => cum(isoAdd(ws, -7 * w), 6));
+  const avg4 = DOW_PL.map((_, i) => sum(weeks, w => w[i]) / 4);
+
+  el('pace-week-sub').textContent = `${metricName()} · tydz. ${isoWeekNo(t)} (${fmtRange(ws, isoAdd(ws, 6))})`;
+  renderChart('chart-pace-week', {
+    type: 'line',
     data: {
-      labels: rows.map(r => r.label),
-      datasets: [{ data: rows.map(r => r.value), backgroundColor: rows.map((_, i) => PALETTE[i % PALETTE.length]), borderRadius: 4, maxBarThickness: 30 }]
+      labels: DOW_PL,
+      datasets: [
+        { label: 'Ten tydzień', data: cur, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.5, tension: 0.2, pointRadius: 3, pointBackgroundColor: DC.accent },
+        { label: 'Poprzedni', data: prev, borderColor: DC.ink, borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.2, pointRadius: 0 },
+        { label: 'Śr. 4 tygodni', data: avg4, borderColor: DC.muted, borderWidth: 1.4, borderDash: [2, 3], fill: false, tension: 0.2, pointRadius: 0 }
+      ]
+    },
+    options: paceChartOptions(i => `${DOW_PL[i]} · ${shortDate(isoAdd(ws, i))} vs ${shortDate(isoAdd(ws, i - 7))}`)
+  });
+}
+
+/* --- miesiąc narastająco: bieżący, poprzedni i prognoza liniowa --- */
+function renderPaceMonth(daily, t) {
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const day = Number(t.slice(8, 10)), len = daysInMonth(ym), plen = daysInMonth(pym);
+  const n = Math.max(len, plen);
+  const cum = (m, upto) => { let acc = 0; return Array.from({ length: n }, (_, i) => (i >= upto ? null : (acc += dayVal(daily, `${m}-${pad2(i + 1)}`)))); };
+  const cur = cum(ym, day);
+  const prev = cum(pym, plen);
+  const rate = cur[day - 1] / day;
+  const forecast = Array.from({ length: n }, (_, i) => (day < len && i >= day - 1 && i < len ? rate * (i + 1) : null));
+
+  el('pace-month-sub').textContent = `${metricName()} · ${monthName(ym)} vs ${MONTHS_FULL[Number(pym.slice(5, 7)) - 1]}`;
+  const datasets = [
+    { label: cap(MONTHS_FULL[Number(ym.slice(5, 7)) - 1]), data: cur, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.5, tension: 0.15, pointRadius: 0, pointHoverRadius: 4 },
+    { label: cap(MONTHS_FULL[Number(pym.slice(5, 7)) - 1]), data: prev, borderColor: DC.ink, borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.15, pointRadius: 0 }
+  ];
+  if (day < len) datasets.push({ label: 'Prognoza', data: forecast, borderColor: DC.accent, borderWidth: 1.4, borderDash: [2, 3], fill: false, tension: 0, pointRadius: 0 });
+  renderChart('chart-pace-month', {
+    type: 'line',
+    data: { labels: Array.from({ length: n }, (_, i) => String(i + 1)), datasets },
+    options: paceChartOptions(i => `${i + 1}. dzień miesiąca`)
+  });
+}
+
+/* --- dzień po dniu ze średnimi kroczącymi --- */
+function renderDailyChart(daily, t) {
+  const N = Number(dash.daily) || 90;
+  const LEAD = 55; // zapas wstecz: pełna średnia 28-dniowa od pierwszego dnia i jej wartość sprzed 28 dni
+  const start = isoAdd(t, -(N - 1));
+  const days = [];
+  for (let d = isoAdd(start, -LEAD); d <= t; d = isoAdd(d, 1)) days.push(d);
+  const vals = days.map(d => dayVal(daily, d));
+  const ma = w => vals.map((_, i) => (i < w - 1 ? null : sum(vals.slice(i - w + 1, i + 1)) / w));
+  const ma7 = ma(7), ma28 = ma(28);
+  const view = days.slice(LEAD), v = vals.slice(LEAD), m7 = ma7.slice(LEAD), m28 = ma28.slice(LEAD);
+  const last = vals.length - 1;
+
+  const counts = view.map(d => (daily.get(d) || { n: 0 }).n);
+  const active = counts.filter(c => c > 0).length;
+  let bestI = 0;
+  v.forEach((x, i) => { if (x > v[bestI]) bestI = i; });
+  const total = sum(v);
+  el('daily-strip').innerHTML = `
+    <div class="cell"><div class="k">Suma ${N} dni</div><div class="v">${fmtPLN0(total)}</div><div class="d">${sum(counts)} ${plural(sum(counts), 'transakcja', 'transakcje', 'transakcji')}</div></div>
+    <div class="cell"><div class="k">Średnia 7 dni</div><div class="v">${fmtPLN0(ma7[last])}</div><div class="d">${deltaChip(ma7[last], ma7[last - 7])} <small>vs tydzień temu</small></div></div>
+    <div class="cell"><div class="k">Średnia 28 dni</div><div class="v">${fmtPLN0(ma28[last])}</div><div class="d">${deltaChip(ma28[last], ma28[last - 28])} <small>vs 28 dni temu</small></div></div>
+    <div class="cell"><div class="k">Dni ze sprzedażą</div><div class="v">${active}/${N}</div><div class="d"><small>${fmtPct(active / N * 100, false, 0)} dni</small></div></div>
+    <div class="cell"><div class="k">Najlepszy dzień</div><div class="v">${v[bestI] > 0 ? fmtPLN0(v[bestI]) : '—'}</div><div class="d"><small>${v[bestI] > 0 ? `${DOW_PL[isoDow(view[bestI])]} ${fmtDate(view[bestI])}` : 'brak sprzedaży'}</small></div></div>`;
+
+  renderChart('chart-daily', {
+    data: {
+      labels: view.map(shortDate),
+      datasets: [
+        { type: 'bar', label: dash.metric === 'pnl' ? 'Zysk dnia' : 'Przychód dnia', data: v, backgroundColor: v.map(x => (x < 0 ? DC.lossSoft : DC.accentSoft)), hoverBackgroundColor: v.map(x => (x < 0 ? DC.loss : DC.accent)), borderRadius: 3, maxBarThickness: 18, order: 3 },
+        { type: 'line', label: 'Średnia 7 dni', data: m7, borderColor: DC.accent, borderWidth: 2.4, tension: 0.3, pointRadius: 0, pointHoverRadius: 3, fill: false, order: 1 },
+        { type: 'line', label: 'Średnia 28 dni', data: m28, borderColor: DC.ink, borderWidth: 1.4, borderDash: [5, 4], tension: 0.3, pointRadius: 0, fill: false, order: 2 }
+      ]
     },
     options: {
       maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: legendBottom(),
         tooltip: {
-          ...TOOLTIP,
+          ...TOOLTIP, displayColors: true,
           callbacks: {
-            label: c => `${fmtPLN0(c.parsed.y)} · ${fmtPct(c.parsed.y / total * 100, false)}`,
-            afterLabel: c => `${nCards(rows[c.dataIndex].count)}`
+            title: items => `${DOW_PL[isoDow(view[items[0].dataIndex])]} ${fmtDate(view[items[0].dataIndex])}`,
+            label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`,
+            afterBody: items => { const n = counts[items[0].dataIndex]; return n ? `${n} ${plural(n, 'transakcja', 'transakcje', 'transakcji')}` : ''; }
           }
         }
       },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, maxRotation: 45, minRotation: 0, autoSkip: false, font: { size: 9 } } }, y: axisPLN() }
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } }, y: axisPLN() }
     }
   });
 }
 
-const AGE_BUCKETS = [
-  ['0–30 dni', 0, 30], ['31–90', 31, 90], ['91–180', 91, 180],
-  ['181–365', 181, 365], ['366–730', 366, 730], ['> 2 lata', 731, Infinity]
-];
+/* ============================================================
+   Kanały w wybranym okresie
+   ============================================================ */
+function channelRows(list) {
+  const total = aggSales(list);
+  return [...groupBy(list, s => s.channel || '—').entries()]
+    .map(([name, l]) => {
+      const a = aggSales(l);
+      return { name, ...a, share: total.pnl > 0 ? a.pnl / total.pnl * 100 : null, revShare: total.gross > 0 ? a.gross / total.gross * 100 : null };
+    })
+    .sort((a, b) => b.pnl - a.pnl);
+}
 
-function renderAgingChart() {
-  const held = M.held.filter(c => c.daysHeld != null);
-  if (!held.length) { renderChart('chart-aging', null); return; }
-  const values = AGE_BUCKETS.map(([, lo, hi]) => sum(held.filter(c => c.daysHeld >= lo && c.daysHeld <= hi), c => c.marketValue));
-  const counts = AGE_BUCKETS.map(([, lo, hi]) => held.filter(c => c.daysHeld >= lo && c.daysHeld <= hi).length);
+function chanResolve(list) {
+  const t = today();
+  const p = dash.preset;
+  const a = chanRange.anchor || t;
+  let from, to, label;
+  if (p === 'week') {
+    from = isoWeekStart(a); to = isoAdd(from, 6);
+    label = `Tydzień ${isoWeekNo(from)} · ${fmtRange(from, to)}`;
+  } else if (p === 'month') {
+    const ym = a.slice(0, 7);
+    from = `${ym}-01`; to = monthEnd(ym);
+    label = cap(monthName(ym));
+  } else if (p === 'year') {
+    const y = a.slice(0, 4);
+    from = `${y}-01-01`; to = `${y}-12-31`;
+    label = `Rok ${y}`;
+  } else if (p === 'all') {
+    from = list.reduce((m, s) => (s.date < m ? s.date : m), t); to = t;
+    label = 'Cała historia';
+  } else {
+    if (!chanRange.from || !chanRange.to) { chanRange.from = isoAdd(t, -29); chanRange.to = t; }
+    from = chanRange.from; to = chanRange.to;
+    if (from > to) [from, to] = [to, from];
+    label = `${p === 'r30' ? '30 dni' : 'Własny zakres'} · ${fmtRange(from, to)}`;
+  }
 
-  renderChart('chart-aging', {
+  /* Porównanie do tego samego dnia: okres w toku ucinamy na dziś,
+     a poprzedni okres bierzemy od początku do analogicznego dnia. */
+  const effTo = to < t ? to : t;
+  let prev = null;
+  if (p !== 'all' && effTo >= from) {
+    if (p === 'week') prev = [isoAdd(from, -7), isoAdd(effTo, -7)];
+    else if (p === 'month') {
+      const pym = addMonths(from.slice(0, 7), -1);
+      prev = effTo === to
+        ? [`${pym}-01`, monthEnd(pym)] // miesiąc zamknięty — cały poprzedni
+        : [`${pym}-01`, `${pym}-${pad2(Math.min(Number(effTo.slice(8, 10)), daysInMonth(pym)))}`];
+    } else if (p === 'year') {
+      const y = Number(from.slice(0, 4)) - 1;
+      const md = effTo.slice(5) === '02-29' ? '02-28' : effTo.slice(5);
+      prev = [`${y}-01-01`, `${y}-${md}`];
+    } else {
+      const len = isoDiff(from, effTo) + 1;
+      prev = [isoAdd(from, -len), isoAdd(from, -1)];
+    }
+  }
+  return { from, to, effTo, label, prev, partial: to > t, future: from > t };
+}
+
+function chanShift(dir) {
+  const r = chanResolve(dashSales());
+  const p = dash.preset;
+  if (p === 'week') chanRange.anchor = isoAdd(r.from, 7 * dir);
+  else if (p === 'month') chanRange.anchor = `${addMonths(r.from.slice(0, 7), dir)}-01`;
+  else if (p === 'year') chanRange.anchor = `${Number(r.from.slice(0, 4)) + dir}-01-01`;
+  else if (p === 'r30' || p === 'custom') {
+    const len = isoDiff(r.from, r.to) + 1;
+    chanRange.from = isoAdd(r.from, len * dir);
+    chanRange.to = isoAdd(r.to, len * dir);
+    dash.preset = 'custom';
+  }
+  renderAnalytics();
+}
+
+function renderChannelBoard(list, t) {
+  const r = chanResolve(list);
+  el('chan-label').textContent = r.label;
+  el('chan-from').value = r.from;
+  el('chan-to').value = r.to;
+  el('chan-prev').disabled = dash.preset === 'all';
+  el('chan-next').disabled = dash.preset === 'all' || r.to >= t;
+
+  const cur = salesBetween(list, r.from, r.to);
+  const A = aggSales(cur);
+  const P = r.prev ? aggBetween(list, ...r.prev) : null;
+  const cell = (k, v, d, cls = '') => `<div class="cell"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="d">${d || ''}</div></div>`;
+  const dc = (key, invert) => (P ? deltaChip(A[key], P[key], invert) : '');
+  el('chan-kpi').innerHTML =
+    cell('Przychód', fmtPLN0(A.gross), dc('gross')) +
+    cell('Koszt towaru', fmtPLN0(A.cogs), dc('cogs', true)) +
+    cell('Prowizje', fmtPLN0(A.commission), P ? `${deltaChip(A.commission, P.commission, true)} <small>${fmtPct(A.feePct, false, 1)} przych.</small>` : `<small>${fmtPct(A.feePct, false, 1)} przych.</small>`) +
+    cell('Wysyłka', fmtPLN0(A.shipping), dc('shipping', true)) +
+    cell('Zysk', fmtPLN0(A.pnl, true), dc('pnl'), posClass(A.pnl)) +
+    cell('Marża', fmtPct(A.margin, false, 1), P ? ppChip(A.margin, P.margin) : '') +
+    cell('ROI', fmtPct(A.roi, true, 1), P ? ppChip(A.roi, P.roi) : '', posClass(A.roi)) +
+    cell('Transakcje', String(A.n), dc('n')) +
+    cell('Śr. koszyk', fmtPLN0(A.aov), P ? deltaChip(A.aov || 0, P.aov || 0) : '');
+  el('chan-cmp').innerHTML = r.future
+    ? 'Okres jeszcze się nie zaczął.'
+    : P
+      ? `Zmiany vs <b>${fmtRange(...r.prev)}</b>${r.partial ? ' — okres w toku, więc porównanie do tego samego dnia' : ''}. Koszty rosnące szybciej niż przychód świecą na czerwono.`
+      : 'Cała historia — bez okresu porównawczego.';
+
+  const rows = channelRows(cur);
+  renderChannelMix(rows);
+  renderChannelInsights(rows, A);
+  renderChannelTable(rows, A);
+}
+
+function renderChannelMix(rows) {
+  const box = el('chan-mix-box');
+  box.style.height = `${Math.max(170, rows.length * 42 + 70)}px`;
+  if (!rows.length) { renderChart('chart-chan-mix', null); return; }
+  const pct = dash.unit === 'pct';
+  const val = (r, v) => (pct ? (r.gross > 0 ? v / r.gross * 100 : 0) : v);
+  const parts = [
+    ['Koszt towaru', 'cogs', DC.cogs],
+    ['Prowizje', 'commission', DC.commission],
+    ['Wysyłka', 'shipping', DC.shipping],
+    ['Zysk', 'pnl', null]
+  ];
+  renderChart('chart-chan-mix', {
+    type: 'bar',
     data: {
-      labels: AGE_BUCKETS.map(b => b[0]),
-      datasets: [
-        { type: 'bar', label: 'Wartość', data: values, backgroundColor: AGE_BUCKETS.map((b, i) => b[1] >= settings.agingDays ? '#b45309' : '#0057c0'), borderRadius: 4, maxBarThickness: 40, yAxisID: 'y' },
-        { type: 'line', label: 'Liczba kart', data: counts, borderColor: '#0f172a', borderWidth: 2, tension: 0.3, pointRadius: 3, fill: false, yAxisID: 'y1' }
-      ]
+      labels: rows.map(r => r.name),
+      datasets: parts.map(([label, key, color]) => ({
+        label, data: rows.map(r => val(r, r[key])),
+        backgroundColor: color || rows.map(r => (r.pnl >= 0 ? DC.profit : DC.loss)),
+        borderWidth: 0, maxBarThickness: 26, borderSkipped: false
+      }))
     },
     options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
+      indexAxis: 'y', maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', axis: 'y', intersect: false },
       plugins: {
         legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => c.dataset.yAxisID === 'y1' ? `${c.parsed.y} kart` : fmtPLN0(c.parsed.y) } }
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => { const r = rows[items[0].dataIndex]; return `${r.name} · przychód ${fmtPLN0(r.gross)}`; },
+            label: c => {
+              const r = rows[c.dataIndex], key = parts[c.datasetIndex][1];
+              return `${c.dataset.label}: ${fmtPLN0(r[key])} · ${r.gross > 0 ? fmtPct(r[key] / r.gross * 100, false, 1) : '—'} przychodu`;
+            }
+          }
+        }
       },
       scales: {
-        x: axisCat(), y: axisPLN(),
-        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, precision: 0 } }
+        x: { ...(pct ? axisPct() : axisPLN()), stacked: true },
+        y: { ...axisCat(), stacked: true }
       }
     }
   });
 }
 
-function renderPortfolioChart() {
-  const pts = portfolioSeries();
-  if (!pts.length) { renderChart('chart-portfolio', null); return; }
-  renderChart('chart-portfolio', {
+function renderChannelInsights(rows, A) {
+  const wrap = el('chan-insights');
+  if (!rows.length) { wrap.innerHTML = emptyBox('hub', 'Brak sprzedaży w tym okresie', 'Zmień okres albo przesuń strzałkami.'); return; }
+  const items = [];
+  const best = rows[0];
+  items.push(['emoji_events', 'pos', `Najwięcej zarabia <b>${esc(best.name)}</b>`,
+    `${fmtPLN0(best.pnl, true)} zysku${best.share != null ? ` · ${fmtPct(best.share, false, 0)} całego zysku` : ''} przy ${fmtPct(best.revShare, false, 0)} przychodu`]);
+  if (rows.length > 1) {
+    const withRoi = rows.filter(r => r.roi != null);
+    const topRoi = [...withRoi].sort((a, b) => b.roi - a.roi)[0];
+    if (topRoi) items.push(['percent', 'accent', `Najwyższy ROI: <b>${esc(topRoi.name)}</b>`,
+      `${fmtPct(topRoi.roi, true, 0)} na koszcie towaru · marża ${fmtPct(topRoi.margin, false, 0)}`]);
+    const feeTop = [...rows].filter(r => r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0];
+    if (feeTop) items.push(['payments', 'warn', `Najdroższy kanał: <b>${esc(feeTop.name)}</b>`,
+      `prowizje ${fmtPct(feeTop.feePct, false, 1)} przychodu · ${fmtPLN0(feeTop.commission)} oddane platformie`]);
+    const bigRev = [...rows].sort((a, b) => b.gross - a.gross)[0];
+    if (bigRev.name !== best.name) items.push(['warning', 'warn', `<b>${esc(bigRev.name)}</b> ma największy obrót, ale nie największy zysk`,
+      `przychód ${fmtPLN0(bigRev.gross)}, zysk ${fmtPLN0(bigRev.pnl, true)} — sprawdź prowizje i ceny`]);
+  }
+  const losers = rows.filter(r => r.pnl < 0);
+  if (losers.length) items.push(['trending_down', 'neg', `Strata na: ${losers.map(r => `<b>${esc(r.name)}</b>`).join(', ')}`,
+    `razem ${fmtPLN0(sum(losers, r => r.pnl))} — sprzedaż poniżej kosztu`]);
+  const costShare = A.gross > 0 ? (A.commission + A.shipping) / A.gross * 100 : null;
+  if (costShare != null) items.push(['local_shipping', '', 'Koszty transakcyjne łącznie',
+    `${fmtPLN0(A.commission + A.shipping)} · ${fmtPct(costShare, false, 1)} przychodu (prowizje ${fmtPLN0(A.commission)}, wysyłka ${fmtPLN0(A.shipping)})`]);
+
+  wrap.innerHTML = `<ul class="cd-insights">${items.map(([icon, tone, t, s]) => `
+    <li class="${tone}"><span class="material-symbols-outlined">${icon}</span><div><div class="t">${t}</div><div class="s">${s}</div></div></li>`).join('')}</ul>`;
+}
+
+function renderChannelTable(rows, A) {
+  const wrap = el('chan-table');
+  if (!rows.length) { wrap.innerHTML = ''; return; }
+  const maxShare = Math.max(...rows.map(r => Math.max(0, r.share || 0)), 1);
+  const topRoi = rows.length > 1 ? [...rows].filter(r => r.roi != null).sort((a, b) => b.roi - a.roi)[0] : null;
+  const topFee = rows.length > 1 ? [...rows].filter(r => r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0] : null;
+  const tags = r => [
+    rows.length > 1 && r === rows[0] && r.pnl > 0 ? '<span class="cd-ch-tag best">top zysk</span>' : '',
+    topRoi && r === topRoi ? '<span class="cd-ch-tag roi">top ROI</span>' : '',
+    topFee && r === topFee ? '<span class="cd-ch-tag fee">najdroższy</span>' : ''
+  ].join('');
+  wrap.innerHTML = `<table class="tc-tbl cd-chan-tbl">
+    <thead><tr>
+      <th>Kanał</th><th class="num">Szt.</th><th class="num">Przychód</th><th class="num">Koszt towaru</th>
+      <th class="num">Prowizje</th><th class="num">Wysyłka</th><th class="num">Zysk</th><th class="num">Marża</th>
+      <th class="num">ROI</th><th class="num">Prowizje % przych.</th><th class="num">Zysk / szt.</th><th>Udział w zysku</th>
+    </tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td><span class="cd-ch-name">${esc(r.name)}</span>${tags(r)}</td>
+        <td class="num">${r.n}</td>
+        <td class="num">${fmtPLN0(r.gross)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.cogs)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.commission)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.shipping)}</td>
+        <td class="num ${posClass(r.pnl)}"><strong>${fmtPLN0(r.pnl, true)}</strong></td>
+        <td class="num ${posClass(r.margin)}">${fmtPct(r.margin, false, 1)}</td>
+        <td class="num ${posClass(r.roi)}">${fmtPct(r.roi, true, 1)}</td>
+        <td class="num">${fmtPct(r.feePct, false, 1)}</td>
+        <td class="num ${posClass(r.ppu)}">${fmtPLN0(r.ppu, true)}</td>
+        <td><div class="cd-share"><div class="track"><i style="width:${Math.max(0, r.share || 0) / maxShare * 100}%"></i></div><span>${r.share == null ? '—' : fmtPct(r.share, false, 0)}</span></div></td>
+      </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td>Razem</td><td class="num">${A.n}</td><td class="num">${fmtPLN0(A.gross)}</td><td class="num">${fmtPLN0(A.cogs)}</td>
+      <td class="num">${fmtPLN0(A.commission)}</td><td class="num">${fmtPLN0(A.shipping)}</td>
+      <td class="num ${posClass(A.pnl)}">${fmtPLN0(A.pnl, true)}</td><td class="num">${fmtPct(A.margin, false, 1)}</td>
+      <td class="num">${fmtPct(A.roi, true, 1)}</td><td class="num">${fmtPct(A.feePct, false, 1)}</td>
+      <td class="num">${fmtPLN0(A.ppu, true)}</td><td></td>
+    </tr></tfoot></table>`;
+}
+
+/* ============================================================
+   Trend: tygodnie / miesiące
+   ============================================================ */
+function trendPeriods(list, gran, t) {
+  const week = gran === 'week';
+  const keyOf = d => (week ? isoWeekStart(d) : d.slice(0, 7));
+  const first = list.reduce((m, s) => (s.date < m ? s.date : m), t);
+  const keys = [];
+  if (week) for (let k = isoWeekStart(first); k <= isoWeekStart(t); k = isoAdd(k, 7)) keys.push(k);
+  else for (let k = first.slice(0, 7); k <= t.slice(0, 7); k = addMonths(k, 1)) keys.push(k);
+  const by = groupBy(list, s => keyOf(s.date));
+  return keys.map(k => {
+    const current = k === keyOf(t);
+    /* Okres w toku porównujemy z poprzednim do tego samego dnia. */
+    let prevRange;
+    if (week) prevRange = current ? [isoAdd(k, -7), isoAdd(t, -7)] : [isoAdd(k, -7), isoAdd(k, -1)];
+    else {
+      const pym = addMonths(k, -1);
+      prevRange = current
+        ? [`${pym}-01`, `${pym}-${pad2(Math.min(Number(t.slice(8, 10)), daysInMonth(pym)))}`]
+        : [`${pym}-01`, monthEnd(pym)];
+    }
+    return {
+      key: k, current, prevRange, ...aggSales(by.get(k) || []),
+      label: week ? shortDate(k) : monthLabel(k),
+      title: week ? `Tydzień ${isoWeekNo(k)} · ${fmtRange(k, isoAdd(k, 6))}` : cap(monthName(k))
+    };
+  });
+}
+
+function renderTrend(list, t) {
+  const week = dash.gran === 'week';
+  const all = trendPeriods(list, dash.gran, t);
+  const shown = all.slice(-(week ? 26 : 24));
+
+  el('trend-sub').textContent = week ? `ostatnie ${shown.length} tyg.` : `ostatnie ${shown.length} mies.`;
+  renderChart('chart-trend', {
     data: {
-      labels: pts.map(p => monthLabel(p.ym)),
+      labels: shown.map(p => p.label),
       datasets: [
-        {
-          type: 'line', label: 'Majątek (karty + sealed)', data: pts.map(p => p.assets), borderColor: '#0057c0',
-          backgroundColor: ctx => {
-            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 320);
-            g.addColorStop(0, 'rgba(0,87,192,0.20)'); g.addColorStop(1, 'rgba(0,87,192,0)');
-            return g;
-          },
-          fill: true, borderWidth: 2, tension: 0.25, pointRadius: 0
-        },
-        { type: 'line', label: 'Zainwestowana gotówka', data: pts.map(p => p.invested), borderColor: '#b45309', borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.25, pointRadius: 0 },
-        { type: 'line', label: 'Wynik łączny', data: pts.map(p => p.result), borderColor: '#0b8a4a', borderWidth: 2, fill: false, tension: 0.25, pointRadius: 0 }
+        { type: 'bar', label: 'Przychód', data: shown.map(p => p.gross), backgroundColor: shown.map(p => (p.current ? DC.accentSoft : DC.accent)), borderRadius: 3, maxBarThickness: 22, order: 2 },
+        { type: 'bar', label: 'Zysk', data: shown.map(p => p.pnl), backgroundColor: shown.map(p => (p.pnl < 0 ? DC.loss : p.current ? 'rgba(11,138,74,0.35)' : DC.profit)), borderRadius: 3, maxBarThickness: 22, order: 2 },
+        { type: 'line', label: 'Marża %', data: shown.map(p => p.margin), borderColor: DC.ink, borderWidth: 1.6, tension: 0.25, pointRadius: 2, fill: false, yAxisID: 'y1', spanGaps: true, order: 1 }
       ]
     },
     options: {
@@ -2332,13 +2832,109 @@ function renderPortfolioChart() {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.dataset.label}: ${fmtPLN(c.parsed.y)}` } }
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => { const p = shown[items[0].dataIndex]; return p.title + (p.current ? ' (w toku)' : ''); },
+            label: c => (c.dataset.yAxisID === 'y1' ? `Marża: ${fmtPct(c.parsed.y, false, 1)}` : `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`),
+            afterBody: items => `${shown[items[0].dataIndex].n} transakcji`
+          }
+        }
       },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
+      scales: {
+        x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } },
+        y: axisPLN(),
+        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' } }
+      }
     }
   });
+
+  /* Narastająco od pierwszej sprzedaży — pełna historia. */
+  let cg = 0, cp = 0;
+  const cumG = all.map(p => (cg += p.gross)), cumP = all.map(p => (cp += p.pnl));
+  el('cum-sub').textContent = `łącznie ${fmtPLN0(cg)} przychodu · ${fmtPLN0(cp, true)} zysku`;
+  renderChart('chart-cum', {
+    type: 'line',
+    data: {
+      labels: all.map(p => p.label),
+      datasets: [
+        { label: 'Przychód narastająco', data: cumG, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 },
+        { label: 'Zysk narastająco', data: cumP, borderColor: DC.profit, backgroundColor: 'rgba(11,138,74,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: legendBottom(),
+        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { title: items => all[items[0].dataIndex].title, label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}` } }
+      },
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } }, y: axisPLN() }
+    }
+  });
+
+  /* Rachunek wyników: ostatnie 12 okresów, najnowszy na górze. */
+  const table = all.slice(-12).reverse();
+  el('pl-sub').textContent = `${week ? 'tygodnie' : 'miesiące'} · Δ vs poprzedni okres (bieżący do tego samego dnia)`;
+  const T = aggSales(salesBetween(list, week ? table[table.length - 1].key : `${table[table.length - 1].key}-01`, t));
+  el('trend-table').innerHTML = `<table class="tc-tbl">
+    <thead><tr>
+      <th>Okres</th><th class="num">Szt.</th><th class="num">Przychód</th><th class="num">Δ przych.</th><th class="num">Koszt towaru</th>
+      <th class="num">Prowizje</th><th class="num">Wysyłka</th><th class="num">Zysk</th><th class="num">Δ zysku</th><th class="num">Marża</th><th class="num">ROI</th>
+    </tr></thead>
+    <tbody>${table.map(p => {
+      const prev = aggBetween(list, ...p.prevRange);
+      return `<tr class="${p.current ? 'cd-current' : ''}">
+        <td><span class="cd-ch-name">${esc(p.title)}</span>${p.current ? '<span class="cd-ch-tag live">w toku</span>' : ''}</td>
+        <td class="num">${p.n}</td>
+        <td class="num"><strong>${fmtPLN0(p.gross)}</strong></td>
+        <td class="num">${deltaChip(p.gross, prev.gross)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.cogs)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.commission)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.shipping)}</td>
+        <td class="num ${posClass(p.pnl)}"><strong>${fmtPLN0(p.pnl, true)}</strong></td>
+        <td class="num">${deltaChip(p.pnl, prev.pnl)}</td>
+        <td class="num">${fmtPct(p.margin, false, 1)}</td>
+        <td class="num ${posClass(p.roi)}">${fmtPct(p.roi, true, 1)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr>
+      <td>Razem ${table.length} ${week ? plural(table.length, 'tydzień', 'tygodnie', 'tygodni') : plural(table.length, 'miesiąc', 'miesiące', 'miesięcy')}</td>
+      <td class="num">${T.n}</td><td class="num">${fmtPLN0(T.gross)}</td><td></td><td class="num">${fmtPLN0(T.cogs)}</td>
+      <td class="num">${fmtPLN0(T.commission)}</td><td class="num">${fmtPLN0(T.shipping)}</td>
+      <td class="num ${posClass(T.pnl)}">${fmtPLN0(T.pnl, true)}</td><td></td>
+      <td class="num">${fmtPct(T.margin, false, 1)}</td><td class="num">${fmtPct(T.roi, true, 1)}</td>
+    </tr></tfoot></table>`;
 }
 
+function bindDashEvents() {
+  const seg = (id, key, after) => el(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    dashPrefs()[key] = b.dataset.v;
+    if (after) after(b.dataset.v);
+    saveDashPrefs();
+    renderAnalytics();
+  });
+  seg('dash-metric', 'metric');
+  seg('dash-kind', 'kind');
+  seg('dash-daily', 'daily');
+  seg('dash-gran', 'gran');
+  seg('chan-unit', 'unit');
+  seg('chan-preset', 'preset', v => {
+    chanRange = { anchor: null, from: null, to: null };
+    if (v === 'r30') { chanRange.from = isoAdd(today(), -29); chanRange.to = today(); }
+  });
+  el('chan-prev').addEventListener('click', () => chanShift(-1));
+  el('chan-next').addEventListener('click', () => chanShift(1));
+  ['chan-from', 'chan-to'].forEach(id => el(id).addEventListener('change', () => {
+    const from = el('chan-from').value, to = el('chan-to').value;
+    if (!from || !to) return;
+    chanRange = { anchor: null, from, to };
+    dashPrefs().preset = 'custom';
+    renderAnalytics();
+  }));
+}
 function renderReconStrip() {
   el('recon-strip').innerHTML = `
     <div class="cell"><div class="k">Zrealizowany</div><div class="v ${posClass(M.realized)}">${fmtPLN0(M.realized, true)}</div></div>
@@ -2348,92 +2944,6 @@ function renderReconStrip() {
     <div class="cell"><div class="k">Koszty ogólne</div><div class="v">${fmtPLN0(-M.overhead)}</div></div>
     <div class="cell"><div class="k">Wynik łączny</div><div class="v ${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</div></div>
     <div class="cell"><div class="k">Różnica</div><div class="v ${Math.abs(M.residual) < 0.01 ? 'pos' : 'neg'}">${Math.abs(M.residual) < 0.01 ? '0 zł' : fmtPLN(M.residual)}</div></div>`;
-}
-
-function renderMonthlyPnlChart() {
-  if (!M.sales.length) { renderChart('chart-monthly-pnl', null); return; }
-  const byMonth = groupBy(M.sales, s => s.date.slice(0, 7));
-  const keys = [...byMonth.keys()].sort();
-  const full = [];
-  for (let ym = keys[0]; ym <= keys[keys.length - 1]; ym = addMonths(ym, 1)) full.push(ym);
-  const vals = full.map(ym => sum(byMonth.get(ym) || [], s => s.pnl));
-  let acc = 0;
-  const cum = vals.map(v => (acc += v));
-
-  renderChart('chart-monthly-pnl', {
-    data: {
-      labels: full.map(monthLabel),
-      datasets: [
-        { type: 'bar', label: 'Wynik miesiąca', data: vals, backgroundColor: barColors(vals), borderRadius: 4, maxBarThickness: 34 },
-        { type: 'line', label: 'Narastająco', data: cum, borderColor: '#0f172a', borderWidth: 2, tension: 0.25, pointRadius: 0, fill: false }
-      ]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: legendBottom(), tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.dataset.label}: ${fmtPLN(c.parsed.y, true)}` } } },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
-    }
-  });
-}
-
-const ROI_BUCKETS = [
-  ['< −50%', -Infinity, -50], ['−50…−20%', -50, -20], ['−20…0%', -20, 0],
-  ['0…25%', 0, 25], ['25…50%', 25, 50], ['50…100%', 50, 100], ['> 100%', 100, Infinity]
-];
-
-function renderRoiDistChart() {
-  const withRoi = M.sales.filter(s => s.roi != null);
-  if (!withRoi.length) { renderChart('chart-roi-dist', null); return; }
-  const counts = ROI_BUCKETS.map(([, lo, hi]) => withRoi.filter(s => s.roi > lo && s.roi <= hi).length);
-  renderChart('chart-roi-dist', {
-    type: 'bar',
-    data: {
-      labels: ROI_BUCKETS.map(b => b[0]),
-      datasets: [{ data: counts, backgroundColor: ROI_BUCKETS.map(b => b[2] <= 0 ? '#c0362c' : '#0b8a4a'), borderRadius: 4, maxBarThickness: 40 }]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...TOOLTIP, callbacks: { label: c => `${c.parsed.y} ${plural(c.parsed.y, 'transakcja', 'transakcje', 'transakcji')}` } }
-      },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, font: { size: 9 } } }, y: axisCount() }
-    }
-  });
-}
-
-function renderRankings() {
-  renderRank('rank-players', groupResults(c => c.player || 'Bez nazwy'), 'Dodaj karty, żeby zobaczyć, na kim realnie zarabiasz.');
-  renderRank('rank-products', groupResults(c => c.product || 'Bez produktu'), 'Po kilku transakcjach zobaczysz, które sety się bronią.');
-}
-
-function groupResults(keyFn) {
-  const map = new Map();
-  for (const c of M.cards) {
-    const k = keyFn(c);
-    if (!map.has(k)) map.set(k, { key: k, pnl: 0, basis: 0, n: 0, held: 0, sold: 0 });
-    const e = map.get(k);
-    e.pnl += c.pnl; e.basis += c.basis; e.n++;
-    if (c.sold) e.sold++; else e.held++;
-  }
-  return [...map.values()]
-    .map(e => ({ ...e, roi: e.basis > 0 ? e.pnl / e.basis * 100 : null }))
-    .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
-    .slice(0, 10);
-}
-
-function renderRank(id, rows, emptyText) {
-  const wrap = el(id);
-  if (!rows.length) { wrap.innerHTML = emptyBox('leaderboard', 'Brak danych', emptyText); return; }
-  const max = Math.max(...rows.map(r => Math.abs(r.pnl)), 1);
-  wrap.innerHTML = `<div class="cd-rank">${rows.map(r => `
-    <div class="cd-rank-row center">
-      <div class="t">${esc(r.key)}<small>${nCards(r.n)} · ${r.sold} sprzedanych · baza ${fmtPLN0(r.basis)}</small></div>
-      <div class="bar"><i class="${r.pnl < 0 ? 'neg' : 'pos'}" style="width:${Math.abs(r.pnl) / max * 50}%"></i></div>
-      <div class="v ${posClass(r.pnl)}">${fmtPLN0(r.pnl, true)}</div>
-      <div class="r">${fmtPct(r.roi)}</div>
-    </div>`).join('')}</div>`;
 }
 
 function renderTaxPanel() {
@@ -2466,47 +2976,6 @@ function renderTaxPanel() {
         <td class="num">${fmtPLN0(c.marketValue)}</td>
         <td class="num ${posClass(c.pnl)}">${fmtPLN0(c.pnl, true)}</td>
       </tr>`).join('')}</tbody></table>`;
-}
-
-function renderLiquidityPanel() {
-  const soldWithDays = M.sales.filter(s => s.days != null);
-  const dead = M.held.filter(c => (c.daysHeld || 0) > settings.agingDays);
-  const turnover = M.heldValue > 0 ? sum(M.sales.filter(s => daysBetween(s.date, today()) <= 365), s => s.net) / M.heldValue : null;
-  el('liq-strip').innerHTML = `
-    <div class="cell"><div class="k">Śr. czas do sprzedaży</div><div class="v">${soldWithDays.length ? Math.round(sum(soldWithDays, s => s.days) / soldWithDays.length) + ' dni' : '—'}</div></div>
-    <div class="cell"><div class="k">Mediana</div><div class="v">${soldWithDays.length ? Math.round(median(soldWithDays.map(s => s.days))) + ' dni' : '—'}</div></div>
-    <div class="cell"><div class="k">Martwy stock</div><div class="v ${dead.length ? 'warn' : 'pos'}">${dead.length}</div></div>
-    <div class="cell"><div class="k">Rotacja 12M</div><div class="v">${turnover == null ? '—' : turnover.toFixed(2) + '×'}</div></div>`;
-
-  if (!soldWithDays.length) { renderChart('chart-dts', null); return; }
-  const buckets = [['0–14', 0, 14], ['15–30', 15, 30], ['31–60', 31, 60], ['61–120', 61, 120], ['121–365', 121, 365], ['> rok', 366, Infinity]];
-  const counts = buckets.map(([, lo, hi]) => soldWithDays.filter(s => s.days >= lo && s.days <= hi).length);
-  const avgRoi = buckets.map(([, lo, hi]) => {
-    const list = soldWithDays.filter(s => s.days >= lo && s.days <= hi && s.roi != null);
-    return list.length ? sum(list, s => s.roi) / list.length : null;
-  });
-
-  renderChart('chart-dts', {
-    data: {
-      labels: buckets.map(b => b[0]),
-      datasets: [
-        { type: 'bar', label: 'Transakcje', data: counts, backgroundColor: '#0057c0', borderRadius: 4, maxBarThickness: 34, yAxisID: 'y' },
-        { type: 'line', label: 'Śr. ROI', data: avgRoi, borderColor: '#0b8a4a', borderWidth: 2, tension: 0.3, pointRadius: 3, fill: false, yAxisID: 'y1', spanGaps: true }
-      ]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => c.dataset.yAxisID === 'y1' ? `ROI ${fmtPct(c.parsed.y)}` : `${c.parsed.y} ${plural(c.parsed.y, 'transakcja', 'transakcje', 'transakcji')}` } }
-      },
-      scales: {
-        x: axisCat(), y: axisCount(),
-        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' } }
-      }
-    }
-  });
 }
 
 /* ============================================================
@@ -4047,6 +4516,8 @@ function bindEvents() {
     savePrefs();
     renderCapitalRecovery();
   });
+
+  bindDashEvents();
 
   el('eq-range').addEventListener('click', e => {
     const btn = e.target.closest('button[data-range]');
