@@ -2203,6 +2203,7 @@ function renderCosts() {
 
   renderCostChart(c);
   renderCashflowChart();
+  renderBoxOpeningChart();
   renderReconStrip();
   renderExpenses();
   renderBudgetPanel();
@@ -2338,6 +2339,75 @@ function renderCostChart(c) {
         legend: legendBottom(),
         tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: ctx => `${ctx.label}: ${fmtPLN0(ctx.parsed)} (${fmtPct(ctx.parsed / sum(rows, r => r[1]) * 100, false)})` } }
       }
+    }
+  });
+}
+
+/**
+ * Za ile otwierasz boxy — miesięcznie, po dacie otwarcia (landed cost boxa).
+ * Flipy sealed i boxy na stanie się nie liczą: to jest koszt rozrywki/ripu,
+ * który ma sens pilnować osobno od zakupów „na towar”.
+ */
+function renderBoxOpeningChart() {
+  const t = today();
+  const opened = M.opened.map(b => ({ b, ym: (b.openedDate || b.date || t).slice(0, 7) }));
+  const strip = el('box-open-strip');
+  if (!opened.length) {
+    strip.innerHTML = '';
+    el('box-open-sub').textContent = 'żaden box nie został jeszcze otwarty';
+    renderChart('chart-box-open', null);
+    return;
+  }
+  const byMonth = groupBy(opened, x => x.ym);
+  const first = opened.reduce((m, x) => (x.ym < m ? x.ym : m), t.slice(0, 7));
+  const months = [];
+  for (let ym = first; ym <= t.slice(0, 7); ym = addMonths(ym, 1)) months.push(ym);
+  const shown = months.slice(-24);
+  const rows = shown.map(ym => {
+    const list = (byMonth.get(ym) || []).map(x => x.b);
+    return { ym, n: list.length, cost: sum(list, b => b.landed), ret: sum(list, b => b.ret), pnl: sum(list, b => b.pnl) };
+  });
+  const cur = rows[rows.length - 1];
+  const full = rows.slice(0, -1);                          // pełne miesiące, bez bieżącego
+  const avg = k => { const l = full.slice(-k); return l.length ? sum(l, r => r.cost) / l.length : null; };
+  const avg3 = avg(3), avg12 = avg(12);
+  const prev = full.length ? full[full.length - 1] : null;
+  const totalCost = sum(opened, x => x.b.landed), totalPnl = sum(opened, x => x.b.pnl);
+
+  el('box-open-sub').textContent = `otwarte: ${nBoxes(opened.length)} za ${fmtPLN0(totalCost)} · po dacie otwarcia`;
+  strip.innerHTML = `
+    <div class="cell"><div class="k">Ten miesiąc</div><div class="v ${avg3 != null && cur.cost > avg3 * 1.25 ? 'warn' : ''}">${fmtPLN0(cur.cost)}</div><div class="d"><small>${nBoxes(cur.n)}</small></div></div>
+    <div class="cell"><div class="k">Poprzedni</div><div class="v">${prev ? fmtPLN0(prev.cost) : '—'}</div><div class="d"><small>${prev ? nBoxes(prev.n) : ''}</small></div></div>
+    <div class="cell"><div class="k">Średnio 3 mies.</div><div class="v">${avg3 == null ? '—' : fmtPLN0(avg3)}</div><div class="d"><small>pełne miesiące</small></div></div>
+    <div class="cell"><div class="k">Średnio 12 mies.</div><div class="v">${avg12 == null ? '—' : fmtPLN0(avg12)}</div><div class="d"><small>pełne miesiące</small></div></div>
+    <div class="cell"><div class="k">Wynik otwartych</div><div class="v ${posClass(totalPnl)}">${fmtPLN0(totalPnl, true)}</div><div class="d"><small>ROI ${totalCost > 0 ? fmtPct(totalPnl / totalCost * 100, true, 0) : '—'}</small></div></div>`;
+
+  renderChart('chart-box-open', {
+    data: {
+      labels: rows.map(r => monthLabel(r.ym)),
+      datasets: [
+        { type: 'bar', label: 'Koszt otwartych boxów', data: rows.map(r => r.cost), backgroundColor: rows.map(r => (r.ym === t.slice(0, 7) ? 'rgba(180,83,9,0.45)' : '#b45309')), borderRadius: 4, maxBarThickness: 34, order: 2 },
+        { type: 'line', label: 'Średnia 3 mies.', data: rows.map((_, i) => { const l = rows.slice(Math.max(0, i - 2), i + 1); return sum(l, r => r.cost) / l.length; }), borderColor: '#0f172a', borderWidth: 1.5, borderDash: [5, 4], tension: 0.25, pointRadius: 0, fill: false, order: 1 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: legendBottom(),
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => cap(monthName(rows[items[0].dataIndex].ym)),
+            label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`,
+            afterBody: items => {
+              const r = rows[items[0].dataIndex];
+              return r.n ? [`${nBoxes(r.n)} · wartość z breaków ${fmtPLN0(r.ret)}`, `wynik ${fmtPLN0(r.pnl, true)}`] : 'brak otwarć';
+            }
+          }
+        }
+      },
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
     }
   });
 }
@@ -3046,13 +3116,21 @@ function renderTrend(list, t) {
   const all = trendPeriods(list, dash.gran, t);
   const shown = all.slice(-(week ? 26 : 24));
 
-  el('trend-sub').textContent = week ? `ostatnie ${shown.length} tyg.` : `ostatnie ${shown.length} mies.`;
+  /* Jedna miara naraz (przełącznik „Miara tempa”) — przychód na wspólnej
+     skali spłaszczał zysk tak, że nie dało się go śledzić. */
+  const pnlMode = dash.metric === 'pnl';
+  const val = p => (pnlMode ? p.pnl : p.gross);
+  el('trend-title').textContent = pnlMode ? 'Zysk per okres' : 'Przychód per okres';
+  el('cum-title').textContent = pnlMode ? 'Zysk skumulowany' : 'Sprzedaż skumulowana';
+  el('trend-sub').textContent = `${week ? `ostatnie ${shown.length} tyg.` : `ostatnie ${shown.length} mies.`} · linia: marża`;
+  const barColor = p => (pnlMode
+    ? (p.pnl < 0 ? (p.current ? DC.lossSoft : DC.loss) : (p.current ? 'rgba(11,138,74,0.35)' : DC.profit))
+    : (p.current ? DC.accentSoft : DC.accent));
   renderChart('chart-trend', {
     data: {
       labels: shown.map(p => p.label),
       datasets: [
-        { type: 'bar', label: 'Przychód', data: shown.map(p => p.gross), backgroundColor: shown.map(p => (p.current ? DC.accentSoft : DC.accent)), borderRadius: 3, maxBarThickness: 22, order: 2 },
-        { type: 'bar', label: 'Zysk', data: shown.map(p => p.pnl), backgroundColor: shown.map(p => (p.pnl < 0 ? DC.loss : p.current ? 'rgba(11,138,74,0.35)' : DC.profit)), borderRadius: 3, maxBarThickness: 22, order: 2 },
+        { type: 'bar', label: pnlMode ? 'Zysk' : 'Przychód', data: shown.map(val), backgroundColor: shown.map(barColor), borderRadius: 3, maxBarThickness: 30, order: 2 },
         { type: 'line', label: 'Marża %', data: shown.map(p => p.margin), borderColor: DC.ink, borderWidth: 1.6, tension: 0.25, pointRadius: 2, fill: false, yAxisID: 'y1', spanGaps: true, order: 1 }
       ]
     },
@@ -3066,7 +3144,10 @@ function renderTrend(list, t) {
           callbacks: {
             title: items => { const p = shown[items[0].dataIndex]; return p.title + (p.current ? ' (w toku)' : ''); },
             label: c => (c.dataset.yAxisID === 'y1' ? `Marża: ${fmtPct(c.parsed.y, false, 1)}` : `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`),
-            afterBody: items => `${shown[items[0].dataIndex].n} transakcji`
+            afterBody: items => {
+              const p = shown[items[0].dataIndex];
+              return [pnlMode ? `Przychód: ${fmtPLN0(p.gross)}` : `Zysk: ${fmtPLN0(p.pnl, true)}`, `${p.n} transakcji`];
+            }
           }
         }
       },
@@ -3081,15 +3162,16 @@ function renderTrend(list, t) {
   /* Narastająco od pierwszej sprzedaży — pełna historia. */
   let cg = 0, cp = 0;
   const cumG = all.map(p => (cg += p.gross)), cumP = all.map(p => (cp += p.pnl));
-  el('cum-sub').textContent = `łącznie ${fmtPLN0(cg)} przychodu · ${fmtPLN0(cp, true)} zysku`;
+  el('cum-sub').textContent = pnlMode
+    ? `łącznie ${fmtPLN0(cp, true)} zysku z ${fmtPLN0(cg)} przychodu`
+    : `łącznie ${fmtPLN0(cg)} przychodu · ${fmtPLN0(cp, true)} zysku`;
   renderChart('chart-cum', {
     type: 'line',
     data: {
       labels: all.map(p => p.label),
-      datasets: [
-        { label: 'Przychód narastająco', data: cumG, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 },
-        { label: 'Zysk narastająco', data: cumP, borderColor: DC.profit, backgroundColor: 'rgba(11,138,74,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }
-      ]
+      datasets: [pnlMode
+        ? { label: 'Zysk narastająco', data: cumP, borderColor: DC.profit, backgroundColor: 'rgba(11,138,74,0.12)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }
+        : { label: 'Przychód narastająco', data: cumG, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }]
     },
     options: {
       maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
