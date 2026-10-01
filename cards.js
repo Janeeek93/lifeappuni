@@ -5297,7 +5297,7 @@ function renderBudgetPanel() {
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
-      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue)}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.sealedValue)}</div></div>
       <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
     </div>
     ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
@@ -5307,8 +5307,8 @@ function renderBudgetPanel() {
     <div class="cd-note" style="margin-top:10px">
       Do <strong>wydatków zmiennych</strong> trafiają zakupy boxów i kart single, wysyłki do gradingu oraz koszty ogólne —
       pull z boxa nie, bo pieniądze wyszły już przy jego zakupie. Do <strong>przychodów</strong> idzie kwota netto ze sprzedaży,
-      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — do
-      <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”) idzie <strong>kapitał zamrożony</strong>:
-      baza kosztowa kart na stanie plus koszt boxów nieotwartych i niesprzedanych, bez wyceny papierowej.
+      czyli po prowizjach i wysyłce. Do <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”)
+      idą <strong>tylko sealed boxy na stanie</strong> w cenie zakupu. Karty to prywatna, mało płynna kolekcja —
+      do majątku trafiają dopiero jako gotówka na koncie po sprzedaży.
     </div>`;
 }

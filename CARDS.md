@@ -301,13 +301,31 @@ Moduł publikuje podsumowanie do wspólnego magazynu `lifeos_kpis_v1` (klucz `ca
 a Salda EOM tylko je odczytują — budżet nie musi znać modelu danych kolekcji.
 
 Przy pierwszym wejściu w Salda EOM, gdy moduł Karty ma już jakieś dane, zakłada się
-konto **Karty** typu Inwestycje. Przycisk **Pobierz aktualne** (globalny albo ⭳ przy
-wierszu) wstawia w nie **majątek łącznie**: wycena kolekcji + sealed w cenie zakupu
-+ wartość bulku. Konto Karty nigdy nie dostanie wartości portfela inwestycyjnego,
+konto **Karty** w grupie Alternatywne. Przycisk **Pobierz aktualne** (globalny albo ⭳
+przy wierszu) wstawia w nie **tylko sealed boxy na stanie w cenie zakupu**. Karty to
+prywatna, mało płynna kolekcja — do majątku trafiają dopiero jako gotówka na koncie
+po sprzedaży. Konto Karty nigdy nie dostanie wartości portfela inwestycyjnego,
 nawet gdy nie ma skonfigurowanego mostka.
 
-W panelu *Połączenie z inwestycjami* można zmapować dokładniej — dostępne źródła:
-majątek łącznie, sama wartość kolekcji, sam sealed, sama baza kosztowa.
+W panelu *Połączenie z inwestycjami* można to świadomie zmienić — dostępne źródła:
+sealed na stanie, kapitał zamrożony, majątek łącznie, wartość kolekcji, baza kosztowa.
+Mostki, które wcześniej kierowały do konta Karty kolekcję albo kapitał zamrożony,
+zostały jednorazowo przepięte na sealed (flaga `cardsEomSealedMigrated`).
+
+### Salda EOM — pieniądze oczekujące
+
+Osobna grupa **Oczekujące** w księgowaniu sald, wpisywana ręcznie:
+
+| Konto | Co wpisać |
+|---|---|
+| **Vinted**, **Empik**, **Allegro** | saldo na marketplace, które jeszcze nie zostało wypłacone na konto |
+| **Zamówienia w drodze** | opłacone zamówienia (np. boxy), które nie dotarły i nie są jeszcze w Kartach jako sealed na stanie |
+
+Konta zakładają się raz (flaga `pendingAccountsSeeded`). Istniejące konto o tej samej
+nazwie — np. dotychczasowe „Vinted" — zostaje przeniesione do grupy razem z historią
+sald. Kolejne marketplace dodaje się formularzem „Dodaj konto" z typem *Oczekujące*.
+Gdy zamówienie dotrze i zaksięgujesz je w Kartach, zmniejsz „Zamówienia w drodze" —
+wartość przejdzie na konto Karty przy następnym „Pobierz aktualne".
 
 Skasowane konto „Karty" nie wraca (flaga `cardsAccountSeeded` w budżecie).
 Publikowanie wartości do EOM działa niezależnie od księgowania wydatków — można
