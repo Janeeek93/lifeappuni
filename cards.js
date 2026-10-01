@@ -76,7 +76,7 @@ let eqRange = '365';
 let colFilters = { q: '', status: 'active', player: '', product: '', type: '', origin: '' };
 let colSort = { key: 'value', dir: 'desc' };
 let saleFilters = { channel: '', period: 'all', kind: '' };
-let editing = { card: null, box: null, expense: null, watch: null, grading: null, sellTarget: null, listTarget: null };
+let editing = { card: null, box: null, expense: null, watch: null, grading: null, sellTarget: null, listTarget: null, returnTarget: null };
 
 /* ============================================================
    Narzędzia
@@ -285,6 +285,37 @@ function saleGross(sale) {
   if (!sale) return 0;
   return num(sale.price) * fxFor(sale.currency, sale.fx);
 }
+/** Koszty transakcji rozbite na dwie części: prowizja platformy i wysyłka netto
+    (wysłana minus to, co kupujący dopłacił). Razem dają dokładnie saleFees. */
+function saleCommission(sale) {
+  if (!sale) return 0;
+  return (num(sale.price) * num(sale.feePct) / 100 + num(sale.feeAbs)) * fxFor(sale.currency, sale.fx);
+}
+function saleShipping(sale) {
+  if (!sale) return 0;
+  return num(sale.shippingOut) - num(sale.shippingIn);
+}
+
+/**
+ * Rozliczenie zwrotu. Zwrot nie kasuje sprzedaży: pierwotna transakcja zostaje
+ * w swoim dniu (zamknięte miesiące się nie ruszają), a w dniu zwrotu pojawia się
+ * korekta. Pozycja wraca na stan z tą samą bazą kosztową, więc wynik obu zdarzeń
+ * razem to czysta gotówka, którą zwrot kosztował:
+ *   cash = netto ze sprzedaży − oddane kupującemu + prowizja, która wróciła − wysyłka zwrotna
+ */
+function returnCalc(r) {
+  const sale = r.sale || {};
+  const commission = saleCommission(sale);
+  const feeBack = r.feeBack ? commission : 0;
+  const refund = num(r.refund);
+  const shipping = num(r.shipping);
+  const net = saleNet(sale);
+  return {
+    gross: saleGross(sale), commission, feeBack, refund, shipping, net,
+    outflow: refund - feeBack + shipping,          // co wyszło z kieszeni w dniu zwrotu
+    cash: net - refund + feeBack - shipping        // bilans sprzedaży i zwrotu razem
+  };
+}
 
 /** Historia wycen karty, posortowana rosnąco po dacie. */
 function valuationIndex() {
@@ -459,7 +490,14 @@ function compute() {
   const gradingSpend = sum(state.gradings, g => gradingTotal(g));
   const overhead = sum(state.expenses, e => num(e.amount));
   const cashOut = goodsSpend + gradingSpend + overhead;
-  const cashIn = sum(soldCards, c => c.net) + sum(flipped, b => b.flipNet);
+  /* Zwroty: każda zwrócona sprzedaż daje parę zdarzeń — pierwotną sprzedaż
+     i korektę w dniu zwrotu. W gotówce i wyniku liczy się ich bilans. */
+  const returns = [
+    ...cards.flatMap(c => (c.returns || []).map(r => ({ kind: 'card', item: c, name: cardTitle(c), r, ...returnCalc(r) }))),
+    ...boxes.flatMap(b => (b.returns || []).map(r => ({ kind: 'box', item: b, name: b.name, r, ...returnCalc(r) })))
+  ].sort((a, b) => (a.r.date < b.r.date ? 1 : -1));
+  const returnsCash = sum(returns, x => x.cash);
+  const cashIn = sum(soldCards, c => c.net) + sum(flipped, b => b.flipNet) + returnsCash;
   const netCash = cashIn - cashOut;
 
   const heldValue = sum(held, c => c.marketValue);
@@ -468,7 +506,7 @@ function compute() {
   const bulkValue = sum(opened, b => b.bulk);
   const assets = heldValue + sealedValue + bulkValue;
 
-  const realized = sum(soldCards, c => c.pnl) + sum(flipped, b => b.pnl);
+  const realized = sum(soldCards, c => c.pnl) + sum(flipped, b => b.pnl) + returnsCash;
   const unrealized = heldValue - heldBasis;
   const totalResult = assets + cashIn - cashOut;
 
@@ -486,28 +524,55 @@ function compute() {
   /* --- Sprzedaż --- */
   const sales = [
     ...soldCards.map(c => ({
-      kind: 'card', id: c.id, ref: c, date: c.sale.date, name: cardTitle(c),
+      kind: 'card', id: c.id, ref: c, sale: c.sale, qty: 1, date: c.sale.date, name: cardTitle(c),
       channel: c.sale.channel || '—', gross: saleGross(c.sale), fees: saleFees(c.sale),
+      commission: saleCommission(c.sale), shipping: saleShipping(c.sale),
       net: c.net, basis: c.basis, pnl: c.pnl,
       roi: c.basis > 0 ? c.pnl / c.basis * 100 : null,
       margin: saleGross(c.sale) > 0 ? c.pnl / saleGross(c.sale) * 100 : null,
       days: c.daysHeld
     })),
     ...flipped.map(b => ({
-      kind: 'box', id: b.id, ref: b, date: b.sale.date, name: b.name,
+      kind: 'box', id: b.id, ref: b, sale: b.sale, qty: 1, date: b.sale.date, name: b.name,
       channel: b.sale.channel || '—', gross: saleGross(b.sale), fees: saleFees(b.sale),
+      commission: saleCommission(b.sale), shipping: saleShipping(b.sale),
       net: b.flipNet, basis: b.landed, pnl: b.pnl,
       roi: b.landed > 0 ? b.pnl / b.landed * 100 : null,
       margin: saleGross(b.sale) > 0 ? b.pnl / saleGross(b.sale) * 100 : null,
       days: b.daysHeld
-    }))
-  ].sort((a, b) => (a.date < b.date ? 1 : -1));
+    })),
+    /* Zwrócona sprzedaż (w swoim dniu) i korekta zwrotu (w dniu zwrotu). */
+    ...returns.flatMap(x => {
+      const basis = num(x.r.basis);
+      const sale = x.r.sale;
+      const base = { kind: x.kind, id: x.item.id, ref: x.item, sale, retId: x.r.id, ret: x.r, channel: sale.channel || '—' };
+      const pnl = x.net - basis;
+      const rpnl = -x.refund + basis + x.feeBack - x.shipping;
+      return [
+        {
+          ...base, returned: true, qty: 1, date: sale.date, name: x.name,
+          gross: x.gross, fees: x.commission + saleShipping(sale), commission: x.commission, shipping: saleShipping(sale),
+          net: x.net, basis, pnl,
+          roi: basis > 0 ? pnl / basis * 100 : null,
+          margin: x.gross > 0 ? pnl / x.gross * 100 : null,
+          days: daysBetween(x.item.date, sale.date)
+        },
+        {
+          ...base, isReturn: true, qty: -1, date: x.r.date, name: x.name,
+          gross: -x.refund, fees: -x.feeBack + x.shipping, commission: -x.feeBack, shipping: x.shipping,
+          net: -x.outflow, basis: -basis, pnl: rpnl, roi: null, margin: null, days: null
+        }
+      ];
+    })
+  ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (a.isReturn ? -1 : 1)));
+  /* Transakcje doprowadzone do końca — do liczników, win rate i czasu sprzedaży. */
+  const deals = sales.filter(s => !s.returned && !s.isReturn);
 
   const listed = held.filter(c => c.status === 'listed');
   const inGrading = held.filter(c => c.status === 'grading');
 
-  const wins = sales.filter(s => s.pnl > 0).length;
-  const avgDaysToSell = sales.length ? sum(sales.filter(s => s.days != null), s => s.days) / Math.max(1, sales.filter(s => s.days != null).length) : null;
+  const wins = deals.filter(s => s.pnl > 0).length;
+  const avgDaysToSell = deals.length ? sum(deals.filter(s => s.days != null), s => s.days) / Math.max(1, deals.filter(s => s.days != null).length) : null;
 
   /* --- Breaki --- */
   const breakStats = {
@@ -555,7 +620,8 @@ function compute() {
     roiTotal: cashOut > 0 ? totalResult / cashOut * 100 : null,
     roiRealized: sum(sales, s => s.basis) > 0 ? sum(sales, s => s.pnl) / sum(sales, s => s.basis) * 100 : null,
     unrealizedPct: heldBasis > 0 ? unrealized / heldBasis * 100 : null,
-    wins, winRate: sales.length ? wins / sales.length * 100 : null,
+    deals, returns, returnsCash,
+    wins, winRate: deals.length ? wins / deals.length * 100 : null,
     avgDaysToSell,
     grossSales: sum(sales, s => s.gross),
     feesTotal: sum(sales, s => s.fees),
@@ -630,7 +696,7 @@ function renderAll() {
 function renderTabCounts() {
   el('cnt-collection').textContent = M.held.length;
   el('cnt-boxes').textContent = M.sealed.length;
-  el('cnt-sales').textContent = M.sales.length;
+  el('cnt-sales').textContent = M.deals.length;
   el('cnt-grading').textContent = M.gradings.filter(g => g.status !== 'returned').length;
   el('cnt-watch').textContent = state.watchlist.length;
 }
@@ -675,17 +741,17 @@ function renderOverview() {
     : 'Pusto. Zacznij od dodania boxa albo pierwszego single — reszta policzy się sama.';
 
   setKpiHero('hero-cost', fmtPLN0(M.heldBasis), `${fmtPct(M.unrealizedPct)} do wyceny`);
-  setKpiHero('hero-real', fmtPLN0(M.realized, true), `${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`, posClass(M.realized));
+  setKpiHero('hero-real', fmtPLN0(M.realized, true), `${M.deals.length} ${plural(M.deals.length, 'transakcja', 'transakcje', 'transakcji')}`, posClass(M.realized));
   const recoveredPct = M.cashOut > 0 ? M.cashIn / M.cashOut * 100 : null;
   setKpiHero('hero-capital', fmtPLN0(Math.max(0, -M.netCash)),
     recoveredPct === null ? 'gotówka jeszcze nieodzyskana' : `odzyskane ${fmtPct(recoveredPct, false, 0)} z ${fmtPLN0(M.cashOut)}`);
   setKpiHero('hero-total', fmtPLN0(M.totalResult, true), `ROI ${fmtPct(M.roiTotal)}`, posClass(M.totalResult));
 
-  el('kpi-desc').textContent = `Baza: ${nCards(M.cards.length)}, ${nBoxes(M.boxes.length)}, ${M.sales.length} ${plural(M.sales.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')}`;
+  el('kpi-desc').textContent = `Baza: ${nCards(M.cards.length)}, ${nBoxes(M.boxes.length)}, ${M.deals.length} ${plural(M.deals.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')}`;
 
   setKpi('k-total', fmtPLN0(M.totalResult, true), 'wycena + gotówka − wydatki', posClass(M.totalResult));
   setKpi('k-roi', fmtPct(M.roiTotal), `z ${fmtPLN0(M.cashOut)} wydanych`, posClass(M.roiTotal));
-  setKpi('k-roi-real', fmtPct(M.roiRealized), `${M.wins}/${M.sales.length} ze zyskiem`, posClass(M.roiRealized));
+  setKpi('k-roi-real', fmtPct(M.roiRealized), `${M.wins}/${M.deals.length} ze zyskiem`, posClass(M.roiRealized));
   setKpi('k-box-ev', M.breakStats.count ? fmtPct(M.breakStats.roi) : '—',
     M.breakStats.count ? `${fmtPLN0(M.breakStats.avgReturn)} z boxa za ${fmtPLN0(M.breakStats.avgCost)}` : 'brak otwartych boxów',
     posClass(M.breakStats.roi));
@@ -892,7 +958,7 @@ function renderCapitalRecovery() {
     },
     {
       k: 'Wróciło w gotówce', v: fmtPLN0(R.cashBack), cls: 'pos',
-      n: `${fmtPct(R.pctCash, false, 0)} wydatków · ${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`
+      n: `${fmtPct(R.pctCash, false, 0)} wydatków · ${M.deals.length} ${plural(M.deals.length, 'transakcja', 'transakcje', 'transakcji')}`
     },
     {
       k: 'Zostało do odzyskania', v: R.missing > 0.005 ? fmtPLN0(R.missing) : '0 zł',
@@ -991,7 +1057,7 @@ function saleSplit(list) {
   const cost = sum(list, sale => sale.basis);
   const pnl = sum(list, sale => sale.pnl);
   return {
-    count: list.length,
+    count: sum(list, sale => sale.qty || 1),
     cost,
     value: sum(list, sale => sale.net),
     pnl,
@@ -1011,7 +1077,7 @@ function renderCapitalFunnel() {
   const cardSplit = saleSplit(M.sales.filter(sale => sale.kind === 'card'));
   const boxSplit = saleSplit(M.sales.filter(sale => sale.kind === 'box'));
   const bothSides = cardSplit.count > 0 && boxSplit.count > 0;
-  const soldSub = `${M.sales.length} ${plural(M.sales.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`;
+  const soldSub = `${M.deals.length} ${plural(M.deals.length, 'zamknięta transakcja', 'zamknięte transakcje', 'zamkniętych transakcji')}`;
   const splitNote = (() => {
     if (bothSides) {
       if (cardSplit.roi === null || boxSplit.roi === null) return '';
@@ -1095,6 +1161,7 @@ function portfolioSeries() {
   const dates = [];
   for (const c of M.cards) { if (c.date) dates.push(c.date); if (c.sale) dates.push(c.sale.date); }
   for (const b of M.boxes) { if (b.date) dates.push(b.date); if (b.sale) dates.push(b.sale.date); }
+  for (const x of M.returns) dates.push(x.r.sale.date, x.r.date);
   for (const v of state.valuations) dates.push(v.date);
   for (const e of state.expenses) dates.push(e.date);
   const valid = dates.filter(Boolean).sort();
@@ -1116,19 +1183,22 @@ function portfolioSeries() {
 
   return months.map((ym, i) => {
     const at = (i === months.length - 1) ? today() : monthEnd(ym);
-    const holdings = M.cards.filter(c => c.date && c.date <= at && (!c.sale || c.sale.date > at));
+    const away = item => (item.sale && item.sale.date <= at) || (item.returns || []).some(r => r.sale.date <= at && r.date > at);
+    const holdings = M.cards.filter(c => c.date && c.date <= at && !away(c));
     const market = sum(holdings, c => valueAt(c, at));
     const basis = sum(holdings, c => c.basis);
     const sealedAt = sum(M.boxes.filter(b => b.date && b.date <= at
       && !(b.status === 'opened' && (b.openedDate || b.date) <= at)
-      && !(b.sale && b.sale.date <= at)), b => b.landed);
+      && !away(b)), b => b.landed);
     const bulkAt = sum(M.boxes.filter(b => b.status === 'opened' && (b.openedDate || b.date) <= at), b => b.bulk);
     const outAt = sum(M.boxes.filter(b => b.date <= at), b => b.landed)
       + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date <= at), c => cardOwnCost(c))
       + sum(state.gradings.filter(g => g.date && g.date <= at), g => gradingTotal(g))
       + sum(state.expenses.filter(e => e.date && e.date <= at), e => num(e.amount));
     const inAt = sum(M.cards.filter(c => c.sale && c.sale.date <= at), c => saleNet(c.sale))
-      + sum(M.boxes.filter(b => b.sale && b.sale.date <= at), b => saleNet(b.sale));
+      + sum(M.boxes.filter(b => b.sale && b.sale.date <= at), b => saleNet(b.sale))
+      + sum(M.returns.filter(x => x.r.sale.date <= at), x => x.net)
+      - sum(M.returns.filter(x => x.r.date <= at), x => x.outflow);
     return {
       ym, at, market, basis,
       assets: market + sealedAt + bulkAt,
@@ -1673,18 +1743,19 @@ function renderFlips() {
    SPRZEDAŻ
    ============================================================ */
 function renderSales() {
-  setKpi('s-pnl', fmtPLN0(sum(M.sales, s => s.pnl), true), `${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`, posClass(sum(M.sales, s => s.pnl)));
+  setKpi('s-pnl', fmtPLN0(sum(M.sales, s => s.pnl), true), `${M.deals.length} ${plural(M.deals.length, 'transakcja', 'transakcje', 'transakcji')}${M.returns.length ? ` · ${M.returns.length} ${plural(M.returns.length, 'zwrot', 'zwroty', 'zwrotów')}` : ''}`, posClass(sum(M.sales, s => s.pnl)));
   setKpi('s-gross', fmtPLN0(M.grossSales), 'przed prowizjami i wysyłką');
   setKpi('s-fees', fmtPLN0(M.feesTotal), M.grossSales > 0 ? `${fmtPct(M.feesTotal / M.grossSales * 100, false)} przychodu` : '—');
   setKpi('s-margin', fmtPct(M.marginPct), `cel ${settings.targetMargin}%`, M.marginPct != null && M.marginPct >= settings.targetMargin ? 'pos' : M.marginPct != null ? 'warn' : '');
-  setKpi('s-wr', fmtPct(M.winRate, false, 0), `${M.wins}/${M.sales.length} ze zyskiem`);
-  const stoBase = M.sales.length + M.held.length;
-  setKpi('s-sto', stoBase ? fmtPct(M.sales.length / stoBase * 100, false, 0) : '—', 'udział sprzedanych w całej bazie');
+  setKpi('s-wr', fmtPct(M.winRate, false, 0), `${M.wins}/${M.deals.length} ze zyskiem`);
+  const stoBase = M.deals.length + M.held.length;
+  setKpi('s-sto', stoBase ? fmtPct(M.deals.length / stoBase * 100, false, 0) : '—', 'udział sprzedanych w całej bazie');
 
   renderListed();
   renderSalesTable();
   renderAccountingReport();
   renderChannelAnalysis();
+  renderTaxPanel();
 }
 
 function renderListed() {
@@ -1735,7 +1806,8 @@ function filteredSales() {
   const t = today();
   return M.sales.filter(s => {
     if (f.channel && s.channel !== f.channel) return false;
-    if (f.kind && s.kind !== f.kind) return false;
+    if (f.kind === 'ret') { if (!s.returned && !s.isReturn) return false; }
+    else if (f.kind && s.kind !== f.kind) return false;
     if (f.period === 'ytd' && s.date.slice(0, 4) !== t.slice(0, 4)) return false;
     if (f.period !== 'all' && f.period !== 'ytd') {
       const d = daysBetween(s.date, t);
@@ -1748,6 +1820,7 @@ function filteredSales() {
 function renderSalesTable() {
   const rows = filteredSales();
   el('f-sale-count').textContent = `${rows.length} / ${M.sales.length}`;
+  renderReturns();
   const wrap = el('sales-wrap');
   if (!rows.length) {
     wrap.innerHTML = emptyBox('receipt', 'Brak sprzedaży', M.sales.length ? 'Zmień filtry — transakcje są, ale nie w tym zakresie.' : 'Po pierwszej sprzedaży pojawi się tu pełne rozliczenie: brutto, prowizje, netto i ROI.');
@@ -1759,9 +1832,9 @@ function renderSalesTable() {
       <th class="num">Netto</th><th class="num">Baza</th><th class="num">P&L</th><th class="num">ROI</th><th class="num">Marża</th><th class="num">Dni</th><th></th>
     </tr></thead>
     <tbody>${rows.map(s => `
-      <tr ${s.kind === 'card' ? `class="clickable" onclick="openCardDrawer('${s.id}')"` : ''}>
+      <tr class="${[s.kind === 'card' ? 'clickable' : '', s.returned ? 'cd-row-returned' : '', s.isReturn ? 'cd-row-return' : ''].join(' ')}" ${s.kind === 'card' ? `onclick="openCardDrawer('${s.id}')"` : ''}>
         <td class="cd-mono cd-nowrap">${fmtDate(s.date)}</td>
-        <td><div class="cd-name"><span class="t">${esc(s.name)}</span><span class="s">${s.kind === 'box' ? 'sealed box' : esc(cardSubtitle(s.ref) || 'karta')}</span></div></td>
+        <td><div class="cd-name"><span class="t">${s.isReturn ? 'Zwrot: ' : ''}${esc(s.name)}${s.returned ? ' <span class="cd-ret-tag">zwrócona</span>' : ''}</span><span class="s">${s.isReturn ? `sprzedaż z ${fmtDate(s.sale.date)} · pozycja wróciła na stan` : s.returned ? `zwrot ${fmtDate(s.ret.date)}` : s.kind === 'box' ? 'sealed box' : esc(cardSubtitle(s.ref) || 'karta')}</span></div></td>
         <td>${esc(s.channel)}</td>
         <td class="num">${fmtPLN0(s.gross)}</td>
         <td class="num cd-neg">${fmtPLN0(-s.fees)}</td>
@@ -1771,7 +1844,7 @@ function renderSalesTable() {
         <td class="num ${posClass(s.roi)}">${fmtPct(s.roi)}</td>
         <td class="num ${posClass(s.margin)}">${fmtPct(s.margin)}</td>
         <td class="num">${s.days == null ? '—' : s.days}</td>
-        <td><button class="row-btn" title="Edytuj sprzedaż" onclick="event.stopPropagation();openEditSale('${s.kind}','${s.id}')"><span class="material-symbols-outlined">edit</span></button></td>
+        <td>${saleRowActions(s)}</td>
       </tr>`).join('')}</tbody>
     <tfoot><tr>
       <td colspan="3">Razem (widok)</td>
@@ -1785,14 +1858,176 @@ function renderSalesTable() {
     </tr></tfoot></table>`;
 }
 
+function saleRowActions(s) {
+  if (s.returned) return '';
+  if (s.isReturn) {
+    return `<div class="row-actions"><button class="row-btn" title="Cofnij zwrot" onclick="event.stopPropagation();undoReturn('${s.kind}','${s.id}','${s.retId}')"><span class="material-symbols-outlined">undo</span></button></div>`;
+  }
+  return `<div class="row-actions">
+    <button class="row-btn" title="Edytuj sprzedaż" onclick="event.stopPropagation();openEditSale('${s.kind}','${s.id}')"><span class="material-symbols-outlined">edit</span></button>
+    <button class="row-btn" title="Zaksięguj zwrot" onclick="event.stopPropagation();openReturn('${s.kind}','${s.id}')"><span class="material-symbols-outlined">assignment_return</span></button>
+  </div>`;
+}
+
+/* ============================================================
+   Zwroty
+   ============================================================ */
+function renderReturns() {
+  const wrap = el('returns-wrap');
+  if (!wrap) return;
+  const list = M.returns;
+  el('returns-desc').textContent = list.length
+    ? `${list.length} ${plural(list.length, 'zwrot', 'zwroty', 'zwrotów')} · kosztowały ${fmtPLN0(-sum(list, x => Math.min(0, x.cash)))}`
+    : 'Pozycja wraca na stan, sprzedaż zostaje w historii jako zwrócona';
+  if (!list.length) {
+    wrap.innerHTML = emptyBox('assignment_return', 'Brak zwrotów', 'Zwrot księgujesz ikoną przy sprzedaży w historii poniżej. Karta wraca do kolekcji, box do sealed — gotowe do ponownej sprzedaży.');
+    return;
+  }
+  wrap.innerHTML = `<table class="tc-tbl">
+    <thead><tr>
+      <th>Zwrot</th><th>Pozycja</th><th>Kanał</th><th>Sprzedana</th><th class="num">Netto ze sprzedaży</th><th class="num">Oddane kupującemu</th>
+      <th class="num">Prowizja wróciła</th><th class="num">Wysyłka zwrotna</th><th class="num">Bilans</th><th>Status teraz</th><th style="width:60px"></th>
+    </tr></thead>
+    <tbody>${list.map(x => {
+      const it = x.item;
+      const status = x.kind === 'box'
+        ? (it.status === 'sold' ? 'sprzedany ponownie' : it.status === 'opened' ? 'otwarty' : 'sealed na stanie')
+        : (it.sold ? 'sprzedana ponownie' : STATUS_LABEL[it.status || 'held'] || 'na stanie');
+      const latest = (it.returns || [])[it.returns.length - 1];
+      const canUndo = latest && latest.id === x.r.id && !it.sale && (x.kind === 'card' || it.status === 'sealed');
+      return `<tr ${x.kind === 'card' ? `class="clickable" onclick="openCardDrawer('${it.id}')"` : ''}>
+        <td class="cd-mono cd-nowrap">${fmtDate(x.r.date)}</td>
+        <td><div class="cd-name"><span class="t">${esc(x.name)}</span><span class="s">${x.kind === 'box' ? 'sealed box' : 'karta'}${x.r.note ? ` · ${esc(x.r.note)}` : ''}</span></div></td>
+        <td>${esc(x.r.sale.channel || '—')}</td>
+        <td class="cd-mono cd-nowrap">${fmtDate(x.r.sale.date)}</td>
+        <td class="num">${fmtPLN0(x.net)}</td>
+        <td class="num cd-neg">${fmtPLN0(-x.refund)}</td>
+        <td class="num">${x.feeBack ? fmtPLN0(x.feeBack) : '—'}</td>
+        <td class="num cd-neg">${x.shipping ? fmtPLN0(-x.shipping) : '—'}</td>
+        <td class="num ${posClass(x.cash)}"><strong>${fmtPLN0(x.cash, true)}</strong></td>
+        <td>${status}</td>
+        <td><div class="row-actions">${canUndo ? `<button class="row-btn" title="Cofnij zwrot" onclick="event.stopPropagation();undoReturn('${x.kind}','${it.id}','${x.r.id}')"><span class="material-symbols-outlined">undo</span></button>` : ''}</div></td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr>
+      <td colspan="4">Razem</td>
+      <td class="num">${fmtPLN0(sum(list, x => x.net))}</td>
+      <td class="num">${fmtPLN0(-sum(list, x => x.refund))}</td>
+      <td class="num">${fmtPLN0(sum(list, x => x.feeBack))}</td>
+      <td class="num">${fmtPLN0(-sum(list, x => x.shipping))}</td>
+      <td class="num ${posClass(M.returnsCash)}">${fmtPLN0(M.returnsCash, true)}</td>
+      <td colspan="2"></td>
+    </tr></tfoot></table>`;
+}
+
+function returnTargetRef(kind, id) {
+  return kind === 'card' ? state.cards.find(c => c.id === id) : state.boxes.find(b => b.id === id);
+}
+
+function openReturn(kind, id) {
+  const ref = returnTargetRef(kind, id);
+  if (!ref || !ref.sale) return;
+  editing.returnTarget = { kind, id };
+  const sale = ref.sale;
+  const name = kind === 'card' ? cardTitle(ref) : `[SEALED] ${ref.name}`;
+  el('rf-summary').innerHTML = `<strong>${esc(name)}</strong> — sprzedana ${fmtDate(sale.date)} na ${esc(sale.channel || '—')} za ${fmtPLN(saleGross(sale))}
+    (netto ${fmtPLN(saleNet(sale))}).`;
+  setVal('rf-date', today() < sale.date ? sale.date : today());
+  setVal('rf-refund', saleGross(sale).toFixed(2));
+  setVal('rf-shipping', '');
+  setVal('rf-note', '');
+  setChecked('rf-fee-back', saleCommission(sale) > 0.005);
+  el('rf-fee-label').textContent = `Platforma oddała prowizję (${fmtPLN(saleCommission(sale))})`;
+  el('rf-relist-wrap').style.display = kind === 'card' ? '' : 'none';
+  el('rf-relist-label').textContent = `Wystaw od razu ponownie — ${sale.channel || 'ten sam kanał'}, ${fmtPLN0(saleGross(sale))}`;
+  setChecked('rf-relist', false);
+  el('rf-back').textContent = kind === 'card' ? 'Karta wraca do kolekcji' : 'Box wraca do sealed na stanie';
+  updateReturnCalc();
+  openModal('return-modal');
+}
+
+function readReturnForm() {
+  return {
+    date: getVal('rf-date') || today(),
+    refund: num(getVal('rf-refund')),
+    shipping: num(getVal('rf-shipping')),
+    feeBack: isChecked('rf-fee-back'),
+    note: getVal('rf-note').trim()
+  };
+}
+
+function updateReturnCalc() {
+  const t = editing.returnTarget;
+  const ref = t && returnTargetRef(t.kind, t.id);
+  if (!ref || !ref.sale) return;
+  const x = returnCalc({ ...readReturnForm(), sale: ref.sale });
+  el('rf-calc').innerHTML = `
+    <div class="cell"><div class="k">Netto ze sprzedaży</div><div class="v">${fmtPLN(x.net)}</div></div>
+    <div class="cell"><div class="k">Oddane kupującemu</div><div class="v neg">${fmtPLN(-x.refund)}</div></div>
+    <div class="cell"><div class="k">Prowizja wraca</div><div class="v">${fmtPLN(x.feeBack)}</div></div>
+    <div class="cell"><div class="k">Wysyłka zwrotna</div><div class="v neg">${fmtPLN(-x.shipping)}</div></div>
+    <div class="cell"><div class="k">Bilans sprzedaży i zwrotu</div><div class="v ${posClass(x.cash)}">${fmtPLN(x.cash, true)}</div></div>`;
+}
+
+function saveReturn() {
+  const t = editing.returnTarget;
+  const ref = t && returnTargetRef(t.kind, t.id);
+  if (!ref || !ref.sale) { toast('Nie ma sprzedaży do zwrotu', 'err'); return; }
+  const f = readReturnForm();
+  if (f.date < ref.sale.date) { toast('Zwrot nie może być przed datą sprzedaży', 'err'); return; }
+  if (f.refund < 0 || f.shipping < 0) { toast('Kwoty nie mogą być ujemne', 'err'); return; }
+  /* Baza kosztowa z chwili zwrotu — zamrożona, żeby korekta w historii się nie ruszała. */
+  const basis = t.kind === 'card' ? (M.byId.get(ref.id) || {}).basis || 0 : boxLanded(ref);
+  const sale = ref.sale;
+  const r = { id: uid('ret'), date: f.date, refund: f.refund, shipping: f.shipping, feeBack: f.feeBack, note: f.note, basis, sale };
+  ref.returns = [...(ref.returns || []), r];
+  ref.sale = null;
+  if (t.kind === 'card') {
+    const relist = isChecked('rf-relist');
+    ref.status = relist ? 'listed' : 'held';
+    ref.listing = relist ? { date: f.date, price: saleGross(sale), channel: sale.channel || '' } : null;
+  } else {
+    ref.status = 'sealed';
+  }
+  saveState();
+  renderAll();
+  closeModal('return-modal');
+  const x = returnCalc(r);
+  toast(`Zwrot zaksięgowany — ${t.kind === 'card' ? 'karta wróciła do kolekcji' : 'box wrócił do sealed'}. Bilans ${fmtPLN0(x.cash, true)}`, x.cash >= 0 ? 'ok' : 'err');
+}
+
+function undoReturn(kind, id, retId) {
+  const ref = returnTargetRef(kind, id);
+  if (!ref || !ref.returns) return;
+  const r = ref.returns[ref.returns.length - 1];
+  if (!r || r.id !== retId) { toast('Cofnąć można tylko ostatni zwrot tej pozycji', 'err'); return; }
+  if (ref.sale || (kind === 'box' && ref.status !== 'sealed')) { toast('Pozycja poszła już dalej (sprzedana lub otwarta) — najpierw cofnij tamto zdarzenie', 'err'); return; }
+  if (!confirm('Cofnąć zwrot? Sprzedaż wróci do historii jako zamknięta, a pozycja zniknie ze stanu.')) return;
+  ref.returns = ref.returns.slice(0, -1);
+  if (!ref.returns.length) delete ref.returns;
+  ref.sale = r.sale;
+  ref.status = 'sold';
+  if (kind === 'card') ref.listing = null;
+  saveState();
+  renderAll();
+  toast('Zwrot cofnięty', 'ok');
+}
+
 function saleAccountingAmount(sale) {
   return Math.max(0, saleGross(sale) - num(sale.refund) * fxFor(sale.currency, sale.fx));
 }
 
 function accountingSales(month) {
-  return M.sales.filter(s => s.date && s.date.slice(0, 7) === month && !s.ref.sale.invoiced)
-    .map(s => ({ ...s, accounting: saleAccountingAmount(s.ref.sale), orderId: s.ref.sale.orderId || '' }))
-    .filter(s => s.accounting > 0);
+  return M.sales.filter(s => s.date && s.date.slice(0, 7) === month && !s.sale.invoiced)
+    .map(s => ({
+      ...s,
+      /* Zwrot koryguje przychód w dniu zwrotu — o to, co realnie oddano za towar,
+         nie więcej niż wcześniej trafiło do DW. */
+      accounting: s.isReturn ? -Math.min(num(s.ret.refund), saleAccountingAmount(s.sale)) : saleAccountingAmount(s.sale),
+      orderId: s.sale.orderId || '',
+      name: s.isReturn ? `Zwrot: ${s.name}` : s.name
+    }))
+    .filter(s => Math.abs(s.accounting) > 0.005);
 }
 
 function renderAccountingReport() {
@@ -1810,7 +2045,7 @@ function exportAccountingReport() {
   const month = getVal('accounting-month') || today().slice(0, 7);
   const rows = accountingSales(month);
   const head = ['data', 'dokument_ing', 'platforma', 'id_zamowienia', 'produkt', 'sprzedaz_klienta_pln', 'zwrot_pln', 'kwota_do_dw_pln', 'stawka_ryczaltu'];
-  const data = rows.map(s => [s.date, `DW/${s.date.replaceAll('-', '/')}`, s.channel, s.orderId, s.name, s.gross.toFixed(2), (s.gross - s.accounting).toFixed(2), s.accounting.toFixed(2), '3%']);
+  const data = rows.map(s => [s.date, `DW/${s.date.replaceAll('-', '/')}`, s.channel, s.orderId, s.name, (s.isReturn ? 0 : s.gross).toFixed(2), (s.isReturn ? -s.accounting : s.gross - s.accounting).toFixed(2), s.accounting.toFixed(2), '3%']);
   download(`raport_ksiegowy_${month}.csv`, [head, ...data].map(r => r.map(csvCell).join(';')).join('\n'));
   toast('Raport księgowy pobrany', 'ok');
 }
@@ -1822,7 +2057,7 @@ function channelStats() {
     const pnl = sum(list, s => s.pnl);
     const daysList = list.filter(s => s.days != null).map(s => s.days);
     return {
-      name, n: list.length, gross, fees: sum(list, s => s.fees), net: sum(list, s => s.net),
+      name, n: sum(list, s => s.qty), gross, fees: sum(list, s => s.fees), net: sum(list, s => s.net),
       pnl, margin: gross > 0 ? pnl / gross * 100 : null,
       feePct: gross > 0 ? sum(list, s => s.fees) / gross * 100 : null,
       avgDays: daysList.length ? sum(daysList) / daysList.length : null
@@ -1968,6 +2203,8 @@ function renderCosts() {
 
   renderCostChart(c);
   renderCashflowChart();
+  renderBoxOpeningChart();
+  renderReconStrip();
   renderExpenses();
   renderBudgetPanel();
 }
@@ -2106,12 +2343,85 @@ function renderCostChart(c) {
   });
 }
 
+/**
+ * Za ile otwierasz boxy — miesięcznie, po dacie otwarcia (landed cost boxa).
+ * Flipy sealed i boxy na stanie się nie liczą: to jest koszt rozrywki/ripu,
+ * który ma sens pilnować osobno od zakupów „na towar”.
+ */
+function renderBoxOpeningChart() {
+  const t = today();
+  const opened = M.opened.map(b => ({ b, ym: (b.openedDate || b.date || t).slice(0, 7) }));
+  const strip = el('box-open-strip');
+  if (!opened.length) {
+    strip.innerHTML = '';
+    el('box-open-sub').textContent = 'żaden box nie został jeszcze otwarty';
+    renderChart('chart-box-open', null);
+    return;
+  }
+  const byMonth = groupBy(opened, x => x.ym);
+  const first = opened.reduce((m, x) => (x.ym < m ? x.ym : m), t.slice(0, 7));
+  const months = [];
+  for (let ym = first; ym <= t.slice(0, 7); ym = addMonths(ym, 1)) months.push(ym);
+  const shown = months.slice(-24);
+  const rows = shown.map(ym => {
+    const list = (byMonth.get(ym) || []).map(x => x.b);
+    return { ym, n: list.length, cost: sum(list, b => b.landed), ret: sum(list, b => b.ret), pnl: sum(list, b => b.pnl) };
+  });
+  const cur = rows[rows.length - 1];
+  const full = rows.slice(0, -1);                          // pełne miesiące, bez bieżącego
+  const avg = k => { const l = full.slice(-k); return l.length ? sum(l, r => r.cost) / l.length : null; };
+  const avg3 = avg(3), avg12 = avg(12);
+  const prev = full.length ? full[full.length - 1] : null;
+  const totalCost = sum(opened, x => x.b.landed), totalPnl = sum(opened, x => x.b.pnl);
+
+  el('box-open-sub').textContent = `otwarte: ${nBoxes(opened.length)} za ${fmtPLN0(totalCost)} · po dacie otwarcia`;
+  strip.innerHTML = `
+    <div class="cell"><div class="k">Ten miesiąc</div><div class="v ${avg3 != null && cur.cost > avg3 * 1.25 ? 'warn' : ''}">${fmtPLN0(cur.cost)}</div><div class="d"><small>${nBoxes(cur.n)}</small></div></div>
+    <div class="cell"><div class="k">Poprzedni</div><div class="v">${prev ? fmtPLN0(prev.cost) : '—'}</div><div class="d"><small>${prev ? nBoxes(prev.n) : ''}</small></div></div>
+    <div class="cell"><div class="k">Średnio 3 mies.</div><div class="v">${avg3 == null ? '—' : fmtPLN0(avg3)}</div><div class="d"><small>pełne miesiące</small></div></div>
+    <div class="cell"><div class="k">Średnio 12 mies.</div><div class="v">${avg12 == null ? '—' : fmtPLN0(avg12)}</div><div class="d"><small>pełne miesiące</small></div></div>
+    <div class="cell"><div class="k">Wynik otwartych</div><div class="v ${posClass(totalPnl)}">${fmtPLN0(totalPnl, true)}</div><div class="d"><small>ROI ${totalCost > 0 ? fmtPct(totalPnl / totalCost * 100, true, 0) : '—'}</small></div></div>`;
+
+  renderChart('chart-box-open', {
+    data: {
+      labels: rows.map(r => monthLabel(r.ym)),
+      datasets: [
+        { type: 'bar', label: 'Koszt otwartych boxów', data: rows.map(r => r.cost), backgroundColor: rows.map(r => (r.ym === t.slice(0, 7) ? 'rgba(180,83,9,0.45)' : '#b45309')), borderRadius: 4, maxBarThickness: 34, order: 2 },
+        { type: 'line', label: 'Średnia 3 mies.', data: rows.map((_, i) => { const l = rows.slice(Math.max(0, i - 2), i + 1); return sum(l, r => r.cost) / l.length; }), borderColor: '#0f172a', borderWidth: 1.5, borderDash: [5, 4], tension: 0.25, pointRadius: 0, fill: false, order: 1 }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: legendBottom(),
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => cap(monthName(rows[items[0].dataIndex].ym)),
+            label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`,
+            afterBody: items => {
+              const r = rows[items[0].dataIndex];
+              return r.n ? [`${nBoxes(r.n)} · wartość z breaków ${fmtPLN0(r.ret)}`, `wynik ${fmtPLN0(r.pnl, true)}`] : 'brak otwarć';
+            }
+          }
+        }
+      },
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
+    }
+  });
+}
+
 function renderCashflowChart() {
   const events = [];
   for (const b of M.boxes) { if (b.date) events.push([b.date.slice(0, 7), -b.landed]); if (b.sale) events.push([b.sale.date.slice(0, 7), saleNet(b.sale)]); }
   for (const c of M.cards) {
     if (c.acq !== 'box' && c.date) events.push([c.date.slice(0, 7), -cardOwnCost(c)]);
     if (c.sale) events.push([c.sale.date.slice(0, 7), saleNet(c.sale)]);
+  }
+  for (const x of M.returns) {
+    events.push([x.r.sale.date.slice(0, 7), x.net]);
+    events.push([x.r.date.slice(0, 7), -x.outflow]);
   }
   for (const g of state.gradings) if (g.date) events.push([g.date.slice(0, 7), -(gradingTotal(g))]);
   for (const e of state.expenses) if (e.date) events.push([e.date.slice(0, 7), -num(e.amount)]);
@@ -2147,184 +2457,681 @@ function renderCashflowChart() {
 }
 
 /* ============================================================
-   ANALITYKA
+   ANALITYKA — dashboard zarządczy sprzedaży
+   ------------------------------------------------------------
+   Jedno pytanie: jak idzie biznes. Wszystko liczy się z M.sales
+   (karty + flipy sealed) po dacie sprzedaży:
+     przychód     = cena sprzedaży brutto w zł
+     koszt towaru = baza kosztowa sprzedanej pozycji
+     prowizje     = procent + opłata stała platformy
+     wysyłka      = wysyłka wychodząca − dopłata kupującego
+     zysk         = przychód − koszt towaru − prowizje − wysyłka  (= P&L transakcji)
+     marża        = zysk / przychód,  ROI = zysk / koszt towaru
+   Porównania są „do tego samego dnia": bieżący tydzień od
+   poniedziałku do dziś kontra poprzedni od poniedziałku do tego
+   samego dnia tygodnia; tak samo miesiąc (1…N vs 1…N) i rok.
+   Daty liczone w UTC, tak jak today().
+   ============================================================ */
+const MONTHS_FULL = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+const DOW_PL = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
+const DC = {
+  accent: '#0057c0', accentSoft: 'rgba(0,87,192,0.24)', ink: '#0f172a', muted: '#94a3b8',
+  cogs: '#94a3b8', commission: '#b45309', shipping: '#7c3aed', profit: '#0b8a4a', loss: '#c0362c', lossSoft: 'rgba(192,54,44,0.28)'
+};
+const DASH_DEFAULTS = { metric: 'gross', kind: '', daily: '90', gran: 'month', preset: 'month', unit: 'pln' };
+const DASH_CHARTS = ['chart-pace-week', 'chart-pace-month', 'chart-daily', 'chart-chan-mix', 'chart-trend', 'chart-cum'];
+
+let dash = null;                                        // preferencje widoku, trzymane w ustawieniach
+let chanRange = { anchor: null, from: null, to: null }; // okres analizy kanałów
+
+function dashPrefs() {
+  if (!dash) {
+    dash = Object.assign({ ...DASH_DEFAULTS }, settings.dash || {});
+    if (dash.preset === 'custom') dash.preset = 'month'; // własny zakres nie przeżywa odświeżenia
+  }
+  return dash;
+}
+function saveDashPrefs() { settings.dash = { ...dash }; savePrefs(); }
+
+/* --- daty ISO (UTC) --- */
+function isoAdd(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function isoDiff(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000); }
+function isoDow(iso) { return (new Date(iso + 'T00:00:00Z').getUTCDay() + 6) % 7; } // 0 = poniedziałek
+function isoWeekStart(iso) { return isoAdd(iso, -isoDow(iso)); }
+function isoWeekNo(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 3 - isoDow(iso)); // czwartek tego tygodnia wyznacza rok ISO
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+}
+function daysInMonth(ym) { return Number(monthEnd(ym).slice(8, 10)); }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function monthName(ym) { return `${MONTHS_FULL[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`; }
+function shortDate(iso) { return `${iso.slice(8, 10)}.${iso.slice(5, 7)}`; }
+function fmtRange(a, b) { return a === b ? fmtDate(a) : `${shortDate(a)}–${fmtDate(b)}`; }
+
+/* --- agregaty --- */
+function dashSales() {
+  const kind = dashPrefs().kind;
+  return M.sales.filter(s => s.date && (!kind || s.kind === kind));
+}
+function aggSales(list) {
+  const a = { n: 0, gross: 0, cogs: 0, commission: 0, shipping: 0, pnl: 0, returns: 0, refunds: 0 };
+  for (const s of list) {
+    a.n += s.qty;
+    if (s.isReturn) { a.returns++; a.refunds -= s.gross; }
+    a.gross += s.gross; a.cogs += s.basis; a.commission += s.commission; a.shipping += s.shipping; a.pnl += s.pnl;
+  }
+  a.margin = a.gross > 0 ? a.pnl / a.gross * 100 : null;
+  a.roi = a.cogs > 0 ? a.pnl / a.cogs * 100 : null;
+  a.feePct = a.gross > 0 ? a.commission / a.gross * 100 : null;
+  a.aov = a.n ? a.gross / a.n : null;
+  a.ppu = a.n ? a.pnl / a.n : null;
+  return a;
+}
+function salesBetween(list, from, to) { return list.filter(s => s.date >= from && s.date <= to); }
+function aggBetween(list, from, to) { return aggSales(salesBetween(list, from, to)); }
+function metricOf(a) { return dash.metric === 'pnl' ? a.pnl : a.gross; }
+function metricName() { return dash.metric === 'pnl' ? 'zysk' : 'przychód'; }
+
+function dailyIndex(list) {
+  const map = new Map();
+  for (const s of list) {
+    if (!map.has(s.date)) map.set(s.date, { gross: 0, pnl: 0, n: 0 });
+    const d = map.get(s.date);
+    d.gross += s.gross; d.pnl += s.pnl; d.n += s.qty;
+  }
+  return map;
+}
+function dayVal(daily, iso) {
+  const d = daily.get(iso);
+  return d ? (dash.metric === 'pnl' ? d.pnl : d.gross) : 0;
+}
+
+/* --- zmiany --- */
+function pctChange(cur, prev) {
+  if (!Number.isFinite(prev) || Math.abs(prev) < 0.005) return null;
+  return (cur - prev) / Math.abs(prev) * 100;
+}
+/** Chip ze zmianą procentową. invert — dla kosztów wzrost jest zły. */
+function deltaChip(cur, prev, invert = false) {
+  const d = pctChange(cur, prev);
+  if (d == null) {
+    return Math.abs(cur) > 0.005 ? '<span class="cd-delta new">nowe</span>' : '<span class="cd-delta flat">—</span>';
+  }
+  const good = invert ? d < 0 : d > 0;
+  const cls = Math.abs(d) < 0.5 ? 'flat' : good ? 'pos' : 'neg';
+  const icon = Math.abs(d) < 0.5 ? 'trending_flat' : d > 0 ? 'trending_up' : 'trending_down';
+  const txt = Math.abs(d) >= 999.5 ? (d > 0 ? '>+999%' : '<−999%') : fmtPct(d, true, 0);
+  return `<span class="cd-delta ${cls}"><span class="material-symbols-outlined">${icon}</span>${txt}</span>`;
+}
+/** Zmiana wskaźnika procentowego w punktach procentowych. */
+function ppChip(cur, prev) {
+  if (cur == null || prev == null) return '<span class="cd-delta flat">—</span>';
+  const d = cur - prev;
+  const cls = Math.abs(d) < 0.05 ? 'flat' : d > 0 ? 'pos' : 'neg';
+  return `<span class="cd-delta ${cls}">${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(d).toFixed(1)} pp</span>`;
+}
+/** Zmiana opisana słowami, razem z tym, do czego porównujemy. */
+function deltaWord(cur, prev, what) {
+  const d = pctChange(cur, prev);
+  if (d == null) return Math.abs(cur) > 0.005 ? `${what} był na zerze` : `zero, tak jak ${what}`;
+  if (Math.abs(d) < 0.5) return `tyle samo co ${what}`;
+  return `<b class="${d > 0 ? 'pos' : 'neg'}">${fmtPct(d, true, 0)}</b> vs ${what}`;
+}
+
+/* --- okna tempa: bieżący okres do dziś kontra poprzedni do analogicznego dnia --- */
+function paceWindows(t) {
+  const dow = isoDow(t);
+  const ym = t.slice(0, 7), day = Number(t.slice(8, 10));
+  const pym = addMonths(ym, -1);
+  const pDay = Math.min(day, daysInMonth(pym));
+  const y = Number(t.slice(0, 4));
+  const pyMd = t.slice(5) === '02-29' ? '02-28' : t.slice(5);
+  const lastWeekDay = isoAdd(t, -7);
+  return {
+    today: { label: 'Dziś', cur: [t, t], prev: [lastWeekDay, lastWeekDay], vs: `vs ${DOW_PL[dow]} ${shortDate(lastWeekDay)}` },
+    wtd: {
+      label: 'Tydzień do dziś', cur: [isoAdd(t, -dow), t], prev: [isoAdd(t, -dow - 7), lastWeekDay],
+      vs: dow === 0 ? 'vs pn poprz. tygodnia' : `vs pn–${DOW_PL[dow]} poprz. tygodnia`
+    },
+    mtd: {
+      label: 'Miesiąc do dziś', cur: [`${ym}-01`, t], prev: [`${pym}-01`, `${pym}-${pad2(pDay)}`],
+      vs: `vs 1–${pDay} ${MONTHS_PL[Number(pym.slice(5, 7)) - 1]}`
+    },
+    r30: { label: 'Ostatnie 30 dni', cur: [isoAdd(t, -29), t], prev: [isoAdd(t, -59), isoAdd(t, -30)], vs: 'vs poprzednie 30 dni' },
+    ytd: { label: 'Rok do dziś', cur: [`${y}-01-01`, t], prev: [`${y - 1}-01-01`, `${y - 1}-${pyMd}`], vs: `vs ${y - 1} do ${pyMd.slice(3)}.${pyMd.slice(0, 2)}` }
+  };
+}
+
+/* ============================================================
+   Render dashboardu
    ============================================================ */
 function renderAnalytics() {
-  const conc = concentration();
-  el('an-desc').textContent = M.held.length
-    ? `${nCards(M.held.length)} · ${fmtPLN0(M.heldValue)} · ${new Set(M.held.map(c => c.player)).size} ${plural(new Set(M.held.map(c => c.player)).size, 'zawodnik', 'zawodników', 'zawodników')}`
-    : 'brak danych';
+  dashPrefs();
+  syncDashControls();
+  const t = today();
+  el('dash-asof').textContent = `Stan na ${DOW_PL[isoDow(t)]} ${fmtDate(t)} · tydzień ${isoWeekNo(t)}`;
 
-  renderPlayerChart(conc);
-  renderProductChart();
-  renderTypeChart();
-  renderAgingChart();
-  renderPortfolioChart();
-  renderReconStrip();
-  renderMonthlyPnlChart();
-  renderRoiDistChart();
-  renderRankings();
-  renderTaxPanel();
-  renderLiquidityPanel();
-}
-
-function renderPlayerChart(conc) {
-  const strip = el('conc-strip');
-  if (!conc.rows.length) {
-    strip.innerHTML = '';
-    renderChart('chart-players', null);
+  const list = dashSales();
+  const empty = !list.length;
+  el('dash-body').hidden = empty;
+  el('dash-empty').innerHTML = empty
+    ? emptyBox('query_stats', 'Brak sprzedaży w tym widoku', M.sales.length
+      ? 'W tej kategorii nie ma jeszcze transakcji — przełącz filtr Towar.'
+      : 'Dashboard ożyje po pierwszej sprzedaży: tempo dzień po dniu, tydzień i miesiąc do tego samego dnia, rentowność kanałów.')
+    : '';
+  if (empty) {
+    el('dash-narr').hidden = true;
+    DASH_CHARTS.forEach(id => renderChart(id, null));
     return;
   }
-  const top = conc.rows.slice(0, 12);
-  const rest = conc.rows.slice(12);
-  const labels = top.map(r => r.name);
-  const data = top.map(r => r.value);
-  if (rest.length) { labels.push(`Pozostali (${rest.length})`); data.push(sum(rest, r => r.value)); }
+  el('dash-narr').hidden = false;
 
-  const hhiLabel = conc.hhi > 2500 ? 'skrajna' : conc.hhi > 1500 ? 'wysoka' : 'zdrowa';
-  strip.innerHTML = `
-    <div class="cell"><div class="k">Największa pozycja</div><div class="v ${conc.top.share > settings.concAlert ? 'warn' : ''}">${fmtPct(conc.top.share, false)}</div></div>
-    <div class="cell"><div class="k">Top 5</div><div class="v">${fmtPct(conc.top5, false)}</div></div>
-    <div class="cell"><div class="k">HHI</div><div class="v ${conc.hhi > 2500 ? 'neg' : conc.hhi > 1500 ? 'warn' : 'pos'}">${Math.round(conc.hhi)}</div></div>
-    <div class="cell"><div class="k">Dywersyfikacja</div><div class="v">${hhiLabel}</div></div>`;
-
-  renderChart('chart-players', {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: labels.map((_, i) => PALETTE[i % PALETTE.length]), borderRadius: 4, maxBarThickness: 22 }] },
-    options: {
-      indexAxis: 'y', maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...TOOLTIP, callbacks: { label: c => `${fmtPLN0(c.parsed.x)} · ${fmtPct(c.parsed.x / conc.total * 100, false)}` } }
-      },
-      scales: { x: axisPLN(), y: axisCat() }
-    }
-  });
+  const daily = dailyIndex(list);
+  renderDashNarrative(list, daily, t);
+  renderPaceTiles(list, t);
+  renderPaceWeek(daily, t);
+  renderPaceMonth(daily, t);
+  renderDailyChart(daily, t);
+  renderChannelBoard(list, t);
+  renderTrend(list, t);
 }
 
-function renderProductChart() {
-  const held = M.held;
-  if (!held.length) { renderChart('chart-products', null); return; }
-  const byProduct = groupBy(held, c => c.product || 'Bez produktu');
-  const rows = [...byProduct.entries()].map(([name, list]) => ({ name, value: sum(list, c => c.marketValue) }))
-    .sort((a, b) => b.value - a.value);
-  const top = rows.slice(0, 8);
-  const rest = rows.slice(8);
-  const labels = top.map(r => r.name);
-  const data = top.map(r => r.value);
-  if (rest.length) { labels.push(`Pozostałe (${rest.length})`); data.push(sum(rest, r => r.value)); }
-  const total = sum(data);
-
-  renderChart('chart-products', {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff' }] },
-    options: {
-      maintainAspectRatio: false, responsive: true, cutout: '58%', animation: { duration: 220 },
-      plugins: {
-        legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.label}: ${fmtPLN0(c.parsed)} (${fmtPct(c.parsed / total * 100, false)})` } }
-      }
-    }
-  });
+function syncDashControls() {
+  const setSeg = (id, v) => el(id).querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('active', b.dataset.v === String(v)));
+  setSeg('dash-metric', dash.metric);
+  setSeg('dash-kind', dash.kind);
+  setSeg('dash-daily', dash.daily);
+  setSeg('dash-gran', dash.gran);
+  setSeg('chan-preset', dash.preset);
+  setSeg('chan-unit', dash.unit);
 }
 
-function renderTypeChart() {
-  const held = M.held;
-  if (!held.length) { renderChart('chart-types', null); return; }
-  const buckets = [
-    ['1/1', c => num(c.run) === 1],
-    ['Auto + patch', c => c.auto && c.patch && num(c.run) !== 1],
-    ['Autograf', c => c.auto && !c.patch && num(c.run) !== 1],
-    ['Patch / mem', c => c.patch && !c.auto && num(c.run) !== 1],
-    ['Numerowana', c => !c.auto && !c.patch && c.run && num(c.run) !== 1],
-    ['Rookie', c => !c.auto && !c.patch && !c.run && c.rookie],
-    ['Parallel / insert', c => !c.auto && !c.patch && !c.run && !c.rookie && c.parallel && c.parallel.toLowerCase() !== 'base'],
-    ['Base', () => true]
-  ];
-  const assigned = new Set();
-  const rows = [];
-  for (const [label, test] of buckets) {
-    const list = held.filter(c => !assigned.has(c.id) && test(c));
-    list.forEach(c => assigned.add(c.id));
-    if (list.length) rows.push({ label, value: sum(list, c => c.marketValue), count: list.length });
+/* --- podsumowanie jednym akapitem --- */
+function renderDashNarrative(list, daily, t) {
+  const W = paceWindows(t);
+  const m = metricName();
+  const mtd = aggBetween(list, ...W.mtd.cur), mtdPrev = aggBetween(list, ...W.mtd.prev);
+  const wtd = aggBetween(list, ...W.wtd.cur), wtdPrev = aggBetween(list, ...W.wtd.prev);
+  const day = Number(t.slice(8, 10));
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const prevMonthShort = MONTHS_PL[Number(pym.slice(5, 7)) - 1];
+
+  const parts = [];
+  parts.push(`${cap(MONTHS_FULL[Number(ym.slice(5, 7)) - 1])} do ${day}. dnia: <b>${fmtPLN0(metricOf(mtd))}</b> ${m === 'zysk' ? 'zysku' : 'przychodu'}
+    z ${mtd.n} transakcji, ${deltaWord(metricOf(mtd), metricOf(mtdPrev), `${prevMonthShort} do tego samego dnia`)}.`);
+  parts.push(`Bieżący tydzień: <b>${fmtPLN0(metricOf(wtd))}</b>, ${deltaWord(metricOf(wtd), metricOf(wtdPrev), `poprzedni tydzień do ${isoDow(t) === 0 ? 'poniedziałku' : 'tego samego dnia'}`)}.`);
+
+  /* Trend średniej 7-dniowej: dziś vs tydzień temu. */
+  const ma7 = end => { let s = 0; for (let i = 0; i < 7; i++) s += dayVal(daily, isoAdd(end, -i)); return s / 7; };
+  const maNow = ma7(t), maPrev = ma7(isoAdd(t, -7));
+  const maD = pctChange(maNow, maPrev);
+  if (maD != null && Math.abs(maD) >= 0.5) {
+    parts.push(`Średnia 7-dniowa ${maD > 0 ? 'rośnie' : 'spada'} (<b class="${maD > 0 ? 'pos' : 'neg'}">${fmtPct(maD, true, 0)}</b> tydzień do tygodnia, ${fmtPLN0(maNow)}/dzień).`);
   }
-  const total = sum(rows, r => r.value) || 1;
 
-  renderChart('chart-types', {
-    type: 'bar',
+  /* Prognoza liniowa miesiąca. */
+  const dim = daysInMonth(ym);
+  if (day < dim && mtd.n) {
+    const fc = metricOf(mtd) / day * dim;
+    const prevFull = metricOf(aggBetween(list, `${pym}-01`, monthEnd(pym)));
+    parts.push(`W tym tempie miesiąc zamknie się na ok. <b>${fmtPLN0(fc)}</b> (cały ${prevMonthShort}: ${fmtPLN0(prevFull)}).`);
+  }
+
+  /* Kanały z ostatnich 30 dni. */
+  const rows = channelRows(salesBetween(list, ...W.r30.cur));
+  if (rows.length >= 2) {
+    const best = rows[0];
+    const bestRoi = [...rows].filter(r => r.roi != null).sort((a, b) => b.roi - a.roi)[0];
+    const feeTop = [...rows].filter(r => r.feePct != null && r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0];
+    let s = `W 30 dni najwięcej zarobił <b>${esc(best.name)}</b> (${fmtPLN0(best.pnl, true)})`;
+    if (bestRoi && bestRoi.name !== best.name) s += `, najwyższy ROI ma <b>${esc(bestRoi.name)}</b> (${fmtPct(bestRoi.roi, true, 0)})`;
+    if (feeTop) s += `, a najwięcej prowizji zjada <b>${esc(feeTop.name)}</b> — ${fmtPct(feeTop.feePct, false, 1)} przychodu`;
+    parts.push(s + '.');
+  }
+  el('dash-narr').innerHTML = parts.join(' ');
+}
+
+/* --- kafle tempa --- */
+function renderPaceTiles(list, t) {
+  const W = paceWindows(t);
+  const tile = (w, accent) => {
+    const cur = aggBetween(list, ...w.cur), prev = aggBetween(list, ...w.prev);
+    const v = metricOf(cur), pv = metricOf(prev);
+    const sub = dash.metric === 'pnl'
+      ? `przychód ${fmtPLN0(cur.gross)} · ROI ${fmtPct(cur.roi, true, 0)} · ${cur.n} szt.`
+      : `zysk ${fmtPLN0(cur.pnl, true)} · marża ${fmtPct(cur.margin, false, 0)} · ${cur.n} szt.`;
+    return `<div class="cd-pace-tile${accent ? ' accent' : ''}">
+      <div class="k">${w.label}</div>
+      <div class="row"><span class="v ${dash.metric === 'pnl' ? posClass(v) : ''}">${fmtPLN0(v)}</span>${deltaChip(v, pv)}</div>
+      <div class="n">${esc(w.vs)}: <b>${fmtPLN0(pv)}</b></div>
+      <div class="s">${sub}</div>
+    </div>`;
+  };
+
+  /* Prognoza: liniowe tempo bieżącego miesiąca kontra cały poprzedni miesiąc. */
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const day = Number(t.slice(8, 10)), dim = daysInMonth(ym);
+  const mtd = aggBetween(list, ...W.mtd.cur);
+  const prevFull = aggBetween(list, `${pym}-01`, monthEnd(pym));
+  const fc = metricOf(mtd) / day * dim;
+  const forecast = `<div class="cd-pace-tile">
+      <div class="k">Prognoza miesiąca</div>
+      <div class="row"><span class="v ${dash.metric === 'pnl' ? posClass(fc) : ''}">${fmtPLN0(fc)}</span>${deltaChip(fc, metricOf(prevFull))}</div>
+      <div class="n">vs cały ${MONTHS_PL[Number(pym.slice(5, 7)) - 1]}: <b>${fmtPLN0(metricOf(prevFull))}</b></div>
+      <div class="s">tempo ${fmtPLN0(metricOf(mtd) / day)}/dzień · zostało ${nDays(dim - day)}</div>
+    </div>`;
+
+  el('dash-pace').innerHTML = tile(W.today) + tile(W.wtd, true) + tile(W.mtd, true) + tile(W.r30) + tile(W.ytd) + forecast;
+}
+
+function paceChartOptions(titleFn) {
+  return {
+    maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: legendBottom(),
+      tooltip: {
+        ...TOOLTIP, displayColors: true,
+        filter: item => item.parsed.y != null,
+        callbacks: {
+          title: items => (items.length ? titleFn(items[0].dataIndex) : ''),
+          label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`
+        }
+      }
+    },
+    scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 16 } }, y: axisPLN() }
+  };
+}
+
+/* --- tydzień narastająco: bieżący, poprzedni i średnia 4 tygodni --- */
+function renderPaceWeek(daily, t) {
+  const ws = isoWeekStart(t), dow = isoDow(t);
+  const cum = (start, upto) => { let acc = 0; return DOW_PL.map((_, i) => (i > upto ? null : (acc += dayVal(daily, isoAdd(start, i))))); };
+  const cur = cum(ws, dow);
+  const prev = cum(isoAdd(ws, -7), 6);
+  const weeks = [1, 2, 3, 4].map(w => cum(isoAdd(ws, -7 * w), 6));
+  const avg4 = DOW_PL.map((_, i) => sum(weeks, w => w[i]) / 4);
+
+  el('pace-week-sub').textContent = `${metricName()} · tydz. ${isoWeekNo(t)} (${fmtRange(ws, isoAdd(ws, 6))})`;
+  renderChart('chart-pace-week', {
+    type: 'line',
     data: {
-      labels: rows.map(r => r.label),
-      datasets: [{ data: rows.map(r => r.value), backgroundColor: rows.map((_, i) => PALETTE[i % PALETTE.length]), borderRadius: 4, maxBarThickness: 30 }]
+      labels: DOW_PL,
+      datasets: [
+        { label: 'Ten tydzień', data: cur, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.5, tension: 0.2, pointRadius: 3, pointBackgroundColor: DC.accent },
+        { label: 'Poprzedni', data: prev, borderColor: DC.ink, borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.2, pointRadius: 0 },
+        { label: 'Śr. 4 tygodni', data: avg4, borderColor: DC.muted, borderWidth: 1.4, borderDash: [2, 3], fill: false, tension: 0.2, pointRadius: 0 }
+      ]
+    },
+    options: paceChartOptions(i => `${DOW_PL[i]} · ${shortDate(isoAdd(ws, i))} vs ${shortDate(isoAdd(ws, i - 7))}`)
+  });
+}
+
+/* --- miesiąc narastająco: bieżący, poprzedni i prognoza liniowa --- */
+function renderPaceMonth(daily, t) {
+  const ym = t.slice(0, 7), pym = addMonths(ym, -1);
+  const day = Number(t.slice(8, 10)), len = daysInMonth(ym), plen = daysInMonth(pym);
+  const n = Math.max(len, plen);
+  const cum = (m, upto) => { let acc = 0; return Array.from({ length: n }, (_, i) => (i >= upto ? null : (acc += dayVal(daily, `${m}-${pad2(i + 1)}`)))); };
+  const cur = cum(ym, day);
+  const prev = cum(pym, plen);
+  const rate = cur[day - 1] / day;
+  const forecast = Array.from({ length: n }, (_, i) => (day < len && i >= day - 1 && i < len ? rate * (i + 1) : null));
+
+  el('pace-month-sub').textContent = `${metricName()} · ${monthName(ym)} vs ${MONTHS_FULL[Number(pym.slice(5, 7)) - 1]}`;
+  const datasets = [
+    { label: cap(MONTHS_FULL[Number(ym.slice(5, 7)) - 1]), data: cur, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.5, tension: 0.15, pointRadius: 0, pointHoverRadius: 4 },
+    { label: cap(MONTHS_FULL[Number(pym.slice(5, 7)) - 1]), data: prev, borderColor: DC.ink, borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.15, pointRadius: 0 }
+  ];
+  if (day < len) datasets.push({ label: 'Prognoza', data: forecast, borderColor: DC.accent, borderWidth: 1.4, borderDash: [2, 3], fill: false, tension: 0, pointRadius: 0 });
+  renderChart('chart-pace-month', {
+    type: 'line',
+    data: { labels: Array.from({ length: n }, (_, i) => String(i + 1)), datasets },
+    options: paceChartOptions(i => `${i + 1}. dzień miesiąca`)
+  });
+}
+
+/* --- dzień po dniu ze średnimi kroczącymi --- */
+function renderDailyChart(daily, t) {
+  const N = Number(dash.daily) || 90;
+  const LEAD = 55; // zapas wstecz: pełna średnia 28-dniowa od pierwszego dnia i jej wartość sprzed 28 dni
+  const start = isoAdd(t, -(N - 1));
+  const days = [];
+  for (let d = isoAdd(start, -LEAD); d <= t; d = isoAdd(d, 1)) days.push(d);
+  const vals = days.map(d => dayVal(daily, d));
+  const ma = w => vals.map((_, i) => (i < w - 1 ? null : sum(vals.slice(i - w + 1, i + 1)) / w));
+  const ma7 = ma(7), ma28 = ma(28);
+  const view = days.slice(LEAD), v = vals.slice(LEAD), m7 = ma7.slice(LEAD), m28 = ma28.slice(LEAD);
+  const last = vals.length - 1;
+
+  const counts = view.map(d => (daily.get(d) || { n: 0 }).n);
+  const active = counts.filter(c => c > 0).length;
+  let bestI = 0;
+  v.forEach((x, i) => { if (x > v[bestI]) bestI = i; });
+  const total = sum(v);
+  el('daily-strip').innerHTML = `
+    <div class="cell"><div class="k">Suma ${N} dni</div><div class="v">${fmtPLN0(total)}</div><div class="d">${sum(counts)} ${plural(sum(counts), 'transakcja', 'transakcje', 'transakcji')}</div></div>
+    <div class="cell"><div class="k">Średnia 7 dni</div><div class="v">${fmtPLN0(ma7[last])}</div><div class="d">${deltaChip(ma7[last], ma7[last - 7])} <small>vs tydzień temu</small></div></div>
+    <div class="cell"><div class="k">Średnia 28 dni</div><div class="v">${fmtPLN0(ma28[last])}</div><div class="d">${deltaChip(ma28[last], ma28[last - 28])} <small>vs 28 dni temu</small></div></div>
+    <div class="cell"><div class="k">Dni ze sprzedażą</div><div class="v">${active}/${N}</div><div class="d"><small>${fmtPct(active / N * 100, false, 0)} dni</small></div></div>
+    <div class="cell"><div class="k">Najlepszy dzień</div><div class="v">${v[bestI] > 0 ? fmtPLN0(v[bestI]) : '—'}</div><div class="d"><small>${v[bestI] > 0 ? `${DOW_PL[isoDow(view[bestI])]} ${fmtDate(view[bestI])}` : 'brak sprzedaży'}</small></div></div>`;
+
+  renderChart('chart-daily', {
+    data: {
+      labels: view.map(shortDate),
+      datasets: [
+        { type: 'bar', label: dash.metric === 'pnl' ? 'Zysk dnia' : 'Przychód dnia', data: v, backgroundColor: v.map(x => (x < 0 ? DC.lossSoft : DC.accentSoft)), hoverBackgroundColor: v.map(x => (x < 0 ? DC.loss : DC.accent)), borderRadius: 3, maxBarThickness: 18, order: 3 },
+        { type: 'line', label: 'Średnia 7 dni', data: m7, borderColor: DC.accent, borderWidth: 2.4, tension: 0.3, pointRadius: 0, pointHoverRadius: 3, fill: false, order: 1 },
+        { type: 'line', label: 'Średnia 28 dni', data: m28, borderColor: DC.ink, borderWidth: 1.4, borderDash: [5, 4], tension: 0.3, pointRadius: 0, fill: false, order: 2 }
+      ]
     },
     options: {
       maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: legendBottom(),
         tooltip: {
-          ...TOOLTIP,
+          ...TOOLTIP, displayColors: true,
           callbacks: {
-            label: c => `${fmtPLN0(c.parsed.y)} · ${fmtPct(c.parsed.y / total * 100, false)}`,
-            afterLabel: c => `${nCards(rows[c.dataIndex].count)}`
+            title: items => `${DOW_PL[isoDow(view[items[0].dataIndex])]} ${fmtDate(view[items[0].dataIndex])}`,
+            label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`,
+            afterBody: items => { const n = counts[items[0].dataIndex]; return n ? `${n} ${plural(n, 'transakcja', 'transakcje', 'transakcji')}` : ''; }
           }
         }
       },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, maxRotation: 45, minRotation: 0, autoSkip: false, font: { size: 9 } } }, y: axisPLN() }
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } }, y: axisPLN() }
     }
   });
 }
 
-const AGE_BUCKETS = [
-  ['0–30 dni', 0, 30], ['31–90', 31, 90], ['91–180', 91, 180],
-  ['181–365', 181, 365], ['366–730', 366, 730], ['> 2 lata', 731, Infinity]
-];
+/* ============================================================
+   Kanały w wybranym okresie
+   ============================================================ */
+function channelRows(list) {
+  const total = aggSales(list);
+  return [...groupBy(list, s => s.channel || '—').entries()]
+    .map(([name, l]) => {
+      const a = aggSales(l);
+      return { name, ...a, share: total.pnl > 0 ? a.pnl / total.pnl * 100 : null, revShare: total.gross > 0 ? a.gross / total.gross * 100 : null };
+    })
+    .sort((a, b) => b.pnl - a.pnl);
+}
 
-function renderAgingChart() {
-  const held = M.held.filter(c => c.daysHeld != null);
-  if (!held.length) { renderChart('chart-aging', null); return; }
-  const values = AGE_BUCKETS.map(([, lo, hi]) => sum(held.filter(c => c.daysHeld >= lo && c.daysHeld <= hi), c => c.marketValue));
-  const counts = AGE_BUCKETS.map(([, lo, hi]) => held.filter(c => c.daysHeld >= lo && c.daysHeld <= hi).length);
+function chanResolve(list) {
+  const t = today();
+  const p = dash.preset;
+  const a = chanRange.anchor || t;
+  let from, to, label;
+  if (p === 'week') {
+    from = isoWeekStart(a); to = isoAdd(from, 6);
+    label = `Tydzień ${isoWeekNo(from)} · ${fmtRange(from, to)}`;
+  } else if (p === 'month') {
+    const ym = a.slice(0, 7);
+    from = `${ym}-01`; to = monthEnd(ym);
+    label = cap(monthName(ym));
+  } else if (p === 'year') {
+    const y = a.slice(0, 4);
+    from = `${y}-01-01`; to = `${y}-12-31`;
+    label = `Rok ${y}`;
+  } else if (p === 'all') {
+    from = list.reduce((m, s) => (s.date < m ? s.date : m), t); to = t;
+    label = 'Cała historia';
+  } else {
+    if (!chanRange.from || !chanRange.to) { chanRange.from = isoAdd(t, -29); chanRange.to = t; }
+    from = chanRange.from; to = chanRange.to;
+    if (from > to) [from, to] = [to, from];
+    label = `${p === 'r30' ? '30 dni' : 'Własny zakres'} · ${fmtRange(from, to)}`;
+  }
 
-  renderChart('chart-aging', {
+  /* Porównanie do tego samego dnia: okres w toku ucinamy na dziś,
+     a poprzedni okres bierzemy od początku do analogicznego dnia. */
+  const effTo = to < t ? to : t;
+  let prev = null;
+  if (p !== 'all' && effTo >= from) {
+    if (p === 'week') prev = [isoAdd(from, -7), isoAdd(effTo, -7)];
+    else if (p === 'month') {
+      const pym = addMonths(from.slice(0, 7), -1);
+      prev = effTo === to
+        ? [`${pym}-01`, monthEnd(pym)] // miesiąc zamknięty — cały poprzedni
+        : [`${pym}-01`, `${pym}-${pad2(Math.min(Number(effTo.slice(8, 10)), daysInMonth(pym)))}`];
+    } else if (p === 'year') {
+      const y = Number(from.slice(0, 4)) - 1;
+      const md = effTo.slice(5) === '02-29' ? '02-28' : effTo.slice(5);
+      prev = [`${y}-01-01`, `${y}-${md}`];
+    } else {
+      const len = isoDiff(from, effTo) + 1;
+      prev = [isoAdd(from, -len), isoAdd(from, -1)];
+    }
+  }
+  return { from, to, effTo, label, prev, partial: to > t, future: from > t };
+}
+
+function chanShift(dir) {
+  const r = chanResolve(dashSales());
+  const p = dash.preset;
+  if (p === 'week') chanRange.anchor = isoAdd(r.from, 7 * dir);
+  else if (p === 'month') chanRange.anchor = `${addMonths(r.from.slice(0, 7), dir)}-01`;
+  else if (p === 'year') chanRange.anchor = `${Number(r.from.slice(0, 4)) + dir}-01-01`;
+  else if (p === 'r30' || p === 'custom') {
+    const len = isoDiff(r.from, r.to) + 1;
+    chanRange.from = isoAdd(r.from, len * dir);
+    chanRange.to = isoAdd(r.to, len * dir);
+    dash.preset = 'custom';
+  }
+  renderAnalytics();
+}
+
+function renderChannelBoard(list, t) {
+  const r = chanResolve(list);
+  el('chan-label').textContent = r.label;
+  el('chan-from').value = r.from;
+  el('chan-to').value = r.to;
+  el('chan-prev').disabled = dash.preset === 'all';
+  el('chan-next').disabled = dash.preset === 'all' || r.to >= t;
+
+  const cur = salesBetween(list, r.from, r.to);
+  const A = aggSales(cur);
+  const P = r.prev ? aggBetween(list, ...r.prev) : null;
+  const cell = (k, v, d, cls = '') => `<div class="cell"><div class="k">${k}</div><div class="v ${cls}">${v}</div><div class="d">${d || ''}</div></div>`;
+  const dc = (key, invert) => (P ? deltaChip(A[key], P[key], invert) : '');
+  el('chan-kpi').innerHTML =
+    cell('Przychód', fmtPLN0(A.gross), dc('gross')) +
+    cell('Koszt towaru', fmtPLN0(A.cogs), dc('cogs', true)) +
+    cell('Prowizje', fmtPLN0(A.commission), P ? `${deltaChip(A.commission, P.commission, true)} <small>${fmtPct(A.feePct, false, 1)} przych.</small>` : `<small>${fmtPct(A.feePct, false, 1)} przych.</small>`) +
+    cell('Wysyłka', fmtPLN0(A.shipping), dc('shipping', true)) +
+    cell('Zysk', fmtPLN0(A.pnl, true), dc('pnl'), posClass(A.pnl)) +
+    cell('Marża', fmtPct(A.margin, false, 1), P ? ppChip(A.margin, P.margin) : '') +
+    cell('ROI', fmtPct(A.roi, true, 1), P ? ppChip(A.roi, P.roi) : '', posClass(A.roi)) +
+    cell('Transakcje', String(A.n), dc('n')) +
+    cell('Zwroty', String(A.returns), A.returns ? `<small>${fmtPLN0(A.refunds)} oddane</small>` : '<small>brak</small>', A.returns ? 'warn' : '') +
+    cell('Śr. koszyk', fmtPLN0(A.aov), P ? deltaChip(A.aov || 0, P.aov || 0) : '');
+  el('chan-cmp').innerHTML = r.future
+    ? 'Okres jeszcze się nie zaczął.'
+    : P
+      ? `Zmiany vs <b>${fmtRange(...r.prev)}</b>${r.partial ? ' — okres w toku, więc porównanie do tego samego dnia' : ''}. Koszty rosnące szybciej niż przychód świecą na czerwono.`
+      : 'Cała historia — bez okresu porównawczego.';
+
+  const rows = channelRows(cur);
+  renderChannelMix(rows);
+  renderChannelInsights(rows, A);
+  renderChannelTable(rows, A);
+}
+
+function renderChannelMix(rows) {
+  const box = el('chan-mix-box');
+  box.style.height = `${Math.max(170, rows.length * 42 + 70)}px`;
+  if (!rows.length) { renderChart('chart-chan-mix', null); return; }
+  const pct = dash.unit === 'pct';
+  const val = (r, v) => (pct ? (r.gross > 0 ? v / r.gross * 100 : 0) : v);
+  const parts = [
+    ['Koszt towaru', 'cogs', DC.cogs],
+    ['Prowizje', 'commission', DC.commission],
+    ['Wysyłka', 'shipping', DC.shipping],
+    ['Zysk', 'pnl', null]
+  ];
+  renderChart('chart-chan-mix', {
+    type: 'bar',
     data: {
-      labels: AGE_BUCKETS.map(b => b[0]),
-      datasets: [
-        { type: 'bar', label: 'Wartość', data: values, backgroundColor: AGE_BUCKETS.map((b, i) => b[1] >= settings.agingDays ? '#b45309' : '#0057c0'), borderRadius: 4, maxBarThickness: 40, yAxisID: 'y' },
-        { type: 'line', label: 'Liczba kart', data: counts, borderColor: '#0f172a', borderWidth: 2, tension: 0.3, pointRadius: 3, fill: false, yAxisID: 'y1' }
-      ]
+      labels: rows.map(r => r.name),
+      datasets: parts.map(([label, key, color]) => ({
+        label, data: rows.map(r => val(r, r[key])),
+        backgroundColor: color || rows.map(r => (r.pnl >= 0 ? DC.profit : DC.loss)),
+        borderWidth: 0, maxBarThickness: 26, borderSkipped: false
+      }))
     },
     options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
+      indexAxis: 'y', maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', axis: 'y', intersect: false },
       plugins: {
         legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => c.dataset.yAxisID === 'y1' ? `${c.parsed.y} kart` : fmtPLN0(c.parsed.y) } }
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => { const r = rows[items[0].dataIndex]; return `${r.name} · przychód ${fmtPLN0(r.gross)}`; },
+            label: c => {
+              const r = rows[c.dataIndex], key = parts[c.datasetIndex][1];
+              return `${c.dataset.label}: ${fmtPLN0(r[key])} · ${r.gross > 0 ? fmtPct(r[key] / r.gross * 100, false, 1) : '—'} przychodu`;
+            }
+          }
+        }
       },
       scales: {
-        x: axisCat(), y: axisPLN(),
-        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, precision: 0 } }
+        x: { ...(pct ? axisPct() : axisPLN()), stacked: true },
+        y: { ...axisCat(), stacked: true }
       }
     }
   });
 }
 
-function renderPortfolioChart() {
-  const pts = portfolioSeries();
-  if (!pts.length) { renderChart('chart-portfolio', null); return; }
-  renderChart('chart-portfolio', {
+function renderChannelInsights(rows, A) {
+  const wrap = el('chan-insights');
+  if (!rows.length) { wrap.innerHTML = emptyBox('hub', 'Brak sprzedaży w tym okresie', 'Zmień okres albo przesuń strzałkami.'); return; }
+  const items = [];
+  const best = rows[0];
+  items.push(['emoji_events', 'pos', `Najwięcej zarabia <b>${esc(best.name)}</b>`,
+    `${fmtPLN0(best.pnl, true)} zysku${best.share != null ? ` · ${fmtPct(best.share, false, 0)} całego zysku` : ''} przy ${fmtPct(best.revShare, false, 0)} przychodu`]);
+  if (rows.length > 1) {
+    const withRoi = rows.filter(r => r.roi != null);
+    const topRoi = [...withRoi].sort((a, b) => b.roi - a.roi)[0];
+    if (topRoi) items.push(['percent', 'accent', `Najwyższy ROI: <b>${esc(topRoi.name)}</b>`,
+      `${fmtPct(topRoi.roi, true, 0)} na koszcie towaru · marża ${fmtPct(topRoi.margin, false, 0)}`]);
+    const feeTop = [...rows].filter(r => r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0];
+    if (feeTop) items.push(['payments', 'warn', `Najdroższy kanał: <b>${esc(feeTop.name)}</b>`,
+      `prowizje ${fmtPct(feeTop.feePct, false, 1)} przychodu · ${fmtPLN0(feeTop.commission)} oddane platformie`]);
+    const bigRev = [...rows].sort((a, b) => b.gross - a.gross)[0];
+    if (bigRev.name !== best.name) items.push(['warning', 'warn', `<b>${esc(bigRev.name)}</b> ma największy obrót, ale nie największy zysk`,
+      `przychód ${fmtPLN0(bigRev.gross)}, zysk ${fmtPLN0(bigRev.pnl, true)} — sprawdź prowizje i ceny`]);
+  }
+  const losers = rows.filter(r => r.pnl < 0);
+  if (losers.length) items.push(['trending_down', 'neg', `Strata na: ${losers.map(r => `<b>${esc(r.name)}</b>`).join(', ')}`,
+    `razem ${fmtPLN0(sum(losers, r => r.pnl))} — sprzedaż poniżej kosztu`]);
+  const costShare = A.gross > 0 ? (A.commission + A.shipping) / A.gross * 100 : null;
+  if (costShare != null) items.push(['local_shipping', '', 'Koszty transakcyjne łącznie',
+    `${fmtPLN0(A.commission + A.shipping)} · ${fmtPct(costShare, false, 1)} przychodu (prowizje ${fmtPLN0(A.commission)}, wysyłka ${fmtPLN0(A.shipping)})`]);
+
+  wrap.innerHTML = `<ul class="cd-insights">${items.map(([icon, tone, t, s]) => `
+    <li class="${tone}"><span class="material-symbols-outlined">${icon}</span><div><div class="t">${t}</div><div class="s">${s}</div></div></li>`).join('')}</ul>`;
+}
+
+function renderChannelTable(rows, A) {
+  const wrap = el('chan-table');
+  if (!rows.length) { wrap.innerHTML = ''; return; }
+  const maxShare = Math.max(...rows.map(r => Math.max(0, r.share || 0)), 1);
+  const topRoi = rows.length > 1 ? [...rows].filter(r => r.roi != null).sort((a, b) => b.roi - a.roi)[0] : null;
+  const topFee = rows.length > 1 ? [...rows].filter(r => r.commission > 0.5).sort((a, b) => b.feePct - a.feePct)[0] : null;
+  const tags = r => [
+    rows.length > 1 && r === rows[0] && r.pnl > 0 ? '<span class="cd-ch-tag best">top zysk</span>' : '',
+    topRoi && r === topRoi ? '<span class="cd-ch-tag roi">top ROI</span>' : '',
+    topFee && r === topFee ? '<span class="cd-ch-tag fee">najdroższy</span>' : ''
+  ].join('');
+  wrap.innerHTML = `<table class="tc-tbl cd-chan-tbl">
+    <thead><tr>
+      <th>Kanał</th><th class="num">Szt.</th><th class="num">Przychód</th><th class="num">Koszt towaru</th>
+      <th class="num">Prowizje</th><th class="num">Wysyłka</th><th class="num">Zysk</th><th class="num">Marża</th>
+      <th class="num">ROI</th><th class="num">Prowizje % przych.</th><th class="num">Zysk / szt.</th><th>Udział w zysku</th>
+    </tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td><span class="cd-ch-name">${esc(r.name)}</span>${tags(r)}</td>
+        <td class="num">${r.n}</td>
+        <td class="num">${fmtPLN0(r.gross)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.cogs)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.commission)}</td>
+        <td class="num cd-muted">${fmtPLN0(r.shipping)}</td>
+        <td class="num ${posClass(r.pnl)}"><strong>${fmtPLN0(r.pnl, true)}</strong></td>
+        <td class="num ${posClass(r.margin)}">${fmtPct(r.margin, false, 1)}</td>
+        <td class="num ${posClass(r.roi)}">${fmtPct(r.roi, true, 1)}</td>
+        <td class="num">${fmtPct(r.feePct, false, 1)}</td>
+        <td class="num ${posClass(r.ppu)}">${fmtPLN0(r.ppu, true)}</td>
+        <td><div class="cd-share"><div class="track"><i style="width:${Math.max(0, r.share || 0) / maxShare * 100}%"></i></div><span>${r.share == null ? '—' : fmtPct(r.share, false, 0)}</span></div></td>
+      </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td>Razem</td><td class="num">${A.n}</td><td class="num">${fmtPLN0(A.gross)}</td><td class="num">${fmtPLN0(A.cogs)}</td>
+      <td class="num">${fmtPLN0(A.commission)}</td><td class="num">${fmtPLN0(A.shipping)}</td>
+      <td class="num ${posClass(A.pnl)}">${fmtPLN0(A.pnl, true)}</td><td class="num">${fmtPct(A.margin, false, 1)}</td>
+      <td class="num">${fmtPct(A.roi, true, 1)}</td><td class="num">${fmtPct(A.feePct, false, 1)}</td>
+      <td class="num">${fmtPLN0(A.ppu, true)}</td><td></td>
+    </tr></tfoot></table>`;
+}
+
+/* ============================================================
+   Trend: tygodnie / miesiące
+   ============================================================ */
+function trendPeriods(list, gran, t) {
+  const week = gran === 'week';
+  const keyOf = d => (week ? isoWeekStart(d) : d.slice(0, 7));
+  const first = list.reduce((m, s) => (s.date < m ? s.date : m), t);
+  const keys = [];
+  if (week) for (let k = isoWeekStart(first); k <= isoWeekStart(t); k = isoAdd(k, 7)) keys.push(k);
+  else for (let k = first.slice(0, 7); k <= t.slice(0, 7); k = addMonths(k, 1)) keys.push(k);
+  const by = groupBy(list, s => keyOf(s.date));
+  return keys.map(k => {
+    const current = k === keyOf(t);
+    /* Okres w toku porównujemy z poprzednim do tego samego dnia. */
+    let prevRange;
+    if (week) prevRange = current ? [isoAdd(k, -7), isoAdd(t, -7)] : [isoAdd(k, -7), isoAdd(k, -1)];
+    else {
+      const pym = addMonths(k, -1);
+      prevRange = current
+        ? [`${pym}-01`, `${pym}-${pad2(Math.min(Number(t.slice(8, 10)), daysInMonth(pym)))}`]
+        : [`${pym}-01`, monthEnd(pym)];
+    }
+    return {
+      key: k, current, prevRange, ...aggSales(by.get(k) || []),
+      label: week ? shortDate(k) : monthLabel(k),
+      title: week ? `Tydzień ${isoWeekNo(k)} · ${fmtRange(k, isoAdd(k, 6))}` : cap(monthName(k))
+    };
+  });
+}
+
+function renderTrend(list, t) {
+  const week = dash.gran === 'week';
+  const all = trendPeriods(list, dash.gran, t);
+  const shown = all.slice(-(week ? 26 : 24));
+
+  /* Jedna miara naraz (przełącznik „Miara tempa”) — przychód na wspólnej
+     skali spłaszczał zysk tak, że nie dało się go śledzić. */
+  const pnlMode = dash.metric === 'pnl';
+  const val = p => (pnlMode ? p.pnl : p.gross);
+  el('trend-title').textContent = pnlMode ? 'Zysk per okres' : 'Przychód per okres';
+  el('cum-title').textContent = pnlMode ? 'Zysk skumulowany' : 'Sprzedaż skumulowana';
+  el('trend-sub').textContent = `${week ? `ostatnie ${shown.length} tyg.` : `ostatnie ${shown.length} mies.`} · linia: marża`;
+  const barColor = p => (pnlMode
+    ? (p.pnl < 0 ? (p.current ? DC.lossSoft : DC.loss) : (p.current ? 'rgba(11,138,74,0.35)' : DC.profit))
+    : (p.current ? DC.accentSoft : DC.accent));
+  renderChart('chart-trend', {
     data: {
-      labels: pts.map(p => monthLabel(p.ym)),
+      labels: shown.map(p => p.label),
       datasets: [
-        {
-          type: 'line', label: 'Majątek (karty + sealed)', data: pts.map(p => p.assets), borderColor: '#0057c0',
-          backgroundColor: ctx => {
-            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 320);
-            g.addColorStop(0, 'rgba(0,87,192,0.20)'); g.addColorStop(1, 'rgba(0,87,192,0)');
-            return g;
-          },
-          fill: true, borderWidth: 2, tension: 0.25, pointRadius: 0
-        },
-        { type: 'line', label: 'Zainwestowana gotówka', data: pts.map(p => p.invested), borderColor: '#b45309', borderWidth: 1.6, borderDash: [5, 4], fill: false, tension: 0.25, pointRadius: 0 },
-        { type: 'line', label: 'Wynik łączny', data: pts.map(p => p.result), borderColor: '#0b8a4a', borderWidth: 2, fill: false, tension: 0.25, pointRadius: 0 }
+        { type: 'bar', label: pnlMode ? 'Zysk' : 'Przychód', data: shown.map(val), backgroundColor: shown.map(barColor), borderRadius: 3, maxBarThickness: 30, order: 2 },
+        { type: 'line', label: 'Marża %', data: shown.map(p => p.margin), borderColor: DC.ink, borderWidth: 1.6, tension: 0.25, pointRadius: 2, fill: false, yAxisID: 'y1', spanGaps: true, order: 1 }
       ]
     },
     options: {
@@ -2332,13 +3139,113 @@ function renderPortfolioChart() {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.dataset.label}: ${fmtPLN(c.parsed.y)}` } }
+        tooltip: {
+          ...TOOLTIP, displayColors: true,
+          callbacks: {
+            title: items => { const p = shown[items[0].dataIndex]; return p.title + (p.current ? ' (w toku)' : ''); },
+            label: c => (c.dataset.yAxisID === 'y1' ? `Marża: ${fmtPct(c.parsed.y, false, 1)}` : `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}`),
+            afterBody: items => {
+              const p = shown[items[0].dataIndex];
+              return [pnlMode ? `Przychód: ${fmtPLN0(p.gross)}` : `Zysk: ${fmtPLN0(p.pnl, true)}`, `${p.n} transakcji`];
+            }
+          }
+        }
       },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
+      scales: {
+        x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } },
+        y: axisPLN(),
+        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' } }
+      }
     }
   });
+
+  /* Narastająco od pierwszej sprzedaży — pełna historia. */
+  let cg = 0, cp = 0;
+  const cumG = all.map(p => (cg += p.gross)), cumP = all.map(p => (cp += p.pnl));
+  el('cum-sub').textContent = pnlMode
+    ? `łącznie ${fmtPLN0(cp, true)} zysku z ${fmtPLN0(cg)} przychodu`
+    : `łącznie ${fmtPLN0(cg)} przychodu · ${fmtPLN0(cp, true)} zysku`;
+  renderChart('chart-cum', {
+    type: 'line',
+    data: {
+      labels: all.map(p => p.label),
+      datasets: [pnlMode
+        ? { label: 'Zysk narastająco', data: cumP, borderColor: DC.profit, backgroundColor: 'rgba(11,138,74,0.12)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }
+        : { label: 'Przychód narastająco', data: cumG, borderColor: DC.accent, backgroundColor: 'rgba(0,87,192,0.10)', fill: true, borderWidth: 2.2, tension: 0.2, pointRadius: 0, pointHoverRadius: 3 }]
+    },
+    options: {
+      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: legendBottom(),
+        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { title: items => all[items[0].dataIndex].title, label: c => `${c.dataset.label}: ${fmtPLN0(c.parsed.y)}` } }
+      },
+      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 14, maxRotation: 0 } }, y: axisPLN() }
+    }
+  });
+
+  /* Rachunek wyników: ostatnie 12 okresów, najnowszy na górze. */
+  const table = all.slice(-12).reverse();
+  el('pl-sub').textContent = `${week ? 'tygodnie' : 'miesiące'} · Δ vs poprzedni okres (bieżący do tego samego dnia)`;
+  const T = aggSales(salesBetween(list, week ? table[table.length - 1].key : `${table[table.length - 1].key}-01`, t));
+  el('trend-table').innerHTML = `<table class="tc-tbl">
+    <thead><tr>
+      <th>Okres</th><th class="num">Szt.</th><th class="num">Przychód</th><th class="num">Δ przych.</th><th class="num">Koszt towaru</th>
+      <th class="num">Prowizje</th><th class="num">Wysyłka</th><th class="num">Zysk</th><th class="num">Δ zysku</th><th class="num">Marża</th><th class="num">ROI</th>
+    </tr></thead>
+    <tbody>${table.map(p => {
+      const prev = aggBetween(list, ...p.prevRange);
+      return `<tr class="${p.current ? 'cd-current' : ''}">
+        <td><span class="cd-ch-name">${esc(p.title)}</span>${p.current ? '<span class="cd-ch-tag live">w toku</span>' : ''}</td>
+        <td class="num">${p.n}</td>
+        <td class="num"><strong>${fmtPLN0(p.gross)}</strong></td>
+        <td class="num">${deltaChip(p.gross, prev.gross)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.cogs)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.commission)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.shipping)}</td>
+        <td class="num ${posClass(p.pnl)}"><strong>${fmtPLN0(p.pnl, true)}</strong></td>
+        <td class="num">${deltaChip(p.pnl, prev.pnl)}</td>
+        <td class="num">${fmtPct(p.margin, false, 1)}</td>
+        <td class="num ${posClass(p.roi)}">${fmtPct(p.roi, true, 1)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr>
+      <td>Razem ${table.length} ${week ? plural(table.length, 'tydzień', 'tygodnie', 'tygodni') : plural(table.length, 'miesiąc', 'miesiące', 'miesięcy')}</td>
+      <td class="num">${T.n}</td><td class="num">${fmtPLN0(T.gross)}</td><td></td><td class="num">${fmtPLN0(T.cogs)}</td>
+      <td class="num">${fmtPLN0(T.commission)}</td><td class="num">${fmtPLN0(T.shipping)}</td>
+      <td class="num ${posClass(T.pnl)}">${fmtPLN0(T.pnl, true)}</td><td></td>
+      <td class="num">${fmtPct(T.margin, false, 1)}</td><td class="num">${fmtPct(T.roi, true, 1)}</td>
+    </tr></tfoot></table>`;
 }
 
+function bindDashEvents() {
+  const seg = (id, key, after) => el(id).addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    dashPrefs()[key] = b.dataset.v;
+    if (after) after(b.dataset.v);
+    saveDashPrefs();
+    renderAnalytics();
+  });
+  seg('dash-metric', 'metric');
+  seg('dash-kind', 'kind');
+  seg('dash-daily', 'daily');
+  seg('dash-gran', 'gran');
+  seg('chan-unit', 'unit');
+  seg('chan-preset', 'preset', v => {
+    chanRange = { anchor: null, from: null, to: null };
+    if (v === 'r30') { chanRange.from = isoAdd(today(), -29); chanRange.to = today(); }
+  });
+  el('chan-prev').addEventListener('click', () => chanShift(-1));
+  el('chan-next').addEventListener('click', () => chanShift(1));
+  ['chan-from', 'chan-to'].forEach(id => el(id).addEventListener('change', () => {
+    const from = el('chan-from').value, to = el('chan-to').value;
+    if (!from || !to) return;
+    chanRange = { anchor: null, from, to };
+    dashPrefs().preset = 'custom';
+    renderAnalytics();
+  }));
+}
 function renderReconStrip() {
   el('recon-strip').innerHTML = `
     <div class="cell"><div class="k">Zrealizowany</div><div class="v ${posClass(M.realized)}">${fmtPLN0(M.realized, true)}</div></div>
@@ -2348,92 +3255,6 @@ function renderReconStrip() {
     <div class="cell"><div class="k">Koszty ogólne</div><div class="v">${fmtPLN0(-M.overhead)}</div></div>
     <div class="cell"><div class="k">Wynik łączny</div><div class="v ${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</div></div>
     <div class="cell"><div class="k">Różnica</div><div class="v ${Math.abs(M.residual) < 0.01 ? 'pos' : 'neg'}">${Math.abs(M.residual) < 0.01 ? '0 zł' : fmtPLN(M.residual)}</div></div>`;
-}
-
-function renderMonthlyPnlChart() {
-  if (!M.sales.length) { renderChart('chart-monthly-pnl', null); return; }
-  const byMonth = groupBy(M.sales, s => s.date.slice(0, 7));
-  const keys = [...byMonth.keys()].sort();
-  const full = [];
-  for (let ym = keys[0]; ym <= keys[keys.length - 1]; ym = addMonths(ym, 1)) full.push(ym);
-  const vals = full.map(ym => sum(byMonth.get(ym) || [], s => s.pnl));
-  let acc = 0;
-  const cum = vals.map(v => (acc += v));
-
-  renderChart('chart-monthly-pnl', {
-    data: {
-      labels: full.map(monthLabel),
-      datasets: [
-        { type: 'bar', label: 'Wynik miesiąca', data: vals, backgroundColor: barColors(vals), borderRadius: 4, maxBarThickness: 34 },
-        { type: 'line', label: 'Narastająco', data: cum, borderColor: '#0f172a', borderWidth: 2, tension: 0.25, pointRadius: 0, fill: false }
-      ]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: legendBottom(), tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => `${c.dataset.label}: ${fmtPLN(c.parsed.y, true)}` } } },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, autoSkip: true, maxTicksLimit: 12 } }, y: axisPLN() }
-    }
-  });
-}
-
-const ROI_BUCKETS = [
-  ['< −50%', -Infinity, -50], ['−50…−20%', -50, -20], ['−20…0%', -20, 0],
-  ['0…25%', 0, 25], ['25…50%', 25, 50], ['50…100%', 50, 100], ['> 100%', 100, Infinity]
-];
-
-function renderRoiDistChart() {
-  const withRoi = M.sales.filter(s => s.roi != null);
-  if (!withRoi.length) { renderChart('chart-roi-dist', null); return; }
-  const counts = ROI_BUCKETS.map(([, lo, hi]) => withRoi.filter(s => s.roi > lo && s.roi <= hi).length);
-  renderChart('chart-roi-dist', {
-    type: 'bar',
-    data: {
-      labels: ROI_BUCKETS.map(b => b[0]),
-      datasets: [{ data: counts, backgroundColor: ROI_BUCKETS.map(b => b[2] <= 0 ? '#c0362c' : '#0b8a4a'), borderRadius: 4, maxBarThickness: 40 }]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...TOOLTIP, callbacks: { label: c => `${c.parsed.y} ${plural(c.parsed.y, 'transakcja', 'transakcje', 'transakcji')}` } }
-      },
-      scales: { x: { ...axisCat(), ticks: { ...axisCat().ticks, font: { size: 9 } } }, y: axisCount() }
-    }
-  });
-}
-
-function renderRankings() {
-  renderRank('rank-players', groupResults(c => c.player || 'Bez nazwy'), 'Dodaj karty, żeby zobaczyć, na kim realnie zarabiasz.');
-  renderRank('rank-products', groupResults(c => c.product || 'Bez produktu'), 'Po kilku transakcjach zobaczysz, które sety się bronią.');
-}
-
-function groupResults(keyFn) {
-  const map = new Map();
-  for (const c of M.cards) {
-    const k = keyFn(c);
-    if (!map.has(k)) map.set(k, { key: k, pnl: 0, basis: 0, n: 0, held: 0, sold: 0 });
-    const e = map.get(k);
-    e.pnl += c.pnl; e.basis += c.basis; e.n++;
-    if (c.sold) e.sold++; else e.held++;
-  }
-  return [...map.values()]
-    .map(e => ({ ...e, roi: e.basis > 0 ? e.pnl / e.basis * 100 : null }))
-    .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
-    .slice(0, 10);
-}
-
-function renderRank(id, rows, emptyText) {
-  const wrap = el(id);
-  if (!rows.length) { wrap.innerHTML = emptyBox('leaderboard', 'Brak danych', emptyText); return; }
-  const max = Math.max(...rows.map(r => Math.abs(r.pnl)), 1);
-  wrap.innerHTML = `<div class="cd-rank">${rows.map(r => `
-    <div class="cd-rank-row center">
-      <div class="t">${esc(r.key)}<small>${nCards(r.n)} · ${r.sold} sprzedanych · baza ${fmtPLN0(r.basis)}</small></div>
-      <div class="bar"><i class="${r.pnl < 0 ? 'neg' : 'pos'}" style="width:${Math.abs(r.pnl) / max * 50}%"></i></div>
-      <div class="v ${posClass(r.pnl)}">${fmtPLN0(r.pnl, true)}</div>
-      <div class="r">${fmtPct(r.roi)}</div>
-    </div>`).join('')}</div>`;
 }
 
 function renderTaxPanel() {
@@ -2466,47 +3287,6 @@ function renderTaxPanel() {
         <td class="num">${fmtPLN0(c.marketValue)}</td>
         <td class="num ${posClass(c.pnl)}">${fmtPLN0(c.pnl, true)}</td>
       </tr>`).join('')}</tbody></table>`;
-}
-
-function renderLiquidityPanel() {
-  const soldWithDays = M.sales.filter(s => s.days != null);
-  const dead = M.held.filter(c => (c.daysHeld || 0) > settings.agingDays);
-  const turnover = M.heldValue > 0 ? sum(M.sales.filter(s => daysBetween(s.date, today()) <= 365), s => s.net) / M.heldValue : null;
-  el('liq-strip').innerHTML = `
-    <div class="cell"><div class="k">Śr. czas do sprzedaży</div><div class="v">${soldWithDays.length ? Math.round(sum(soldWithDays, s => s.days) / soldWithDays.length) + ' dni' : '—'}</div></div>
-    <div class="cell"><div class="k">Mediana</div><div class="v">${soldWithDays.length ? Math.round(median(soldWithDays.map(s => s.days))) + ' dni' : '—'}</div></div>
-    <div class="cell"><div class="k">Martwy stock</div><div class="v ${dead.length ? 'warn' : 'pos'}">${dead.length}</div></div>
-    <div class="cell"><div class="k">Rotacja 12M</div><div class="v">${turnover == null ? '—' : turnover.toFixed(2) + '×'}</div></div>`;
-
-  if (!soldWithDays.length) { renderChart('chart-dts', null); return; }
-  const buckets = [['0–14', 0, 14], ['15–30', 15, 30], ['31–60', 31, 60], ['61–120', 61, 120], ['121–365', 121, 365], ['> rok', 366, Infinity]];
-  const counts = buckets.map(([, lo, hi]) => soldWithDays.filter(s => s.days >= lo && s.days <= hi).length);
-  const avgRoi = buckets.map(([, lo, hi]) => {
-    const list = soldWithDays.filter(s => s.days >= lo && s.days <= hi && s.roi != null);
-    return list.length ? sum(list, s => s.roi) / list.length : null;
-  });
-
-  renderChart('chart-dts', {
-    data: {
-      labels: buckets.map(b => b[0]),
-      datasets: [
-        { type: 'bar', label: 'Transakcje', data: counts, backgroundColor: '#0057c0', borderRadius: 4, maxBarThickness: 34, yAxisID: 'y' },
-        { type: 'line', label: 'Śr. ROI', data: avgRoi, borderColor: '#0b8a4a', borderWidth: 2, tension: 0.3, pointRadius: 3, fill: false, yAxisID: 'y1', spanGaps: true }
-      ]
-    },
-    options: {
-      maintainAspectRatio: false, responsive: true, animation: { duration: 200 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: legendBottom(),
-        tooltip: { ...TOOLTIP, displayColors: true, callbacks: { label: c => c.dataset.yAxisID === 'y1' ? `ROI ${fmtPct(c.parsed.y)}` : `${c.parsed.y} ${plural(c.parsed.y, 'transakcja', 'transakcje', 'transakcji')}` } }
-      },
-      scales: {
-        x: axisCat(), y: axisCount(),
-        y1: { position: 'right', grid: { display: false }, border: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: v => v + '%' } }
-      }
-    }
-  });
 }
 
 /* ============================================================
@@ -3070,12 +3850,12 @@ function resolveSellTarget(value) {
   if (!value) return null;
   const [kind, id] = value.split(':');
   if (kind === 'card') {
-    const card = M.byId.get(id) || M.sales.find(s => s.kind === 'card' && s.id === id)?.ref;
-    const computed = M.sales.find(s => s.kind === 'card' && s.id === id);
+    const card = M.byId.get(id) || M.deals.find(s => s.kind === 'card' && s.id === id)?.ref;
+    const computed = M.deals.find(s => s.kind === 'card' && s.id === id);
     return card ? { kind, id, card, basis: computed ? computed.basis : card.basis, suggest: card.marketValue } : null;
   }
-  const box = M.boxes.find(b => b.id === id) || M.sales.find(s => s.kind === 'box' && s.id === id)?.ref;
-  const computed = M.sales.find(s => s.kind === 'box' && s.id === id);
+  const box = M.boxes.find(b => b.id === id) || M.deals.find(s => s.kind === 'box' && s.id === id)?.ref;
+  const computed = M.deals.find(s => s.kind === 'box' && s.id === id);
   return box ? { kind, id, box, basis: computed ? computed.basis : box.landed, suggest: box.landed * 1.3 } : null;
 }
 
@@ -3795,6 +4575,11 @@ function drawerTimeline(c, box) {
     if (g.status === 'returned' && g.returnedDate) items.push([g.returnedDate, 'grade', `Powrót z gradingu${c.grade && c.grade.value ? ` — ocena ${esc(c.grade.value)}` : ''}`, '']);
   }
   if (c.listing) items.push([c.listing.date, 'val', `Wystawiona na ${esc(c.listing.channel || '—')}`, fmtPLN0(num(c.listing.price))]);
+  for (const r of (c.returns || [])) {
+    const x = returnCalc(r);
+    items.push([r.sale.date, 'sell', `Sprzedaż — ${esc(r.sale.channel || '—')} <span class="cd-ret-tag">zwrócona</span>`, fmtPLN0(x.net)]);
+    items.push([r.date, 'cost', `Zwrot od kupującego — karta wróciła na stan`, fmtPLN0(-x.outflow)]);
+  }
   if (c.sale) items.push([c.sale.date, 'sell', `Sprzedaż — ${esc(c.sale.channel || '—')}`, fmtPLN0(c.net)]);
   items.sort((a, b) => (a[0] < b[0] ? -1 : 1));
   if (!items.length) return '<div class="cd-note">Brak zdarzeń.</div>';
@@ -4048,6 +4833,8 @@ function bindEvents() {
     renderCapitalRecovery();
   });
 
+  bindDashEvents();
+
   el('eq-range').addEventListener('click', e => {
     const btn = e.target.closest('button[data-range]');
     if (!btn) return;
@@ -4144,6 +4931,11 @@ function bindEvents() {
   });
   el('sell-modal').addEventListener('input', updateSellCalc);
   el('sf-save').addEventListener('click', saveSale);
+
+  /* Modal: zwrot */
+  el('return-modal').addEventListener('input', updateReturnCalc);
+  el('return-modal').addEventListener('change', updateReturnCalc);
+  el('rf-save').addEventListener('click', saveReturn);
 
   /* Modal: wystawienie */
   el('list-modal').addEventListener('input', updateListCalc);
@@ -4330,6 +5122,20 @@ function desiredBudgetEntries(m) {
     }
   }
 
+  /* Zwroty: pierwotny wpływ zostaje w miesiącu sprzedaży, a zwrot to osobny
+     wydatek (albo przychód, gdy prowizja i dopłaty przewyższyły to, co oddano). */
+  for (const x of m.returns) {
+    const tag = `${x.kind === 'box' ? 'sealed' : 'karta'}: ${x.name}${x.r.sale.channel ? ` (${x.r.sale.channel})` : ''}`;
+    if (Math.abs(x.net) > 0.005) {
+      incomes.push({ id: `${INC_PREFIX}retsale_${x.r.id}`, date: x.r.sale.date, amount: x.net, note: `Karty — sprzedaż zwrócona, ${tag}` });
+    }
+    if (x.outflow > 0.005) {
+      expenses.push({ id: `${TX_PREFIX}ret_${x.r.id}`, date: x.r.date, amount: x.outflow, note: `Karty — zwrot, ${tag}` });
+    } else if (x.outflow < -0.005) {
+      incomes.push({ id: `${INC_PREFIX}ret_${x.r.id}`, date: x.r.date, amount: -x.outflow, note: `Karty — rozliczenie zwrotu, ${tag}` });
+    }
+  }
+
   for (const g of state.gradings) {
     const total = gradingTotal(g);
     if (g.date && total > 0.005) {
@@ -4491,7 +5297,7 @@ function renderBudgetPanel() {
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
-      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue)}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.sealedValue)}</div></div>
       <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
     </div>
     ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
@@ -4501,8 +5307,8 @@ function renderBudgetPanel() {
     <div class="cd-note" style="margin-top:10px">
       Do <strong>wydatków zmiennych</strong> trafiają zakupy boxów i kart single, wysyłki do gradingu oraz koszty ogólne —
       pull z boxa nie, bo pieniądze wyszły już przy jego zakupie. Do <strong>przychodów</strong> idzie kwota netto ze sprzedaży,
-      czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — do
-      <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”) idzie <strong>kapitał zamrożony</strong>:
-      baza kosztowa kart na stanie plus koszt boxów nieotwartych i niesprzedanych, bez wyceny papierowej.
+      czyli po prowizjach i wysyłce. Do <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”)
+      idą <strong>tylko sealed boxy na stanie</strong> w cenie zakupu. Karty to prywatna, mało płynna kolekcja —
+      do majątku trafiają dopiero jako gotówka na koncie po sprzedaży.
     </div>`;
 }

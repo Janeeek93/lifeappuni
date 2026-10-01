@@ -21,10 +21,10 @@ Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 | **Przegląd** | Wartość kolekcji, pasek odzysku kapitału, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
 | **Kolekcja** | Tabela kart z filtrami i sortowaniem, szczegóły karty z historią wyceny i osią zdarzeń |
 | **Boxy i breaki** | Sealed na stanie, wynik każdego breaka, EV produktów, flipy sealed |
-| **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, analiza kanałów |
+| **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, zwroty, raport ING, analiza kanałów, próg 6 miesięcy (PIT) |
 | **Grading** | Wysyłki do PSA/BGS/SGC/CGC, wynik gradingu, kalkulator opłacalności |
-| **Koszty** | Struktura wszystkich kosztów, przepływy miesięczne, rejestr kosztów ogólnych |
-| **Analityka** | Koncentracja portfela, wiek pozycji, rozkład ROI, rankingi, próg 6 miesięcy, płynność |
+| **Koszty** | Struktura wszystkich kosztów, przepływy miesięczne, koszt otwartych boxów miesięcznie (po dacie otwarcia, ze średnią 3 mies.), rozbicie wyniku (kontrola spójności), rejestr kosztów ogólnych |
+| **Analityka** | Zarządczy dashboard sprzedaży: tempo do tego samego dnia, dzień po dniu ze średnią 7-dniową, rentowność kanałów w wybranym okresie, trend tygodniowy i miesięczny |
 | **Watchlista** | Karty na celowniku z ceną docelową i luką do rynku |
 
 Przycisk **Wgraj dane demo** w Ustawieniach wypełnia moduł przykładową kolekcją
@@ -155,6 +155,69 @@ To ta sama informacja, na którą patrzy się przy decyzji „kupować dalej czy
 upłynnić": tempo netto mówi, w którą stronę idzie płynność, a drabina — co da się
 zamienić na gotówkę najszybciej.
 
+## Zwroty
+
+Zwrot księgujesz ikoną **↩** przy sprzedaży w *Sprzedaż → Historia sprzedaży*.
+Podajesz datę, ile oddałeś kupującemu (domyślnie pełna cena), czy platforma
+oddała prowizję i ile kosztowała wysyłka zwrotna. Karta wraca do kolekcji
+(opcjonalnie od razu jako wystawiona), box wraca do sealed na stanie — oba z tą
+samą bazą kosztową, gotowe do ponownej sprzedaży.
+
+Zwrot **nie kasuje** sprzedaży. Pierwotna transakcja zostaje w swoim dniu jako
+*zwrócona*, a w dniu zwrotu pojawia się korekta:
+
+| | Sprzedaż (dzień sprzedaży) | Korekta (dzień zwrotu) |
+|---|---|---|
+| Przychód | + cena | − oddane kupującemu |
+| Koszt towaru | + baza | − baza (towar wrócił) |
+| Prowizje | + prowizja | − prowizja, jeśli platforma ją oddała |
+| Wysyłka | + wysyłka | + wysyłka zwrotna |
+
+Razem obie linie dają dokładnie tyle, ile zwrot realnie kosztował:
+`netto ze sprzedaży − oddane kupującemu + zwrócona prowizja − wysyłka zwrotna`.
+Dzięki temu zamknięty miesiąc się nie zmienia, raport ING dostaje korektę ujemną
+w dniu zwrotu, budżet — wydatek „zwrot” w dniu zwrotu, a dashboard pokazuje
+przychód netto po zwrotach. Liczniki transakcji, win rate i czas do sprzedaży
+liczą tylko sprzedaże, które nie wróciły.
+
+Zwrot da się cofnąć (↩ w tabeli *Zwroty*), dopóki pozycja nie została
+sprzedana ponownie ani — w przypadku boxa — otwarta.
+
+## Analityka — dashboard sprzedaży
+
+Zakładka odpowiada na jedno pytanie: **jak idzie biznes**. Liczy wszystko z
+transakcji (karty + flipy sealed) po dacie sprzedaży, według tych definicji:
+
+```
+przychód     = cena sprzedaży brutto (zł)
+koszt towaru = baza kosztowa sprzedanej pozycji (z alokacją boxa i gradingiem)
+prowizje     = procent + opłata stała platformy
+wysyłka      = wysyłka wychodząca − dopłata kupującego
+zysk         = przychód − koszt towaru − prowizje − wysyłka
+marża        = zysk / przychód        ROI = zysk / koszt towaru
+```
+
+Zysk to dokładnie ten sam P&L, który widać w historii sprzedaży — dashboard go
+tylko rozkłada na składniki.
+
+| Sekcja | Co pokazuje |
+|---|---|
+| **Podsumowanie** | jeden akapit: miesiąc i tydzień do tego samego dnia, kierunek średniej 7-dniowej, prognoza miesiąca, najlepszy i najdroższy kanał z 30 dni |
+| **Kafle tempa** | dziś, tydzień do dziś, miesiąc do dziś, 30 dni, rok do dziś — każdy z % zmiany vs analogiczny okres — oraz liniowa prognoza miesiąca vs cały poprzedni miesiąc |
+| **Tempo do tego samego dnia** | krzywe narastające: tydzień (pn–nd) vs poprzedni i średnia 4 tygodni; miesiąc (1…31) vs poprzedni z prognozą do końca |
+| **Dzień po dniu** | słupki dzienne ze średnią kroczącą 7 i 28 dni (30D / 90D / 6M / 1R) i paskiem statystyk |
+| **Rentowność kanałów** | okres do wyboru (tydzień, miesiąc, rok, 30 dni, całość, własny zakres od–do, strzałki ‹ › przesuwają okres); KPI z porównaniem do poprzedniego okresu, wykres „na co idzie przychód" (koszt towaru / prowizje / wysyłka / zysk w zł albo % przychodu), wnioski i tabela kanałów |
+| **Trend w czasie** | tygodnie albo miesiące: przychód albo zysk (wg „Miary tempa”) z linią marży, wartość skumulowana od początku, rachunek wyników ostatnich 12 okresów |
+
+Przełączniki u góry: **Miara tempa** (przychód / zysk) steruje kaflami, krzywymi
+tempa, wykresem dziennym i trendem; **Towar** (wszystko / karty / sealed) filtruje cały dashboard.
+Wybory zapisują się w ustawieniach modułu.
+
+**„Do tego samego dnia"**: okres w toku zawsze porównuje się z poprzednim uciętym
+na analogicznym dniu — w środę tydzień to pn–śr vs pn–śr poprzedniego tygodnia,
+28 września to 1–28 września vs 1–28 sierpnia (przy krótszym miesiącu do jego
+ostatniego dnia). Daty liczone w UTC, tak jak reszta modułu.
+
 ## Jak spina się rachunek
 
 Podstawowa tożsamość, liczona wprost:
@@ -164,7 +227,7 @@ wynik łączny = majątek + wpływy − wydatki
 ```
 
 gdzie majątek to wycena kart na stanie + sealed w cenie zakupu + wartość bulku.
-Rozbicie na czynniki (pasek pod wykresem w Analityce):
+Rozbicie na czynniki (sekcja **Rozbicie wyniku** w zakładce Koszty):
 
 ```
 wynik łączny = zysk zrealizowany
@@ -238,13 +301,31 @@ Moduł publikuje podsumowanie do wspólnego magazynu `lifeos_kpis_v1` (klucz `ca
 a Salda EOM tylko je odczytują — budżet nie musi znać modelu danych kolekcji.
 
 Przy pierwszym wejściu w Salda EOM, gdy moduł Karty ma już jakieś dane, zakłada się
-konto **Karty** typu Inwestycje. Przycisk **Pobierz aktualne** (globalny albo ⭳ przy
-wierszu) wstawia w nie **majątek łącznie**: wycena kolekcji + sealed w cenie zakupu
-+ wartość bulku. Konto Karty nigdy nie dostanie wartości portfela inwestycyjnego,
+konto **Karty** w grupie Alternatywne. Przycisk **Pobierz aktualne** (globalny albo ⭳
+przy wierszu) wstawia w nie **tylko sealed boxy na stanie w cenie zakupu**. Karty to
+prywatna, mało płynna kolekcja — do majątku trafiają dopiero jako gotówka na koncie
+po sprzedaży. Konto Karty nigdy nie dostanie wartości portfela inwestycyjnego,
 nawet gdy nie ma skonfigurowanego mostka.
 
-W panelu *Połączenie z inwestycjami* można zmapować dokładniej — dostępne źródła:
-majątek łącznie, sama wartość kolekcji, sam sealed, sama baza kosztowa.
+W panelu *Połączenie z inwestycjami* można to świadomie zmienić — dostępne źródła:
+sealed na stanie, kapitał zamrożony, majątek łącznie, wartość kolekcji, baza kosztowa.
+Mostki, które wcześniej kierowały do konta Karty kolekcję albo kapitał zamrożony,
+zostały jednorazowo przepięte na sealed (flaga `cardsEomSealedMigrated`).
+
+### Salda EOM — pieniądze oczekujące
+
+Osobna grupa **Oczekujące** w księgowaniu sald, wpisywana ręcznie:
+
+| Konto | Co wpisać |
+|---|---|
+| **Vinted**, **Empik**, **Allegro** | saldo na marketplace, które jeszcze nie zostało wypłacone na konto |
+| **Zamówienia w drodze** | opłacone zamówienia (np. boxy), które nie dotarły i nie są jeszcze w Kartach jako sealed na stanie |
+
+Konta zakładają się raz (flaga `pendingAccountsSeeded`). Istniejące konto o tej samej
+nazwie — np. dotychczasowe „Vinted" — zostaje przeniesione do grupy razem z historią
+sald. Kolejne marketplace dodaje się formularzem „Dodaj konto" z typem *Oczekujące*.
+Gdy zamówienie dotrze i zaksięgujesz je w Kartach, zmniejsz „Zamówienia w drodze" —
+wartość przejdzie na konto Karty przy następnym „Pobierz aktualne".
 
 Skasowane konto „Karty" nie wraca (flaga `cardsAccountSeeded` w budżecie).
 Publikowanie wartości do EOM działa niezależnie od księgowania wydatków — można
