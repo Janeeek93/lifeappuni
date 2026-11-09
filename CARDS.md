@@ -407,6 +407,22 @@ Jeśli w tej samej JDG są inne czynności z VAT (np. faktury za usługi), dopis
 
 Moduł planuje i przygotowuje dane dla księgowej — nie generuje JPK.
 
+### Firma osobno od prywatnych
+
+Zakładka **Koszty → Połączenie z budżetem → Firma osobno** (albo Ustawienia). Od wybranej daty
+budżet domowy widzi działalność tak jak każdą firmę:
+
+| Ruch | Co trafia do Budżetu |
+|---|---|
+| Wypłata z działalności | przychód „Karty — wypłata z działalności” |
+| Wpłata z budżetu do działalności | wydatek „Karty — wpłata do działalności” |
+| Zakupy, sprzedaże, koszty, VAT za karty | nic — zostają w module Karty |
+| VAT od pozycji spoza kart (np. usług w tej samej JDG) | wydatek w Wydatkach stałych w dniu terminu |
+
+Wpisy sprzed daty rozdzielenia zostają bez zmian. Panel pokazuje **gotówkę w firmie**
+(stan na start + sprzedaże netto − zakupy, koszty i VAT + wpłaty − wypłaty) i **ile można wypłacić**
+po odłożeniu VAT z otwartych okresów.
+
 ## Import, eksport, kopie
 
 - **Import wklejką** (Kolekcja → Import): `zawodnik; produkt; parallel; nakład; cena; wartość dziś; data`.
