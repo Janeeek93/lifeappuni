@@ -34,7 +34,8 @@ const DEFAULT_SETTINGS = {
     period: 'M',           // M — JPK_V7M, Q — JPK_V7K
     defaultDoc: 'fv',      // dokument zakupu podstawiany w nowych boxach i kartach
     carryIn: 0,            // nadwyżka VAT naliczonego z okresu sprzed modułu
-    opening: null          // zatwierdzona korekta remanentowa { lockedAt, total, count }
+    opening: null,         // zatwierdzona korekta remanentowa { lockedAt, total, count }
+    plan: {}               // planowane ceny brutto sealed wg nazwy produktu
   },
   channels: [
     { name: 'Vinted', fee: 0 },
@@ -322,7 +323,8 @@ function saleGross(sale) {
 /* Dokument zakupu decyduje o dwóch rzeczach: czy VAT z zakupu da się
    odliczyć i czy przy odsprzedaży wolno zastosować VAT-marżę. */
 const VAT_DOCS = {
-  fv:      { label: 'Faktura VAT (PL)',                 short: 'FV',    deduct: true,  margin: false, hint: 'VAT z faktury odliczasz' },
+  fv:      { label: 'Faktura VAT na Twoje dane (PL)',   short: 'FV',    deduct: true,  margin: false, hint: 'VAT z faktury odliczasz — także z faktury bez NIP, ale na dane firmy (uzupełnij NIP notą korygującą)' },
+  oss:     { label: 'Faktura z UE z polskim VAT 23% (OSS)', short: 'OSS', deduct: true, margin: false, hint: 'sklep z UE naliczył polski VAT — odliczasz w korekcie za towar sprzed rejestracji; po rejestracji kupuj jako WNT' },
   wnt:     { label: 'WNT — faktura z UE bez VAT',        short: 'WNT',   deduct: false, margin: false, hint: 'VAT-UE: naliczasz i odliczasz 23% — neutralnie' },
   import:  { label: 'Import spoza UE (VAT z odprawy)',  short: 'IMP',   deduct: true,  margin: false, hint: 'odliczasz VAT zapłacony przy odprawie' },
   foreign: { label: 'Paragon / VAT zagraniczny',        short: 'BRAK',  deduct: false, margin: false, hint: 'brak odliczenia, sprzedaż z 23% od całości' },
@@ -343,6 +345,7 @@ function vatDocOptions(withUnknown) {
 function vatDocHint(doc, date) {
   const d = VAT_DOCS[doc] || VAT_DOCS.unknown;
   if (!vatOn()) return d.hint;
+  if (doc === 'oss' && date && date >= vatFrom()) return 'po rejestracji VAT z faktury OSS zwykle nie podlega odliczeniu — podaj sklepowi numer VAT-UE i wybierz WNT';
   if (date && date < vatFrom() && d.deduct) return `${d.hint} — zakup sprzed ${fmtDate(vatFrom())}, więc przez korektę za towar na stanie`;
   return d.hint;
 }
@@ -360,7 +363,9 @@ function vatDocOf(p) {
   if (!p) return 'unknown';
   if (p.vatDoc && VAT_DOCS[p.vatDoc]) return p.vatDoc;
   if (p.acq && p.acq !== 'single' && p.acq !== 'box') return 'private';   // wymiana, prezent
-  return p.currency && p.currency !== 'PLN' ? 'foreign' : 'unknown';
+  /* Zakup bez wskazanego dokumentu zostaje „nieokreślony” niezależnie od waluty —
+     sklepy z UE zwykle naliczają polski VAT (OSS), więc waluta nic nie przesądza. */
+  return 'unknown';
 }
 
 /** Wartość towaru z zakupu (bez cła) w złotówkach — podstawa do VAT z faktury. */
@@ -379,6 +384,13 @@ function purchaseVat(p) {
   const doc = vatDocOf(p);
   const manual = numOrNull(p.vatIn);
   if (doc === 'fv') return { doc, deductible: manual !== null ? manual : vatInGross(purchaseGoodsPLN(p)), wnt: 0 };
+  /* OSS: przed rejestracją (podmiot zwolniony poniżej progu WNT 50 tys. zł) to prawidłowa
+     sprzedaż wysyłkowa z polskim VAT — moduł bierze ją do korekty. Po rejestracji VAT-owiec
+     powinien kupować jako WNT, a VAT z faktury OSS co do zasady nie podlega odliczeniu. */
+  if (doc === 'oss') {
+    const pre = vatOn() && p.date && p.date < vatFrom();
+    return { doc, deductible: pre ? (manual !== null ? manual : vatInGross(purchaseGoodsPLN(p))) : 0, wnt: 0 };
+  }
   if (doc === 'import') return { doc, deductible: manual !== null ? manual : 0, wnt: 0 };
   if (doc === 'wnt') return { doc, deductible: 0, wnt: manual !== null ? manual : purchaseGoodsPLN(p) * vatRate() / 100 };
   return { doc, deductible: 0, wnt: 0 };
@@ -1556,6 +1568,10 @@ function renderTodo() {
   });
   if (taxSoon.length) {
     items.push(['info', 'gavel', `<strong>${nCards(taxSoon.length)}</strong> zbliża się do progu 6 miesięcy. Po nim sprzedaż rzeczy ruchomych jest poza PIT — czasem warto poczekać kilka tygodni.`, 'goTab("analytics")']);
+  }
+  const future = M.sales.filter(x => x.date > today());
+  if (future.length) {
+    items.push(['bad', 'event', `<strong>${future.length}</strong> ${plural(future.length, 'sprzedaż ma', 'sprzedaże mają', 'sprzedaży ma')} datę w przyszłości (np. ${esc(future[0].name)} — ${fmtDate(future[0].date)}). To pewnie literówka, a przez nią VAT ląduje w złym okresie.`, 'goTab("sales")']);
   }
   if (M.emptyBreaks.length) {
     items.push(['bad', 'report', `<strong>${nBoxes(M.emptyBreaks.length)}</strong> ${plural(M.emptyBreaks.length, 'jest oznaczony', 'są oznaczone', 'jest oznaczonych')} jako otwarte, ale bez wpisanej karty. ${fmtPLN0(M.emptyBreakCost)} wisi w kosztach bez pokrycia — dopisz pully, cofnij otwarcie albo usuń box.`, 'goTab("boxes")']);
@@ -3077,10 +3093,10 @@ function updateCardCalc() {
   const pnl = market > 0 ? market - basis : null;
   let vatCell = '';
   if (vatOn() && acq !== 'box') {
-    const probe = { price: getVal('cf-price'), shipping: getVal('cf-shipping'), fees: getVal('cf-fees'), currency, fx: getVal('cf-fx'), vatDoc: getVal('cf-vat-doc'), vatIn: getVal('cf-vat-in'), acq };
+    const probe = { price: getVal('cf-price'), shipping: getVal('cf-shipping'), fees: getVal('cf-fees'), currency, fx: getVal('cf-fx'), vatDoc: getVal('cf-vat-doc'), vatIn: getVal('cf-vat-in'), acq, date: getVal('cf-date') };
     const pv = purchaseVat(probe);
     el('cf-vat-hint').textContent = vatDocHint(pv.doc, getVal('cf-date'));
-    el('cf-vat-in').placeholder = pv.doc === 'fv' ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
+    el('cf-vat-in').placeholder = (pv.doc === 'fv' || pv.doc === 'oss') ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
     vatCell = `<div class="cell"><div class="k">Koszt netto po odliczeniu VAT</div><div class="v">${fmtPLN(own - pv.deductible)}</div></div>`;
   }
   el('cf-calc').innerHTML = vatCell + `
@@ -3213,10 +3229,10 @@ function updateBoxCalc() {
   const landed = (num(getVal('bf-price')) + num(getVal('bf-shipping')) + num(getVal('bf-fees'))) * fx + num(getVal('bf-customs'));
   let vatCells = '';
   if (vatOn()) {
-    const probe = { price: getVal('bf-price'), shipping: getVal('bf-shipping'), fees: getVal('bf-fees'), currency, fx: getVal('bf-fx'), vatDoc: getVal('bf-vat-doc'), vatIn: getVal('bf-vat-in') };
+    const probe = { price: getVal('bf-price'), shipping: getVal('bf-shipping'), fees: getVal('bf-fees'), currency, fx: getVal('bf-fx'), vatDoc: getVal('bf-vat-doc'), vatIn: getVal('bf-vat-in'), date: getVal('bf-date') };
     const pv = purchaseVat(probe);
     el('bf-vat-hint').textContent = vatDocHint(pv.doc, getVal('bf-date'));
-    el('bf-vat-in').placeholder = pv.doc === 'fv' ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
+    el('bf-vat-in').placeholder = (pv.doc === 'fv' || pv.doc === 'oss') ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
     const netCost = landed - pv.deductible;
     const be = breakEvenGross(netCost, 0, VAT_DOCS[pv.doc].margin ? 'margin' : 'std', landed);
     vatCells = `<div class="cell"><div class="k">VAT do odliczenia</div><div class="v pos">${fmtPLN(pv.deductible)}</div></div>
@@ -3638,6 +3654,7 @@ function updateListCalc() {
     <div class="cell"><div class="k">${vatOn() ? 'Zostaje po VAT' : 'Oczekiwane netto'}</div><div class="v">${fmtPLN(net)}</div></div>
     <div class="cell"><div class="k">Baza kosztowa</div><div class="v">${fmtPLN(card.basis)}</div></div>
     <div class="cell"><div class="k">Wynik</div><div class="v ${posClass(pnl)}">${fmtPLN(pnl, true)}</div></div>
+    <div class="cell"><div class="k">ROI${vatOn() ? ' netto' : ''}</div><div class="v ${posClass(pnl)}">${card.basis > 0 ? fmtPct(pnl / card.basis * 100) : '—'}</div></div>
     <div class="cell"><div class="k">Cena na cel ${settings.targetMargin}%</div><div class="v warn">${targetPrice > 0 ? fmtPLN(targetPrice) : '—'}</div></div>`;
 }
 
@@ -4031,9 +4048,11 @@ function renderVatOpening() {
       <span>Od zatwierdzenia korekta zmieniła się o <strong>${fmtPLN(diff, true)}</strong> (było ${fmtPLN(num(locked.total))}). Jeśli JPK za ${vatPeriodLabel(vatPeriodOf(from))} już poszedł, potrzebna będzie jego korekta.</span></div>` : ''}
     <div class="cd-note" style="margin-top:10px">
       Każdy wiersz to jeden zakup sprzed rejestracji, z którego coś leżało na stanie ${fmtDate(from)}. Wybierz, czym go
-      udokumentowałeś. <strong>Faktura VAT na firmę</strong> daje odliczenie VAT od tej części, która była na stanie
-      (dla otwartych boxów: od kart niesprzedanych do ${fmtDate(from)} i od bulku). <strong>Paragon albo zakup w zagranicznym sklepie z ich VAT</strong>
-      — bez odliczenia. <strong>Od osoby prywatnej</strong> — bez odliczenia, ale sprzedaż pójdzie w VAT-marży.
+      udokumentowałeś. <strong>Faktura VAT na Twoje dane</strong> (także bez NIP — warto dopisać go notą korygującą) albo
+      <strong>faktura z UE z polskim VAT 23% (OSS)</strong> daje odliczenie od tej części, która była na stanie
+      (dla otwartych boxów: od kart niesprzedanych do ${fmtDate(from)} i od bulku). Kwota VAT podstawia się jako 23/123 ceny w złotówkach —
+      jeśli faktura podaje inną, wpisz ją. <strong>Paragon bez NIP albo VAT niemiecki (19%)</strong> — bez odliczenia.
+      <strong>Od osoby prywatnej</strong> — bez odliczenia, ale sprzedaż pójdzie w VAT-marży.
       ${!locked ? `Gdy wszystko się zgadza i korekta trafi do JPK, kliknij <em>Zatwierdź</em> — moduł zapamięta kwotę i ostrzeże, gdyby coś ją później zmieniło.` : ''}
     </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -4051,6 +4070,8 @@ function renderVatOpening() {
     if (vatOpeningFilter === 'unknown') return g.doc === 'unknown';
     if (vatOpeningFilter === 'deduct') return d.deduct;
     if (vatOpeningFilter === 'none') return !d.deduct;
+    if (vatOpeningFilter === 'pln') return g.currency === 'PLN';
+    if (vatOpeningFilter === 'fx') return g.currency !== 'PLN';
     return true;
   });
   el('vo-count').textContent = `${rows.length} / ${all.length} ${plural(all.length, 'zakup', 'zakupy', 'zakupów')}`;
@@ -4064,7 +4085,7 @@ function renderVatOpening() {
     <thead><tr>
       <th style="width:28px"><input type="checkbox" id="vo-all"${dis} /></th>
       <th>Zakup</th><th>Na stanie ${fmtDate(from)}</th><th class="num">Koszt stanu</th>
-      <th style="min-width:210px">Dokument zakupu</th><th class="num">VAT z faktury / szt.</th><th class="num">Korekta</th><th class="num">Licz</th>
+      <th style="min-width:210px">Dokument zakupu</th><th class="num" title="Puste = 23/123 ceny brutto. Przy fakturze w EUR wpisz VAT w zł po kursie NBP z dnia przed dostawą.">VAT z faktury / szt. (zł)</th><th class="num">Korekta</th><th class="num">Licz</th>
     </tr></thead>
     <tbody>${rows.map(g => {
       const idx = all.indexOf(g);
@@ -4074,7 +4095,7 @@ function renderVatOpening() {
       if (g.sealed) parts.push(`${g.sealed} ${g.type === 'box' ? 'sealed' : ''}`);
       if (g.opened) parts.push(`${g.opened} ${plural(g.opened, 'otwarty', 'otwarte', 'otwartych')} · ${nCards(g.cards)}`);
       if (g.single) parts.push('karta single');
-      const autoVat = g.doc === 'fv' ? vatInGross(g.unitGoods) : 0;
+      const autoVat = (g.doc === 'fv' || g.doc === 'oss') ? vatInGross(g.unitGoods) : 0;
       const vatEditable = d.deduct;
       return `<tr class="${g.doc === 'unknown' ? 'cd-vat-unknown' : ''}${g.skip ? ' is-paper' : ''}" data-idx="${idx}">
         <td><input type="checkbox" class="vo-sel" data-idx="${idx}"${vatOpeningSelected.has(g.key) ? ' checked' : ''}${dis} /></td>
@@ -4132,7 +4153,7 @@ function exportVatOpening() {
   const rows = vatOpeningCandidates().map(g => [
     g.date, g.name, g.source, from, g.sealed, g.opened, g.cards + g.single, g.stockGross.toFixed(2),
     (VAT_DOCS[g.doc] || VAT_DOCS.unknown).label,
-    g.doc === 'fv' ? (g.vatIn != null ? num(g.vatIn) : vatInGross(g.unitGoods)).toFixed(2) : (g.doc === 'import' ? num(g.vatIn).toFixed(2) : ''),
+    (g.doc === 'fv' || g.doc === 'oss') ? (g.vatIn != null ? num(g.vatIn) : vatInGross(g.unitGoods)).toFixed(2) : (g.doc === 'import' ? num(g.vatIn).toFixed(2) : ''),
     g.corr.toFixed(2), g.skip ? 'nie' : 'tak'
   ]);
   download(`spis_z_natury_${from}.csv`, [head, ...rows].map(r => r.map(csvCell).join(';')).join('\n'));
@@ -4245,6 +4266,7 @@ function renderVatPricing() {
   const ch = settings.channels.find(c => c.name === chName);
   const fee = ch ? num(ch.fee) : 0;
   const margin = num(el('vp-margin').value);
+  const plan = settings.vat.plan || {};
 
   const history = groupBy(M.flipped, b => b.name);
   const groups = [...groupBy(M.sealed, b => b.name).entries()].map(([name, list]) => {
@@ -4254,10 +4276,14 @@ function renderVatPricing() {
     const scheme = list[0].vatScheme;
     const past = history.get(name) || [];
     const avgPrice = past.length ? sum(past, b => saleGross(b.sale)) / past.length : null;
-    const keepAt = price => price * (1 - fee / 100) - outputVat(scheme, price, grossCost);
-    const profit = avgPrice != null ? keepAt(avgPrice) - netCost : null;
+    const planned = num(plan[name]) || null;
+    const price = planned || avgPrice;
+    const vat = price != null ? outputVat(scheme, price, grossCost) : null;
+    const keep = price != null ? price * (1 - fee / 100) - vat : null;
+    const profit = keep != null ? keep - netCost : null;
     return {
-      name, n, grossCost, netCost, ded: grossCost - netCost, scheme, avgPrice, pastN: past.length, profit,
+      name, n, grossCost, netCost, ded: grossCost - netCost, scheme, avgPrice, pastN: past.length, planned, price, vat, keep, profit,
+      roi: profit != null && netCost > 0 ? profit / netCost * 100 : null,
       be: breakEvenGross(netCost, fee, scheme, grossCost),
       target: breakEvenGross(netCost * (1 + margin / 100), fee, scheme, grossCost)
     };
@@ -4265,24 +4291,35 @@ function renderVatPricing() {
 
   el('vp-count').textContent = `${M.sealed.length} sealed · ${groups.length} ${plural(groups.length, 'produkt', 'produkty', 'produktów')}`;
   if (!groups.length) { el('vp-wrap').innerHTML = emptyBox('price_check', 'Brak sealed na stanie', 'Kupione boxy pojawią się tu z ceną minimalną po VAT.'); return; }
-  el('vp-wrap').innerHTML = `<table class="tc-tbl">
+  const priced = groups.filter(g => g.profit != null);
+  const totCost = sum(priced, g => g.netCost * g.n);
+  const totProfit = sum(priced, g => g.profit * g.n);
+  el('vp-wrap').innerHTML = `<table class="tc-tbl cd-vat-tbl">
     <thead><tr>
-      <th>Produkt</th><th class="num">Szt.</th><th class="num">Koszt brutto</th><th class="num">VAT odliczony</th><th class="num">Koszt netto</th><th>VAT przy sprzedaży</th>
-      <th class="num">Dotychczas sprzedawałeś po</th><th class="num">Zysk / szt. przy tej cenie</th><th class="num">Próg zera</th><th class="num">Cena na ${fmtNum(margin)}%</th>
+      <th>Produkt</th><th class="num">Szt.</th><th class="num">Koszt brutto</th><th class="num">VAT odliczony</th><th class="num">Koszt netto</th>
+      <th class="num">Próg zera</th><th class="num">Cena na ${fmtNum(margin)}%</th><th class="num">Dotąd sprzedawałeś po</th>
+      <th class="num">Twoja cena brutto</th><th class="num">VAT należny</th><th class="num">Zostaje</th><th class="num">Zysk / szt.</th><th class="num">ROI netto</th>
     </tr></thead>
     <tbody>${groups.map(g => `<tr>
-      <td><strong>${esc(g.name)}</strong></td>
+      <td><div class="cd-name"><span class="t">${esc(g.name)}</span><span class="s">${g.scheme === 'margin' ? 'VAT-marża' : g.scheme === 'zero' ? '0%' : 'VAT 23% od całej ceny'}</span></div></td>
       <td class="num">${g.n}</td>
       <td class="num cd-muted">${fmtPLN0(g.grossCost)}</td>
       <td class="num ${g.ded > 0.005 ? 'pos' : 'cd-muted'}">${g.ded > 0.005 ? fmtPLN0(g.ded) : '—'}</td>
       <td class="num">${fmtPLN0(g.netCost)}</td>
-      <td class="cd-muted">${g.scheme === 'margin' ? 'marża' : g.scheme === 'zero' ? '0%' : '23% od całości'}</td>
-      <td class="num">${g.avgPrice != null ? `${fmtPLN0(g.avgPrice)} <small class="cd-muted">(${g.pastN}×)</small>` : '<span class="cd-muted">—</span>'}</td>
-      <td class="num ${g.profit == null ? '' : posClass(g.profit)}">${g.profit == null ? '—' : fmtPLN0(g.profit, true)}</td>
       <td class="num warn">${fmtPLN0(g.be)}</td>
       <td class="num"><strong>${fmtPLN0(g.target)}</strong></td>
+      <td class="num">${g.avgPrice != null ? `${fmtPLN0(g.avgPrice)} <small class="cd-muted">(${g.pastN}×)</small>` : '<span class="cd-muted">—</span>'}</td>
+      <td class="num"><input class="vp-price" data-name="${esc(g.name)}" inputmode="decimal" style="width:80px;text-align:right" value="${g.planned ? esc(g.planned) : ''}" placeholder="${g.avgPrice != null ? g.avgPrice.toFixed(0) : ''}" /></td>
+      <td class="num cd-neg">${g.vat != null ? fmtPLN0(-g.vat) : '—'}</td>
+      <td class="num">${g.keep != null ? fmtPLN0(g.keep) : '—'}</td>
+      <td class="num ${g.profit == null ? '' : posClass(g.profit)}">${g.profit == null ? '—' : fmtPLN0(g.profit, true)}</td>
+      <td class="num ${g.roi == null ? '' : g.roi >= margin ? 'pos' : g.roi >= 0 ? 'warn' : 'neg'}">${g.roi == null ? '—' : fmtPct(g.roi)}</td>
     </tr>`).join('')}</tbody>
-  </table>`;
+    <tfoot><tr><td colspan="8">Gdyby wszystko z ceną zeszło po tych cenach (${priced.reduce((a, g) => a + g.n, 0)} szt.)</td><td colspan="3"></td>
+      <td class="num ${posClass(totProfit)}">${fmtPLN0(totProfit, true)}</td><td class="num ${posClass(totProfit)}">${totCost > 0 ? fmtPct(totProfit / totCost * 100) : '—'}</td></tr></tfoot>
+  </table>
+  <div class="cd-note" style="margin:10px 14px 14px">Puste pole ceny = średnia z Twoich dotychczasowych sprzedaży tego produktu (szare). Wpisana cena zapamiętuje się.
+  „Zostaje” to brutto minus prowizja kanału minus VAT należny; ROI netto liczony od kosztu netto (po odliczonym VAT).</div>`;
 }
 
 function vatRulesHtml() {
@@ -4290,8 +4327,9 @@ function vatRulesHtml() {
   return `<strong>Jak moduł liczy VAT</strong> (od ${fmtDate(vatFrom())}, stawka ${fmtNum(r)}%):
   <ul style="margin:6px 0 0 18px;padding:0;line-height:1.6">
     <li><strong>Sprzedaż</strong> — domyślnie VAT ${fmtNum(r)}% zawarty w cenie brutto (${fmtNum(r)}/${100 + r} kwoty). Towar kupiony od osoby prywatnej albo na fakturę VAT-marża idzie w <strong>procedurze marży</strong>: VAT tylko od różnicy między ceną sprzedaży a zakupu. Schemat da się zmienić ręcznie przy każdej sprzedaży. Marżę na towarach używanych potwierdź z księgową — wymaga dopisku „procedura marży — towary używane” na fakturze.</li>
-    <li><strong>Zakup</strong> — VAT z faktury krajowej i z odprawy importowej obniża koszt towaru i wraca w rozliczeniu. VAT zapłacony w zagranicznym sklepie jako konsument i zakup na paragon nie dają odliczenia.</li>
-    <li><strong>Zakupy w UE</strong> — z numerem VAT-UE sklep z Niemiec sprzedaje bez swojego VAT (19%), a Ty wykazujesz WNT: ${fmtNum(r)}% należny i ${fmtNum(r)}% naliczony, saldo zero. Przy obecnych zakupach w EUR to kilkanaście procent taniej na każdym boxie.</li>
+    <li><strong>Zakup</strong> — VAT z faktury obniża koszt towaru i wraca w rozliczeniu. Liczy się faktura wystawiona na Ciebie jako firmę — brak NIP to wada formalna, którą usuwasz notą korygującą; paragon z NIP do 450 zł też jest fakturą. Paragon bez NIP i VAT niemiecki (19%) nie dają odliczenia.</li>
+    <li><strong>Sklepy z UE z polskim VAT 23% (OSS)</strong> — przed rejestracją, jako zwolniony poniżej progu 50 tys. zł zakupów z UE, kupowałeś prawidłowo z polskim VAT; moduł bierze go do korekty. To obszar, w którym urząd bywa wymagający — dobrze to potwierdzić z księgową przed złożeniem JPK. Po rejestracji podawaj numer VAT-UE i kupuj jako WNT.</li>
+    <li><strong>Zakupy w UE od teraz</strong> — z numerem VAT-UE sklep wystawia fakturę netto, a Ty wykazujesz WNT: ${fmtNum(r)}% należny i ${fmtNum(r)}% naliczony, saldo zero. Efekt jest taki sam jak odliczenie, ale bez sporu o fakturę OSS.</li>
     <li><strong>Towar na stanie w dniu rejestracji</strong> — korekta VAT naliczonego z faktur zakupu (art. 91 ust. 7d ustawy o VAT) w JPK za pierwszy okres. Podstawą jest spis z natury na ${fmtDate(vatFrom())} — pobierz go przyciskiem przy korekcie.</li>
     <li><strong>Ryczałt</strong> — przychodem jest kwota netto, bez VAT należnego. Raport DW w zakładce Sprzedaż od ${fmtDate(vatFrom())} pokazuje już netto.</li>
     <li><strong>Kasa fiskalna</strong> — sprzedaż osobom prywatnym wymaga kasy, chyba że korzystasz ze zwolnienia dla sprzedaży wysyłkowej opłaconej w całości przez bank lub pośrednika płatności, z ewidencją przypisującą płatność do transakcji. Warto to potwierdzić przed pierwszą sprzedażą.</li>
@@ -4333,6 +4371,14 @@ function bindVatEvents() {
   el('vr-export').addEventListener('click', exportVatRegister);
   el('vp-channel').addEventListener('change', renderVatPricing);
   el('vp-margin').addEventListener('input', renderVatPricing);
+  el('vp-wrap').addEventListener('change', e => {
+    if (!e.target.classList.contains('vp-price')) return;
+    settings.vat.plan = settings.vat.plan || {};
+    const v = num(e.target.value);
+    if (v > 0) settings.vat.plan[e.target.dataset.name] = v; else delete settings.vat.plan[e.target.dataset.name];
+    savePrefs();
+    renderVatPricing();
+  });
 }
 
 /* ============================================================
