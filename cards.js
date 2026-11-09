@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
     carryIn: 0,            // nadwyżka VAT naliczonego z okresu sprzed modułu
     extra: [],             // pozycje JPK spoza kart (np. usługi w tej samej JDG): { id, date, label, side: out|in, base, vat }
     opening: null,         // zatwierdzona korekta remanentowa { lockedAt, total, count }
+    paid: {},              // zapłacone okresy: { '2026-10': '2026-11-20' }
     plan: {}               // planowane ceny brutto sealed wg nazwy produktu
   },
   channels: [
@@ -621,6 +622,7 @@ function buildVatLedger(attr, sales) {
     p.dueDate = vatPeriodDue(key);
     p.closed = today() > vatPeriodEnd(key);
     p.current = key === nowKey;
+    p.paidOn = (settings.vat.paid || {})[key] || null;
     carry = p.carryOut;
     return p;
   });
@@ -4718,11 +4720,11 @@ function renderVat() {
 
   const L = M.vatLedger;
   const t = today();
-  const pending = L.periods.find(p => p.closed && p.dueDate >= t && p.payable > 0.005);
+  const pending = L.periods.find(p => p.closed && !p.paidOn && p.payable > 0.005);
   const cur = L.current;
   if (pending) {
-    el('v-pay-k').textContent = `Do zapłaty do ${fmtDate(pending.dueDate)}`;
-    setKpi('v-pay', fmtPLN0(pending.payable), `za ${vatPeriodLabel(pending.key)} — przelew na mikrorachunek`, 'warn');
+    el('v-pay-k').textContent = pending.dueDate < t ? `Po terminie (${fmtDate(pending.dueDate)})` : `Do zapłaty do ${fmtDate(pending.dueDate)}`;
+    setKpi('v-pay', fmtPLN0(pending.payable), `za ${vatPeriodLabel(pending.key)} — przelew na mikrorachunek`, pending.dueDate < t ? 'neg' : 'warn');
   } else if (cur) {
     el('v-pay-k').textContent = cur.due >= 0 ? 'Narasta do zapłaty' : 'Narasta nadwyżka';
     setKpi('v-pay', fmtPLN0(Math.abs(cur.due)), `${vatPeriodLabel(cur.key)} · termin ${fmtDate(cur.dueDate)}`, cur.due > 0 ? 'warn' : 'pos');
@@ -4734,15 +4736,20 @@ function renderVat() {
   const corr = sum(L.periods, p => p.corrVat);
   const locked = settings.vat.opening;
   setKpi('v-corr', fmtPLN0(corr), locked ? `zatwierdzona ${fmtDate(locked.lockedAt)}` : `do JPK za ${vatPeriodLabel(vatPeriodOf(vatFrom()))} — niezatwierdzona`, corr > 0 ? 'pos' : '');
+  el('v-corr').closest('.tc-kpi').style.display = locked ? 'none' : '';
+  const fold = el('vo-fold');
+  if (fold && !fold.dataset.init) { fold.open = !locked; fold.dataset.init = '1'; }
+  el('vo-fold-sum').textContent = locked ? `${fmtPLN0(num(locked.total))} · zatwierdzona ${fmtDate(locked.lockedAt)} · JPK za ${vatPeriodLabel(vatPeriodOf(vatFrom()))}` : `${fmtPLN0(corr)} · do zatwierdzenia`;
   setKpi('v-carry', fmtPLN0(L.carry), L.carry > 0.005 ? 'urząd jest Ci winien — schodzi z kolejnych okresów' : 'brak nadwyżki', L.carry > 0.005 ? 'pos' : '');
   const expected = M.heldValue - M.heldValueNet;
   setKpi('v-exp', fmtPLN0(expected), `tyle z wyceny ${nCards(M.held.length)} odda się przy sprzedaży`);
 
-  const unknown = vatOpeningCandidates().filter(g => g.doc === 'unknown').length;
+  const unknown = locked ? 0 : vatOpeningCandidates().filter(g => g.doc === 'unknown').length;
   badge.hidden = !(unknown || pending);
   badge.textContent = unknown ? String(unknown) : '!';
 
   renderVatOpening();
+  renderVatMonth();
   renderVatLedger();
   renderVatExtra();
   renderVatRegister();
@@ -4966,8 +4973,8 @@ function renderVatLedger() {
   el('vl-wrap').innerHTML = `<table class="tc-tbl">
     <thead><tr>
       <th>Okres</th><th class="num">Sprzedaż 23% netto</th><th class="num">VAT 23%</th><th class="num">Marża</th><th class="num">VAT marża</th>
-      <th class="num">Zakupy netto</th><th class="num">VAT naliczony</th><th class="num">Korekta stanu</th><th class="num" title="Pozycje spoza kart: VAT należny minus naliczony">Poza kartami</th><th class="num">Nadwyżka z poprz.</th>
-      <th class="num">Do zapłaty</th><th class="num">Do przeniesienia</th><th>Termin</th>
+      <th class="num">Zakupy netto</th><th class="num">VAT naliczony</th><th class="num">Korekta stanu</th><th class="num" title="Faktury B2B i zakupy firmowe spoza kart: VAT należny minus naliczony">B2B i inne</th><th class="num">Nadwyżka z poprz.</th>
+      <th class="num">Do zapłaty</th><th class="num">Do przeniesienia</th><th>Termin</th><th>Status</th>
     </tr></thead>
     <tbody>${[...P].reverse().map(p => `
       <tr class="${p.current ? 'cd-vat-current' : ''}" style="cursor:pointer" onclick="setVal('vr-period','${p.key}');renderVatRegister();el('vr-wrap').scrollIntoView({behavior:'smooth',block:'center'})">
@@ -4984,6 +4991,7 @@ function renderVatLedger() {
         <td class="num ${p.payable > 0.005 ? 'neg' : ''}"><strong>${fmtPLN(p.payable)}</strong></td>
         <td class="num ${p.carryOut > 0.005 ? 'pos' : 'cd-muted'}">${p.carryOut > 0.005 ? fmtPLN(p.carryOut) : '—'}</td>
         <td class="cd-mono cd-nowrap ${!p.closed ? 'cd-muted' : ''}">${fmtDate(p.dueDate)}</td>
+        <td class="cd-nowrap">${vatStatusHtml(p)}</td>
       </tr>`).join('')}</tbody>
   </table>
   <div class="cd-note" style="margin:10px 14px 14px">${M.vatLedger.carry > 0.005
@@ -4991,9 +4999,89 @@ function renderVatLedger() {
     : 'WNT (zakup z UE z numerem VAT-UE) liczy się po obu stronach — w VAT należnym i naliczonym — więc nie zmienia kwoty do zapłaty.'}</div>`;
 }
 
+/* --- Rozliczenie miesiąca: skąd bierze się kwota w JPK --- */
+function vatStatusHtml(p) {
+  if (p.paidOn) return `<span class="cd-status held">zapłacono ${shortDate(p.paidOn)}</span>`;
+  if (!p.closed) return '<span class="cd-status listed">trwa</span>';
+  if (p.payable <= 0.005) return '<span class="cd-status held">nic do zapłaty</span>';
+  return p.dueDate < today() ? '<span class="cd-status sold cd-overdue">po terminie</span>' : '<span class="cd-status sold">do zapłaty</span>';
+}
+
+function vatMonthDefault() {
+  const L = M.vatLedger;
+  const unpaid = L.periods.find(p => p.closed && !p.paidOn && p.payable > 0.005);
+  return (unpaid || L.current || L.periods[L.periods.length - 1] || {}).key;
+}
+
+function lastB2bInvoice() {
+  return [...(settings.vat.extra || [])].filter(x => x.side === 'out').sort((a, b) => (a.date < b.date ? 1 : -1))[0] || null;
+}
+
+function renderVatMonth() {
+  const L = M.vatLedger;
+  const sel = el('vm-period');
+  if (!L.periods.length) { el('vm-wrap').innerHTML = ''; return; }
+  const keep = sel.value && L.byKey.has(sel.value) ? sel.value : vatMonthDefault();
+  sel.innerHTML = [...L.periods].reverse().map(p => `<option value="${p.key}">${vatPeriodLabel(p.key)}</option>`).join('');
+  sel.value = keep;
+  const p = L.byKey.get(keep);
+  const cardsSales = p.stdVat + p.marginVat;
+  const row = (label, hint, v, sign) => `<tr><td>${label}${hint ? `<div class="cd-muted" style="font-size:11px">${hint}</div>` : ''}</td><td class="num ${!v ? 'cd-muted' : sign > 0 ? 'neg' : 'pos'}">${v ? (sign > 0 ? '+ ' : '− ') + fmtPLN(v) : '—'}</td></tr>`;
+  const b2b = lastB2bInvoice();
+  const missingB2b = !p.otherOut && b2b;
+  const result = p.due >= 0
+    ? `<strong class="${p.payable > 0.005 ? 'neg' : ''}">${fmtPLN(p.payable)}</strong>`
+    : `<strong class="pos">0 zł</strong> <span class="cd-muted">· ${fmtPLN(p.carryOut)} przechodzi na ${vatPeriodLabel(vatPeriodNext(p.key))}</span>`;
+  el('vm-wrap').innerHTML = `
+    ${missingB2b ? `<div class="cd-alert warn" style="margin-bottom:12px">
+      <span class="material-symbols-outlined">receipt</span>
+      <span>Brak faktury B2B za ${vatPeriodLabel(p.key)}. Ostatnia: ${esc(b2b.label)} — ${fmtPLN(num(b2b.base))} netto.</span>
+      <button class="btn-small" onclick="repeatB2bInvoice('${p.key}')"><span class="material-symbols-outlined">content_copy</span>Dodaj taką samą</button>
+    </div>` : ''}
+    <table class="tc-tbl cd-vat-month">
+      <tbody>
+        ${row('VAT z faktur B2B', 'usługi i inna sprzedaż spoza kart', p.otherOut, 1)}
+        ${row('VAT ze sprzedaży kart', `${p.stdCount + p.marginCount} ${plural(p.stdCount + p.marginCount, 'sprzedaż', 'sprzedaże', 'sprzedaży')}${p.marginCount ? `, w tym ${p.marginCount} w marży` : ''}`, cardsSales, 1)}
+        ${row('VAT z zakupów kart', `${p.buyCount} ${plural(p.buyCount, 'zakup', 'zakupy', 'zakupów')} z fakturą`, p.buyVat, -1)}
+        ${row('VAT z innych zakupów firmowych', 'telefon, komputer, oprogramowanie…', p.otherIn, -1)}
+        ${p.corrVat ? row('Korekta za towar na stanie', 'jednorazowo, przy rejestracji', p.corrVat, -1) : ''}
+        ${row('Nadwyżka z poprzedniego okresu', '', p.carryIn, -1)}
+        <tr class="cd-vat-total"><td><strong>Do zapłaty</strong><div class="cd-muted" style="font-size:11px">termin ${fmtDate(p.dueDate)} · mikrorachunek podatkowy</div></td><td class="num">${result}</td></tr>
+      </tbody>
+    </table>
+    <div class="cd-filters" style="margin-top:12px;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>${vatStatusHtml(p)}</span>
+      ${p.closed && p.payable > 0.005 ? (p.paidOn
+        ? `<button class="btn-small" onclick="setVatPaid('${p.key}', false)"><span class="material-symbols-outlined">undo</span>Cofnij „zapłacone”</button>`
+        : `<button class="btn-small primary" onclick="setVatPaid('${p.key}', true)"><span class="material-symbols-outlined">task_alt</span>Oznacz jako zapłacone</button>`) : ''}
+    </div>
+    ${!p.closed ? `<div class="cd-note" style="margin-top:10px">Okres jeszcze trwa — kwota rośnie z każdą sprzedażą i maleje z każdym zakupem z fakturą. JPK za ${vatPeriodLabel(p.key)} składasz do ${fmtDate(p.dueDate)}.</div>` : ''}`;
+}
+
+function setVatPaid(key, on) {
+  const paid = { ...(settings.vat.paid || {}) };
+  if (on) paid[key] = today(); else delete paid[key];
+  settings.vat.paid = paid;
+  saveState();
+  renderAll();
+  if (on) toast(`VAT za ${vatPeriodLabel(key)} oznaczony jako zapłacony`, 'ok');
+}
+
+function repeatB2bInvoice(key) {
+  const last = lastB2bInvoice();
+  if (!last) return;
+  const date = vatPeriodEnd(key);
+  const label = String(last.label || 'Usługi').replace(/\s*\([^)]*\)\s*$/, '').replace(/\b\d{1,2}\/\d{4}\b/, `${key.slice(5, 7)}/${key.slice(0, 4)}`);
+  if (!confirm(`Dodać „${label}” z datą ${fmtDate(date)}: ${fmtPLN(num(last.base))} netto + ${fmtPLN(num(last.vat))} VAT?`)) return;
+  settings.vat.extra = [...(settings.vat.extra || []), { id: uid('vx'), date, label, side: 'out', base: num(last.base), vat: num(last.vat) }];
+  saveState();
+  renderAll();
+  toast('Faktura dodana — kwotę możesz zmienić, usuwając i dodając ją ponownie', 'ok');
+}
+
 /* --- Pozycje spoza kart --- */
 function renderVatExtra() {
-  const list = [...(settings.vat.extra || [])].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const list = [...(settings.vat.extra || [])].sort((a, b) => (a.date < b.date ? 1 : -1));
   setVal('vx-date', getVal('vx-date') || vatFrom());
   el('vx-wrap').innerHTML = list.length ? `<table class="tc-tbl">
     <thead><tr><th>Data</th><th>Opis</th><th>Strona</th><th class="num">Netto</th><th class="num">VAT</th><th>Okres JPK</th><th></th></tr></thead>
@@ -5006,7 +5094,11 @@ function renderVatExtra() {
       <td>${x.date >= vatFrom() ? vatPeriodLabel(vatPeriodOf(x.date)) : '<span class="cd-warn">przed rejestracją</span>'}</td>
       <td><button class="row-btn danger" title="Usuń" onclick="removeVatExtra('${x.id}')"><span class="material-symbols-outlined">delete</span></button></td>
     </tr>`).join('')}</tbody></table>`
-    : '<div class="cd-note" style="margin:0 14px 14px">Brak pozycji. Jeśli w tej samej JDG wystawiasz faktury za usługi albo masz zakupy z VAT niezwiązane z kartami, dopisz je tutaj — JPK jest jeden, więc kwota do zapłaty liczy się razem. Na wynik kart te pozycje nie wpływają.</div>';
+    : '<div class="cd-note" style="margin:0 14px 14px">Brak pozycji.</div>';
+  el('vx-wrap').insertAdjacentHTML('beforeend', `<div class="cd-note" style="margin:10px 14px 14px">
+    Jeden JPK dla całej JDG: <strong>sprzedaż</strong> to faktury za usługi (VAT należny), <strong>zakup</strong> to wszystko kupione na firmę poza kartami —
+    telefon, laptop, monitor, oprogramowanie (VAT naliczony, odliczasz w całości, jeśli sprzęt służy działalności). Samochód osobowy: zwykle tylko 50% VAT —
+    wpisz wtedy połowę w polu VAT. Te pozycje zmieniają kwotę do zapłaty, ale nie wynik kart.</div>`);
 }
 
 function addVatExtra() {
@@ -5206,6 +5298,7 @@ function bindVatEvents() {
     toast(`Ustawiono „${VAT_DOCS[doc].label}” dla ${picked.length} ${plural(picked.length, 'zakupu', 'zakupów', 'zakupów')}`, 'ok');
   });
   el('vr-period').addEventListener('change', renderVatRegister);
+  el('vm-period').addEventListener('change', renderVatMonth);
   el('vr-export').addEventListener('click', exportVatRegister);
   el('vx-add').addEventListener('click', addVatExtra);
   el('vp-channel').addEventListener('change', renderVatPricing);

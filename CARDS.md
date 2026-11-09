@@ -374,6 +374,17 @@ Zakup bez wpisanego dokumentu jest „nieokreślony” niezależnie od waluty �
 podświetla go do sklasyfikowania (filtry: zakupy w PLN / w walutach UE + ustawianie hurtem).
 Schemat sprzedaży można nadpisać przy każdej transakcji.
 
+### Co miesiąc — Rozliczenie miesiąca
+
+Zakładka VAT jest ułożona pod comiesięczne rozliczenie. Na górze **Rozliczenie miesiąca**
+pokazuje kwotę do JPK krok po kroku: VAT z faktur B2B + VAT ze sprzedaży kart − VAT z zakupów
+kart − VAT z innych zakupów firmowych (telefon, komputer) − nadwyżka z poprzedniego okresu.
+Domyślnie otwiera się najstarszy niezapłacony okres. Po przelewie kliknij **Oznacz jako zapłacone**,
+a kafelek „Do zapłaty” przejdzie na kolejny miesiąc. Gdy w okresie brakuje faktury B2B, moduł proponuje
+dodanie kopii ostatniej (z datą końca miesiąca). Faktury za usługi i zakupy firmowe spoza kart dopisuje się
+w sekcji **Faktury B2B i zakupy firmowe**. Korekta za towar na stanie jest jednorazowa — po zatwierdzeniu
+zwija się na dół zakładki.
+
 ### Korekta za towar na stanie
 
 Tabela grupuje zakupy sprzed rejestracji (identyczne sztuki w jednym wierszu). Dla

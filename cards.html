@@ -615,33 +615,14 @@
             </div>
 
             <div class="cd-section">
-              <span class="ico"><span class="material-symbols-outlined">inventory</span></span>
-              <h2>Korekta VAT od towaru na stanie</h2>
-              <span class="desc" id="vo-desc">—</span>
+              <span class="ico"><span class="material-symbols-outlined">event_available</span></span>
+              <h2>Rozliczenie miesiąca</h2>
+              <span class="desc">Skąd bierze się kwota do zapłaty w JPK</span>
               <span class="line"></span>
-              <span class="act"><button class="btn-small" id="vo-export"><span class="material-symbols-outlined">download</span>Spis z natury CSV</button></span>
+              <span class="act"><select id="vm-period" aria-label="Okres"></select></span>
             </div>
             <section class="tc-card">
-              <div class="tc-card-body" id="vo-head"></div>
-              <div class="cd-toolbar">
-                <div class="cd-filters">
-                  <select id="vo-filter">
-                    <option value="all">Wszystko na stanie</option>
-                    <option value="unknown">Bez określonego dokumentu</option>
-                    <option value="deduct">Z odliczeniem</option>
-                    <option value="none">Bez odliczenia</option>
-                    <option value="pln">Zakupy w PLN</option>
-                    <option value="fx">Zakupy w walutach (UE)</option>
-                  </select>
-                  <span class="cd-count" id="vo-count">—</span>
-                </div>
-                <div class="cd-filters">
-                  <span class="cd-count">Zaznaczone:</span>
-                  <select id="vo-bulk-doc"></select>
-                  <button class="btn-small" id="vo-bulk-apply"><span class="material-symbols-outlined">done_all</span>Ustaw</button>
-                </div>
-              </div>
-              <div class="tc-tbl-wrap" id="vo-wrap"></div>
+              <div class="tc-card-body" id="vm-wrap"></div>
             </section>
 
             <div class="cd-section">
@@ -656,8 +637,8 @@
 
             <div class="cd-section">
               <span class="ico"><span class="material-symbols-outlined">work</span></span>
-              <h2>Pozycje spoza kart</h2>
-              <span class="desc">Ta sama JDG, ten sam JPK — np. faktury za usługi</span>
+              <h2>Faktury B2B i zakupy firmowe</h2>
+              <span class="desc">Wszystko poza kartami: faktura za usługi, telefon, komputer, oprogramowanie</span>
               <span class="line"></span>
             </div>
             <section class="tc-card">
@@ -665,7 +646,7 @@
                 <div class="cd-filters">
                   <input id="vx-date" type="date" />
                   <select id="vx-side"><option value="out">Sprzedaż (VAT należny)</option><option value="in">Zakup (VAT naliczony)</option></select>
-                  <input id="vx-label" placeholder="np. Usługi analityczne — faktura 10/2026" style="min-width:220px" />
+                  <input id="vx-label" placeholder="np. Usługi analityczne 11/2026 albo Laptop (faktura)" style="min-width:220px" />
                   <input id="vx-base" inputmode="decimal" placeholder="Netto" style="width:100px" />
                   <input id="vx-vat" inputmode="decimal" placeholder="VAT (23%)" style="width:100px" />
                 </div>
@@ -704,6 +685,40 @@
               </div>
               <div class="tc-tbl-wrap" id="vp-wrap"></div>
             </section>
+
+            <details class="cd-fold" id="vo-fold">
+              <summary><span class="material-symbols-outlined">inventory</span><span class="t">Korekta VAT od towaru na stanie — jednorazowo przy rejestracji</span><span class="cd-count" id="vo-fold-sum">—</span></summary>
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">inventory</span></span>
+              <h2>Korekta VAT od towaru na stanie</h2>
+              <span class="desc" id="vo-desc">—</span>
+              <span class="line"></span>
+              <span class="act"><button class="btn-small" id="vo-export"><span class="material-symbols-outlined">download</span>Spis z natury CSV</button></span>
+            </div>
+            <section class="tc-card">
+              <div class="tc-card-body" id="vo-head"></div>
+              <div class="cd-toolbar">
+                <div class="cd-filters">
+                  <select id="vo-filter">
+                    <option value="all">Wszystko na stanie</option>
+                    <option value="unknown">Bez określonego dokumentu</option>
+                    <option value="deduct">Z odliczeniem</option>
+                    <option value="none">Bez odliczenia</option>
+                    <option value="pln">Zakupy w PLN</option>
+                    <option value="fx">Zakupy w walutach (UE)</option>
+                  </select>
+                  <span class="cd-count" id="vo-count">—</span>
+                </div>
+                <div class="cd-filters">
+                  <span class="cd-count">Zaznaczone:</span>
+                  <select id="vo-bulk-doc"></select>
+                  <button class="btn-small" id="vo-bulk-apply"><span class="material-symbols-outlined">done_all</span>Ustaw</button>
+                </div>
+              </div>
+              <div class="tc-tbl-wrap" id="vo-wrap"></div>
+            </section>
+
+            </details>
 
             <div class="cd-note" id="vat-rules" style="margin-top:14px"></div>
           </div>
