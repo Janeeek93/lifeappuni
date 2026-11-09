@@ -65,6 +65,7 @@
           <button class="trade-tab" data-tab="sales"><span class="material-symbols-outlined">sell</span>Sprzedaż<span class="cd-tab-count" id="cnt-sales">0</span></button>
           <button class="trade-tab" data-tab="grading"><span class="material-symbols-outlined">workspace_premium</span>Grading<span class="cd-tab-count" id="cnt-grading">0</span></button>
           <button class="trade-tab" data-tab="costs"><span class="material-symbols-outlined">receipt_long</span>Koszty</button>
+          <button class="trade-tab" data-tab="vat"><span class="material-symbols-outlined">account_balance</span>VAT<span class="cd-tab-count" id="cnt-vat" hidden>!</span></button>
           <button class="trade-tab" data-tab="analytics"><span class="material-symbols-outlined">query_stats</span>Analityka</button>
           <button class="trade-tab" data-tab="watchlist"><span class="material-symbols-outlined">visibility</span>Watchlista<span class="cd-tab-count" id="cnt-watch">0</span></button>
         </div>
@@ -441,7 +442,7 @@
               <div class="cd-filters"><label for="accounting-month">Miesiąc</label><input id="accounting-month" type="month"></div>
               <div class="cd-filters"><span class="cd-count" id="accounting-summary">—</span><button class="btn-small primary" id="accounting-export"><span class="material-symbols-outlined">download</span>Pobierz CSV</button></div>
             </div>
-            <div class="cd-note cd-accounting-note"><strong>Zasada raportu:</strong> kwota zapłacona za towar przed prowizją platformy, pomniejszona o zwroty. Sprzedaże oznaczone jako zafakturowane są wykluczane. Każdy dzień tworzy osobny DW ze stawką ryczałtu 3%.</div>
+            <div class="cd-note cd-accounting-note" id="accounting-note"><strong>Zasada raportu:</strong> kwota zapłacona za towar przed prowizją platformy, pomniejszona o zwroty. Sprzedaże oznaczone jako zafakturowane są wykluczane. Każdy dzień tworzy osobny DW ze stawką ryczałtu 3%.</div>
             <div class="tc-tbl-wrap" id="accounting-wrap"></div>
           </section>
 
@@ -556,6 +557,92 @@
           </section>
         </div>
 
+        <!-- ══════════════════ VAT ══════════════════ -->
+        <div class="tab-panel" id="tab-vat">
+          <div id="vat-setup"></div>
+          <div id="vat-body">
+            <div class="tc-grid-kpi">
+              <div class="tc-kpi" data-tone="accent"><span class="k" id="v-pay-k">Do zapłaty</span><span class="v mono" id="v-pay">—</span><span class="n" id="v-pay-n">—</span></div>
+              <div class="tc-kpi"><span class="k">VAT należny</span><span class="v mono" id="v-out">—</span><span class="n" id="v-out-n">—</span></div>
+              <div class="tc-kpi"><span class="k">VAT naliczony</span><span class="v mono" id="v-in">—</span><span class="n" id="v-in-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Korekta za towar na stanie</span><span class="v mono" id="v-corr">—</span><span class="n" id="v-corr-n">—</span></div>
+              <div class="tc-kpi"><span class="k">Nadwyżka do przeniesienia</span><span class="v mono" id="v-carry">—</span><span class="n" id="v-carry-n">—</span></div>
+              <div class="tc-kpi"><span class="k">VAT w wycenie stanu</span><span class="v mono" id="v-exp">—</span><span class="n" id="v-exp-n">—</span></div>
+            </div>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">inventory</span></span>
+              <h2>Korekta VAT od towaru na stanie</h2>
+              <span class="desc" id="vo-desc">—</span>
+              <span class="line"></span>
+              <span class="act"><button class="btn-small" id="vo-export"><span class="material-symbols-outlined">download</span>Spis z natury CSV</button></span>
+            </div>
+            <section class="tc-card">
+              <div class="tc-card-body" id="vo-head"></div>
+              <div class="cd-toolbar">
+                <div class="cd-filters">
+                  <select id="vo-filter">
+                    <option value="all">Wszystko na stanie</option>
+                    <option value="unknown">Bez określonego dokumentu</option>
+                    <option value="deduct">Z odliczeniem</option>
+                    <option value="none">Bez odliczenia</option>
+                  </select>
+                  <span class="cd-count" id="vo-count">—</span>
+                </div>
+                <div class="cd-filters">
+                  <span class="cd-count">Zaznaczone:</span>
+                  <select id="vo-bulk-doc"></select>
+                  <button class="btn-small" id="vo-bulk-apply"><span class="material-symbols-outlined">done_all</span>Ustaw</button>
+                </div>
+              </div>
+              <div class="tc-tbl-wrap" id="vo-wrap"></div>
+            </section>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">calendar_month</span></span>
+              <h2>Rozliczenie okres po okresie</h2>
+              <span class="desc">Co trafia do JPK i ile przelać do urzędu</span>
+              <span class="line"></span>
+            </div>
+            <section class="tc-card">
+              <div class="tc-tbl-wrap" id="vl-wrap"></div>
+            </section>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">receipt_long</span></span>
+              <h2>Ewidencja okresu</h2>
+              <span class="desc">Każda sprzedaż i zakup z VAT — plik dla księgowej</span>
+              <span class="line"></span>
+            </div>
+            <section class="tc-card">
+              <div class="cd-toolbar">
+                <div class="cd-filters"><label for="vr-period">Okres</label><select id="vr-period"></select><span class="cd-count" id="vr-count">—</span></div>
+                <div class="cd-filters"><button class="btn-small primary" id="vr-export"><span class="material-symbols-outlined">download</span>Ewidencja CSV</button></div>
+              </div>
+              <div class="tc-tbl-wrap" id="vr-wrap"></div>
+            </section>
+
+            <div class="cd-section">
+              <span class="ico"><span class="material-symbols-outlined">price_check</span></span>
+              <h2>Ceny po VAT — sealed na stanie</h2>
+              <span class="desc">Za ile wystawić, żeby po VAT i prowizji zostało tyle, ile chcesz</span>
+              <span class="line"></span>
+            </div>
+            <section class="tc-card">
+              <div class="cd-toolbar">
+                <div class="cd-filters">
+                  <label for="vp-channel">Kanał</label><select id="vp-channel"></select>
+                  <label for="vp-margin">Marża na koszcie</label><input id="vp-margin" inputmode="decimal" style="width:70px" />
+                </div>
+                <div class="cd-filters"><span class="cd-count" id="vp-count">—</span></div>
+              </div>
+              <div class="tc-tbl-wrap" id="vp-wrap"></div>
+            </section>
+
+            <div class="cd-note" id="vat-rules" style="margin-top:14px"></div>
+          </div>
+        </div>
+
         <!-- ══════════════════ ANALITYKA ══════════════════ -->
         <div class="tab-panel" id="tab-analytics">
           <div class="cd-section" style="margin-top:0">
@@ -629,11 +716,11 @@
           <div class="cd-section">
             <span class="ico"><span class="material-symbols-outlined">gavel</span></span>
             <h2>Podatki i płynność</h2>
-            <span class="desc">Sprzedaż rzeczy ruchomych po 6 miesiącach od nabycia jest poza PIT</span>
+            <span class="desc pit-only">Sprzedaż rzeczy ruchomych po 6 miesiącach od nabycia jest poza PIT</span>
             <span class="line"></span>
           </div>
           <div class="tc-row-2">
-            <section class="tc-card">
+            <section class="tc-card pit-only">
               <div class="tc-card-head"><h3>Próg 6 miesięcy</h3><span class="sub" id="tax-sub">—</span></div>
               <div class="cd-stat-strip" id="tax-strip"></div>
               <div class="tc-tbl-wrap" id="tax-wrap"></div>
@@ -723,6 +810,8 @@
           <div class="ff"><label>Prowizja / ochrona kupującego</label><input id="cf-fees" inputmode="decimal" placeholder="0,00" /></div>
           <div class="ff"><label>Cło / VAT (zł)</label><input id="cf-customs" inputmode="decimal" placeholder="0,00" /></div>
           <div class="ff"><label>Kanał zakupu</label><input id="cf-source" list="dl-channels" placeholder="Vinted, eBay, Cardmarket…" /></div>
+          <div class="ff span-2 vat-only"><label>Dokument zakupu (VAT)</label><select id="cf-vat-doc"></select><div class="hint" id="cf-vat-hint">—</div></div>
+          <div class="ff vat-only"><label>VAT do odliczenia (zł)</label><input id="cf-vat-in" inputmode="decimal" /><div class="hint">Puste = policzy się z ceny</div></div>
         </div>
       </div>
 
@@ -777,6 +866,8 @@
           <div class="ff"><label>Cło / VAT (zł)</label><input id="bf-customs" inputmode="decimal" placeholder="0,00" /></div>
           <div class="ff"><label>Inne opłaty (w walucie)</label><input id="bf-fees" inputmode="decimal" placeholder="0,00" /></div>
           <div class="ff"><label>Sklep / źródło</label><input id="bf-source" list="dl-channels" placeholder="np. Kartenhaus DE" /></div>
+          <div class="ff span-2 vat-only"><label>Dokument zakupu (VAT)</label><select id="bf-vat-doc"></select><div class="hint" id="bf-vat-hint">—</div></div>
+          <div class="ff vat-only"><label>VAT do odliczenia (zł / szt.)</label><input id="bf-vat-in" inputmode="decimal" /><div class="hint">Puste = policzy się z ceny</div></div>
           <div class="ff span-all"><label>Notatki</label><textarea id="bf-notes" placeholder="Promocja, kod rabatowy, stan opakowania…"></textarea></div>
         </div>
         <div class="cd-calc-strip" id="bf-calc"></div>
@@ -841,6 +932,12 @@
         <div class="ff"><label>Dopłata kupującego do wysyłki (zł)</label><input id="sf-shipping-in" inputmode="decimal" placeholder="0,00" /></div>
         <div class="ff"><label>ID zamówienia</label><input id="sf-order-id" placeholder="np. EMP-12345" /></div>
         <div class="ff"><label>Zwrot za towar (w walucie)</label><input id="sf-refund" inputmode="decimal" placeholder="0,00" /><div class="hint">Pomniejsza wyłącznie kwotę do DW</div></div>
+        <div class="ff vat-only"><label>VAT od sprzedaży</label><select id="sf-vat-scheme">
+          <option value="">Automatycznie</option>
+          <option value="std">23% od całej kwoty</option>
+          <option value="margin">VAT-marża (od zarobku)</option>
+          <option value="zero">0% / zwolnione</option>
+        </select><div class="hint" id="sf-vat-hint">—</div></div>
         <label class="cd-check"><input id="sf-invoiced" type="checkbox" /><span class="box"><span class="material-symbols-outlined">check</span></span><span>Sprzedaż udokumentowana fakturą — pomiń w DW</span></label>
         <div class="ff span-all"><label>Notatka</label><input id="sf-note" placeholder="np. kupiec z Niemiec, szybka płatność" /></div>
       </div>
@@ -963,7 +1060,8 @@
           <option value="insurance">Ubezpieczenie</option>
           <option value="other">Inne</option>
         </select></div>
-        <div class="ff"><label>Kwota (zł)</label><input id="ef-amount" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff"><label>Kwota brutto (zł)</label><input id="ef-amount" inputmode="decimal" placeholder="0,00" /></div>
+        <div class="ff vat-only"><label>VAT z faktury do odliczenia (zł)</label><input id="ef-vat-in" inputmode="decimal" placeholder="0,00" /><div class="hint">Tylko faktura na firmę z datą od rejestracji VAT</div></div>
         <div class="ff"><label>Powtarzalny miesięcznie?</label><select id="ef-recurring"><option value="no">Nie</option><option value="yes">Tak</option></select></div>
         <div class="ff span-all"><label>Opis</label><input id="ef-note" placeholder="np. 100x toploader + koperty bąbelkowe" /></div>
       </div>
@@ -1035,6 +1133,22 @@
         <div>
           <button class="btn-small" id="sf-fetch-fx"><span class="material-symbols-outlined">sync</span>Pobierz z NBP</button>
           <span class="cd-count" id="sf-fx-info" style="margin-left:8px">—</span>
+        </div>
+      </div>
+
+      <div class="cd-fieldset">
+        <span class="lg">VAT</span>
+        <div class="ff-grid cols-3">
+          <div class="ff"><label>Jestem czynnym podatnikiem VAT</label><select id="sf-vat-on">
+            <option value="on">Tak</option><option value="off">Nie</option>
+          </select></div>
+          <div class="ff"><label>Od dnia</label><input id="sf-vat-from" type="date" /></div>
+          <div class="ff"><label>Stawka (%)</label><input id="sf-vat-rate" inputmode="decimal" /></div>
+          <div class="ff"><label>Rozliczenie</label><select id="sf-vat-period">
+            <option value="M">Miesięczne (JPK_V7M)</option><option value="Q">Kwartalne (JPK_V7K)</option>
+          </select></div>
+          <div class="ff"><label>Domyślny dokument zakupu</label><select id="sf-vat-doc"></select></div>
+          <div class="ff"><label>Nadwyżka VAT z wcześniej (zł)</label><input id="sf-vat-carry" inputmode="decimal" placeholder="0,00" /></div>
         </div>
       </div>
 

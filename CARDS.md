@@ -24,6 +24,7 @@ Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
 | **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, analiza kanałów |
 | **Grading** | Wysyłki do PSA/BGS/SGC/CGC, wynik gradingu, kalkulator opłacalności |
 | **Koszty** | Struktura wszystkich kosztów, przepływy miesięczne, rejestr kosztów ogólnych |
+| **VAT** | Korekta VAT za towar na stanie w dniu rejestracji, rozliczenie okres po okresie, ewidencja dla księgowej, ceny sealed po VAT |
 | **Analityka** | Koncentracja portfela, wiek pozycji, rozkład ROI, rankingi, próg 6 miesięcy, płynność |
 | **Watchlista** | Karty na celowniku z ceną docelową i luką do rynku |
 
@@ -252,6 +253,60 @@ wyłączyć jedno, zostawiając drugie.
 
 > Obie zakładki czytają `localStorage` przy wejściu, więc jeśli trzymasz Budżet
 > i Karty otwarte jednocześnie, odśwież Budżet, żeby zobaczyć świeże wpisy.
+
+## VAT — czynny podatnik
+
+Włączasz w zakładce **VAT** (albo w Ustawieniach → VAT): data rejestracji, rozliczenie
+miesięczne/kwartalne, stawka. Wyłączony VAT = moduł liczy dokładnie jak wcześniej.
+
+### Trzy zasady
+
+1. **Koszt towaru jest netto**, gdy VAT z zakupu da się odliczyć (faktura krajowa, import).
+   Odliczony VAT nie jest kosztem — wraca przez rozliczenie z urzędem.
+2. **Przychód to brutto minus VAT należny** — 23% od całości albo VAT-marża
+   (23/123 od różnicy cena sprzedaży − cena zakupu) dla towaru kupionego bez VAT.
+3. **Towar sprzed rejestracji, który 1. dnia leżał na stanie**, daje jednorazową korektę
+   VAT naliczonego (art. 91 ust. 7d) w JPK za pierwszy okres. Sprzedane wcześniej — nic
+   się nie zmienia, wyniki zamkniętych miesięcy stoją w miejscu.
+
+### Dokument zakupu
+
+Każdy box i karta single ma pole **Dokument zakupu (VAT)** — od niego zależy odliczenie
+i schemat przy sprzedaży:
+
+| Dokument | Odliczenie | Sprzedaż |
+|---|---|---|
+| Faktura VAT (PL) | tak, z ceny (albo kwota wpisana ręcznie) | 23% od całości |
+| WNT — faktura z UE bez VAT | neutralnie: 23% należny i naliczony | 23% od całości |
+| Import spoza UE | VAT z odprawy (wpisany ręcznie) | 23% od całości |
+| Paragon / VAT zagraniczny | nie | 23% od całości |
+| Od osoby prywatnej / faktura VAT-marża | nie | VAT-marża |
+
+Stare zakupy bez wpisanego dokumentu: w EUR/USD/GBP traktowane jak „VAT zagraniczny”,
+w PLN jako „nie określono” — kreator korekty podświetla je do sklasyfikowania.
+Schemat sprzedaży można nadpisać przy każdej transakcji.
+
+### Korekta za towar na stanie
+
+Tabela grupuje zakupy sprzed rejestracji (identyczne sztuki w jednym wierszu). Dla
+otwartych boxów korekta obejmuje część kosztu przypisaną do kart niesprzedanych przed
+datą rejestracji i do bulku. Zaznacz wiersze → ustaw dokument hurtem. **Zatwierdź**
+zapamiętuje kwotę — jeśli później coś ją zmieni, moduł pokaże różnicę do korekty JPK.
+**Spis z natury CSV** to lista pozycji na dzień rejestracji.
+
+### Gdzie VAT zmienia liczby
+
+- wycena kolekcji w wyniku i lejku liczy się **po VAT należnym**, który odda się przy sprzedaży
+  (hero pokazuje dalej cenę rynkową brutto, z dopiskiem „po VAT zostaje…”),
+- cena „na cel” przy wystawianiu i próg opłacalności boxa uwzględniają VAT i prowizję,
+- raport DW pod ryczałt od daty rejestracji pokazuje **przychód netto**,
+- budżet: zakupy i sprzedaże dalej w kwotach gotówkowych, a przelew VAT do urzędu
+  wchodzi jako wydatek `tx_cards_vat_<okres>` w dniu terminu (25.),
+- Salda EOM: kapitał zamrożony = baza netto + nadwyżka VAT do przeniesienia,
+- tożsamość: `wynik = majątek netto + wpływy − wydatki − saldo VAT`; kolumna Różnica dalej musi pokazywać 0 zł,
+- przy włączonym VAT znika podpowiedź o progu 6 miesięcy PIT — towar w firmie to towar handlowy.
+
+Moduł planuje i przygotowuje dane dla księgowej — nie generuje JPK.
 
 ## Import, eksport, kopie
 

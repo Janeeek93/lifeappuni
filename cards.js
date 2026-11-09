@@ -26,6 +26,16 @@ const DEFAULT_SETTINGS = {
   budgetIncome: 'on',      // sprzedaże jako przychody
   budgetCategoryId: '',    // kategoria wydatków zmiennych
   budgetSyncedAt: null,
+  /* VAT — czynny podatnik od `from`. Wyłączone = moduł liczy jak dotąd (brutto). */
+  vat: {
+    enabled: 'off',
+    from: '2026-11-01',
+    rate: 23,
+    period: 'M',           // M — JPK_V7M, Q — JPK_V7K
+    defaultDoc: 'fv',      // dokument zakupu podstawiany w nowych boxach i kartach
+    carryIn: 0,            // nadwyżka VAT naliczonego z okresu sprzed modułu
+    opening: null          // zatwierdzona korekta remanentowa { lockedAt, total, count }
+  },
   channels: [
     { name: 'Vinted', fee: 0 },
     { name: 'eBay', fee: 11 },
@@ -200,6 +210,7 @@ function loadState() {
   }
   settings = Object.assign(structuredClone(DEFAULT_SETTINGS), state.settings || {});
   settings.fx = Object.assign({ ...DEFAULT_SETTINGS.fx }, settings.fx || {});
+  settings.vat = Object.assign(structuredClone(DEFAULT_SETTINGS.vat), settings.vat || {});
   if (!Array.isArray(settings.channels) || !settings.channels.length) settings.channels = structuredClone(DEFAULT_SETTINGS.channels);
   if (!settings.channels.some(channel => channel.name === 'Empik')) settings.channels.push({ name: 'Empik', fee: 0 });
   state.settings = settings;
@@ -284,6 +295,290 @@ function saleFees(sale) {
 function saleGross(sale) {
   if (!sale) return 0;
   return num(sale.price) * fxFor(sale.currency, sale.fx);
+}
+
+/* ============================================================
+   VAT
+   ------------------------------------------------------------
+   Od daty rejestracji (settings.vat.from) moduł liczy jak czynny
+   podatnik VAT. Trzy zasady trzymają rachunek w ryzach:
+
+   1. Koszt towaru to koszt NETTO tam, gdzie VAT da się odliczyć
+      (faktura krajowa, import). Odliczony VAT nie jest kosztem —
+      wraca przez rozliczenie z urzędem.
+   2. Przychód ze sprzedaży to brutto minus VAT należny: 23% od całości
+      albo VAT-marża (23/123 od różnicy między ceną sprzedaży a zakupu)
+      dla towaru kupionego bez VAT od osób prywatnych.
+   3. Towar kupiony PRZED rejestracją, który 1. dnia VAT-owania wciąż
+      leżał na stanie, daje prawo do jednorazowej korekty VAT naliczonego
+      (art. 91 ust. 7d ustawy o VAT) w deklaracji za pierwszy okres.
+      Sprzedane wcześniej nie dają nic — ich wynik się nie rusza.
+
+   Wszystko spina się w tożsamości:
+     wynik łączny = majątek netto + wpływy − wydatki − saldo VAT
+   gdzie saldo VAT = należny − naliczony (dodatnie = winien urzędowi).
+   ============================================================ */
+
+/* Dokument zakupu decyduje o dwóch rzeczach: czy VAT z zakupu da się
+   odliczyć i czy przy odsprzedaży wolno zastosować VAT-marżę. */
+const VAT_DOCS = {
+  fv:      { label: 'Faktura VAT (PL)',                 short: 'FV',    deduct: true,  margin: false, hint: 'VAT z faktury odliczasz' },
+  wnt:     { label: 'WNT — faktura z UE bez VAT',        short: 'WNT',   deduct: false, margin: false, hint: 'VAT-UE: naliczasz i odliczasz 23% — neutralnie' },
+  import:  { label: 'Import spoza UE (VAT z odprawy)',  short: 'IMP',   deduct: true,  margin: false, hint: 'odliczasz VAT zapłacony przy odprawie' },
+  foreign: { label: 'Paragon / VAT zagraniczny',        short: 'BRAK',  deduct: false, margin: false, hint: 'brak odliczenia, sprzedaż z 23% od całości' },
+  private: { label: 'Od osoby prywatnej',               short: 'PRYW',  deduct: false, margin: true,  hint: 'brak VAT na zakupie, sprzedaż w VAT-marży' },
+  margin:  { label: 'Faktura VAT-marża',                short: 'MARŻA', deduct: false, margin: true,  hint: 'brak odliczenia, sprzedaż w VAT-marży' },
+  unknown: { label: 'Nie określono',                    short: '?',     deduct: false, margin: false, hint: 'traktowane jak zakup bez odliczenia' }
+};
+const VAT_SCHEMES = {
+  std: '23% od całej kwoty',
+  margin: 'VAT-marża (od zarobku)',
+  zero: '0% / zwolnione'
+};
+
+function vatDocOptions(withUnknown) {
+  return Object.entries(VAT_DOCS).filter(([k]) => withUnknown || k !== 'unknown').map(([value, d]) => ({ value, label: d.label }));
+}
+/** Podpowiedź pod polem dokumentu: co ten wybór znaczy dla odliczenia i sprzedaży. */
+function vatDocHint(doc, date) {
+  const d = VAT_DOCS[doc] || VAT_DOCS.unknown;
+  if (!vatOn()) return d.hint;
+  if (date && date < vatFrom() && d.deduct) return `${d.hint} — zakup sprzed ${fmtDate(vatFrom())}, więc przez korektę za towar na stanie`;
+  return d.hint;
+}
+
+function vatOn() { return settings.vat && settings.vat.enabled === 'on' && !!settings.vat.from; }
+function vatFrom() { return settings.vat.from; }
+function vatRate() { return Math.max(0, num(settings.vat.rate) || 23); }
+/** VAT zawarty w kwocie brutto. */
+function vatInGross(gross) { const r = vatRate(); return gross * r / (100 + r); }
+/** Stawka „w stu” — ile z brutto zostaje po VAT należnym przy 23% od całości. */
+function netShare() { return 100 / (100 + vatRate()); }
+
+/** Dokument zakupu z danych albo domyślny: zakup w obcej walucie to zwykle paragon z VAT zagranicznym. */
+function vatDocOf(p) {
+  if (!p) return 'unknown';
+  if (p.vatDoc && VAT_DOCS[p.vatDoc]) return p.vatDoc;
+  if (p.acq && p.acq !== 'single' && p.acq !== 'box') return 'private';   // wymiana, prezent
+  return p.currency && p.currency !== 'PLN' ? 'foreign' : 'unknown';
+}
+
+/** Wartość towaru z zakupu (bez cła) w złotówkach — podstawa do VAT z faktury. */
+function purchaseGoodsPLN(p) {
+  const fx = fxFor(p.currency, p.fx);
+  return (num(p.price) + num(p.shipping) + num(p.fees)) * fx;
+}
+
+/**
+ * VAT z dokumentu zakupu dla jednej pozycji (box albo karta single).
+ *   deductible — kwota do odliczenia (faktura, import)
+ *   wnt        — VAT od WNT: naliczony i należny jednocześnie, saldo zero
+ * `vatIn` na rekordzie nadpisuje wyliczenie (kwota z faktury co do grosza).
+ */
+function purchaseVat(p) {
+  const doc = vatDocOf(p);
+  const manual = numOrNull(p.vatIn);
+  if (doc === 'fv') return { doc, deductible: manual !== null ? manual : vatInGross(purchaseGoodsPLN(p)), wnt: 0 };
+  if (doc === 'import') return { doc, deductible: manual !== null ? manual : 0, wnt: 0 };
+  if (doc === 'wnt') return { doc, deductible: 0, wnt: manual !== null ? manual : purchaseGoodsPLN(p) * vatRate() / 100 };
+  return { doc, deductible: 0, wnt: 0 };
+}
+
+/** Klucz okresu rozliczeniowego: 2026-11 albo 2026-Q4. */
+function vatPeriodOf(date) {
+  if (!date) return null;
+  if (settings.vat.period === 'Q') return `${date.slice(0, 4)}-Q${Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1}`;
+  return date.slice(0, 7);
+}
+function vatPeriodLastMonth(key) {
+  if (key.includes('-Q')) { const q = Number(key.slice(-1)); return `${key.slice(0, 4)}-${String(q * 3).padStart(2, '0')}`; }
+  return key;
+}
+function vatPeriodNext(key) {
+  if (key.includes('-Q')) {
+    const y = Number(key.slice(0, 4)), q = Number(key.slice(-1));
+    return q === 4 ? `${y + 1}-Q1` : `${y}-Q${q + 1}`;
+  }
+  return addMonths(key, 1);
+}
+function vatPeriodLabel(key) {
+  if (key.includes('-Q')) return `${key.slice(-2)} ${key.slice(0, 4)}`;
+  const [y, m] = key.split('-');
+  return `${MONTHS_PL[Number(m) - 1]} ${y}`;
+}
+/** Termin zapłaty: 25. dzień miesiąca po okresie. */
+function vatPeriodDue(key) { return `${addMonths(vatPeriodLastMonth(key), 1)}-25`; }
+function vatPeriodEnd(key) { return monthEnd(vatPeriodLastMonth(key)); }
+
+/** Schemat VAT dla sprzedaży: ręczny wybór albo wynikający z dokumentu zakupu. */
+function saleSchemeFor(sale, doc) {
+  if (sale && sale.vatScheme && VAT_SCHEMES[sale.vatScheme]) return sale.vatScheme;
+  return VAT_DOCS[doc] && VAT_DOCS[doc].margin ? 'margin' : 'std';
+}
+/** Kwota, od której liczy się VAT należny: cena + dopłata kupującego do wysyłki − zwrot. */
+function saleTaxable(sale) {
+  if (!sale) return 0;
+  const fx = fxFor(sale.currency, sale.fx);
+  return Math.max(0, saleGross(sale) + num(sale.shippingIn) - num(sale.refund) * fx);
+}
+/** VAT należny od brutto w danym schemacie. `cost` to cena nabycia — potrzebna tylko marży. */
+function outputVat(scheme, gross, cost) {
+  if (scheme === 'zero') return 0;
+  if (scheme === 'margin') return vatInGross(Math.max(0, gross - Math.max(0, cost || 0)));
+  return vatInGross(gross);
+}
+/** Czy sprzedaż z tą datą wchodzi do VAT. */
+function saleInVat(sale) { return vatOn() && !!sale && !!sale.date && sale.date >= vatFrom(); }
+
+/**
+ * Rozkłada VAT naliczony na pozycje. Zwraca:
+ *   card / box — Map id → { ded, date, kind } — VAT, o który spada koszt pozycji
+ *   unalloc    — Map boxId → VAT od kosztu otwartego boxa nieprzypisanego do kart
+ *   expense    — Map id → VAT z kosztów ogólnych
+ *   events     — wiersze rejestru po stronie zakupów (in / corr / wnt)
+ *
+ * kind = 'in'   — zakup po rejestracji, odliczany w miesiącu zakupu
+ * kind = 'corr' — towar sprzed rejestracji, wciąż na stanie 1. dnia — korekta remanentowa
+ */
+function vatAttribution() {
+  const res = { card: new Map(), box: new Map(), unalloc: new Map(), expense: new Map(), events: [], opening: [] };
+  if (!vatOn()) return res;
+  const from = vatFrom();
+  const corrLive = today() >= from;
+  const soldBefore = sale => !!(sale && sale.date && sale.date < from);
+  const pullsBy = groupBy(state.cards.filter(c => c.acq === 'box' && c.boxId), c => c.boxId);
+
+  const push = (kind, date, ref, label, deductible, portionGross) => {
+    if (deductible <= 0.0049) return;
+    res.events.push({ kind, date, ref, label, vat: deductible, base: Math.max(0, portionGross - deductible) });
+  };
+
+  for (const box of state.boxes) {
+    const pv = purchaseVat(box);
+    const landed = boxLanded(box);
+    const pre = !!box.date && box.date < from;
+    if (pv.wnt > 0 && !pre) {
+      res.events.push({ kind: 'wnt', date: box.date, ref: { type: 'box', id: box.id }, label: box.name, vat: pv.wnt, base: purchaseGoodsPLN(box) });
+    }
+    if (pv.deductible <= 0 || landed <= 0) continue;
+    if (pre && (!corrLive || box.vatSkip)) continue;
+    const kind = pre ? 'corr' : 'in';
+    const date = pre ? from : box.date;
+    const ratio = Math.min(1, pv.deductible / landed);
+    const ref = { type: 'box', id: box.id };
+
+    if (box.status === 'opened') {
+      const pulls = pullsBy.get(box.id) || [];
+      let total = 0, totalGross = 0, allocSum = 0;
+      for (const p of pulls) {
+        const alloc = Number.isFinite(p.allocCost) ? p.allocCost : 0;
+        allocSum += alloc;
+        if (pre && soldBefore(p.sale)) continue;
+        const d = alloc * ratio;
+        if (d > 0) { res.card.set(p.id, { ded: d, date, kind }); total += d; totalGross += alloc; }
+      }
+      /* Nieprzypisany koszt to w praktyce bulk. Przy korekcie liczy się tylko
+         ta część, która 1. dnia wciąż leżała (wartość bulku), po rejestracji — całość. */
+      const unalloc = Math.max(0, landed - allocSum);
+      const unallocEligible = pre ? Math.min(unalloc, num(box.bulkValue)) : unalloc;
+      if (unallocEligible > 0) { res.unalloc.set(box.id, unallocEligible * ratio); total += unallocEligible * ratio; totalGross += unallocEligible; }
+      push(kind, date, ref, `${box.name}${pre ? ' — karty i bulk na stanie' : ''}`, total, totalGross);
+      if (pre && total > 0) res.opening.push({ ref, ded: total, gross: totalGross });
+    } else {
+      if (pre && soldBefore(box.sale)) continue;
+      res.box.set(box.id, { ded: pv.deductible, date, kind });
+      push(kind, date, ref, box.name, pv.deductible, landed);
+      if (pre) res.opening.push({ ref, ded: pv.deductible, gross: landed });
+    }
+  }
+
+  for (const card of state.cards) {
+    if (card.acq === 'box') continue;
+    const pv = purchaseVat(card);
+    const own = cardOwnCost(card);
+    const pre = !!card.date && card.date < from;
+    if (pv.wnt > 0 && !pre) {
+      res.events.push({ kind: 'wnt', date: card.date, ref: { type: 'card', id: card.id }, label: cardTitle(card), vat: pv.wnt, base: purchaseGoodsPLN(card) });
+    }
+    if (pv.deductible <= 0 || own <= 0) continue;
+    if (pre && (!corrLive || card.vatSkip || soldBefore(card.sale))) continue;
+    const kind = pre ? 'corr' : 'in';
+    const date = pre ? from : card.date;
+    res.card.set(card.id, { ded: pv.deductible, date, kind });
+    push(kind, date, { type: 'card', id: card.id }, cardTitle(card), pv.deductible, own);
+    if (pre) res.opening.push({ ref: { type: 'card', id: card.id }, ded: pv.deductible, gross: own });
+  }
+
+  for (const e of state.expenses) {
+    const v = num(e.vatIn);
+    if (v <= 0 || !e.date || e.date < from) continue;
+    res.expense.set(e.id, v);
+    push('in', e.date, { type: 'expense', id: e.id }, e.note || EXPENSE_LABEL[e.category] || 'Koszt ogólny', v, num(e.amount));
+  }
+  return res;
+}
+
+/**
+ * Rejestr VAT okres po okresie z przeniesieniem nadwyżki.
+ * Każdy okres: należny (sprzedaż 23%, marża, WNT) − naliczony (zakupy, WNT, korekta).
+ * Wynik dodatni po odjęciu nadwyżki z poprzedniego okresu = do zapłaty do 25.
+ */
+function buildVatLedger(attr, sales) {
+  if (!vatOn()) return { periods: [], byKey: new Map(), outTotal: 0, inTotal: 0, balance: 0, carry: 0, current: null };
+  const fromKey = vatPeriodOf(vatFrom());
+  const nowKey = vatPeriodOf(today());
+  const rows = [];
+  for (const s of sales) {
+    if (!s.vatIn) continue;
+    rows.push({ side: 'out', kind: s.scheme, date: s.date, ref: { type: s.kind, id: s.id }, label: s.name, gross: s.taxable, vat: s.vat, base: s.taxable - s.vat, channel: s.channel, invoiced: !!(s.ref.sale && s.ref.sale.invoiced), cost: s.vatCost });
+  }
+  for (const e of attr.events) rows.push({ side: e.kind === 'wnt' ? 'wnt' : 'in', ...e });
+
+  const keys = new Set([fromKey]);
+  rows.forEach(r => keys.add(vatPeriodOf(r.date)));
+  let last = [...keys].sort().pop();
+  if (nowKey > last) last = nowKey;
+  const order = [];
+  for (let k = fromKey; k <= last; k = vatPeriodNext(k)) order.push(k);
+
+  let carry = num(settings.vat.carryIn);
+  const periods = order.map(key => {
+    const list = rows.filter(r => vatPeriodOf(r.date) === key);
+    const pick = fn => list.filter(fn);
+    const std = pick(r => r.side === 'out' && r.kind === 'std');
+    const mar = pick(r => r.side === 'out' && r.kind === 'margin');
+    const zero = pick(r => r.side === 'out' && r.kind === 'zero');
+    const wnt = pick(r => r.side === 'wnt');
+    const buys = pick(r => r.side === 'in' && r.kind === 'in');
+    const corr = pick(r => r.side === 'in' && r.kind === 'corr');
+    const p = {
+      key, rows: list,
+      stdBase: sum(std, r => r.base), stdVat: sum(std, r => r.vat), stdCount: std.length,
+      marginGross: sum(mar, r => r.gross), marginBase: sum(mar, r => Math.max(0, r.gross - r.cost)), marginVat: sum(mar, r => r.vat), marginCount: mar.length,
+      zeroBase: sum(zero, r => r.gross), zeroCount: zero.length,
+      wntBase: sum(wnt, r => r.base), wntVat: sum(wnt, r => r.vat),
+      buyBase: sum(buys, r => r.base), buyVat: sum(buys, r => r.vat), buyCount: buys.length,
+      corrVat: sum(corr, r => r.vat), corrCount: corr.length
+    };
+    p.outVat = p.stdVat + p.marginVat + p.wntVat;
+    p.inVat = p.buyVat + p.corrVat + p.wntVat;
+    p.carryIn = carry;
+    p.due = p.outVat - p.inVat - carry;
+    p.payable = Math.max(0, p.due);
+    p.carryOut = Math.max(0, -p.due);
+    p.dueDate = vatPeriodDue(key);
+    p.closed = today() > vatPeriodEnd(key);
+    p.current = key === nowKey;
+    carry = p.carryOut;
+    return p;
+  });
+  const outTotal = sum(periods, p => p.stdVat + p.marginVat);
+  const inTotal = sum(periods, p => p.buyVat + p.corrVat);
+  return {
+    periods, byKey: new Map(periods.map(p => [p.key, p])), outTotal, inTotal,
+    balance: outTotal - inTotal,
+    carry, current: periods.find(p => p.current) || periods[periods.length - 1] || null
+  };
 }
 
 /** Historia wycen karty, posortowana rosnąco po dacie. */
@@ -382,14 +677,21 @@ function compute() {
   };
   const alloc = allocationIndex();
   const allocatedTotal = [...alloc.values()].reduce((a, v) => a + v, 0);
+  const attr = vatAttribution();
+  const vatLive = vatOn();
+  const boxById = new Map(state.boxes.map(b => [b.id, b]));
 
-  const basisOf = card => {
-    const own = card.acq === 'box' ? (alloc.get(card.id) || 0) : cardOwnCost(card);
-    return own + (gIdx.get(card.id) || 0);
-  };
+  /* Cena nabycia bez gradingu — do VAT-marży liczy się tylko to, co zapłacone za sam towar. */
+  const purchaseCostOf = card => (card.acq === 'box' ? (alloc.get(card.id) || 0) : cardOwnCost(card));
+  const basisOf = card => purchaseCostOf(card) + (gIdx.get(card.id) || 0);
+  const docOfCard = card => vatDocOf(card.acq === 'box' ? boxById.get(card.boxId) : card);
 
   const cards = state.cards.map(card => {
-    const basis = basisOf(card);
+    const basisGross = basisOf(card);
+    const vatDed = attr.card.has(card.id) ? attr.card.get(card.id).ded : 0;
+    const basis = basisGross - vatDed;
+    const vatCost = purchaseCostOf(card);
+    const doc = docOfCard(card);
     const mvRaw = rawValue(card);
     const mv = mvRaw === null ? basis : mvRaw;
     const hist = (vIdx.get(card.id) || []).filter(v => v.date <= t);
@@ -397,11 +699,25 @@ function compute() {
     const prevVal = hist.length > 1 ? hist[hist.length - 2] : null;
     const sold = !!card.sale;
     const net = sold ? saleNet(card.sale) : 0;
-    const pnl = sold ? net - basis : mv - basis;
+    /* VAT od sprzedaży: faktyczny dla sprzedanych po rejestracji, oczekiwany dla
+       trzymanych — wycena rynkowa to cena brutto, a do kieszeni wpada netto. */
+    const scheme = saleSchemeFor(sold ? card.sale : null, doc);
+    const vatOut = sold ? (saleInVat(card.sale) ? outputVat(scheme, saleTaxable(card.sale), vatCost) : 0) : 0;
+    const vatExpected = !sold && vatLive ? outputVat(scheme, mv, vatCost) : 0;
+    const mvNet = mv - vatExpected;
+    const pnl = sold ? net - vatOut - basis : mvNet - basis;
     const daysHeld = sold ? daysBetween(card.date, card.sale.date) : daysSince(card.date);
     return {
       ...card,
       basis,
+      basisGross,
+      vatDed,
+      vatDoc: doc,
+      vatScheme: scheme,
+      vatCost,
+      vatOut,
+      vatExpected,
+      marketValueNet: mvNet,
       marketValue: mv,
       hasValuation: mvRaw !== null,
       lastValuationDate: lastVal ? lastVal.date : null,
@@ -425,17 +741,30 @@ function compute() {
   const soldCards = cards.filter(c => c.sold);
 
   const boxes = state.boxes.map(box => {
-    const landed = boxLanded(box);
+    const landedGross = boxLanded(box);
     const pulls = cards.filter(c => c.boxId === box.id);
-    const pullsReturn = sum(pulls, c => (c.sold ? c.net : c.marketValue));
+    const doc = vatDocOf(box);
+    /* VAT odliczony od boxa: sealed i flip — z rekordu boxa, otwarty — suma z pulli i bulku. */
+    const vatDed = box.status === 'opened'
+      ? sum(pulls, c => c.vatDed) + (attr.unalloc.get(box.id) || 0)
+      : (attr.box.has(box.id) ? attr.box.get(box.id).ded : 0);
+    const landed = landedGross - vatDed;
+    const pullsReturn = sum(pulls, c => (c.sold ? c.net - c.vatOut : c.marketValueNet));
     const bulk = num(box.bulkValue);
     const ret = pullsReturn + bulk;
     const flipNet = box.sale ? saleNet(box.sale) : 0;
     const isFlip = box.status === 'sold';
-    const pnl = isFlip ? flipNet - landed : (box.status === 'opened' ? ret - landed : 0);
+    const scheme = saleSchemeFor(box.sale, doc);
+    const vatOut = isFlip && saleInVat(box.sale) ? outputVat(scheme, saleTaxable(box.sale), landedGross) : 0;
+    const pnl = isFlip ? flipNet - vatOut - landed : (box.status === 'opened' ? ret - landed : 0);
     return {
       ...box,
       landed,
+      landedGross,
+      vatDed,
+      vatDoc: doc,
+      vatScheme: scheme,
+      vatOut,
       pulls,
       pullsReturn,
       bulk,
@@ -455,7 +784,7 @@ function compute() {
   const flipped = boxes.filter(b => b.status === 'sold');
 
   /* --- Pieniądze --- */
-  const goodsSpend = sum(boxes, b => b.landed) + sum(cards.filter(c => c.acq !== 'box'), c => cardOwnCost(c));
+  const goodsSpend = sum(boxes, b => b.landedGross) + sum(cards.filter(c => c.acq !== 'box'), c => cardOwnCost(c));
   const gradingSpend = sum(state.gradings, g => gradingTotal(g));
   const overhead = sum(state.expenses, e => num(e.amount));
   const cashOut = goodsSpend + gradingSpend + overhead;
@@ -463,25 +792,35 @@ function compute() {
   const netCash = cashIn - cashOut;
 
   const heldValue = sum(held, c => c.marketValue);
+  const heldValueNet = sum(held, c => c.marketValueNet);
   const heldBasis = sum(held, c => c.basis);
   const sealedValue = sum(sealed, b => b.landed);
   const bulkValue = sum(opened, b => b.bulk);
-  const assets = heldValue + sealedValue + bulkValue;
+  const assets = heldValueNet + sealedValue + bulkValue;
+
+  /* Saldo VAT: należny ze sprzedaży minus naliczony przypisany do towaru i kosztów.
+     Dodatnie — tyle z wpływów należy się urzędowi; ujemne — urząd jest winien Tobie. */
+  const vatOutTotal = sum(soldCards, c => c.vatOut) + sum(flipped, b => b.vatOut);
+  const vatExpenseDed = sum([...attr.expense.values()]);
+  const vatUnallocDed = sum([...attr.unalloc.values()]);
+  const vatDedTotal = sum(cards, c => c.vatDed) + sum(boxes.filter(b => b.status !== 'opened'), b => b.vatDed) + vatUnallocDed + vatExpenseDed;
+  const vatBalance = vatOutTotal - vatDedTotal;
+  const overheadNet = overhead - vatExpenseDed;
 
   const realized = sum(soldCards, c => c.pnl) + sum(flipped, b => b.pnl);
-  const unrealized = heldValue - heldBasis;
-  const totalResult = assets + cashIn - cashOut;
+  const unrealized = heldValueNet - heldBasis;
+  const totalResult = assets + cashIn - cashOut - vatBalance;
 
   /* Koszt otwartych boxów, który nie trafił na żadną kartę. Bierze się stąd,
      że przy odliczaniu bulku baza pulli jest o niego mniejsza (wtedy bulk
      siedzi już w P&L kart) albo że box otwarto bez wpisania czegokolwiek.
      Rozbicie wyniku spina się dokładnie:
        wynik = zrealizowany + niezrealizowany + bulk − nieprzypisane − koszty ogólne */
-  const openedLanded = sum(opened, b => b.landed);
-  const unallocated = openedLanded - allocatedTotal;
+  const openedLanded = sum(opened, b => b.landedGross);
+  const unallocated = openedLanded - allocatedTotal - vatUnallocDed;
   const emptyBreaks = opened.filter(b => !b.pulls.length);
   const emptyBreakCost = sum(emptyBreaks, b => b.landed);
-  const residual = totalResult - (realized + unrealized + bulkValue - unallocated - overhead);
+  const residual = totalResult - (realized + unrealized + bulkValue - unallocated - overheadNet);
 
   /* --- Sprzedaż --- */
   const sales = [
@@ -489,6 +828,7 @@ function compute() {
       kind: 'card', id: c.id, ref: c, date: c.sale.date, name: cardTitle(c),
       channel: c.sale.channel || '—', gross: saleGross(c.sale), fees: saleFees(c.sale),
       net: c.net, basis: c.basis, pnl: c.pnl,
+      vat: c.vatOut, vatIn: saleInVat(c.sale), scheme: c.vatScheme, taxable: saleTaxable(c.sale), vatCost: c.vatCost,
       roi: c.basis > 0 ? c.pnl / c.basis * 100 : null,
       margin: saleGross(c.sale) > 0 ? c.pnl / saleGross(c.sale) * 100 : null,
       days: c.daysHeld
@@ -497,6 +837,7 @@ function compute() {
       kind: 'box', id: b.id, ref: b, date: b.sale.date, name: b.name,
       channel: b.sale.channel || '—', gross: saleGross(b.sale), fees: saleFees(b.sale),
       net: b.flipNet, basis: b.landed, pnl: b.pnl,
+      vat: b.vatOut, vatIn: saleInVat(b.sale), scheme: b.vatScheme, taxable: saleTaxable(b.sale), vatCost: b.landedGross,
       roi: b.landed > 0 ? b.pnl / b.landed * 100 : null,
       margin: saleGross(b.sale) > 0 ? b.pnl / saleGross(b.sale) * 100 : null,
       days: b.daysHeld
@@ -547,10 +888,13 @@ function compute() {
   const gradeValues = [];
   for (const g of gradedReturned) for (const c of g.items) if (c.grade && c.grade.value) gradeValues.push(num(c.grade.value));
 
+  const vatLedger = buildVatLedger(attr, sales);
+
   return {
     cards, byId, held, soldCards, boxes, sealed, opened, flipped, sales, listed, inGrading,
-    goodsSpend, gradingSpend, overhead, cashOut, cashIn, netCash,
-    heldValue, heldBasis, sealedValue, bulkValue, assets,
+    goodsSpend, gradingSpend, overhead, overheadNet, cashOut, cashIn, netCash,
+    heldValue, heldValueNet, heldBasis, sealedValue, bulkValue, assets,
+    vatOn: vatLive, vatAttr: attr, vatLedger, vatOutTotal, vatDedTotal, vatBalance, vatExpenseDed, vatUnallocDed,
     realized, unrealized, totalResult, residual, unallocated, emptyBreaks, emptyBreakCost,
     roiTotal: cashOut > 0 ? totalResult / cashOut * 100 : null,
     roiRealized: sum(sales, s => s.basis) > 0 ? sum(sales, s => s.pnl) / sum(sales, s => s.basis) * 100 : null,
@@ -624,7 +968,9 @@ function renderAll() {
   renderCosts();
   renderAnalytics();
   renderWatchlist();
+  renderVat();
   renderFxBadge();
+  document.body.classList.toggle('vat-off', !vatOn());
 }
 
 function renderTabCounts() {
@@ -671,7 +1017,8 @@ function renderOverview() {
   const staleCount = M.held.filter(c => c.stale).length;
   el('hero-note').innerHTML = M.held.length
     ? `${nCards(M.held.length)} na stanie${M.sealed.length ? `, ${nBoxes(M.sealed.length)} sealed` : ''}. ` +
-      (staleCount ? `${staleCount} ${plural(staleCount, 'wycena wymaga', 'wyceny wymagają', 'wycen wymaga')} odświeżenia.` : 'Wyceny aktualne.')
+      (staleCount ? `${staleCount} ${plural(staleCount, 'wycena wymaga', 'wyceny wymagają', 'wycen wymaga')} odświeżenia.` : 'Wyceny aktualne.') +
+      (M.vatOn && M.heldValue - M.heldValueNet > 0.5 ? ` Po VAT od sprzedaży zostaje <strong>${fmtPLN0(M.heldValueNet)}</strong>.` : '')
     : 'Pusto. Zacznij od dodania boxa albo pierwszego single — reszta policzy się sama.';
 
   setKpiHero('hero-cost', fmtPLN0(M.heldBasis), `${fmtPct(M.unrealizedPct)} do wyceny`);
@@ -740,7 +1087,9 @@ function recStockMode() { return settings.recStock === 'cost' ? 'cost' : 'market
  */
 function capitalRecovery() {
   const spent = M.cashOut;
-  const cashBack = M.cashIn;
+  /* Po rejestracji VAT część wpływów należy do urzędu, a odliczony VAT naliczony
+     wraca — liczy się to, co zostaje po rozliczeniu. */
+  const cashBack = M.cashIn - M.vatBalance;
   const recovered = Math.min(cashBack, spent);
   const surplus = Math.max(0, cashBack - spent);
   const missing = Math.max(0, spent - cashBack);
@@ -767,7 +1116,8 @@ function capitalRecovery() {
     + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date >= since), c => cardOwnCost(c))
     + sum(state.gradings.filter(g => g.date && g.date >= since), g => gradingTotal(g))
     + sum(state.expenses.filter(e => e.date && e.date >= since), e => num(e.amount));
-  const backWindow = sum(M.sales.filter(s => s.date && s.date >= since), s => s.net);
+  const backWindow = sum(M.sales.filter(s => s.date && s.date >= since), s => s.net - s.vat)
+    + sum(M.vatAttr.events.filter(e => e.kind !== 'wnt' && e.date >= since), e => e.vat);
   const months = REC_WINDOW / REC_MONTH;
   const spendRate = spendWindow / months;
   const backRate = backWindow / months;
@@ -784,7 +1134,7 @@ function capitalRecovery() {
 
   /* Drabina liczy się w tym samym trybie co pasek — inaczej udziały
      w towarze i w luce nie zgadzałyby się z liczbami nad nią. */
-  const cardVal = c => (mode === 'cost' ? c.basis : c.marketValue);
+  const cardVal = c => (mode === 'cost' ? c.basis : c.marketValueNet);
   const plainHeld = M.held.filter(c => c.status !== 'listed' && c.status !== 'grading');
   const ladderValue = {
     listed: { value: sum(M.listed, cardVal), count: M.listed.length },
@@ -993,7 +1343,7 @@ function saleSplit(list) {
   return {
     count: list.length,
     cost,
-    value: sum(list, sale => sale.net),
+    value: sum(list, sale => sale.net - sale.vat),
     pnl,
     roi: cost > 0 ? pnl / cost * 100 : null,
     avgDays: withDays.length ? sum(withDays, sale => sale.days) / withDays.length : null
@@ -1002,7 +1352,9 @@ function saleSplit(list) {
 
 function renderCapitalFunnel() {
   const soldBasis = sum(M.sales, sale => sale.basis);
-  const otherCost = Math.max(0, M.cashOut - soldBasis - M.heldBasis - M.sealedValue);
+  const vatDed = M.vatOn ? M.vatDedTotal : 0;
+  const otherCost = Math.max(0, M.cashOut - soldBasis - M.heldBasis - M.sealedValue - vatDed);
+  const soldValue = sum(M.sales, sale => sale.net - sale.vat);
   const otherValue = M.bulkValue;
 
   /* Karty i boxy sprzedają się inaczej — rozbicie pokazuje, która noga
@@ -1033,7 +1385,7 @@ function renderCapitalFunnel() {
     {
       tone: 'realized', icon: 'check_circle', label: 'Sprzedany towar',
       sub: soldSub + splitNote,
-      cost: soldBasis, value: M.cashIn, pnl: M.cashIn - soldBasis, paper: false
+      cost: soldBasis, value: soldValue, pnl: soldValue - soldBasis, paper: false
     },
     ...(bothSides ? [
       splitRow(cardSplit, 'Karty single', 'style'),
@@ -1041,15 +1393,20 @@ function renderCapitalFunnel() {
     ] : []),
     {
       tone: 'paper', icon: 'style', label: 'Karty na stanie',
-      sub: `${nCards(M.held.length)} · wycena rynkowa`,
-      cost: M.heldBasis, value: M.heldValue, pnl: M.unrealized, paper: true
+      sub: `${nCards(M.held.length)} · wycena rynkowa${M.vatOn ? ' po VAT' : ''}`,
+      cost: M.heldBasis, value: M.heldValueNet, pnl: M.unrealized, paper: true
     },
     {
       tone: 'sealed', icon: 'package_2', label: 'Nieotwarte boxy',
-      sub: `${nBoxes(M.sealed.length)} · wycenione po koszcie`,
+      sub: `${nBoxes(M.sealed.length)} · wycenione po koszcie${M.vatOn ? ' netto' : ''}`,
       cost: M.sealedValue, value: M.sealedValue, pnl: 0, paper: true
     }
   ];
+  if (vatDed > 0.005) rows.push({
+    tone: 'sealed', icon: 'account_balance', label: 'VAT naliczony',
+    sub: 'odliczony w JPK — wraca przez rozliczenie z urzędem',
+    cost: vatDed, value: vatDed, pnl: 0, paper: false
+  });
   if (otherCost || otherValue) rows.push({
     tone: 'other', icon: 'inventory_2', label: 'Bulk i pozostałe koszty',
     sub: 'Bulk z breaków, nieprzypisany koszt i koszty ogólne',
@@ -1064,17 +1421,17 @@ function renderCapitalFunnel() {
       return `<tr class="${row.paper ? 'is-paper' : ''}${row.child ? ' is-child' : ''}">
         <td><div class="cd-funnel-stage"><span class="cd-funnel-icon ${row.tone}"><span class="material-symbols-outlined">${row.icon}</span></span><span><strong>${row.label}</strong><small>${row.sub}</small></span></div><span class="cd-funnel-bar"><i class="${row.tone}" style="width:${row.cost / maxCost * 100}%"></i></span></td>
         <td class="num mono">${fmtPLN0(row.cost)}</td>
-        <td class="num mono">${fmtPLN0(row.value)}${row.paper ? '<small>papierowo</small>' : '<small>netto</small>'}</td>
+        <td class="num mono">${fmtPLN0(row.value)}${row.paper ? '<small>papierowo</small>' : `<small>${M.vatOn ? 'po VAT' : 'netto'}</small>`}</td>
         <td class="num mono ${posClass(row.pnl)}">${fmtPLN0(row.pnl, true)}</td>
         <td class="num mono ${posClass(roi)}">${fmtPct(roi)}</td>
       </tr>`;
     }).join('')}</tbody>
-    <tfoot><tr><td>Łącznie</td><td class="num mono">${fmtPLN0(M.cashOut)}</td><td class="num mono">${fmtPLN0(M.cashIn + M.assets)}</td><td class="num mono ${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</td><td class="num mono ${posClass(M.roiTotal)}">${fmtPct(M.roiTotal)}</td></tr></tfoot>
+    <tfoot><tr><td>Łącznie</td><td class="num mono">${fmtPLN0(M.cashOut)}</td><td class="num mono">${fmtPLN0(M.cashIn - M.vatBalance + M.assets)}</td><td class="num mono ${posClass(M.totalResult)}">${fmtPLN0(M.totalResult, true)}</td><td class="num mono ${posClass(M.roiTotal)}">${fmtPct(M.roiTotal)}</td></tr></tfoot>
   </table>`;
 
   const inventory = M.heldBasis + M.sealedValue + Math.max(0, M.unallocated);
   const paperGain = M.totalResult - M.realized;
-  const recovery = M.cashOut > 0 ? M.cashIn / M.cashOut * 100 : 0;
+  const recovery = M.cashOut > 0 ? (M.cashIn - M.vatBalance) / M.cashOut * 100 : 0;
   el('funnel-recovered').textContent = `${fmtPct(recovery, false, 0)} wydatków wróciło w gotówce`;
   el('funnel-summary').innerHTML = `
     <div><span>Kapitał nadal w towarze</span><strong>${fmtPLN0(inventory)}</strong></div>
@@ -1107,12 +1464,22 @@ function portfolioSeries() {
   if (!months.length) months.push(endYm);
 
   const vIdx = M.valuationIdx;
+  const vFrom = M.vatOn ? vatFrom() : null;
   const valueAt = (card, at) => {
     const arr = vIdx.get(card.id) || [];
     let v = null;
     for (const item of arr) { if (item.date <= at) v = num(item.value); else break; }
-    return v === null ? card.basis : v;
+    if (v === null) return card.basis;
+    /* Od rejestracji wycena liczy się po VAT, który odda się przy sprzedaży. */
+    return vFrom && at >= vFrom ? v - outputVat(card.vatScheme, v, card.vatCost) : v;
   };
+  /* Saldo VAT na dzień: należny ze sprzedaży minus naliczony odliczony do tego dnia. */
+  const vatEvents = M.vatOn ? [
+    ...M.sales.filter(x => x.vatIn).map(x => [x.date, x.vat]),
+    ...M.vatAttr.events.filter(e => e.kind !== 'wnt').map(e => [e.date, -e.vat])
+  ] : [];
+  const vatAt = at => sum(vatEvents.filter(([d]) => d <= at), ([, v]) => v);
+  const dedAt = (b, at) => (b.vatDed > 0 && M.vatAttr.box.has(b.id) && M.vatAttr.box.get(b.id).date <= at ? b.vatDed : 0);
 
   return months.map((ym, i) => {
     const at = (i === months.length - 1) ? today() : monthEnd(ym);
@@ -1121,9 +1488,9 @@ function portfolioSeries() {
     const basis = sum(holdings, c => c.basis);
     const sealedAt = sum(M.boxes.filter(b => b.date && b.date <= at
       && !(b.status === 'opened' && (b.openedDate || b.date) <= at)
-      && !(b.sale && b.sale.date <= at)), b => b.landed);
+      && !(b.sale && b.sale.date <= at)), b => b.landedGross - dedAt(b, at));
     const bulkAt = sum(M.boxes.filter(b => b.status === 'opened' && (b.openedDate || b.date) <= at), b => b.bulk);
-    const outAt = sum(M.boxes.filter(b => b.date <= at), b => b.landed)
+    const outAt = sum(M.boxes.filter(b => b.date <= at), b => b.landedGross)
       + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date <= at), c => cardOwnCost(c))
       + sum(state.gradings.filter(g => g.date && g.date <= at), g => gradingTotal(g))
       + sum(state.expenses.filter(e => e.date && e.date <= at), e => num(e.amount));
@@ -1134,7 +1501,7 @@ function portfolioSeries() {
       assets: market + sealedAt + bulkAt,
       invested: outAt - inAt,
       cashOut: outAt, cashIn: inAt,
-      result: market + sealedAt + bulkAt + inAt - outAt
+      result: market + sealedAt + bulkAt + inAt - outAt - vatAt(at)
     };
   });
 }
@@ -1171,7 +1538,19 @@ function renderTodo() {
   if (conc.top && conc.top.share > s.concAlert) {
     items.push(['warn', 'donut_large', `<strong>${esc(conc.top.name)}</strong> to ${fmtPct(conc.top.share, false)} wartości kolekcji. Jeden transfer albo kontuzja i portfel leci razem z nim.`, 'goTab("analytics")']);
   }
-  const taxSoon = M.held.filter(c => {
+  if (M.vatOn) {
+    const unknownBuys = vatOpeningCandidates().filter(g => g.doc === 'unknown');
+    if (unknownBuys.length) {
+      items.push(['warn', 'account_balance', `<strong>${unknownBuys.length}</strong> ${plural(unknownBuys.length, 'zakup', 'zakupy', 'zakupów')} sprzed ${fmtDate(vatFrom())} leży na stanie bez określonego dokumentu. Zaznacz, które masz na fakturę VAT — od nich odliczysz VAT w korekcie.`, 'goTab("vat")']);
+    } else if (!settings.vat.opening && sum(M.vatLedger.periods, p => p.corrVat) > 0.005) {
+      items.push(['info', 'lock', `Korekta VAT za towar na stanie: <strong>${fmtPLN0(sum(M.vatLedger.periods, p => p.corrVat))}</strong>. Gdy wejdzie do JPK, zatwierdź ją, żeby moduł pilnował kwoty.`, 'goTab("vat")']);
+    }
+    const pending = M.vatLedger.periods.find(p => p.closed && p.dueDate >= today() && p.payable > 0.005);
+    if (pending) {
+      items.push(['info', 'payments', `VAT za ${vatPeriodLabel(pending.key)}: <strong>${fmtPLN0(pending.payable)}</strong> do zapłaty do ${fmtDate(pending.dueDate)}.`, 'goTab("vat")']);
+    }
+  }
+  const taxSoon = M.vatOn ? [] : M.held.filter(c => {
     const d = c.daysHeld;
     return d != null && d >= 150 && d < 183;
   });
@@ -1502,7 +1881,7 @@ function renderSealed() {
   wrap.innerHTML = `<table class="tc-tbl">
     <thead><tr>
       <th>Produkt</th><th>Format</th><th>Plan</th><th>Zakup</th>
-      <th class="num">Koszt</th><th class="num">Waluta</th><th class="num">Dni</th><th style="width:170px"></th>
+      <th class="num">${vatOn() ? 'Koszt netto' : 'Koszt'}</th><th class="num">Waluta</th><th class="num">Dni</th><th style="width:170px"></th>
     </tr></thead>
     <tbody>${rows.map(b => {
       const old = (b.daysHeld || 0) > settings.sealedDays;
@@ -1511,7 +1890,7 @@ function renderSealed() {
         <td><span class="cd-status sealed">${FORMAT_LABEL[b.format] || b.format || '—'}</span></td>
         <td class="cd-muted">${PURPOSE_LABEL[b.purpose] || '—'}</td>
         <td class="cd-mono cd-nowrap">${fmtDate(b.date)}</td>
-        <td class="num">${fmtPLN0(b.landed)}</td>
+        <td class="num" title="${vatOn() ? `brutto ${fmtPLN(b.landedGross)} · ${esc((VAT_DOCS[b.vatDoc] || VAT_DOCS.unknown).label)}` : ''}">${fmtPLN0(b.landed)}${vatOn() ? ` <span class="cd-vat-doc ${b.vatDoc}">${esc((VAT_DOCS[b.vatDoc] || VAT_DOCS.unknown).short)}</span>` : ''}</td>
         <td class="num cd-muted">${b.currency && b.currency !== 'PLN' ? `${fmtNum(num(b.price), 2)} ${esc(b.currency)}` : '—'}</td>
         <td class="num ${old ? 'cd-warn' : ''}">${b.daysHeld == null ? '—' : b.daysHeld}</td>
         <td>
@@ -1650,7 +2029,7 @@ function renderFlips() {
         <td class="cd-mono cd-nowrap">${fmtDate(b.date)}</td>
         <td class="cd-mono cd-nowrap">${fmtDate(b.sale.date)}</td>
         <td class="num">${fmtPLN0(b.landed)}</td>
-        <td class="num">${fmtPLN0(b.flipNet)}</td>
+        <td class="num">${fmtPLN0(b.flipNet - b.vatOut)}${b.vatOut > 0.005 ? ` <small class="cd-muted" title="VAT należny">−${fmtPLN0(b.vatOut)} VAT</small>` : ''}</td>
         <td class="num ${posClass(b.pnl)}">${fmtPLN0(b.pnl, true)}</td>
         <td class="num ${posClass(b.roi)}">${fmtPct(b.roi)}</td>
         <td class="num">${b.daysHeld == null ? '—' : b.daysHeld}</td>
@@ -1662,7 +2041,7 @@ function renderFlips() {
     <tfoot><tr>
       <td colspan="3">Razem</td>
       <td class="num">${fmtPLN0(M.flipStats.cost)}</td>
-      <td class="num">${fmtPLN0(sum(M.flipped, b => b.flipNet))}</td>
+      <td class="num">${fmtPLN0(sum(M.flipped, b => b.flipNet - b.vatOut))}</td>
       <td class="num ${posClass(M.flipStats.pnl)}">${fmtPLN0(M.flipStats.pnl, true)}</td>
       <td class="num ${posClass(M.flipStats.roi)}">${fmtPct(M.flipStats.roi)}</td>
       <td colspan="2"></td>
@@ -1674,7 +2053,7 @@ function renderFlips() {
    ============================================================ */
 function renderSales() {
   setKpi('s-pnl', fmtPLN0(sum(M.sales, s => s.pnl), true), `${M.sales.length} ${plural(M.sales.length, 'transakcja', 'transakcje', 'transakcji')}`, posClass(sum(M.sales, s => s.pnl)));
-  setKpi('s-gross', fmtPLN0(M.grossSales), 'przed prowizjami i wysyłką');
+  setKpi('s-gross', fmtPLN0(M.grossSales), M.vatOutTotal > 0.005 ? `w tym VAT należny ${fmtPLN0(M.vatOutTotal)}` : 'przed prowizjami i wysyłką');
   setKpi('s-fees', fmtPLN0(M.feesTotal), M.grossSales > 0 ? `${fmtPct(M.feesTotal / M.grossSales * 100, false)} przychodu` : '—');
   setKpi('s-margin', fmtPct(M.marginPct), `cel ${settings.targetMargin}%`, M.marginPct != null && M.marginPct >= settings.targetMargin ? 'pos' : M.marginPct != null ? 'warn' : '');
   setKpi('s-wr', fmtPct(M.winRate, false, 0), `${M.wins}/${M.sales.length} ze zyskiem`);
@@ -1727,7 +2106,26 @@ function expectedNet(c) {
   if (!c.listing) return 0;
   const ch = settings.channels.find(x => x.name === c.listing.channel);
   const fee = ch ? num(ch.fee) : 0;
-  return num(c.listing.price) * (1 - fee / 100);
+  const vat = vatOn() ? outputVat(c.vatScheme, num(c.listing.price), c.vatCost) : 0;
+  return num(c.listing.price) * (1 - fee / 100) - vat;
+}
+
+/**
+ * Cena brutto, przy której po prowizji kanału i VAT należnym zostaje `target`.
+ *   23% od całości:  brutto · (1 − prowizja) − brutto · r/(100+r) = target
+ *   VAT-marża:       brutto · (1 − prowizja) − (brutto − koszt) · r/(100+r) = target
+ * Bez VAT wzór sprowadza się do starego target / (1 − prowizja).
+ */
+function breakEvenGross(target, feePct, scheme, purchaseCost) {
+  const f = 1 - num(feePct) / 100;
+  if (!vatOn() || scheme === 'zero') return f > 0 ? target / f : 0;
+  const k = vatRate() / (100 + vatRate());
+  if (scheme === 'margin') {
+    const g = (target - k * purchaseCost) / (f - k);
+    /* Poniżej ceny zakupu marża jest zerowa, więc VAT też — wtedy wystarczy wzór bez VAT. */
+    return g < purchaseCost ? target / f : g;
+  }
+  return f - k > 0 ? target / (f - k) : 0;
 }
 
 function filteredSales() {
@@ -1753,10 +2151,11 @@ function renderSalesTable() {
     wrap.innerHTML = emptyBox('receipt', 'Brak sprzedaży', M.sales.length ? 'Zmień filtry — transakcje są, ale nie w tym zakresie.' : 'Po pierwszej sprzedaży pojawi się tu pełne rozliczenie: brutto, prowizje, netto i ROI.');
     return;
   }
+  const showVat = vatOn();
   wrap.innerHTML = `<table class="tc-tbl">
     <thead><tr>
       <th>Data</th><th>Pozycja</th><th>Kanał</th><th class="num">Brutto</th><th class="num">Koszty transakcji</th>
-      <th class="num">Netto</th><th class="num">Baza</th><th class="num">P&L</th><th class="num">ROI</th><th class="num">Marża</th><th class="num">Dni</th><th></th>
+      ${showVat ? '<th class="num">VAT</th>' : ''}<th class="num">${showVat ? 'Netto po VAT' : 'Netto'}</th><th class="num">Baza</th><th class="num">P&L</th><th class="num">ROI</th><th class="num">Marża</th><th class="num">Dni</th><th></th>
     </tr></thead>
     <tbody>${rows.map(s => `
       <tr ${s.kind === 'card' ? `class="clickable" onclick="openCardDrawer('${s.id}')"` : ''}>
@@ -1765,7 +2164,8 @@ function renderSalesTable() {
         <td>${esc(s.channel)}</td>
         <td class="num">${fmtPLN0(s.gross)}</td>
         <td class="num cd-neg">${fmtPLN0(-s.fees)}</td>
-        <td class="num">${fmtPLN0(s.net)}</td>
+        ${showVat ? `<td class="num ${s.vat > 0 ? 'cd-neg' : 'cd-muted'}" title="${s.vatIn ? esc(VAT_SCHEMES[s.scheme]) : 'sprzedaż sprzed rejestracji VAT'}">${s.vatIn ? `${fmtPLN0(-s.vat)}${s.scheme === 'margin' ? ' <small>M</small>' : ''}` : '—'}</td>` : ''}
+        <td class="num">${fmtPLN0(s.net - s.vat)}</td>
         <td class="num cd-muted">${fmtPLN0(s.basis)}</td>
         <td class="num ${posClass(s.pnl)}">${fmtPLN0(s.pnl, true)}</td>
         <td class="num ${posClass(s.roi)}">${fmtPct(s.roi)}</td>
@@ -1777,7 +2177,8 @@ function renderSalesTable() {
       <td colspan="3">Razem (widok)</td>
       <td class="num">${fmtPLN0(sum(rows, s => s.gross))}</td>
       <td class="num cd-neg">${fmtPLN0(-sum(rows, s => s.fees))}</td>
-      <td class="num">${fmtPLN0(sum(rows, s => s.net))}</td>
+      ${showVat ? `<td class="num cd-neg">${fmtPLN0(-sum(rows, s => s.vat))}</td>` : ''}
+      <td class="num">${fmtPLN0(sum(rows, s => s.net - s.vat))}</td>
       <td class="num">${fmtPLN0(sum(rows, s => s.basis))}</td>
       <td class="num ${posClass(sum(rows, s => s.pnl))}">${fmtPLN0(sum(rows, s => s.pnl), true)}</td>
       <td class="num">${sum(rows, s => s.basis) > 0 ? fmtPct(sum(rows, s => s.pnl) / sum(rows, s => s.basis) * 100) : '—'}</td>
@@ -1789,28 +2190,39 @@ function saleAccountingAmount(sale) {
   return Math.max(0, saleGross(sale) - num(sale.refund) * fxFor(sale.currency, sale.fx));
 }
 
+/** Wiersze DW. Od rejestracji VAT przychodem do ryczałtu jest kwota netto — VAT należny
+    odejmujemy proporcjonalnie, bo podstawa VAT obejmuje też dopłatę kupującego do wysyłki. */
 function accountingSales(month) {
   return M.sales.filter(s => s.date && s.date.slice(0, 7) === month && !s.ref.sale.invoiced)
-    .map(s => ({ ...s, accounting: saleAccountingAmount(s.ref.sale), orderId: s.ref.sale.orderId || '' }))
-    .filter(s => s.accounting > 0);
+    .map(s => {
+      const gross = saleAccountingAmount(s.ref.sale);
+      const vat = s.vatIn && s.taxable > 0 ? s.vat * gross / s.taxable : 0;
+      return { ...s, accountingGross: gross, accountingVat: vat, accounting: gross - vat, orderId: s.ref.sale.orderId || '' };
+    })
+    .filter(s => s.accountingGross > 0);
 }
 
 function renderAccountingReport() {
   const month = getVal('accounting-month') || today().slice(0, 7);
   const rows = accountingSales(month);
   const days = [...groupBy(rows, s => s.date).entries()].sort(([a], [b]) => a.localeCompare(b));
-  el('accounting-summary').textContent = `${rows.length} ${plural(rows.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')} bez faktury · ${fmtPLN(sum(rows, s => s.accounting))} do DW`;
-  el('accounting-wrap').innerHTML = days.length ? `<table class="tc-tbl"><thead><tr><th>Dokument ING</th><th>Rozbicie kanałów</th><th class="num">Przychód 3%</th></tr></thead><tbody>${days.map(([date, list]) => {
+  const withVat = rows.some(s => s.vatIn);
+  el('accounting-summary').textContent = `${rows.length} ${plural(rows.length, 'sprzedaż', 'sprzedaże', 'sprzedaży')} bez faktury · ${fmtPLN(sum(rows, s => s.accounting))} ${withVat ? 'netto ' : ''}do DW`;
+  const note = el('accounting-note');
+  if (note) note.innerHTML = vatOn()
+    ? `<strong>Zasada raportu:</strong> kwota zapłacona za towar przed prowizją platformy, pomniejszona o zwroty. Od ${fmtDate(vatFrom())} przychodem do ryczałtu jest <strong>kwota netto</strong> — bez VAT należnego (23% od całości albo od marży). Sprzedaże z fakturą są wykluczane. Każdy dzień tworzy osobny DW ze stawką ryczałtu 3%.`
+    : '<strong>Zasada raportu:</strong> kwota zapłacona za towar przed prowizją platformy, pomniejszona o zwroty. Sprzedaże oznaczone jako zafakturowane są wykluczane. Każdy dzień tworzy osobny DW ze stawką ryczałtu 3%.';
+  el('accounting-wrap').innerHTML = days.length ? `<table class="tc-tbl"><thead><tr><th>Dokument ING</th><th>Rozbicie kanałów</th>${withVat ? '<th class="num">Brutto</th><th class="num">VAT</th>' : ''}<th class="num">Przychód 3%</th></tr></thead><tbody>${days.map(([date, list]) => {
     const channels = [...groupBy(list, s => s.channel).entries()].map(([name, sales]) => `${esc(name)} ${fmtPLN(sum(sales, s => s.accounting))}`).join(' · ');
-    return `<tr><td><div class="cd-name"><span class="t">DW/${date.replaceAll('-', '/')} — Sprzedaż kart kolekcjonerskich online</span><span class="s">${list.length} ${plural(list.length, 'transakcja', 'transakcje', 'transakcji')}</span></div></td><td>${channels}</td><td class="num"><strong>${fmtPLN(sum(list, s => s.accounting))}</strong></td></tr>`;
-  }).join('')}</tbody><tfoot><tr><td colspan="2">Razem miesiąc</td><td class="num">${fmtPLN(sum(rows, s => s.accounting))}</td></tr></tfoot></table>` : emptyBox('receipt_long', 'Brak sprzedaży do raportu', 'Sprzedaże z fakturą są celowo pomijane, aby nie księgować przychodu podwójnie.');
+    return `<tr><td><div class="cd-name"><span class="t">DW/${date.replaceAll('-', '/')} — Sprzedaż kart kolekcjonerskich online</span><span class="s">${list.length} ${plural(list.length, 'transakcja', 'transakcje', 'transakcji')}</span></div></td><td>${channels}</td>${withVat ? `<td class="num cd-muted">${fmtPLN(sum(list, s => s.accountingGross))}</td><td class="num cd-neg">${fmtPLN(-sum(list, s => s.accountingVat))}</td>` : ''}<td class="num"><strong>${fmtPLN(sum(list, s => s.accounting))}</strong></td></tr>`;
+  }).join('')}</tbody><tfoot><tr><td colspan="2">Razem miesiąc</td>${withVat ? `<td class="num">${fmtPLN(sum(rows, s => s.accountingGross))}</td><td class="num cd-neg">${fmtPLN(-sum(rows, s => s.accountingVat))}</td>` : ''}<td class="num">${fmtPLN(sum(rows, s => s.accounting))}</td></tr></tfoot></table>` : emptyBox('receipt_long', 'Brak sprzedaży do raportu', 'Sprzedaże z fakturą są celowo pomijane, aby nie księgować przychodu podwójnie.');
 }
 
 function exportAccountingReport() {
   const month = getVal('accounting-month') || today().slice(0, 7);
   const rows = accountingSales(month);
-  const head = ['data', 'dokument_ing', 'platforma', 'id_zamowienia', 'produkt', 'sprzedaz_klienta_pln', 'zwrot_pln', 'kwota_do_dw_pln', 'stawka_ryczaltu'];
-  const data = rows.map(s => [s.date, `DW/${s.date.replaceAll('-', '/')}`, s.channel, s.orderId, s.name, s.gross.toFixed(2), (s.gross - s.accounting).toFixed(2), s.accounting.toFixed(2), '3%']);
+  const head = ['data', 'dokument_ing', 'platforma', 'id_zamowienia', 'produkt', 'sprzedaz_klienta_pln', 'zwrot_pln', 'vat_nalezny_pln', 'procedura_vat', 'kwota_do_dw_pln', 'stawka_ryczaltu'];
+  const data = rows.map(s => [s.date, `DW/${s.date.replaceAll('-', '/')}`, s.channel, s.orderId, s.name, s.gross.toFixed(2), (s.gross - s.accountingGross).toFixed(2), s.accountingVat.toFixed(2), s.vatIn ? (s.scheme === 'margin' ? 'marża' : s.scheme === 'zero' ? '0%/zw' : '23%') : 'przed VAT', s.accounting.toFixed(2), '3%']);
   download(`raport_ksiegowy_${month}.csv`, [head, ...data].map(r => r.map(csvCell).join(';')).join('\n'));
   toast('Raport księgowy pobrany', 'ok');
 }
@@ -2115,6 +2527,7 @@ function renderCashflowChart() {
   }
   for (const g of state.gradings) if (g.date) events.push([g.date.slice(0, 7), -(gradingTotal(g))]);
   for (const e of state.expenses) if (e.date) events.push([e.date.slice(0, 7), -num(e.amount)]);
+  if (M.vatOn) for (const p of M.vatLedger.periods) if (p.payable > 0.005) events.push([p.dueDate.slice(0, 7), -p.payable]);
   if (!events.length) { renderChart('chart-cashflow', null); return; }
 
   const months = [...new Set(events.map(e => e[0]))].sort();
@@ -2631,6 +3044,8 @@ function openCardModal(cardId, prefill) {
   setVal('cf-fx', src.fx || (src.currency && src.currency !== 'PLN' ? settings.fx[src.currency] : ''));
   setVal('cf-shipping', src.shipping); setVal('cf-fees', src.fees); setVal('cf-customs', src.customs);
   setVal('cf-source', src.source); setVal('cf-notes', src.notes);
+  fillSelect('cf-vat-doc', vatDocOptions(!!c && !c.vatDoc), c ? vatDocOf(c) : (src.vatDoc || settings.vat.defaultDoc));
+  setVal('cf-vat-in', src.vatIn != null ? src.vatIn : '');
 
   const boxOptions = state.boxes.filter(b => b.status !== 'sold').map(b => ({ value: b.id, label: `${b.name} · ${fmtDate(b.date)}` }));
   fillSelect('cf-box', boxOptions, src.boxId, '— wybierz box —');
@@ -2660,7 +3075,15 @@ function updateCardCalc() {
   const basis = acq === 'box' ? (existing ? existing.basis : 0) : own;
   const market = num(getVal('cf-market'));
   const pnl = market > 0 ? market - basis : null;
-  el('cf-calc').innerHTML = `
+  let vatCell = '';
+  if (vatOn() && acq !== 'box') {
+    const probe = { price: getVal('cf-price'), shipping: getVal('cf-shipping'), fees: getVal('cf-fees'), currency, fx: getVal('cf-fx'), vatDoc: getVal('cf-vat-doc'), vatIn: getVal('cf-vat-in'), acq };
+    const pv = purchaseVat(probe);
+    el('cf-vat-hint').textContent = vatDocHint(pv.doc, getVal('cf-date'));
+    el('cf-vat-in').placeholder = pv.doc === 'fv' ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
+    vatCell = `<div class="cell"><div class="k">Koszt netto po odliczeniu VAT</div><div class="v">${fmtPLN(own - pv.deductible)}</div></div>`;
+  }
+  el('cf-calc').innerHTML = vatCell + `
     <div class="cell"><div class="k">${acq === 'box' ? 'Koszt z alokacji boxa' : 'Koszt nabycia'}</div><div class="v">${fmtPLN(basis)}</div>${acq === 'box' && !existing ? '<div class="k" style="text-transform:none;letter-spacing:0;font-weight:500;margin-top:2px">policzy się po zapisie</div>' : ''}</div>
     <div class="cell"><div class="k">Kurs</div><div class="v">${currency === 'PLN' ? '1,00' : fx.toFixed(4)}</div></div>
     <div class="cell"><div class="k">Wycena</div><div class="v">${market > 0 ? fmtPLN(market) : '—'}</div></div>
@@ -2699,7 +3122,8 @@ function readCardForm() {
     fees: num(getVal('cf-fees')),
     customs: num(getVal('cf-customs')),
     source: getVal('cf-source').trim(),
-    notes: getVal('cf-notes').trim()
+    notes: getVal('cf-notes').trim(),
+    ...(vatOn() && acq !== 'box' ? { vatDoc: getVal('cf-vat-doc') || undefined, vatIn: numOrNull(getVal('cf-vat-in')) } : {})
   };
 }
 
@@ -2773,6 +3197,8 @@ function openBoxModal(boxId) {
   setVal('bf-fx', src.fx || (src.currency && src.currency !== 'PLN' ? settings.fx[src.currency] : ''));
   setVal('bf-shipping', src.shipping); setVal('bf-customs', src.customs); setVal('bf-fees', src.fees);
   setVal('bf-source', src.source); setVal('bf-notes', src.notes);
+  fillSelect('bf-vat-doc', vatDocOptions(!!b && !b.vatDoc), b ? vatDocOf(b) : settings.vat.defaultDoc);
+  setVal('bf-vat-in', b && b.vatIn != null ? b.vatIn : '');
   el('bf-qty').closest('.ff').style.display = b ? 'none' : '';
   el('bf-delete').style.display = b ? '' : 'none';
   updateBoxCalc();
@@ -2785,6 +3211,23 @@ function updateBoxCalc() {
   const fx = fxFor(currency, getVal('bf-fx'));
   const qty = Math.max(1, Math.round(num(getVal('bf-qty')) || 1));
   const landed = (num(getVal('bf-price')) + num(getVal('bf-shipping')) + num(getVal('bf-fees'))) * fx + num(getVal('bf-customs'));
+  let vatCells = '';
+  if (vatOn()) {
+    const probe = { price: getVal('bf-price'), shipping: getVal('bf-shipping'), fees: getVal('bf-fees'), currency, fx: getVal('bf-fx'), vatDoc: getVal('bf-vat-doc'), vatIn: getVal('bf-vat-in') };
+    const pv = purchaseVat(probe);
+    el('bf-vat-hint').textContent = vatDocHint(pv.doc, getVal('bf-date'));
+    el('bf-vat-in').placeholder = pv.doc === 'fv' ? vatInGross(purchaseGoodsPLN(probe)).toFixed(2) : (pv.doc === 'wnt' ? (purchaseGoodsPLN(probe) * vatRate() / 100).toFixed(2) : '0,00');
+    const netCost = landed - pv.deductible;
+    const be = breakEvenGross(netCost, 0, VAT_DOCS[pv.doc].margin ? 'margin' : 'std', landed);
+    vatCells = `<div class="cell"><div class="k">VAT do odliczenia</div><div class="v pos">${fmtPLN(pv.deductible)}</div></div>
+    <div class="cell"><div class="k">Koszt netto</div><div class="v">${fmtPLN(netCost)}</div></div>`;
+    el('bf-calc').innerHTML = `
+    <div class="cell"><div class="k">Koszt boxa brutto</div><div class="v">${fmtPLN(landed)}</div></div>
+    ${vatCells}
+    <div class="cell"><div class="k">Sztuk</div><div class="v">${qty}</div></div>
+    <div class="cell"><div class="k">Próg opłacalności brutto</div><div class="v warn">${fmtPLN(be)}</div></div>`;
+    return;
+  }
   el('bf-calc').innerHTML = `
     <div class="cell"><div class="k">Koszt boxa</div><div class="v">${fmtPLN(landed)}</div></div>
     <div class="cell"><div class="k">Kurs</div><div class="v">${currency === 'PLN' ? '1,00' : fx.toFixed(4)}</div></div>
@@ -2810,7 +3253,8 @@ function saveBox() {
     customs: num(getVal('bf-customs')),
     fees: num(getVal('bf-fees')),
     source: getVal('bf-source').trim(),
-    notes: getVal('bf-notes').trim()
+    notes: getVal('bf-notes').trim(),
+    ...(vatOn() ? { vatDoc: getVal('bf-vat-doc') || undefined, vatIn: numOrNull(getVal('bf-vat-in')) } : {})
   };
   if (editing.box) {
     const idx = state.boxes.findIndex(b => b.id === editing.box);
@@ -3025,7 +3469,7 @@ function openSell(kind, id) {
   el('sf-save').textContent = 'Zaksięguj sprzedaż';
   const options = [
     ...M.held.map(c => ({ value: `card:${c.id}`, label: `${cardTitle(c)} · wycena ${fmtPLN0(c.marketValue)}` })),
-    ...M.sealed.map(b => ({ value: `box:${b.id}`, label: `[SEALED] ${b.name} · koszt ${fmtPLN0(b.landed)}` }))
+    ...M.sealed.map(b => ({ value: `box:${b.id}`, label: `[SEALED] ${b.name} · koszt ${fmtPLN0(b.landed)}${vatOn() ? ' netto' : ''}` }))
   ];
   if (!options.length) { toast('Nie ma czego sprzedać', 'err'); return; }
   fillSelect('sf-item', options, editing.sellTarget ? `${kind}:${id}` : options[0].value);
@@ -3033,7 +3477,7 @@ function openSell(kind, id) {
   setVal('sf-date', today());
   setVal('sf-currency', 'PLN');
   setVal('sf-fx', '');
-  setVal('sf-fee-abs', ''); setVal('sf-shipping', ''); setVal('sf-shipping-in', ''); setVal('sf-order-id', ''); setVal('sf-refund', ''); setChecked('sf-invoiced', false); setVal('sf-note', '');
+  setVal('sf-fee-abs', ''); setVal('sf-shipping', ''); setVal('sf-shipping-in', ''); setVal('sf-order-id', ''); setVal('sf-refund', ''); setChecked('sf-invoiced', false); setVal('sf-note', ''); setVal('sf-vat-scheme', '');
   fillSelect('sf-channel', settings.channels.map(c => c.name), settings.channels[0] && settings.channels[0].name);
 
   const sel = getVal('sf-item');
@@ -3061,7 +3505,7 @@ function openEditSale(kind, id) {
   setVal('sf-date', sale.date); setVal('sf-price', sale.price); setVal('sf-currency', sale.currency || 'PLN'); setVal('sf-fx', sale.fx || '');
   fillSelect('sf-channel', settings.channels.map(c => c.name), sale.channel);
   setVal('sf-fee-pct', sale.feePct); setVal('sf-fee-abs', sale.feeAbs); setVal('sf-shipping', sale.shippingOut); setVal('sf-shipping-in', sale.shippingIn);
-  setVal('sf-order-id', sale.orderId || ''); setVal('sf-refund', sale.refund || ''); setChecked('sf-invoiced', sale.invoiced); setVal('sf-note', sale.note || '');
+  setVal('sf-order-id', sale.orderId || ''); setVal('sf-refund', sale.refund || ''); setChecked('sf-invoiced', sale.invoiced); setVal('sf-note', sale.note || ''); setVal('sf-vat-scheme', sale.vatScheme || '');
   el('sf-save').textContent = 'Zapisz zmiany';
   updateSellCalc(); openModal('sell-modal');
 }
@@ -3072,11 +3516,11 @@ function resolveSellTarget(value) {
   if (kind === 'card') {
     const card = M.byId.get(id) || M.sales.find(s => s.kind === 'card' && s.id === id)?.ref;
     const computed = M.sales.find(s => s.kind === 'card' && s.id === id);
-    return card ? { kind, id, card, basis: computed ? computed.basis : card.basis, suggest: card.marketValue } : null;
+    return card ? { kind, id, card, basis: computed ? computed.basis : card.basis, suggest: card.marketValue, doc: card.vatDoc, vatCost: card.vatCost } : null;
   }
   const box = M.boxes.find(b => b.id === id) || M.sales.find(s => s.kind === 'box' && s.id === id)?.ref;
   const computed = M.sales.find(s => s.kind === 'box' && s.id === id);
-  return box ? { kind, id, box, basis: computed ? computed.basis : box.landed, suggest: box.landed * 1.3 } : null;
+  return box ? { kind, id, box, basis: computed ? computed.basis : box.landed, suggest: box.landedGross * 1.3, doc: box.vatDoc, vatCost: box.landedGross } : null;
 }
 
 function syncChannelFee() {
@@ -3087,14 +3531,16 @@ function syncChannelFee() {
 function updateSellCalc() {
   const target = resolveSellTarget(getVal('sf-item'));
   const sale = readSaleForm();
-  const net = saleNet(sale);
+  const v = saleVatPreview(sale, target);
+  const net = saleNet(sale) - v.vat;
   const basis = target ? target.basis : 0;
   const pnl = net - basis;
   const gross = saleGross(sale);
   el('sf-calc').innerHTML = `
     <div class="cell"><div class="k">Brutto</div><div class="v">${fmtPLN(gross)}</div></div>
     <div class="cell"><div class="k">Koszty transakcji</div><div class="v neg">${fmtPLN(-saleFees(sale))}</div></div>
-    <div class="cell"><div class="k">Netto do kieszeni</div><div class="v">${fmtPLN(net)}</div></div>
+    ${v.active ? `<div class="cell"><div class="k">VAT należny${v.scheme === 'margin' ? ' (marża)' : ''}</div><div class="v neg">${fmtPLN(-v.vat)}</div></div>` : ''}
+    <div class="cell"><div class="k">${v.active ? 'Zostaje po VAT' : 'Netto do kieszeni'}</div><div class="v">${fmtPLN(net)}</div></div>
     <div class="cell"><div class="k">Baza kosztowa</div><div class="v">${fmtPLN(basis)}</div></div>
     <div class="cell"><div class="k">Wynik</div><div class="v ${posClass(pnl)}">${fmtPLN(pnl, true)}</div></div>
     <div class="cell"><div class="k">ROI</div><div class="v ${posClass(pnl)}">${basis > 0 ? fmtPct(pnl / basis * 100) : '—'}</div></div>`;
@@ -3114,8 +3560,24 @@ function readSaleForm() {
     orderId: getVal('sf-order-id').trim(),
     refund: num(getVal('sf-refund')),
     invoiced: isChecked('sf-invoiced'),
-    note: getVal('sf-note').trim()
+    note: getVal('sf-note').trim(),
+    ...(getVal('sf-vat-scheme') ? { vatScheme: getVal('sf-vat-scheme') } : {})
   };
+}
+
+/** Podgląd VAT w oknie sprzedaży — ta sama funkcja co w rachunku, żeby liczby się zgadzały. */
+function saleVatPreview(sale, target) {
+  const active = saleInVat(sale);
+  const doc = target ? target.doc : 'unknown';
+  const scheme = saleSchemeFor(sale, doc);
+  const vat = active ? outputVat(scheme, saleTaxable(sale), target ? target.vatCost : 0) : 0;
+  const hint = el('sf-vat-hint');
+  if (hint) {
+    hint.textContent = !vatOn() ? '—'
+      : !active ? `sprzedaż sprzed ${fmtDate(vatFrom())} — bez VAT`
+        : `${VAT_SCHEMES[scheme]}${sale.vatScheme ? '' : ` · z dokumentu zakupu: ${(VAT_DOCS[doc] || VAT_DOCS.unknown).label.toLowerCase()}`}`;
+  }
+  return { active, scheme, vat };
 }
 
 function saveSale() {
@@ -3138,9 +3600,10 @@ function saveSale() {
   saveState();
   renderAll();
   closeModal('sell-modal');
-  const net = saleNet(sale);
+  const v = saleVatPreview(sale, target);
+  const net = saleNet(sale) - v.vat;
   const pnl = net - target.basis;
-  toast(`Zaksięgowane: netto ${fmtPLN0(net)}, wynik ${fmtPLN0(pnl, true)}`, pnl >= 0 ? 'ok' : 'err');
+  toast(`Zaksięgowane: ${v.active ? `po VAT ${fmtPLN0(net)}` : `netto ${fmtPLN0(net)}`}, wynik ${fmtPLN0(pnl, true)}`, pnl >= 0 ? 'ok' : 'err');
 }
 
 /* ============================================================
@@ -3165,12 +3628,14 @@ function updateListCalc() {
   const price = num(getVal('lf-price'));
   const ch = settings.channels.find(c => c.name === getVal('lf-channel'));
   const fee = ch ? num(ch.fee) : 0;
-  const net = price * (1 - fee / 100);
+  const vat = vatOn() ? outputVat(card.vatScheme, price, card.vatCost) : 0;
+  const net = price * (1 - fee / 100) - vat;
   const pnl = net - card.basis;
-  const targetPrice = card.basis > 0 ? card.basis * (1 + settings.targetMargin / 100) / (1 - fee / 100) : 0;
+  const targetPrice = card.basis > 0 ? breakEvenGross(card.basis * (1 + settings.targetMargin / 100), fee, card.vatScheme, card.vatCost) : 0;
   el('lf-calc').innerHTML = `
     <div class="cell"><div class="k">Prowizja kanału</div><div class="v">${fee.toFixed(1)}%</div></div>
-    <div class="cell"><div class="k">Oczekiwane netto</div><div class="v">${fmtPLN(net)}</div></div>
+    ${vatOn() ? `<div class="cell"><div class="k">VAT${card.vatScheme === 'margin' ? ' (marża)' : ''}</div><div class="v neg">${fmtPLN(-vat)}</div></div>` : ''}
+    <div class="cell"><div class="k">${vatOn() ? 'Zostaje po VAT' : 'Oczekiwane netto'}</div><div class="v">${fmtPLN(net)}</div></div>
     <div class="cell"><div class="k">Baza kosztowa</div><div class="v">${fmtPLN(card.basis)}</div></div>
     <div class="cell"><div class="k">Wynik</div><div class="v ${posClass(pnl)}">${fmtPLN(pnl, true)}</div></div>
     <div class="cell"><div class="k">Cena na cel ${settings.targetMargin}%</div><div class="v warn">${targetPrice > 0 ? fmtPLN(targetPrice) : '—'}</div></div>`;
@@ -3423,6 +3888,454 @@ function deleteGrading(id) {
 }
 
 /* ============================================================
+   VAT — zakładka
+   ============================================================ */
+let vatOpeningGroups = [];
+let vatOpeningFilter = 'all';
+const vatOpeningSelected = new Set();
+
+function renderVat() {
+  const on = vatOn();
+  el('vat-body').style.display = on ? '' : 'none';
+  el('vat-setup').innerHTML = on ? '' : vatSetupCard();
+  const badge = el('cnt-vat');
+  if (!on) { badge.hidden = true; return; }
+
+  const L = M.vatLedger;
+  const t = today();
+  const pending = L.periods.find(p => p.closed && p.dueDate >= t && p.payable > 0.005);
+  const cur = L.current;
+  if (pending) {
+    el('v-pay-k').textContent = `Do zapłaty do ${fmtDate(pending.dueDate)}`;
+    setKpi('v-pay', fmtPLN0(pending.payable), `za ${vatPeriodLabel(pending.key)} — przelew na mikrorachunek`, 'warn');
+  } else if (cur) {
+    el('v-pay-k').textContent = cur.due >= 0 ? 'Narasta do zapłaty' : 'Narasta nadwyżka';
+    setKpi('v-pay', fmtPLN0(Math.abs(cur.due)), `${vatPeriodLabel(cur.key)} · termin ${fmtDate(cur.dueDate)}`, cur.due > 0 ? 'warn' : 'pos');
+  }
+  if (cur) {
+    setKpi('v-out', fmtPLN0(cur.outVat), `${cur.stdCount + cur.marginCount} ${plural(cur.stdCount + cur.marginCount, 'sprzedaż', 'sprzedaże', 'sprzedaży')} w ${vatPeriodLabel(cur.key)}${cur.marginCount ? ` · ${cur.marginCount} w marży` : ''}`);
+    setKpi('v-in', fmtPLN0(cur.buyVat + cur.wntVat), `${cur.buyCount} ${plural(cur.buyCount, 'zakup', 'zakupy', 'zakupów')} z fakturą w ${vatPeriodLabel(cur.key)}`, 'pos');
+  }
+  const corr = sum(L.periods, p => p.corrVat);
+  const locked = settings.vat.opening;
+  setKpi('v-corr', fmtPLN0(corr), locked ? `zatwierdzona ${fmtDate(locked.lockedAt)}` : `do JPK za ${vatPeriodLabel(vatPeriodOf(vatFrom()))} — niezatwierdzona`, corr > 0 ? 'pos' : '');
+  setKpi('v-carry', fmtPLN0(L.carry), L.carry > 0.005 ? 'urząd jest Ci winien — schodzi z kolejnych okresów' : 'brak nadwyżki', L.carry > 0.005 ? 'pos' : '');
+  const expected = M.heldValue - M.heldValueNet;
+  setKpi('v-exp', fmtPLN0(expected), `tyle z wyceny ${nCards(M.held.length)} odda się przy sprzedaży`);
+
+  const unknown = vatOpeningCandidates().filter(g => g.doc === 'unknown').length;
+  badge.hidden = !(unknown || pending);
+  badge.textContent = unknown ? String(unknown) : '!';
+
+  renderVatOpening();
+  renderVatLedger();
+  renderVatRegister();
+  renderVatPricing();
+  el('vat-rules').innerHTML = vatRulesHtml();
+}
+
+function vatSetupCard() {
+  return `<section class="tc-card"><div class="tc-card-body">
+    <div class="cd-section" style="margin:0 0 10px"><span class="ico"><span class="material-symbols-outlined">account_balance</span></span><h2>Przejście na VAT</h2><span class="line"></span></div>
+    <p style="margin:0 0 12px;font-size:13px;line-height:1.55">Od daty rejestracji moduł zacznie liczyć jak czynny podatnik:
+      koszt towaru <strong>netto</strong> tam, gdzie VAT da się odliczyć, przychód <strong>po odjęciu VAT należnego</strong>,
+      wycena kolekcji pomniejszona o VAT, który oddasz przy sprzedaży. Towar kupiony wcześniej i leżący na stanie w dniu
+      rejestracji dostanie jednorazową <strong>korektę VAT naliczonego</strong>. Wyniki sprzedaży sprzed tej daty się nie ruszą.</p>
+    <div class="ff-grid cols-3">
+      <div class="ff"><label>VAT-owiec od dnia</label><input id="vs-from" type="date" value="${esc(settings.vat.from || '2026-11-01')}" /></div>
+      <div class="ff"><label>Rozliczenie</label><select id="vs-period"><option value="M"${settings.vat.period !== 'Q' ? ' selected' : ''}>Miesięczne (JPK_V7M)</option><option value="Q"${settings.vat.period === 'Q' ? ' selected' : ''}>Kwartalne (JPK_V7K)</option></select></div>
+      <div class="ff" style="align-self:end"><button class="btn-small primary" onclick="enableVat()"><span class="material-symbols-outlined">check</span>Włącz rozliczanie VAT</button></div>
+    </div>
+  </div></section>`;
+}
+
+function enableVat() {
+  settings.vat.enabled = 'on';
+  settings.vat.from = getVal('vs-from') || '2026-11-01';
+  settings.vat.period = getVal('vs-period') || 'M';
+  saveState();
+  renderAll();
+  toast(`VAT włączony od ${fmtDate(settings.vat.from)} — sklasyfikuj teraz dokumenty zakupu towaru na stanie`, 'ok');
+}
+
+/* --- Korekta za towar na stanie --- */
+
+/** Pozycje kupione przed rejestracją i leżące na stanie w jej dniu, zgrupowane po zakupie. */
+function vatOpeningCandidates() {
+  if (!vatOn()) return [];
+  const from = vatFrom();
+  const soldBefore = sale => !!(sale && sale.date && sale.date < from);
+  const attr = M.vatAttr;
+  const groups = new Map();
+  const add = (key, base, item) => {
+    if (!groups.has(key)) groups.set(key, { key, ...base, ids: [], items: [], sealed: 0, opened: 0, cards: 0, single: 0, stockGross: 0, corr: 0 });
+    const g = groups.get(key);
+    g.ids.push(item.id);
+    g.items.push(item);
+    return g;
+  };
+
+  for (const box of M.boxes) {
+    if (!box.date || box.date >= from || soldBefore(box.sale)) continue;
+    let stockGross = 0, heldCards = 0;
+    if (box.status === 'opened') {
+      const allocSum = sum(box.pulls, c => Number.isFinite(c.allocCost) ? c.allocCost : 0);
+      const held = box.pulls.filter(c => !soldBefore(c.sale));
+      heldCards = held.length;
+      stockGross = sum(held, c => Number.isFinite(c.allocCost) ? c.allocCost : 0) + Math.min(Math.max(0, box.landedGross - allocSum), num(box.bulkValue));
+      if (stockGross <= 0.005) continue;
+    } else {
+      stockGross = box.landedGross;
+    }
+    const doc = vatDocOf(box);
+    const key = ['box', box.name, box.date, box.source || '', box.price, box.currency, doc, box.vatIn == null ? '' : box.vatIn, box.vatSkip ? 1 : 0].join('|');
+    const g = add(key, { type: 'box', name: box.name, date: box.date, source: box.source || '', currency: box.currency, price: num(box.price), doc, vatIn: box.vatIn, skip: !!box.vatSkip, unitGross: box.landedGross, unitGoods: purchaseGoodsPLN(box) }, box);
+    if (box.status === 'opened') { g.opened++; g.cards += heldCards; } else g.sealed++;
+    g.stockGross += stockGross;
+    g.corr += box.vatDed;
+  }
+  for (const c of M.cards) {
+    if (c.acq === 'box' || !c.date || c.date >= from || soldBefore(c.sale)) continue;
+    const doc = vatDocOf(c);
+    const key = ['card', c.id].join('|');
+    const g = add(key, { type: 'card', name: cardTitle(c), date: c.date, source: c.source || '', currency: c.currency, price: num(c.price), doc, vatIn: c.vatIn, skip: !!c.vatSkip, unitGross: cardOwnCost(c), unitGoods: purchaseGoodsPLN(c) }, c);
+    g.single++;
+    g.stockGross += cardOwnCost(c);
+    g.corr += attr.card.has(c.id) ? attr.card.get(c.id).ded : 0;
+  }
+  return [...groups.values()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.name.localeCompare(b.name)));
+}
+
+function renderVatOpening() {
+  const all = vatOpeningCandidates();
+  vatOpeningGroups = all;
+  const from = vatFrom();
+  const locked = settings.vat.opening;
+  const total = sum(all, g => g.corr);
+  const stock = sum(all, g => g.stockGross);
+  const byDoc = groupBy(all, g => (VAT_DOCS[g.doc] || VAT_DOCS.unknown).deduct ? 'deduct' : g.doc === 'unknown' ? 'unknown' : 'none');
+  const unknown = (byDoc.get('unknown') || []).length;
+  const deductStock = sum(byDoc.get('deduct') || [], g => g.stockGross);
+  el('vo-desc').textContent = `Stan na ${fmtDate(from)} · ${fmtPLN0(stock)} w cenie zakupu`;
+
+  const diff = locked ? total - num(locked.total) : 0;
+  el('vo-head').innerHTML = `
+    <div class="cd-calc-strip">
+      <div class="cell"><div class="k">Towar na stanie ${fmtDate(from)}</div><div class="v">${fmtPLN0(stock)}</div></div>
+      <div class="cell"><div class="k">Z fakturą VAT</div><div class="v">${fmtPLN0(deductStock)}</div></div>
+      <div class="cell"><div class="k">Korekta do odliczenia</div><div class="v pos">${fmtPLN(total)}</div></div>
+      <div class="cell"><div class="k">Bez określonego dokumentu</div><div class="v ${unknown ? 'warn' : 'pos'}">${unknown}</div></div>
+      <div class="cell"><div class="k">Status</div><div class="v ${locked ? 'pos' : 'warn'}" style="font-size:12px">${locked ? `zatwierdzona ${fmtDate(locked.lockedAt)}` : 'robocza'}</div></div>
+    </div>
+    ${locked && Math.abs(diff) > 0.5 ? `<div class="cd-alert bad" style="margin-top:10px"><span class="material-symbols-outlined">report</span>
+      <span>Od zatwierdzenia korekta zmieniła się o <strong>${fmtPLN(diff, true)}</strong> (było ${fmtPLN(num(locked.total))}). Jeśli JPK za ${vatPeriodLabel(vatPeriodOf(from))} już poszedł, potrzebna będzie jego korekta.</span></div>` : ''}
+    <div class="cd-note" style="margin-top:10px">
+      Każdy wiersz to jeden zakup sprzed rejestracji, z którego coś leżało na stanie ${fmtDate(from)}. Wybierz, czym go
+      udokumentowałeś. <strong>Faktura VAT na firmę</strong> daje odliczenie VAT od tej części, która była na stanie
+      (dla otwartych boxów: od kart niesprzedanych do ${fmtDate(from)} i od bulku). <strong>Paragon albo zakup w zagranicznym sklepie z ich VAT</strong>
+      — bez odliczenia. <strong>Od osoby prywatnej</strong> — bez odliczenia, ale sprzedaż pójdzie w VAT-marży.
+      ${!locked ? `Gdy wszystko się zgadza i korekta trafi do JPK, kliknij <em>Zatwierdź</em> — moduł zapamięta kwotę i ostrzeże, gdyby coś ją później zmieniło.` : ''}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      ${locked
+        ? `<button class="btn-small" onclick="unlockVatOpening()"><span class="material-symbols-outlined">lock_open</span>Odblokuj do edycji</button>`
+        : `<button class="btn-small primary" onclick="lockVatOpening()"><span class="material-symbols-outlined">lock</span>Zatwierdź korektę ${fmtPLN0(total)}</button>`}
+    </div>`;
+
+  fillSelect('vo-bulk-doc', vatDocOptions(false), settings.vat.defaultDoc);
+  el('vo-bulk-doc').disabled = !!locked;
+  el('vo-bulk-apply').disabled = !!locked;
+
+  const rows = all.filter(g => {
+    const d = VAT_DOCS[g.doc] || VAT_DOCS.unknown;
+    if (vatOpeningFilter === 'unknown') return g.doc === 'unknown';
+    if (vatOpeningFilter === 'deduct') return d.deduct;
+    if (vatOpeningFilter === 'none') return !d.deduct;
+    return true;
+  });
+  el('vo-count').textContent = `${rows.length} / ${all.length} ${plural(all.length, 'zakup', 'zakupy', 'zakupów')}`;
+  if (!rows.length) {
+    el('vo-wrap').innerHTML = emptyBox('inventory', all.length ? 'Nic w tym filtrze' : 'Brak towaru sprzed rejestracji',
+      all.length ? 'Zmień filtr, żeby zobaczyć pozostałe zakupy.' : `Wszystko, co kupiłeś przed ${fmtDate(from)}, zostało sprzedane wcześniej — korekta wynosi zero.`);
+    return;
+  }
+  const dis = locked ? ' disabled' : '';
+  el('vo-wrap').innerHTML = `<table class="tc-tbl cd-vat-tbl">
+    <thead><tr>
+      <th style="width:28px"><input type="checkbox" id="vo-all"${dis} /></th>
+      <th>Zakup</th><th>Na stanie ${fmtDate(from)}</th><th class="num">Koszt stanu</th>
+      <th style="min-width:210px">Dokument zakupu</th><th class="num">VAT z faktury / szt.</th><th class="num">Korekta</th><th class="num">Licz</th>
+    </tr></thead>
+    <tbody>${rows.map(g => {
+      const idx = all.indexOf(g);
+      const d = VAT_DOCS[g.doc] || VAT_DOCS.unknown;
+      const units = g.sealed + g.opened + g.single;
+      const parts = [];
+      if (g.sealed) parts.push(`${g.sealed} ${g.type === 'box' ? 'sealed' : ''}`);
+      if (g.opened) parts.push(`${g.opened} ${plural(g.opened, 'otwarty', 'otwarte', 'otwartych')} · ${nCards(g.cards)}`);
+      if (g.single) parts.push('karta single');
+      const autoVat = g.doc === 'fv' ? vatInGross(g.unitGoods) : 0;
+      const vatEditable = d.deduct;
+      return `<tr class="${g.doc === 'unknown' ? 'cd-vat-unknown' : ''}${g.skip ? ' is-paper' : ''}" data-idx="${idx}">
+        <td><input type="checkbox" class="vo-sel" data-idx="${idx}"${vatOpeningSelected.has(g.key) ? ' checked' : ''}${dis} /></td>
+        <td><div class="cd-name"><span class="t">${esc(g.name)}${units > 1 ? ` <span class="cd-muted">× ${units}</span>` : ''}</span><span class="s">${fmtDate(g.date)}${g.source ? ` · ${esc(g.source)}` : ''} · ${g.currency !== 'PLN' ? `${fmtNum(g.price, 2)} ${esc(g.currency)}` : fmtPLN(g.price)} / szt.</span></div></td>
+        <td class="cd-muted">${parts.join(' + ')}</td>
+        <td class="num">${fmtPLN0(g.stockGross)}</td>
+        <td><select class="vo-doc" data-idx="${idx}"${dis}>${vatDocOptions(g.doc === 'unknown').map(o => `<option value="${o.value}"${o.value === g.doc ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select></td>
+        <td class="num">${vatEditable ? `<input class="vo-vat" data-idx="${idx}" inputmode="decimal" style="width:90px;text-align:right" value="${g.vatIn != null ? esc(g.vatIn) : ''}" placeholder="${autoVat.toFixed(2)}"${dis} />` : '<span class="cd-muted">—</span>'}</td>
+        <td class="num ${g.corr > 0 ? 'pos' : 'cd-muted'}">${g.corr > 0 ? fmtPLN(g.corr) : '0 zł'}</td>
+        <td class="num"><input type="checkbox" class="vo-inc" data-idx="${idx}"${g.skip ? '' : ' checked'}${dis || (!d.deduct ? ' disabled' : '')} title="Uwzględnij w korekcie" /></td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr><td></td><td colspan="2">Razem (widok)</td><td class="num">${fmtPLN0(sum(rows, g => g.stockGross))}</td><td colspan="2"></td><td class="num pos">${fmtPLN(sum(rows, g => g.corr))}</td><td></td></tr></tfoot>
+  </table>`;
+}
+
+/** Zapisuje zmianę na wszystkich rekordach grupy — grupa to jeden zakup z wieloma sztukami. */
+function updateVatOpeningGroup(idx, patch) {
+  const g = vatOpeningGroups[idx];
+  if (!g) return;
+  for (const id of g.ids) {
+    const rec = g.type === 'box' ? state.boxes.find(b => b.id === id) : state.cards.find(c => c.id === id);
+    if (!rec) continue;
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null || v === undefined) delete rec[k]; else rec[k] = v;
+    }
+  }
+}
+
+function vatOpeningChanged() {
+  saveState();
+  renderAll();
+}
+
+function lockVatOpening() {
+  const all = vatOpeningCandidates();
+  const unknown = all.filter(g => g.doc === 'unknown').length;
+  if (unknown && !confirm(`${unknown} ${plural(unknown, 'zakup nie ma', 'zakupy nie mają', 'zakupów nie ma')} określonego dokumentu — liczą się jak bez odliczenia. Zatwierdzić mimo to?`)) return;
+  settings.vat.opening = { lockedAt: today(), total: Number(sum(all, g => g.corr).toFixed(2)), count: all.length };
+  saveState();
+  renderAll();
+  toast(`Korekta zatwierdzona: ${fmtPLN(settings.vat.opening.total)}`, 'ok');
+}
+
+function unlockVatOpening() {
+  if (!confirm('Odblokować korektę? Jeśli JPK z tą kwotą już poszedł, każda zmiana będzie wymagała korekty deklaracji.')) return;
+  settings.vat.opening = null;
+  saveState();
+  renderAll();
+}
+
+function exportVatOpening() {
+  const from = vatFrom();
+  const head = ['data_zakupu', 'pozycja', 'zrodlo', 'stan_na_dzien', 'sealed_szt', 'otwarte_szt', 'karty_szt', 'koszt_stanu_brutto_pln', 'dokument_zakupu', 'vat_z_faktury_na_szt_pln', 'korekta_vat_pln', 'uwzgledniona'];
+  const rows = vatOpeningCandidates().map(g => [
+    g.date, g.name, g.source, from, g.sealed, g.opened, g.cards + g.single, g.stockGross.toFixed(2),
+    (VAT_DOCS[g.doc] || VAT_DOCS.unknown).label,
+    g.doc === 'fv' ? (g.vatIn != null ? num(g.vatIn) : vatInGross(g.unitGoods)).toFixed(2) : (g.doc === 'import' ? num(g.vatIn).toFixed(2) : ''),
+    g.corr.toFixed(2), g.skip ? 'nie' : 'tak'
+  ]);
+  download(`spis_z_natury_${from}.csv`, [head, ...rows].map(r => r.map(csvCell).join(';')).join('\n'));
+  toast('Spis z natury pobrany', 'ok');
+}
+
+/* --- Rozliczenie okresów --- */
+function renderVatLedger() {
+  const P = M.vatLedger.periods;
+  if (!P.length) { el('vl-wrap').innerHTML = emptyBox('calendar_month', 'Brak okresów', 'Pierwszy okres pojawi się od daty rejestracji.'); return; }
+  el('vl-wrap').innerHTML = `<table class="tc-tbl">
+    <thead><tr>
+      <th>Okres</th><th class="num">Sprzedaż 23% netto</th><th class="num">VAT 23%</th><th class="num">Marża</th><th class="num">VAT marża</th>
+      <th class="num">Zakupy netto</th><th class="num">VAT naliczony</th><th class="num">Korekta stanu</th><th class="num">Nadwyżka z poprz.</th>
+      <th class="num">Do zapłaty</th><th class="num">Do przeniesienia</th><th>Termin</th>
+    </tr></thead>
+    <tbody>${[...P].reverse().map(p => `
+      <tr class="${p.current ? 'cd-vat-current' : ''}" style="cursor:pointer" onclick="setVal('vr-period','${p.key}');renderVatRegister();el('vr-wrap').scrollIntoView({behavior:'smooth',block:'center'})">
+        <td><strong>${vatPeriodLabel(p.key)}</strong>${p.current ? ' <span class="cd-status listed">bieżący</span>' : ''}</td>
+        <td class="num">${fmtPLN0(p.stdBase)}</td>
+        <td class="num">${fmtPLN(p.stdVat)}</td>
+        <td class="num cd-muted">${fmtPLN0(p.marginBase)}</td>
+        <td class="num">${fmtPLN(p.marginVat)}</td>
+        <td class="num">${fmtPLN0(p.buyBase + p.wntBase)}</td>
+        <td class="num pos">${fmtPLN(p.buyVat + p.wntVat)}</td>
+        <td class="num pos">${p.corrVat ? fmtPLN(p.corrVat) : '—'}</td>
+        <td class="num cd-muted">${p.carryIn ? fmtPLN(p.carryIn) : '—'}</td>
+        <td class="num ${p.payable > 0.005 ? 'neg' : ''}"><strong>${fmtPLN(p.payable)}</strong></td>
+        <td class="num ${p.carryOut > 0.005 ? 'pos' : 'cd-muted'}">${p.carryOut > 0.005 ? fmtPLN(p.carryOut) : '—'}</td>
+        <td class="cd-mono cd-nowrap ${!p.closed ? 'cd-muted' : ''}">${fmtDate(p.dueDate)}</td>
+      </tr>`).join('')}</tbody>
+  </table>
+  <div class="cd-note" style="margin:10px 14px 14px">${M.vatLedger.carry > 0.005
+    ? `Nadwyżka VAT naliczonego <strong>${fmtPLN(M.vatLedger.carry)}</strong> przechodzi na kolejny okres i zmniejsza przyszłe przelewy. Zwrotu na konto można żądać w JPK (standardowo 60 dni) — moduł zakłada przeniesienie.`
+    : 'WNT (zakup z UE z numerem VAT-UE) liczy się po obu stronach — w VAT należnym i naliczonym — więc nie zmienia kwoty do zapłaty.'}</div>`;
+}
+
+/* --- Ewidencja okresu --- */
+function vatRegisterRows(key) {
+  const p = M.vatLedger.byKey.get(key);
+  if (!p) return [];
+  const label = { std: 'Sprzedaż 23%', margin: 'Sprzedaż — marża', zero: 'Sprzedaż 0%/zw', in: 'Zakup', corr: 'Korekta — towar na stanie', wnt: 'WNT' };
+  return [...p.rows].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map(r => {
+    const out = r.side === 'out';
+    const doc = out ? (r.invoiced ? 'faktura' : `DW/${r.date.replaceAll('-', '/')}`) : r.kind === 'corr' ? 'spis z natury' : r.ref.type === 'expense' ? 'faktura (koszt)' : 'faktura zakupu';
+    return {
+      date: r.date, type: label[out ? r.kind : r.kind] || r.kind, doc, name: r.label, channel: r.channel || '',
+      gross: out ? r.gross : r.base + (r.side === 'wnt' ? 0 : r.vat), base: out ? (r.kind === 'margin' ? Math.max(0, r.gross - r.cost) - r.vat : r.base) : r.base,
+      vat: r.vat, side: r.side
+    };
+  });
+}
+
+function renderVatRegister() {
+  const P = M.vatLedger.periods;
+  const sel = el('vr-period');
+  const current = sel.value && M.vatLedger.byKey.has(sel.value) ? sel.value : (M.vatLedger.current ? M.vatLedger.current.key : (P[0] && P[0].key));
+  sel.innerHTML = [...P].reverse().map(p => `<option value="${p.key}"${p.key === current ? ' selected' : ''}>${vatPeriodLabel(p.key)}</option>`).join('');
+  const rows = vatRegisterRows(current);
+  el('vr-count').textContent = `${rows.length} ${plural(rows.length, 'pozycja', 'pozycje', 'pozycji')}`;
+  if (!rows.length) {
+    el('vr-wrap').innerHTML = emptyBox('receipt_long', 'Pusty okres', 'W tym okresie nie ma jeszcze sprzedaży ani zakupów z VAT.');
+    return;
+  }
+  const outRows = rows.filter(r => r.side === 'out');
+  const inRows = rows.filter(r => r.side !== 'out');
+  el('vr-wrap').innerHTML = `<table class="tc-tbl">
+    <thead><tr><th>Data</th><th>Rodzaj</th><th>Dokument</th><th>Pozycja</th><th class="num">Brutto</th><th class="num">Netto / podstawa</th><th class="num">VAT</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td class="cd-mono cd-nowrap">${fmtDate(r.date)}</td>
+      <td><span class="cd-status ${r.side === 'out' ? 'sold' : r.side === 'wnt' ? 'grading' : 'held'}">${esc(r.type)}</span></td>
+      <td class="cd-muted cd-nowrap">${esc(r.doc)}</td>
+      <td><div class="cd-name"><span class="t">${esc(r.name)}</span>${r.channel ? `<span class="s">${esc(r.channel)}</span>` : ''}</div></td>
+      <td class="num">${fmtPLN(r.gross)}</td>
+      <td class="num">${fmtPLN(r.base)}</td>
+      <td class="num ${r.side === 'out' ? 'neg' : 'pos'}">${fmtPLN(r.vat)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot>
+      <tr><td colspan="4">VAT należny (sprzedaż${inRows.some(r => r.side === 'wnt') ? ' + WNT' : ''})</td><td class="num">${fmtPLN(sum(outRows, r => r.gross))}</td><td></td><td class="num neg">${fmtPLN(sum(outRows, r => r.vat) + sum(rows.filter(r => r.side === 'wnt'), r => r.vat))}</td></tr>
+      <tr><td colspan="4">VAT naliczony (zakupy, korekta${inRows.some(r => r.side === 'wnt') ? ', WNT' : ''})</td><td></td><td></td><td class="num pos">${fmtPLN(sum(inRows, r => r.vat))}</td></tr>
+    </tfoot>
+  </table>`;
+}
+
+function exportVatRegister() {
+  const key = getVal('vr-period');
+  const rows = vatRegisterRows(key);
+  const p = M.vatLedger.byKey.get(key);
+  const head = ['data', 'rodzaj', 'dokument', 'pozycja', 'kanal', 'brutto_pln', 'netto_podstawa_pln', 'vat_pln', 'strona'];
+  const data = rows.map(r => [r.date, r.type, r.doc, r.name, r.channel, r.gross.toFixed(2), r.base.toFixed(2), r.vat.toFixed(2), r.side === 'out' ? 'należny' : r.side === 'wnt' ? 'należny+naliczony' : 'naliczony']);
+  if (p) {
+    data.push([]);
+    data.push(['', 'PODSUMOWANIE', vatPeriodLabel(key), '', '', '', '', '', '']);
+    data.push(['', 'VAT należny', '', '', '', '', '', p.outVat.toFixed(2), '']);
+    data.push(['', 'VAT naliczony (z korektą)', '', '', '', '', '', p.inVat.toFixed(2), '']);
+    data.push(['', 'Nadwyżka z poprzedniego okresu', '', '', '', '', '', p.carryIn.toFixed(2), '']);
+    data.push(['', 'Do zapłaty', p.dueDate, '', '', '', '', p.payable.toFixed(2), '']);
+    data.push(['', 'Do przeniesienia', '', '', '', '', '', p.carryOut.toFixed(2), '']);
+  }
+  download(`ewidencja_vat_${key}.csv`, [head, ...data].map(r => r.map(csvCell).join(';')).join('\n'));
+  toast('Ewidencja VAT pobrana', 'ok');
+}
+
+/* --- Ceny po VAT --- */
+function renderVatPricing() {
+  const chSel = el('vp-channel');
+  const chName = chSel.value || (settings.channels[0] && settings.channels[0].name) || '';
+  fillSelect('vp-channel', settings.channels.map(c => c.name), chName);
+  if (!el('vp-margin').value) el('vp-margin').value = settings.targetMargin;
+  const ch = settings.channels.find(c => c.name === chName);
+  const fee = ch ? num(ch.fee) : 0;
+  const margin = num(el('vp-margin').value);
+
+  const history = groupBy(M.flipped, b => b.name);
+  const groups = [...groupBy(M.sealed, b => b.name).entries()].map(([name, list]) => {
+    const n = list.length;
+    const grossCost = sum(list, b => b.landedGross) / n;
+    const netCost = sum(list, b => b.landed) / n;
+    const scheme = list[0].vatScheme;
+    const past = history.get(name) || [];
+    const avgPrice = past.length ? sum(past, b => saleGross(b.sale)) / past.length : null;
+    const keepAt = price => price * (1 - fee / 100) - outputVat(scheme, price, grossCost);
+    const profit = avgPrice != null ? keepAt(avgPrice) - netCost : null;
+    return {
+      name, n, grossCost, netCost, ded: grossCost - netCost, scheme, avgPrice, pastN: past.length, profit,
+      be: breakEvenGross(netCost, fee, scheme, grossCost),
+      target: breakEvenGross(netCost * (1 + margin / 100), fee, scheme, grossCost)
+    };
+  }).sort((a, b) => b.n * b.netCost - a.n * a.netCost);
+
+  el('vp-count').textContent = `${M.sealed.length} sealed · ${groups.length} ${plural(groups.length, 'produkt', 'produkty', 'produktów')}`;
+  if (!groups.length) { el('vp-wrap').innerHTML = emptyBox('price_check', 'Brak sealed na stanie', 'Kupione boxy pojawią się tu z ceną minimalną po VAT.'); return; }
+  el('vp-wrap').innerHTML = `<table class="tc-tbl">
+    <thead><tr>
+      <th>Produkt</th><th class="num">Szt.</th><th class="num">Koszt brutto</th><th class="num">VAT odliczony</th><th class="num">Koszt netto</th><th>VAT przy sprzedaży</th>
+      <th class="num">Dotychczas sprzedawałeś po</th><th class="num">Zysk / szt. przy tej cenie</th><th class="num">Próg zera</th><th class="num">Cena na ${fmtNum(margin)}%</th>
+    </tr></thead>
+    <tbody>${groups.map(g => `<tr>
+      <td><strong>${esc(g.name)}</strong></td>
+      <td class="num">${g.n}</td>
+      <td class="num cd-muted">${fmtPLN0(g.grossCost)}</td>
+      <td class="num ${g.ded > 0.005 ? 'pos' : 'cd-muted'}">${g.ded > 0.005 ? fmtPLN0(g.ded) : '—'}</td>
+      <td class="num">${fmtPLN0(g.netCost)}</td>
+      <td class="cd-muted">${g.scheme === 'margin' ? 'marża' : g.scheme === 'zero' ? '0%' : '23% od całości'}</td>
+      <td class="num">${g.avgPrice != null ? `${fmtPLN0(g.avgPrice)} <small class="cd-muted">(${g.pastN}×)</small>` : '<span class="cd-muted">—</span>'}</td>
+      <td class="num ${g.profit == null ? '' : posClass(g.profit)}">${g.profit == null ? '—' : fmtPLN0(g.profit, true)}</td>
+      <td class="num warn">${fmtPLN0(g.be)}</td>
+      <td class="num"><strong>${fmtPLN0(g.target)}</strong></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function vatRulesHtml() {
+  const r = vatRate();
+  return `<strong>Jak moduł liczy VAT</strong> (od ${fmtDate(vatFrom())}, stawka ${fmtNum(r)}%):
+  <ul style="margin:6px 0 0 18px;padding:0;line-height:1.6">
+    <li><strong>Sprzedaż</strong> — domyślnie VAT ${fmtNum(r)}% zawarty w cenie brutto (${fmtNum(r)}/${100 + r} kwoty). Towar kupiony od osoby prywatnej albo na fakturę VAT-marża idzie w <strong>procedurze marży</strong>: VAT tylko od różnicy między ceną sprzedaży a zakupu. Schemat da się zmienić ręcznie przy każdej sprzedaży. Marżę na towarach używanych potwierdź z księgową — wymaga dopisku „procedura marży — towary używane” na fakturze.</li>
+    <li><strong>Zakup</strong> — VAT z faktury krajowej i z odprawy importowej obniża koszt towaru i wraca w rozliczeniu. VAT zapłacony w zagranicznym sklepie jako konsument i zakup na paragon nie dają odliczenia.</li>
+    <li><strong>Zakupy w UE</strong> — z numerem VAT-UE sklep z Niemiec sprzedaje bez swojego VAT (19%), a Ty wykazujesz WNT: ${fmtNum(r)}% należny i ${fmtNum(r)}% naliczony, saldo zero. Przy obecnych zakupach w EUR to kilkanaście procent taniej na każdym boxie.</li>
+    <li><strong>Towar na stanie w dniu rejestracji</strong> — korekta VAT naliczonego z faktur zakupu (art. 91 ust. 7d ustawy o VAT) w JPK za pierwszy okres. Podstawą jest spis z natury na ${fmtDate(vatFrom())} — pobierz go przyciskiem przy korekcie.</li>
+    <li><strong>Ryczałt</strong> — przychodem jest kwota netto, bez VAT należnego. Raport DW w zakładce Sprzedaż od ${fmtDate(vatFrom())} pokazuje już netto.</li>
+    <li><strong>Kasa fiskalna</strong> — sprzedaż osobom prywatnym wymaga kasy, chyba że korzystasz ze zwolnienia dla sprzedaży wysyłkowej opłaconej w całości przez bank lub pośrednika płatności, z ewidencją przypisującą płatność do transakcji. Warto to potwierdzić przed pierwszą sprzedażą.</li>
+  </ul>
+  <div style="margin-top:6px" class="cd-muted">Moduł planuje rentowność i przygotowuje dane dla księgowej — nie zastępuje JPK ani porady podatkowej.</div>`;
+}
+
+function bindVatEvents() {
+  el('vo-filter').addEventListener('change', e => { vatOpeningFilter = e.target.value; renderVatOpening(); });
+  el('vo-export').addEventListener('click', exportVatOpening);
+  el('vo-wrap').addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'vo-all') {
+      document.querySelectorAll('#vo-wrap .vo-sel').forEach(cb => {
+        cb.checked = t.checked;
+        const g = vatOpeningGroups[Number(cb.dataset.idx)];
+        if (g) { if (t.checked) vatOpeningSelected.add(g.key); else vatOpeningSelected.delete(g.key); }
+      });
+      return;
+    }
+    const idx = Number(t.dataset.idx);
+    const g = vatOpeningGroups[idx];
+    if (!g) return;
+    if (t.classList.contains('vo-sel')) { if (t.checked) vatOpeningSelected.add(g.key); else vatOpeningSelected.delete(g.key); return; }
+    if (t.classList.contains('vo-doc')) { updateVatOpeningGroup(idx, { vatDoc: t.value, vatIn: null }); vatOpeningChanged(); return; }
+    if (t.classList.contains('vo-vat')) { updateVatOpeningGroup(idx, { vatIn: t.value.trim() === '' ? null : num(t.value) }); vatOpeningChanged(); return; }
+    if (t.classList.contains('vo-inc')) { updateVatOpeningGroup(idx, { vatSkip: t.checked ? null : true }); vatOpeningChanged(); }
+  });
+  el('vo-bulk-apply').addEventListener('click', () => {
+    const doc = getVal('vo-bulk-doc');
+    const picked = vatOpeningGroups.map((g, i) => [g, i]).filter(([g]) => vatOpeningSelected.has(g.key));
+    if (!picked.length) { toast('Zaznacz zakupy w tabeli', 'err'); return; }
+    picked.forEach(([, i]) => updateVatOpeningGroup(i, { vatDoc: doc, vatIn: null }));
+    vatOpeningSelected.clear();
+    vatOpeningChanged();
+    toast(`Ustawiono „${VAT_DOCS[doc].label}” dla ${picked.length} ${plural(picked.length, 'zakupu', 'zakupów', 'zakupów')}`, 'ok');
+  });
+  el('vr-period').addEventListener('change', renderVatRegister);
+  el('vr-export').addEventListener('click', exportVatRegister);
+  el('vp-channel').addEventListener('change', renderVatPricing);
+  el('vp-margin').addEventListener('input', renderVatPricing);
+}
+
+/* ============================================================
    Modal: koszty i watchlista
    ============================================================ */
 function openExpenseModal(id) {
@@ -3434,6 +4347,7 @@ function openExpenseModal(id) {
   setVal('ef-amount', e ? e.amount : '');
   setVal('ef-recurring', e ? (e.recurring || 'no') : 'no');
   setVal('ef-note', e ? e.note : '');
+  setVal('ef-vat-in', e && e.vatIn ? e.vatIn : '');
   openModal('expense-modal');
 }
 
@@ -3445,8 +4359,10 @@ function saveExpense() {
     category: getVal('ef-category'),
     amount,
     recurring: getVal('ef-recurring'),
-    note: getVal('ef-note').trim()
+    note: getVal('ef-note').trim(),
+    vatIn: num(getVal('ef-vat-in')) || 0
   };
+  if (data.vatIn > amount) { toast('VAT nie może być wyższy niż kwota brutto', 'err'); return; }
   if (editing.expense) {
     const idx = state.expenses.findIndex(x => x.id === editing.expense);
     state.expenses[idx] = { ...state.expenses[idx], ...data };
@@ -3603,6 +4519,9 @@ function openSettingsModal() {
   setVal('sf-conc', settings.concAlert);
   setVal('sf-budget-sync', settings.budgetSync);
   setVal('sf-budget-income', settings.budgetIncome);
+  setVal('sf-vat-on', settings.vat.enabled); setVal('sf-vat-from', settings.vat.from); setVal('sf-vat-rate', settings.vat.rate);
+  setVal('sf-vat-period', settings.vat.period); setVal('sf-vat-carry', settings.vat.carryIn || '');
+  fillSelect('sf-vat-doc', vatDocOptions(false), settings.vat.defaultDoc);
   renderBudgetCategoryPicker();
   renderChannelEditor();
   openModal('settings-modal');
@@ -3673,6 +4592,12 @@ function saveSettings() {
   settings.budgetSync = getVal('sf-budget-sync');
   settings.budgetIncome = getVal('sf-budget-income');
   settings.budgetCategoryId = getVal('sf-budget-category');
+  settings.vat.enabled = getVal('sf-vat-on');
+  settings.vat.from = getVal('sf-vat-from') || settings.vat.from;
+  settings.vat.rate = num(getVal('sf-vat-rate')) || 23;
+  settings.vat.period = getVal('sf-vat-period');
+  settings.vat.defaultDoc = getVal('sf-vat-doc') || 'fv';
+  settings.vat.carryIn = num(getVal('sf-vat-carry'));
   reallocateAll();
   saveState();
   if (settings.budgetSync === 'on') syncBudget(false);
@@ -3727,7 +4652,14 @@ function openCardDrawer(cardId) {
       <div class="cell"><div class="k">Nabycie</div><div class="v">${ACQ_LABEL[c.acq] || '—'}</div></div>
     </div>
 
-    ${!c.sold && c.daysHeld != null ? `<div class="cd-note">
+    ${M.vatOn ? `<div class="cd-kv">
+      <div class="cell"><div class="k">Dokument zakupu</div><div class="v">${esc((VAT_DOCS[c.vatDoc] || VAT_DOCS.unknown).label)}</div></div>
+      <div class="cell"><div class="k">VAT odliczony</div><div class="v mono ${c.vatDed > 0 ? 'pos' : ''}">${c.vatDed > 0 ? fmtPLN(c.vatDed) : '—'}</div></div>
+      <div class="cell"><div class="k">VAT przy sprzedaży</div><div class="v">${esc(VAT_SCHEMES[c.vatScheme] || '—')}</div></div>
+      <div class="cell"><div class="k">${c.sold ? 'VAT należny' : 'VAT od wyceny'}</div><div class="v mono neg">${fmtPLN(-(c.sold ? c.vatOut : c.vatExpected))}</div></div>
+    </div>` : ''}
+
+    ${!M.vatOn && !c.sold && c.daysHeld != null ? `<div class="cd-note">
       ${c.daysHeld >= 183
         ? '<strong>Poza PIT.</strong> Minęło ponad 6 miesięcy od nabycia — sprzedaż tej karty nie rodzi obowiązku podatkowego z tytułu sprzedaży rzeczy ruchomych.'
         : `<strong>Do progu 6 miesięcy: ${nDays(183 - c.daysHeld)}.</strong> Sprzedaż przed tą datą jest opodatkowana od dochodu (przychód minus udokumentowany koszt).`}
@@ -3831,7 +4763,7 @@ function exportCsv() {
     'rookie', 'auto', 'patch', 'stan', 'firma_gradingowa', 'ocena', 'nabycie', 'box', 'data_nabycia',
     'cena', 'waluta', 'kurs', 'wysylka', 'prowizja', 'clo', 'koszt_gradingu', 'baza_kosztowa',
     'wycena', 'data_wyceny', 'status', 'data_sprzedazy', 'kanal_sprzedazy', 'cena_sprzedazy', 'netto_sprzedazy',
-    'pnl', 'roi_proc', 'dni', 'zrodlo', 'notatki'
+    'dokument_zakupu_vat', 'vat_odliczony', 'vat_od_sprzedazy', 'pnl', 'roi_proc', 'dni', 'zrodlo', 'notatki'
   ];
   const boxName = id => { const b = state.boxes.find(x => x.id === id); return b ? b.name : ''; };
   const rows = M.cards.map(c => [
@@ -3846,6 +4778,7 @@ function exportCsv() {
     c.sold ? 'sprzedana' : (c.status || 'held'),
     c.sale ? c.sale.date : '', c.sale ? c.sale.channel : '',
     c.sale ? num(c.sale.price).toFixed(2) : '', c.sold ? c.net.toFixed(2) : '',
+    M.vatOn ? (VAT_DOCS[c.vatDoc] || VAT_DOCS.unknown).label : '', c.vatDed.toFixed(2), (c.sold ? c.vatOut : c.vatExpected).toFixed(2),
     c.pnl.toFixed(2), c.roi == null ? '' : c.roi.toFixed(1), c.daysHeld == null ? '' : c.daysHeld,
     c.source, c.notes
   ]);
@@ -4143,6 +5076,9 @@ function bindEvents() {
     updateSellCalc();
   });
   el('sell-modal').addEventListener('input', updateSellCalc);
+  el('sf-vat-scheme').addEventListener('change', updateSellCalc);
+  el('bf-vat-doc').addEventListener('change', () => { setVal('bf-vat-in', ''); updateBoxCalc(); });
+  el('cf-vat-doc').addEventListener('change', () => { setVal('cf-vat-in', ''); updateCardCalc(); });
   el('sf-save').addEventListener('click', saveSale);
 
   /* Modal: wystawienie */
@@ -4204,6 +5140,7 @@ function init() {
   loadState();
   setVal('accounting-month', today().slice(0, 7));
   bindEvents();
+  bindVatEvents();
   renderAll();
   renderGradingCalc();
 }
@@ -4350,6 +5287,19 @@ function desiredBudgetEntries(m) {
     }
   }
 
+  /* VAT: zakupy i sprzedaże idą do budżetu tak, jak przepłynęła gotówka (brutto),
+     więc rozliczenie z urzędem musi wejść osobno — jako przelew w dniu terminu.
+     Nadwyżka przechodzi na kolejny okres, więc nie tworzy przychodu. */
+  if (m.vatOn) {
+    for (const p of m.vatLedger.periods) {
+      if (p.payable <= 0.005) continue;
+      expenses.push({
+        id: `${TX_PREFIX}vat_${p.key}`, date: p.dueDate, amount: p.payable,
+        note: `Karty — VAT za ${vatPeriodLabel(p.key)} (JPK)`
+      });
+    }
+  }
+
   return { expenses, incomes };
 }
 
@@ -4447,9 +5397,15 @@ function publishCardsSummary(m) {
   /* Kapitał zamrożony = to, co realnie wciąż siedzi w module: baza kosztowa kart
      na stanie (z alokacją boxów i gradingiem) + koszt boxów nieotwartych
      i niesprzedanych. Bez wyceny papierowej i bez bulku z otwartych boxów. */
-  const frozenCapital = m.heldBasis + m.sealedValue;
+  /* Po rejestracji VAT baza kosztowa jest netto, a odliczony VAT, którego urząd
+     jeszcze nie „oddał” (nadwyżka do przeniesienia), też jest kapitałem zamrożonym. */
+  const vatCarry = m.vatOn ? m.vatLedger.carry : 0;
+  const frozenCapital = m.heldBasis + m.sealedValue + vatCarry;
   kpis.cards = {
-    collectionValue: Number(m.heldValue.toFixed(2)),
+    collectionValue: Number((m.vatOn ? m.heldValueNet : m.heldValue).toFixed(2)),
+    collectionValueGross: Number(m.heldValue.toFixed(2)),
+    vatCarry: Number(vatCarry.toFixed(2)),
+    vatBalance: Number((m.vatOn ? m.vatBalance : 0).toFixed(2)),
     collectionCost: Number(m.heldBasis.toFixed(2)),
     sealedValue: Number(m.sealedValue.toFixed(2)),
     frozenCapital: Number(frozenCapital.toFixed(2)),
@@ -4491,7 +5447,7 @@ function renderBudgetPanel() {
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>
-      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue)}</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.heldBasis + M.sealedValue + (M.vatOn ? M.vatLedger.carry : 0))}</div></div>
       <div class="cell"><div class="k">Ostatnia synchr.</div><div class="v" style="font-size:12px">${when ? `${fmtDate(when.toISOString().slice(0, 10))} ${when.toTimeString().slice(0, 5)}` : '—'}</div></div>
     </div>
     ${!env ? `<div class="cd-alert warn" style="margin-top:10px">
@@ -4504,5 +5460,8 @@ function renderBudgetPanel() {
       czyli po prowizjach i wysyłce. Karty na stanie nie są kosztem, który przepadł — do
       <strong>Salda EOM</strong> (konto „Karty”, przycisk „Pobierz aktualne”) idzie <strong>kapitał zamrożony</strong>:
       baza kosztowa kart na stanie plus koszt boxów nieotwartych i niesprzedanych, bez wyceny papierowej.
+      ${M.vatOn ? `<br><br><strong>VAT:</strong> zakupy i sprzedaże idą w kwotach, które realnie przepłynęły (brutto), a rozliczenie z urzędem
+      wchodzi osobnym wydatkiem „VAT za …” w dniu terminu płatności. Nadwyżka VAT naliczonego doliczana jest do kapitału zamrożonego w Saldach EOM,
+      a baza kosztowa jest liczona netto.` : ''}
     </div>`;
 }
