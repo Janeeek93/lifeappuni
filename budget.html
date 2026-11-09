@@ -5928,6 +5928,7 @@
               <option value="alternatywne">Alternatywne (karty, zakłady)</option>
               <option value="zadłużenie">Zadłużenie</option>
               <option value="gotówka">Gotówka</option>
+              <option value="oczekujące">Oczekujące (marketplace, zamówienia w drodze)</option>
               <option value="emerytura">Emerytura</option>
               <option value="inne">Inne</option>
             </select>
@@ -12124,6 +12125,7 @@
     { value:'alternatywne', label:'Alternatywne' },
     { value:'zadłużenie', label:'Zadłużenie' },
     { value:'gotówka', label:'Gotówka' },
+    { value:'oczekujące', label:'Oczekujące' },
     { value:'emerytura', label:'Emerytura' },
     { value:'inne', label:'Inne' }
   ];
@@ -14728,9 +14730,11 @@
   let eom2HistoryCompareA='';
   let eom2HistoryCompareB='';
   let eom2Bound=false;
-  const eom2TypeOrder=['oszczędności','inwestycje','alternatywne','gotówka','emerytura','zadłużenie','inne'];
-  const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','alternatywne':'Alternatywne','gotówka':'Gotówka','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
-  const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','alternatywne':'#f59e0b','gotówka':'#059669','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+  const eom2TypeOrder=['oszczędności','inwestycje','alternatywne','gotówka','oczekujące','emerytura','zadłużenie','inne'];
+  const eom2TypeLabelMap={'oszczędności':'Oszczędności','inwestycje':'Inwestycje','alternatywne':'Alternatywne','gotówka':'Gotówka','oczekujące':'Oczekujące','emerytura':'Emerytura','zadłużenie':'Zobowiązania','inne':'Inne'};
+  const eom2TypeColorMap={'oszczędności':'#2563eb','inwestycje':'#8b5cf6','alternatywne':'#f59e0b','gotówka':'#059669','oczekujące':'#0d9488','emerytura':'#0ea5e9','zadłużenie':'#dc2626','inne':'#94a3b8'};
+  /* Podpisy grup w księgowaniu — tam, gdzie sama nazwa nie mówi, skąd brać kwotę. */
+  const eom2TypeHintMap={'oczekujące':'wpisywane ręcznie: saldo na marketplace przed wypłatą i opłacone zamówienia, które jeszcze nie dotarły'};
   /* Konta, na których „Pobierz aktualne" ma sens: portfel inwestycyjny i aktywa
      alternatywne (karty, zakłady) — jedne i drugie mają źródło poza budżetem. */
   const EOM_PULLABLE_TYPES=['inwestycje','alternatywne'];
@@ -14801,8 +14805,11 @@
      „Pobierz aktualne", tytułów podpowiedzi i komunikatów o braku danych. */
   const EOM_MODULE_ACCOUNTS={
     cards:{
-      defaultSource:'cardsFrozen',
-      pullTitle:'Pobierz kapitał zamrożony w kartach i boxach',
+      /* Do majątku idą tylko sealed boxy na stanie (w cenie zakupu). Karty to
+         prywatna, mało płynna kolekcja — do sald trafią dopiero jako gotówka
+         na koncie po sprzedaży. */
+      defaultSource:'cardsSealed',
+      pullTitle:'Pobierz sealed boxy na stanie (w cenie zakupu)',
       missingMsg:'Moduł Karty nie ma jeszcze danych. Otwórz zakładkę Karty i dodaj pierwszą pozycję.'
     },
     betting:{
@@ -14923,6 +14930,50 @@
     return acc;
   }
 
+  /* Jednorazowo: mostki, które kierowały do konta „Karty" wartość kolekcji
+     albo kapitał zamrożony, przepinamy na sealed — inaczej przycisk „Pobierz"
+     dalej wliczałby karty, bo mapowanie ma pierwszeństwo przed domyślnym źródłem. */
+  function migrateCardsBridgeToSealed(){
+    if(b().cardsEomSealedMigrated) return;
+    const acc=cardsAccount();
+    const old=['cards','cardsFrozen','cardsCollection','cardsCost'];
+    if(acc){
+      for(const row of eom2InvestmentBridge()){
+        if(row.targetAccountId===acc.id&&old.includes(row.sourceKey)) row.sourceKey='cardsSealed';
+      }
+    }
+    b().cardsEomSealedMigrated=true;
+    save(state);
+  }
+
+  /* Pieniądze oczekujące: saldo na marketplace przed wypłatą i zamówienia
+     opłacone, ale jeszcze niezaksięgowane jako towar. Zakładamy raz; konto
+     o tej samej nazwie (np. dotychczasowe „Vinted") przejmujemy razem
+     z historią sald, zamiast dokładać obok drugie. */
+  const PENDING_EOM_ACCOUNTS=[
+    {id:'a_pending_vinted',name:'Vinted',aliases:['vinted']},
+    {id:'a_pending_empik',name:'Empik',aliases:['empik','empik marketplace']},
+    {id:'a_pending_allegro',name:'Allegro',aliases:['allegro']},
+    {id:'a_pending_transit',name:'Zamówienia w drodze',aliases:['zamowienia w drodze','w drodze','zamowienia']}
+  ];
+  function ensurePendingEomAccounts(){
+    if(b().pendingAccountsSeeded) return;
+    if(!Array.isArray(b().accounts)) b().accounts=[];
+    for(const def of PENDING_EOM_ACCOUNTS){
+      /* „Vinted", „Vinted saldo", „Vinted (oczekujące)" — wszystko to samo konto. */
+      const matches=acc=>{ const k=eomNameKey(acc.name); return def.aliases.some(a=>k===a||k.startsWith(a+' ')); };
+      const existing=b().accounts.find(acc=>acc&&!acc.source&&(acc.id===def.id||matches(acc)));
+      if(existing){
+        delete existing.type;
+        existing.kind='oczekujące';
+      } else {
+        b().accounts.push({id:def.id,name:def.name,kind:'oczekujące'});
+      }
+    }
+    b().pendingAccountsSeeded=true;
+    save(state);
+  }
+
   function getInvestmentSnapshot(){
     const stats=computePortfolioStats();
     const cards=getCardsSnapshot();
@@ -14967,7 +15018,7 @@
     if(snapshot.sourceMap.cards!==undefined){
       opts.push({value:'cards',label:'Karty: majątek łącznie (kolekcja + sealed)'});
       opts.push({value:'cardsCollection',label:'Karty: wartość kolekcji'});
-      opts.push({value:'cardsSealed',label:'Karty: sealed w cenie zakupu'});
+      opts.push({value:'cardsSealed',label:'Karty: sealed boxy na stanie (w cenie zakupu)'});
       opts.push({value:'cardsCost',label:'Karty: koszt kolekcji (baza)'});
     }
     if(snapshot.sourceMap.betting!==undefined){
@@ -14996,6 +15047,8 @@
     ensureCardsEomAccount();
     ensureBettingEomAccount();
     migrateModuleAccountsToAlternative();
+    migrateCardsBridgeToSealed();
+    ensurePendingEomAccounts();
     const ctx=buildEomContext();
     const cur=state.currency;
     const accounts=ctx.accounts;
@@ -15069,7 +15122,8 @@
         if(!accs||!accs.length) continue;
         const groupDiv=document.createElement('div');
         groupDiv.className='eom2-booking-group';
-        groupDiv.innerHTML=`<div class="eom2-booking-group-title"><span>${escapeHtml(eom2TypeLabelMap[type]||type)}</span><span class="eom2-booking-group-summary" data-group-delta="${type}">—</span></div>`;
+        const hint=eom2TypeHintMap[type];
+        groupDiv.innerHTML=`<div class="eom2-booking-group-title"><span>${escapeHtml(eom2TypeLabelMap[type]||type)}${hint?`<small style="display:block;font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-top:2px">${escapeHtml(hint)}</small>`:''}</span><span class="eom2-booking-group-summary" data-group-delta="${type}">—</span></div>`;
 
         for(const acc of accs){
           const prevBal=prevBalances[acc.id];
