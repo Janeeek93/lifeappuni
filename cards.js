@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
     period: 'M',           // M — JPK_V7M, Q — JPK_V7K
     defaultDoc: 'fv',      // dokument zakupu podstawiany w nowych boxach i kartach
     carryIn: 0,            // nadwyżka VAT naliczonego z okresu sprzed modułu
+    extra: [],             // pozycje JPK spoza kart (np. usługi w tej samej JDG): { id, date, label, side: out|in, base, vat }
     opening: null,         // zatwierdzona korekta remanentowa { lockedAt, total, count }
     plan: {}               // planowane ceny brutto sealed wg nazwy produktu
   },
@@ -576,6 +577,12 @@ function buildVatLedger(attr, sales) {
     rows.push({ side: 'out', kind: s.scheme, date: s.date, ref: { type: s.kind, id: s.id }, label: s.name, gross: s.taxable, vat: s.vat, base: s.taxable - s.vat, channel: s.channel, invoiced: !!(s.ref.sale && s.ref.sale.invoiced), cost: s.vatCost });
   }
   for (const e of attr.events) rows.push({ side: e.kind === 'wnt' ? 'wnt' : 'in', ...e });
+  /* Pozycje spoza kart — ta sama JDG składa jeden JPK, więc do zapłaty liczy się razem.
+     Nie wchodzą do wyniku modułu: saldo VAT kart (balance) liczy tylko sprzedaże i zakupy kart. */
+  for (const x of (settings.vat.extra || [])) {
+    if (!x || !x.date || x.date < vatFrom()) continue;
+    rows.push({ side: x.side === 'in' ? 'in' : 'out', kind: 'other', date: x.date, ref: { type: 'extra', id: x.id }, label: x.label || 'Pozycja spoza kart', base: num(x.base), vat: num(x.vat), gross: num(x.base) + num(x.vat), cost: 0, extra: true });
+  }
 
   const keys = new Set([fromKey]);
   rows.forEach(r => keys.add(vatPeriodOf(r.date)));
@@ -601,10 +608,12 @@ function buildVatLedger(attr, sales) {
       zeroBase: sum(zero, r => r.gross), zeroCount: zero.length,
       wntBase: sum(wnt, r => r.base), wntVat: sum(wnt, r => r.vat),
       buyBase: sum(buys, r => r.base), buyVat: sum(buys, r => r.vat), buyCount: buys.length,
-      corrVat: sum(corr, r => r.vat), corrCount: corr.length
+      corrVat: sum(corr, r => r.vat), corrCount: corr.length,
+      otherOut: sum(pick(r => r.kind === 'other' && r.side === 'out'), r => r.vat),
+      otherIn: sum(pick(r => r.kind === 'other' && r.side === 'in'), r => r.vat)
     };
-    p.outVat = p.stdVat + p.marginVat + p.wntVat;
-    p.inVat = p.buyVat + p.corrVat + p.wntVat;
+    p.outVat = p.stdVat + p.marginVat + p.wntVat + p.otherOut;
+    p.inVat = p.buyVat + p.corrVat + p.wntVat + p.otherIn;
     p.carryIn = carry;
     p.due = p.outVat - p.inVat - carry;
     p.payable = Math.max(0, p.due);
@@ -4721,6 +4730,7 @@ function renderVat() {
 
   renderVatOpening();
   renderVatLedger();
+  renderVatExtra();
   renderVatRegister();
   renderVatPricing();
   el('vat-rules').innerHTML = vatRulesHtml();
@@ -4734,7 +4744,7 @@ function vatSetupCard() {
       wycena kolekcji pomniejszona o VAT, który oddasz przy sprzedaży. Towar kupiony wcześniej i leżący na stanie w dniu
       rejestracji dostanie jednorazową <strong>korektę VAT naliczonego</strong>. Wyniki sprzedaży sprzed tej daty się nie ruszą.</p>
     <div class="ff-grid cols-3">
-      <div class="ff"><label>VAT-owiec od dnia</label><input id="vs-from" type="date" value="${esc(settings.vat.from || '2026-11-01')}" /></div>
+      <div class="ff"><label>VAT-owiec od dnia</label><input id="vs-from" type="date" value="${esc(settings.vat.from || '2026-11-01')}" /><div class="hint">Przy przekroczeniu limitu — dzień faktury, którą go przekroczono</div></div>
       <div class="ff"><label>Rozliczenie</label><select id="vs-period"><option value="M"${settings.vat.period !== 'Q' ? ' selected' : ''}>Miesięczne (JPK_V7M)</option><option value="Q"${settings.vat.period === 'Q' ? ' selected' : ''}>Kwartalne (JPK_V7K)</option></select></div>
       <div class="ff" style="align-self:end"><button class="btn-small primary" onclick="enableVat()"><span class="material-symbols-outlined">check</span>Włącz rozliczanie VAT</button></div>
     </div>
@@ -4942,7 +4952,7 @@ function renderVatLedger() {
   el('vl-wrap').innerHTML = `<table class="tc-tbl">
     <thead><tr>
       <th>Okres</th><th class="num">Sprzedaż 23% netto</th><th class="num">VAT 23%</th><th class="num">Marża</th><th class="num">VAT marża</th>
-      <th class="num">Zakupy netto</th><th class="num">VAT naliczony</th><th class="num">Korekta stanu</th><th class="num">Nadwyżka z poprz.</th>
+      <th class="num">Zakupy netto</th><th class="num">VAT naliczony</th><th class="num">Korekta stanu</th><th class="num" title="Pozycje spoza kart: VAT należny minus naliczony">Poza kartami</th><th class="num">Nadwyżka z poprz.</th>
       <th class="num">Do zapłaty</th><th class="num">Do przeniesienia</th><th>Termin</th>
     </tr></thead>
     <tbody>${[...P].reverse().map(p => `
@@ -4955,6 +4965,7 @@ function renderVatLedger() {
         <td class="num">${fmtPLN0(p.buyBase + p.wntBase)}</td>
         <td class="num pos">${fmtPLN(p.buyVat + p.wntVat)}</td>
         <td class="num pos">${p.corrVat ? fmtPLN(p.corrVat) : '—'}</td>
+        <td class="num ${p.otherOut - p.otherIn > 0 ? 'neg' : p.otherOut - p.otherIn < 0 ? 'pos' : 'cd-muted'}">${p.otherOut || p.otherIn ? fmtPLN(p.otherOut - p.otherIn, true) : '—'}</td>
         <td class="num cd-muted">${p.carryIn ? fmtPLN(p.carryIn) : '—'}</td>
         <td class="num ${p.payable > 0.005 ? 'neg' : ''}"><strong>${fmtPLN(p.payable)}</strong></td>
         <td class="num ${p.carryOut > 0.005 ? 'pos' : 'cd-muted'}">${p.carryOut > 0.005 ? fmtPLN(p.carryOut) : '—'}</td>
@@ -4966,17 +4977,54 @@ function renderVatLedger() {
     : 'WNT (zakup z UE z numerem VAT-UE) liczy się po obu stronach — w VAT należnym i naliczonym — więc nie zmienia kwoty do zapłaty.'}</div>`;
 }
 
+/* --- Pozycje spoza kart --- */
+function renderVatExtra() {
+  const list = [...(settings.vat.extra || [])].sort((a, b) => (a.date < b.date ? -1 : 1));
+  setVal('vx-date', getVal('vx-date') || vatFrom());
+  el('vx-wrap').innerHTML = list.length ? `<table class="tc-tbl">
+    <thead><tr><th>Data</th><th>Opis</th><th>Strona</th><th class="num">Netto</th><th class="num">VAT</th><th>Okres JPK</th><th></th></tr></thead>
+    <tbody>${list.map(x => `<tr>
+      <td class="cd-mono cd-nowrap">${fmtDate(x.date)}</td>
+      <td>${esc(x.label)}</td>
+      <td><span class="cd-status ${x.side === 'in' ? 'held' : 'sold'}">${x.side === 'in' ? 'naliczony (zakup)' : 'należny (sprzedaż)'}</span></td>
+      <td class="num">${fmtPLN(num(x.base))}</td>
+      <td class="num ${x.side === 'in' ? 'pos' : 'neg'}">${fmtPLN(num(x.vat))}</td>
+      <td>${x.date >= vatFrom() ? vatPeriodLabel(vatPeriodOf(x.date)) : '<span class="cd-warn">przed rejestracją</span>'}</td>
+      <td><button class="row-btn danger" title="Usuń" onclick="removeVatExtra('${x.id}')"><span class="material-symbols-outlined">delete</span></button></td>
+    </tr>`).join('')}</tbody></table>`
+    : '<div class="cd-note" style="margin:0 14px 14px">Brak pozycji. Jeśli w tej samej JDG wystawiasz faktury za usługi albo masz zakupy z VAT niezwiązane z kartami, dopisz je tutaj — JPK jest jeden, więc kwota do zapłaty liczy się razem. Na wynik kart te pozycje nie wpływają.</div>';
+}
+
+function addVatExtra() {
+  const base = num(getVal('vx-base'));
+  const date = getVal('vx-date');
+  if (!date || base <= 0) { toast('Podaj datę i kwotę netto', 'err'); return; }
+  const vatManual = numOrNull(getVal('vx-vat'));
+  const item = { id: uid('vx'), date, label: getVal('vx-label').trim() || 'Faktura poza kartami', side: getVal('vx-side'), base, vat: vatManual !== null ? vatManual : Number((base * vatRate() / 100).toFixed(2)) };
+  settings.vat.extra = [...(settings.vat.extra || []), item];
+  ['vx-base', 'vx-vat', 'vx-label'].forEach(i => setVal(i, ''));
+  saveState();
+  renderAll();
+  toast('Pozycja dodana do rozliczenia', 'ok');
+}
+
+function removeVatExtra(id) {
+  settings.vat.extra = (settings.vat.extra || []).filter(x => x.id !== id);
+  saveState();
+  renderAll();
+}
+
 /* --- Ewidencja okresu --- */
 function vatRegisterRows(key) {
   const p = M.vatLedger.byKey.get(key);
   if (!p) return [];
-  const label = { std: 'Sprzedaż 23%', margin: 'Sprzedaż — marża', zero: 'Sprzedaż 0%/zw', in: 'Zakup', corr: 'Korekta — towar na stanie', wnt: 'WNT' };
+  const label = { std: 'Sprzedaż 23%', margin: 'Sprzedaż — marża', zero: 'Sprzedaż 0%/zw', in: 'Zakup', corr: 'Korekta — towar na stanie', wnt: 'WNT', other: 'Poza kartami' };
   return [...p.rows].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map(r => {
     const out = r.side === 'out';
-    const doc = out ? (r.invoiced ? 'faktura' : `DW/${r.date.replaceAll('-', '/')}`) : r.kind === 'corr' ? 'spis z natury' : r.ref.type === 'expense' ? 'faktura (koszt)' : 'faktura zakupu';
+    const doc = r.kind === 'other' ? 'faktura (poza kartami)' : out ? (r.invoiced ? 'faktura' : `DW/${r.date.replaceAll('-', '/')}`) : r.kind === 'corr' ? 'spis z natury' : r.ref.type === 'expense' ? 'faktura (koszt)' : 'faktura zakupu';
     return {
       date: r.date, type: label[out ? r.kind : r.kind] || r.kind, doc, name: r.label, channel: r.channel || '',
-      gross: out ? r.gross : r.base + (r.side === 'wnt' ? 0 : r.vat), base: out ? (r.kind === 'margin' ? Math.max(0, r.gross - r.cost) - r.vat : r.base) : r.base,
+      gross: out ? r.gross : r.base + (r.side === 'wnt' ? 0 : r.vat), base: out ? (r.kind === 'margin' ? Math.max(0, r.gross - r.cost) - r.vat : r.kind === 'other' ? r.base : r.base) : r.base,
       vat: r.vat, side: r.side
     };
   });
@@ -5105,6 +5153,7 @@ function vatRulesHtml() {
     <li><strong>Zakup</strong> — VAT z faktury obniża koszt towaru i wraca w rozliczeniu. Liczy się faktura wystawiona na Ciebie jako firmę — brak NIP to wada formalna, którą usuwasz notą korygującą; paragon z NIP do 450 zł też jest fakturą. Paragon bez NIP i VAT niemiecki (19%) nie dają odliczenia.</li>
     <li><strong>Sklepy z UE z polskim VAT 23% (OSS)</strong> — przed rejestracją, jako zwolniony poniżej progu 50 tys. zł zakupów z UE, kupowałeś prawidłowo z polskim VAT; moduł bierze go do korekty. To obszar, w którym urząd bywa wymagający — dobrze to potwierdzić z księgową przed złożeniem JPK. Po rejestracji podawaj numer VAT-UE i kupuj jako WNT.</li>
     <li><strong>Zakupy w UE od teraz</strong> — z numerem VAT-UE sklep wystawia fakturę netto, a Ty wykazujesz WNT: ${fmtNum(r)}% należny i ${fmtNum(r)}% naliczony, saldo zero. Efekt jest taki sam jak odliczenie, ale bez sporu o fakturę OSS.</li>
+    <li><strong>Przekroczenie limitu</strong> — zwolnienie traci moc od czynności, którą przekroczono limit (art. 113 ust. 5), więc datą VAT jest dzień tej faktury, a nie 1. dzień kolejnego miesiąca. Ta faktura jest już z VAT, a pierwszy JPK składasz za miesiąc, w którym ją wystawiłeś. Faktury za usługi w tej samej JDG dopisz w „Pozycjach spoza kart”, żeby kwota do zapłaty się zgadzała.</li>
     <li><strong>Towar na stanie w dniu rejestracji</strong> — korekta VAT naliczonego z faktur zakupu (art. 91 ust. 7d ustawy o VAT) w JPK za pierwszy okres. Podstawą jest spis z natury na ${fmtDate(vatFrom())} — pobierz go przyciskiem przy korekcie.</li>
     <li><strong>Ryczałt</strong> — przychodem jest kwota netto, bez VAT należnego. Raport DW w zakładce Sprzedaż od ${fmtDate(vatFrom())} pokazuje już netto.</li>
     <li><strong>Kasa fiskalna</strong> — sprzedaż osobom prywatnym wymaga kasy, chyba że korzystasz ze zwolnienia dla sprzedaży wysyłkowej opłaconej w całości przez bank lub pośrednika płatności, z ewidencją przypisującą płatność do transakcji. Warto to potwierdzić przed pierwszą sprzedażą.</li>
@@ -5144,6 +5193,7 @@ function bindVatEvents() {
   });
   el('vr-period').addEventListener('change', renderVatRegister);
   el('vr-export').addEventListener('click', exportVatRegister);
+  el('vx-add').addEventListener('click', addVatExtra);
   el('vp-channel').addEventListener('change', renderVatPricing);
   el('vp-margin').addEventListener('input', renderVatPricing);
   el('vp-wrap').addEventListener('change', e => {

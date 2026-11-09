@@ -384,6 +384,15 @@ sprzedaży. W kolumnie **Twoja cena brutto** wpisujesz planowaną cenę ogłosze
 VAT należny, ile zostaje, zysk na sztuce i ROI netto; ceny się zapamiętują. Okno wystawiania
 pojedynczej karty pokazuje to samo dla karty, w tym ROI netto.
 
+### Data rejestracji i pozycje spoza kart
+
+Przy utracie zwolnienia przez przekroczenie limitu datą VAT jest dzień czynności, którą limit
+przekroczono (art. 113 ust. 5) — nie 1. dzień kolejnego miesiąca. Wtedy pierwszy okres JPK to miesiąc
+tej faktury i do niego trafia korekta za towar na stanie.
+
+Jeśli w tej samej JDG są inne czynności z VAT (np. faktury za usługi), dopisz je w zakładce VAT →
+**Pozycje spoza kart**. Wchodzą do kwoty do zapłaty i ewidencji okresu, ale nie do wyniku kart.
+
 ### Gdzie VAT zmienia liczby
 
 - wycena kolekcji w wyniku i lejku liczy się **po VAT należnym**, który odda się przy sprzedaży
