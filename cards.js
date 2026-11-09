@@ -859,14 +859,20 @@ function compute() {
 
   /* Saldo VAT: należny ze sprzedaży minus naliczony przypisany do towaru i kosztów.
      Dodatnie — tyle z wpływów należy się urzędowi; ujemne — urząd jest winien Tobie. */
-  const vatOutTotal = sum(soldCards, c => c.vatOut) + sum(flipped, b => b.vatOut);
+  const vatOutReturns = sum(returns, x => {
+    const sale = x.r.sale;
+    if (!saleInVat(sale)) return 0;
+    const v = outputVat(saleSchemeFor(sale, x.item.vatDoc), saleTaxable(sale), x.kind === 'box' ? x.item.landedGross : x.item.vatCost);
+    return saleInVat({ date: x.r.date }) ? 0 : v;   // zwrot po rejestracji koryguje VAT do zera
+  });
+  const vatOutTotal = sum(soldCards, c => c.vatOut) + sum(flipped, b => b.vatOut) + vatOutReturns;
   const vatExpenseDed = sum([...attr.expense.values()]);
   const vatUnallocDed = sum([...attr.unalloc.values()]);
   const vatDedTotal = sum(cards, c => c.vatDed) + sum(boxes.filter(b => b.status !== 'opened'), b => b.vatDed) + vatUnallocDed + vatExpenseDed;
   const vatBalance = vatOutTotal - vatDedTotal;
   const overheadNet = overhead - vatExpenseDed;
 
-  const realized = sum(soldCards, c => c.pnl) + sum(flipped, b => b.pnl) + returnsCash;
+  const realized = sum(soldCards, c => c.pnl) + sum(flipped, b => b.pnl) + returnsCash - vatOutReturns;
   const unrealized = heldValueNet - heldBasis;
   const totalResult = assets + cashIn - cashOut - vatBalance;
 
@@ -908,13 +914,21 @@ function compute() {
       const basis = num(x.r.basis);
       const sale = x.r.sale;
       const base = { kind: x.kind, id: x.item.id, ref: x.item, sale, retId: x.r.id, ret: x.r, channel: sale.channel || '—' };
-      const pnl = x.net - basis;
-      const rpnl = -x.refund + basis + x.feeBack - x.shipping;
+      /* VAT zwróconej sprzedaży: należny w dniu sprzedaży, korekta in minus w dniu zwrotu —
+         netto zero, ale każdy okres JPK dostaje swoją część. */
+      const vIn = saleInVat(sale);
+      const vScheme = saleSchemeFor(sale, x.item.vatDoc);
+      const vCost = x.kind === 'box' ? x.item.landedGross : x.item.vatCost;
+      const v = vIn ? outputVat(vScheme, saleTaxable(sale), vCost) : 0;
+      const vRet = saleInVat({ date: x.r.date }) ? v : 0;
+      const vatFields = { scheme: vScheme, taxable: saleTaxable(sale), vatCost: vCost };
+      const pnl = x.net - v - basis;
+      const rpnl = -x.refund + basis + x.feeBack - x.shipping + vRet;
       return [
         {
           ...base, returned: true, qty: 1, date: sale.date, name: x.name,
           gross: x.gross, fees: x.commission + saleShipping(sale), commission: x.commission, shipping: saleShipping(sale),
-          net: x.net, basis, pnl,
+          net: x.net, basis, pnl, vat: v, vatIn: vIn, ...vatFields,
           roi: basis > 0 ? pnl / basis * 100 : null,
           margin: x.gross > 0 ? pnl / x.gross * 100 : null,
           days: daysBetween(x.item.date, sale.date)
@@ -922,7 +936,7 @@ function compute() {
         {
           ...base, isReturn: true, qty: -1, date: x.r.date, name: x.name,
           gross: -x.refund, fees: -x.feeBack + x.shipping, commission: -x.feeBack, shipping: x.shipping,
-          net: -x.outflow, basis: -basis, pnl: rpnl, roi: null, margin: null, days: null
+          net: -x.outflow, basis: -basis, pnl: rpnl, vat: -vRet, vatIn: vRet !== 0, ...vatFields, roi: null, margin: null, days: null
         }
       ];
     })
@@ -1199,7 +1213,7 @@ function capitalRecovery() {
   const grossNeeded = missing > 0 ? missing / (1 - (feeRate || 0)) : 0;
 
   const since = daysAgo(REC_WINDOW);
-  const spendWindow = sum(M.boxes.filter(b => b.date && b.date >= since), b => b.landed)
+  const spendWindow = sum(M.boxes.filter(b => b.date && b.date >= since), b => b.landedGross)
     + sum(M.cards.filter(c => c.acq !== 'box' && c.date && c.date >= since), c => cardOwnCost(c))
     + sum(state.gradings.filter(g => g.date && g.date >= since), g => gradingTotal(g))
     + sum(state.expenses.filter(e => e.date && e.date >= since), e => num(e.amount));
