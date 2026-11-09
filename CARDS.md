@@ -357,14 +357,15 @@ i schemat przy sprzedaży:
 
 | Dokument | Odliczenie | Sprzedaż |
 |---|---|---|
-| Faktura VAT (PL) | tak, z ceny (albo kwota wpisana ręcznie) | 23% od całości |
+| Faktura VAT na Twoje dane (PL) — także bez NIP | tak, 23/123 ceny (albo kwota wpisana ręcznie) | 23% od całości |
+| Faktura z UE z polskim VAT 23% (OSS) | tak, ale tylko w korekcie za towar sprzed rejestracji; po rejestracji kupuj jako WNT | 23% od całości |
 | WNT — faktura z UE bez VAT | neutralnie: 23% należny i naliczony | 23% od całości |
 | Import spoza UE | VAT z odprawy (wpisany ręcznie) | 23% od całości |
-| Paragon / VAT zagraniczny | nie | 23% od całości |
+| Paragon bez NIP / VAT niemiecki 19% | nie | 23% od całości |
 | Od osoby prywatnej / faktura VAT-marża | nie | VAT-marża |
 
-Stare zakupy bez wpisanego dokumentu: w EUR/USD/GBP traktowane jak „VAT zagraniczny”,
-w PLN jako „nie określono” — kreator korekty podświetla je do sklasyfikowania.
+Zakup bez wpisanego dokumentu jest „nieokreślony” niezależnie od waluty — kreator korekty
+podświetla go do sklasyfikowania (filtry: zakupy w PLN / w walutach UE + ustawianie hurtem).
 Schemat sprzedaży można nadpisać przy każdej transakcji.
 
 ### Korekta za towar na stanie
@@ -374,6 +375,14 @@ otwartych boxów korekta obejmuje część kosztu przypisaną do kart niesprzeda
 datą rejestracji i do bulku. Zaznacz wiersze → ustaw dokument hurtem. **Zatwierdź**
 zapamiętuje kwotę — jeśli później coś ją zmieni, moduł pokaże różnicę do korekty JPK.
 **Spis z natury CSV** to lista pozycji na dzień rejestracji.
+
+### Ceny przed wystawieniem
+
+Tabela **Ceny po VAT — sealed na stanie**: koszt brutto, odliczony VAT, koszt netto, próg zera,
+cena brutto na zadaną marżę (po prowizji wybranego kanału) i średnia z Twoich dotychczasowych
+sprzedaży. W kolumnie **Twoja cena brutto** wpisujesz planowaną cenę ogłoszenia — od razu widać
+VAT należny, ile zostaje, zysk na sztuce i ROI netto; ceny się zapamiętują. Okno wystawiania
+pojedynczej karty pokazuje to samo dla karty, w tym ROI netto.
 
 ### Gdzie VAT zmienia liczby
 
