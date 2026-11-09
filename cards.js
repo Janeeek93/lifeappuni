@@ -22,11 +22,8 @@ const DEFAULT_SETTINGS = {
   targetMargin: 30,
   recStock: 'market',      // pasek odzysku: towar po wycenie (market) czy po cenie zakupu (cost)
   concAlert: 25,
-  budgetSync: 'on',        // księgowanie w module Budżet
+  budgetSync: 'off',       // księgowanie w module Budżet (domyślnie karty żyją tylko tutaj)
   budgetIncome: 'on',      // sprzedaże jako przychody
-  budgetMode: 'full',      // full — zakupy i sprzedaże w budżecie; owner — od budgetOwnerFrom tylko wpłaty i wypłaty z działalności
-  budgetOwnerFrom: '2026-11-01',
-  ownerOpening: 0,         // gotówka w działalności na dzień budgetOwnerFrom
   budgetCategoryId: '',    // kategoria wydatków zmiennych
   budgetSyncedAt: null,
   /* VAT — czynny podatnik od `from`. Wyłączone = moduł liczy jak dotąd (brutto). */
@@ -80,8 +77,7 @@ const EMPTY_STATE = {
   valuations: [],
   gradings: [],
   expenses: [],
-  watchlist: [],
-  ownerFlows: []           // wpłaty i wypłaty między działalnością a budżetem prywatnym
+  watchlist: []
 };
 
 let state = null;
@@ -211,7 +207,7 @@ function loadState() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(CARDS_KEY) || 'null'); } catch { raw = null; }
   state = Object.assign(structuredClone(EMPTY_STATE), raw || {});
-  for (const k of ['cards', 'boxes', 'valuations', 'gradings', 'expenses', 'watchlist', 'ownerFlows']) {
+  for (const k of ['cards', 'boxes', 'valuations', 'gradings', 'expenses', 'watchlist']) {
     if (!Array.isArray(state[k])) state[k] = [];
   }
   settings = Object.assign(structuredClone(DEFAULT_SETTINGS), state.settings || {});
@@ -5408,7 +5404,6 @@ function openSettingsModal() {
   setVal('sf-conc', settings.concAlert);
   setVal('sf-budget-sync', settings.budgetSync);
   setVal('sf-budget-income', settings.budgetIncome);
-  setVal('sf-budget-mode', settings.budgetMode); setVal('sf-owner-from', settings.budgetOwnerFrom); setVal('sf-owner-opening', settings.ownerOpening || '');
   setVal('sf-vat-on', settings.vat.enabled); setVal('sf-vat-from', settings.vat.from); setVal('sf-vat-rate', settings.vat.rate);
   setVal('sf-vat-period', settings.vat.period); setVal('sf-vat-carry', settings.vat.carryIn || '');
   fillSelect('sf-vat-doc', vatDocOptions(false), settings.vat.defaultDoc);
@@ -5481,9 +5476,6 @@ function saveSettings() {
   if (channels.length) settings.channels = channels;
   settings.budgetSync = getVal('sf-budget-sync');
   settings.budgetIncome = getVal('sf-budget-income');
-  settings.budgetMode = getVal('sf-budget-mode') || 'full';
-  settings.budgetOwnerFrom = getVal('sf-owner-from') || settings.budgetOwnerFrom;
-  settings.ownerOpening = num(getVal('sf-owner-opening'));
   settings.budgetCategoryId = getVal('sf-budget-category');
   settings.vat.enabled = getVal('sf-vat-on');
   settings.vat.from = getVal('sf-vat-from') || settings.vat.from;
@@ -5493,7 +5485,7 @@ function saveSettings() {
   settings.vat.carryIn = num(getVal('sf-vat-carry'));
   reallocateAll();
   saveState();
-  if (settings.budgetSync === 'on') syncBudget(false);
+  syncBudget(false);
   renderAll();
   closeModal('settings-modal');
   toast('Ustawienia zapisane', 'ok');
@@ -6129,74 +6121,7 @@ function ensureMonthlyBucket(budget, ym) {
 }
 
 /** Zbiór docelowy wpisów budżetowych wynikający z obecnego stanu modułu. */
-/* Firma osobno od prywatnych. W trybie „owner” od daty budgetOwnerFrom budżet domowy widzi
-   działalność tak jak każdą firmę: wypłata z działalności to przychód, dołożenie prywatnych
-   pieniędzy to wydatek. Zakupy, sprzedaże i VAT zostają w module Karty. Wpisy sprzed tej daty
-   zostają bez zmian, żeby zamknięte miesiące budżetu się nie ruszyły. */
-function ownerMode() { return settings.budgetMode === 'owner' && !!settings.budgetOwnerFrom; }
-
-/* Część przelewu VAT, która wynika z pozycji spoza kart (np. usług) — to zobowiązanie prywatne,
-   bo przychód z usług wpływa do budżetu domowego. Reszta przelewu obciąża gotówkę firmy. */
-function vatPersonalPart(p) { return Math.min(p.payable, Math.max(0, (p.otherOut || 0) - (p.otherIn || 0))); }
-
 function desiredBudgetEntries(m) {
-  const full = fullBudgetEntries(m);
-  if (!ownerMode()) return full;
-  const from = settings.budgetOwnerFrom;
-  const expenses = full.expenses.filter(e => e.date < from);
-  const incomes = full.incomes.filter(i => i.date < from);
-  if (m.vatOn) {
-    for (const p of m.vatLedger.periods) {
-      const part = vatPersonalPart(p);
-      if (p.dueDate < from || part <= 0.005) continue;
-      expenses.push({ id: `${TX_PREFIX}vat_${p.key}`, date: p.dueDate, amount: part, categoryId: 'c_fixed', note: `VAT za ${vatPeriodLabel(p.key)} (JPK) — część od usług` });
-    }
-  }
-  for (const f of state.ownerFlows || []) {
-    if (!f.date || num(f.amount) <= 0.005) continue;
-    if (f.type === 'deposit') {
-      expenses.push({ id: `${TX_PREFIX}own_${f.id}`, date: f.date, amount: num(f.amount), note: `Karty — wpłata do działalności${f.note ? `: ${f.note}` : ''}` });
-    } else {
-      incomes.push({ id: `${INC_PREFIX}own_${f.id}`, date: f.date, amount: num(f.amount), note: `Karty — wypłata z działalności${f.note ? `: ${f.note}` : ''}` });
-    }
-  }
-  return { expenses, incomes };
-}
-
-/** Gotówka działalności od daty rozdzielenia: wpływy ze sprzedaży − zakupy, koszty i VAT + wpłaty − wypłaty. */
-function ownerCash(m) {
-  const from = settings.budgetOwnerFrom;
-  const full = fullBudgetEntries(m);
-  const inflow = sum(full.incomes.filter(i => i.date >= from), i => i.amount);
-  const personalVat = m.vatOn ? sum(m.vatLedger.periods.filter(p => p.dueDate >= from), p => vatPersonalPart(p)) : 0;
-  const outflow = sum(full.expenses.filter(e => e.date >= from), e => e.amount) - personalVat;
-  const flows = (state.ownerFlows || []).filter(f => f.date >= from);
-  const deposits = sum(flows.filter(f => f.type === 'deposit'), f => num(f.amount));
-  const draws = sum(flows.filter(f => f.type !== 'deposit'), f => num(f.amount));
-  const vatDue = m.vatOn ? sum(m.vatLedger.periods.filter(p => vatPeriodDue(p.key) >= from && !p.closed), p => Math.max(0, p.due) - vatPersonalPart({ ...p, payable: Math.max(0, p.due) })) : 0;
-  const cash = num(settings.ownerOpening) + inflow - outflow + deposits - draws;
-  return { inflow, outflow, deposits, draws, cash, vatDue, free: cash - vatDue };
-}
-
-function addOwnerFlow() {
-  const amount = num(getVal('ow-amount'));
-  const date = getVal('ow-date') || today();
-  if (amount <= 0) { toast('Podaj kwotę', 'err'); return; }
-  state.ownerFlows = [...(state.ownerFlows || []), { id: uid('own'), date, type: getVal('ow-type'), amount, note: getVal('ow-note').trim() }];
-  saveState(); renderAll();
-  toast(getVal('ow-type') === 'deposit' ? 'Wpłata do działalności zapisana' : 'Wypłata z działalności zapisana', 'ok');
-}
-function removeOwnerFlow(id) {
-  state.ownerFlows = (state.ownerFlows || []).filter(f => f.id !== id);
-  saveState(); renderAll();
-}
-function setBudgetMode(mode) {
-  if (mode === 'owner' && !confirm(`Od ${fmtDate(settings.budgetOwnerFrom)} zakupy, sprzedaże i VAT kart znikną z Budżetu — zostaną tylko wpłaty i wypłaty z działalności. Wcześniejsze miesiące się nie zmienią. Włączyć?`)) return;
-  settings.budgetMode = mode;
-  saveState(); renderAll();
-}
-
-function fullBudgetEntries(m) {
   const expenses = [];
   const incomes = [];
 
@@ -6294,17 +6219,25 @@ function fullBudgetEntries(m) {
  * @param {boolean} silent – bez powiadomień (wywołania automatyczne przy zapisie)
  * @returns {{ok:boolean, reason?:string, added:number, updated:number, removed:number}}
  */
+function hasCardsEntries(budget) {
+  if ((budget.transactions || []).some(tx => String(tx.id || '').startsWith(TX_PREFIX))) return true;
+  return Object.values(budget.monthly || {}).some(b => b && Array.isArray(b.incomes) && b.incomes.some(i => String(i.id || '').startsWith(INC_PREFIX)));
+}
+
 function syncBudget(silent = true) {
   const result = { ok: false, added: 0, updated: 0, removed: 0 };
-  if (settings.budgetSync !== 'on') { result.reason = 'off'; return result; }
+  /* Wyłączone księgowanie = karty żyją tylko w swoim module: wpisy, które wcześniej
+     trafiły do budżetu, są z niego usuwane (prywatne wpisy zostają nietknięte). */
+  const off = settings.budgetSync !== 'on';
 
   const env = readBudgetEnvelope();
-  if (!env || !env.budget || typeof env.budget !== 'object') { result.reason = 'noBudget'; return result; }
+  if (!env || !env.budget || typeof env.budget !== 'object') { result.reason = off ? 'off' : 'noBudget'; return result; }
   const budget = env.budget;
   if (!Array.isArray(budget.transactions)) budget.transactions = [];
+  if (off && !hasCardsEntries(budget)) { result.reason = 'off'; return result; }
 
-  const m = compute();
-  const { expenses, incomes } = desiredBudgetEntries(m);
+  const m = off ? null : compute();
+  const { expenses, incomes } = off ? { expenses: [], incomes: [] } : desiredBudgetEntries(m);
   const catId = resolveCardsCategory(budget);
   const accId = budgetAccountId(budget);
 
@@ -6316,23 +6249,23 @@ function syncBudget(silent = true) {
     const want = wanted.get(tx.id);
     if (!want) { result.removed++; continue; }
     const amount = -Math.abs(want.amount);
-    if (num(tx.amount) !== amount || tx.date !== want.date || tx.note !== want.note || tx.categoryId !== (want.categoryId || catId)) {
+    if (num(tx.amount) !== amount || tx.date !== want.date || tx.note !== want.note || tx.categoryId !== catId) {
       result.updated++;
     }
-    kept.push({ ...tx, date: want.date, amount, categoryId: want.categoryId || catId, accountId: tx.accountId || accId, note: want.note, src: 'cards' });
+    kept.push({ ...tx, date: want.date, amount, categoryId: catId, accountId: tx.accountId || accId, note: want.note, src: 'cards' });
     wanted.delete(tx.id);
   }
   for (const want of wanted.values()) {
     kept.unshift({
       id: want.id, date: want.date, amount: -Math.abs(want.amount),
-      categoryId: want.categoryId || catId, accountId: accId, note: want.note, src: 'cards'
+      categoryId: catId, accountId: accId, note: want.note, src: 'cards'
     });
     result.added++;
   }
   budget.transactions = kept;
 
   /* --- Przychody (kubełki miesięczne) --- */
-  const wantIncome = settings.budgetIncome === 'on' || ownerMode();
+  const wantIncome = !off && settings.budgetIncome === 'on';
   const wantedInc = new Map(wantIncome ? incomes.map(i => [i.id, i]) : []);
   if (!budget.monthly || typeof budget.monthly !== 'object') budget.monthly = {};
   for (const ym of Object.keys(budget.monthly)) {
@@ -6361,6 +6294,7 @@ function syncBudget(silent = true) {
   if (!writeBudgetEnvelope(env)) { result.reason = 'writeFailed'; return result; }
 
   result.ok = true;
+  if (off) { result.reason = 'off'; if (!silent) toast(`Usunięto z budżetu ${result.removed} wpisów kart`, 'ok'); return result; }
   result.categoryName = (budget.categories.find(c => c.id === catId) || {}).name || '—';
   settings.budgetSyncedAt = new Date().toISOString();
   settings.budgetCategoryId = catId;
@@ -6421,56 +6355,29 @@ function renderBudgetPanel() {
     return picked ? picked.name : null;
   })();
 
+  if (!on) {
+    wrap.innerHTML = `
+    <div class="cd-calc-strip">
+      <div class="cell"><div class="k">Status</div><div class="v">osobno</div></div>
+      <div class="cell"><div class="k">Do Salda EOM</div><div class="v">${fmtPLN0(M.sealedValue + (M.vatOn ? M.vatLedger.carry : 0))}</div></div>
+    </div>
+    <div class="cd-note" style="margin-top:10px">
+      Karty są rozliczane tylko w tym module — w <strong>Budżecie</strong> zostają wyłącznie wydatki prywatne i inwestycje.
+      Zakupy, sprzedaże i VAT kart nie trafiają ani do wydatków, ani do przychodów. Do <strong>Salda EOM</strong>
+      (konto „Karty”, przycisk „Pobierz aktualne”) nadal można pobrać wartość sealed boxów na stanie.
+      Księgowanie w budżecie da się włączyć w Ustawieniach.
+    </div>`;
+    return;
+  }
   const expenseTotal = sum(expenses, e => e.amount);
   const incomeTotal = sum(incomes, i => i.amount);
   const when = settings.budgetSyncedAt ? new Date(settings.budgetSyncedAt) : null;
-  const owner = ownerMode();
-  const oc = ownerCash(M);
-  const flows = [...(state.ownerFlows || [])].sort((a, b) => (a.date < b.date ? 1 : -1));
-  const ownerHtml = `
-    <div class="cd-owner">
-      <div class="cd-toolbar" style="padding:0;margin-bottom:10px">
-        <div class="cd-filters">
-          <div class="seg" role="group" aria-label="Tryb księgowania w budżecie">
-            <button type="button" class="${owner ? '' : 'active'}" onclick="setBudgetMode('full')">Wszystko w budżecie</button>
-            <button type="button" class="${owner ? 'active' : ''}" onclick="setBudgetMode('owner')">Firma osobno</button>
-          </div>
-          <span class="cd-count">${owner ? `od ${fmtDate(settings.budgetOwnerFrom)} budżet domowy widzi tylko wpłaty i wypłaty` : 'zakupy i sprzedaże kart idą do budżetu domowego'}</span>
-        </div>
-      </div>
-      ${owner ? `
-      <div class="cd-calc-strip">
-        <div class="cell"><div class="k">Gotówka w firmie</div><div class="v ${posClass(oc.cash)}">${fmtPLN0(oc.cash)}</div></div>
-        <div class="cell"><div class="k">VAT do zapłaty (otwarte okresy)</div><div class="v neg">${fmtPLN0(-oc.vatDue)}</div></div>
-        <div class="cell"><div class="k">Można wypłacić</div><div class="v ${posClass(oc.free)}"><strong>${fmtPLN0(Math.max(0, oc.free))}</strong></div></div>
-        <div class="cell"><div class="k">Wpływy od ${shortDate(settings.budgetOwnerFrom)}</div><div class="v pos">${fmtPLN0(oc.inflow)}</div></div>
-        <div class="cell"><div class="k">Zakupy, koszty, VAT</div><div class="v neg">${fmtPLN0(-oc.outflow)}</div></div>
-        <div class="cell"><div class="k">Wypłacone / dołożone</div><div class="v">${fmtPLN0(oc.draws)} / ${fmtPLN0(oc.deposits)}</div></div>
-      </div>
-      <div class="cd-toolbar" style="padding:10px 0 0">
-        <div class="cd-filters">
-          <select id="ow-type"><option value="draw">Wypłata z działalności → budżet</option><option value="deposit">Wpłata z budżetu → działalność</option></select>
-          <input id="ow-date" type="date" value="${today()}" />
-          <input id="ow-amount" inputmode="decimal" placeholder="Kwota" style="width:110px" />
-          <input id="ow-note" placeholder="Opis (opcjonalnie)" style="min-width:180px" />
-        </div>
-        <div class="cd-filters"><button class="btn-small primary" type="button" onclick="addOwnerFlow()"><span class="material-symbols-outlined">add</span>Dodaj</button></div>
-      </div>
-      ${flows.length ? `<table class="tc-tbl" style="margin-top:8px"><thead><tr><th>Data</th><th>Ruch</th><th>Opis</th><th class="num">Kwota</th><th></th></tr></thead><tbody>${flows.map(f => `<tr>
-        <td class="cd-mono cd-nowrap">${fmtDate(f.date)}</td>
-        <td>${f.type === 'deposit' ? 'Wpłata do działalności' : 'Wypłata z działalności'}</td>
-        <td class="cd-muted">${esc(f.note || '—')}</td>
-        <td class="num ${f.type === 'deposit' ? 'neg' : 'pos'}">${fmtPLN0(f.type === 'deposit' ? -num(f.amount) : num(f.amount), true)}</td>
-        <td><button class="row-btn danger" title="Usuń" onclick="removeOwnerFlow('${f.id}')"><span class="material-symbols-outlined">delete</span></button></td>
-      </tr>`).join('')}</tbody></table>` : ''}
-      <div class="cd-note" style="margin-top:10px">Gotówka w firmie to stan na ${fmtDate(settings.budgetOwnerFrom)} (Ustawienia → „Gotówka w działalności na start”) plus sprzedaże netto minus zakupy, koszty i przelewy VAT od tej daty, plus wpłaty, minus wypłaty. „Można wypłacić” odejmuje jeszcze VAT z otwartych okresów, który trzeba będzie zapłacić.</div>` : ''}
-    </div>`;
 
-  wrap.innerHTML = ownerHtml + `
+  wrap.innerHTML = `
     <div class="cd-calc-strip">
       <div class="cell"><div class="k">Status</div><div class="v ${on && env ? 'pos' : 'warn'}">${!env ? 'brak budżetu' : on ? 'włączone' : 'wyłączone'}</div></div>
       <div class="cell"><div class="k">Kategoria</div><div class="v" style="font-size:12px">${esc(catName || 'Karty piłkarskie')}</div></div>
-      <div class="cell"><div class="k">Wydatki${owner ? ' (z historią)' : ''}</div><div class="v">${expenses.length}</div></div>
+      <div class="cell"><div class="k">Wydatki</div><div class="v">${expenses.length}</div></div>
       <div class="cell"><div class="k">Kwota wydatków</div><div class="v neg">${fmtPLN0(-expenseTotal)}</div></div>
       <div class="cell"><div class="k">Przychody</div><div class="v">${settings.budgetIncome === 'on' ? incomes.length : '—'}</div></div>
       <div class="cell"><div class="k">Kwota przychodów</div><div class="v pos">${settings.budgetIncome === 'on' ? fmtPLN0(incomeTotal, true) : '—'}</div></div>

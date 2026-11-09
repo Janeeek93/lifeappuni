@@ -293,6 +293,12 @@ dodaje brakujące, poprawia zmienione, kasuje nieaktualne. W praktyce:
 - kilkukrotny zapis niczego nie mnoży,
 - wpisy spoza modułu (własne transakcje, przychody z pracy) są nietykalne.
 
+**Domyślnie księgowanie jest wyłączone** — karty rozlicza się wyłącznie w tym
+module, a Budżet zawiera tylko wydatki prywatne i inwestycje. Wyłączenie
+(Ustawienia → „Księguj w budżecie: Nie”) **usuwa z budżetu wszystkie wpisy kart**
+(`tx_cards_…`, `inc_cards_…`), łącznie z historycznymi; własne wpisy zostają.
+Ponowne włączenie odtwarza je z danych modułu.
+
 **Dane demo wyłączają księgowanie**, żeby przykładowa kolekcja nie zaśmieciła
 prawdziwego budżetu. Po wyczyszczeniu modułu przełącznik wraca na „tak".
 
@@ -406,22 +412,6 @@ Jeśli w tej samej JDG są inne czynności z VAT (np. faktury za usługi), dopis
 - przy włączonym VAT znika podpowiedź o progu 6 miesięcy PIT — towar w firmie to towar handlowy.
 
 Moduł planuje i przygotowuje dane dla księgowej — nie generuje JPK.
-
-### Firma osobno od prywatnych
-
-Zakładka **Koszty → Połączenie z budżetem → Firma osobno** (albo Ustawienia). Od wybranej daty
-budżet domowy widzi działalność tak jak każdą firmę:
-
-| Ruch | Co trafia do Budżetu |
-|---|---|
-| Wypłata z działalności | przychód „Karty — wypłata z działalności” |
-| Wpłata z budżetu do działalności | wydatek „Karty — wpłata do działalności” |
-| Zakupy, sprzedaże, koszty, VAT za karty | nic — zostają w module Karty |
-| VAT od pozycji spoza kart (np. usług w tej samej JDG) | wydatek w Wydatkach stałych w dniu terminu |
-
-Wpisy sprzed daty rozdzielenia zostają bez zmian. Panel pokazuje **gotówkę w firmie**
-(stan na start + sprzedaże netto − zakupy, koszty i VAT + wpłaty − wypłaty) i **ile można wypłacić**
-po odłożeniu VAT z otwartych okresów.
 
 ## Import, eksport, kopie
 
