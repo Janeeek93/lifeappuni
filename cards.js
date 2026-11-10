@@ -19,7 +19,11 @@ const DEFAULT_SETTINGS = {
   agingDays: 180,          // martwy stock
   listingDays: 60,         // stare ogłoszenie
   sealedDays: 90,          // sealed czekający na decyzję
-  targetMargin: 30,
+  targetMargin: 30,        // docelowy ROI na czysto (%)
+  ryczalt: 3,              // stawka ryczałtu od sprzedaży towarów (%) — liczona od przychodu bez VAT
+  leadTime: 14,            // dni od zamówienia do dostawy — do alertu „pora domówić”
+  slowDays: 45,            // po ilu dniach sealed to „leżak”
+  cardChannel: 'Vinted',   // domyślny kanał sprzedaży kart
   recStock: 'market',      // pasek odzysku: towar po wycenie (market) czy po cenie zakupu (cost)
   concAlert: 25,
   budgetSync: 'off',       // księgowanie w module Budżet (domyślnie karty żyją tylko tutaj)
@@ -78,7 +82,9 @@ const EMPTY_STATE = {
   valuations: [],
   gradings: [],
   expenses: [],
-  watchlist: []
+  watchlist: [],
+  shops: [],               // baza sklepów: { id, name, cc, url, cur, st: b2b|fv|import|none|unknown, note, alias[] }
+  dwDone: {}               // dni sprzedaży wprowadzone do ING jako dowód wewnętrzny: { '2026-11-12': true }
 };
 
 let state = null;
@@ -216,6 +222,17 @@ function loadState() {
   settings.vat = Object.assign(structuredClone(DEFAULT_SETTINGS.vat), settings.vat || {});
   if (!Array.isArray(settings.channels) || !settings.channels.length) settings.channels = structuredClone(DEFAULT_SETTINGS.channels);
   if (!settings.channels.some(channel => channel.name === 'Empik')) settings.channels.push({ name: 'Empik', fee: 0 });
+  /* Kanały: prowizja %, opłata stała, wysyłka po stronie sprzedawcy i czy platforma
+     wystawia fakturę z VAT na firmę (wtedy VAT od prowizji / wysyłki się odlicza). */
+  const INVOICING = ['Allegro', 'Empik', 'eBay', 'Cardmarket', 'Whatnot'];
+  for (const ch of settings.channels) {
+    if (ch.fixed == null) ch.fixed = 0;
+    if (ch.ship == null) ch.ship = 0;
+    if (ch.feeVat == null) ch.feeVat = INVOICING.includes(ch.name);
+    if (ch.shipVat == null) ch.shipVat = INVOICING.includes(ch.name);
+  }
+  if (!Array.isArray(state.shops)) state.shops = [];
+  if (!state.dwDone || typeof state.dwDone !== 'object') state.dwDone = {};
   state.settings = settings;
 
   /* Samonaprawa: box otwarty, ale któryś pull bez zapisanej bazy kosztowej
@@ -288,12 +305,22 @@ function saleNet(sale) {
   const fx = fxFor(sale.currency, sale.fx);
   const gross = num(sale.price) * fx;
   const fee = (num(sale.price) * num(sale.feePct) / 100 + num(sale.feeAbs)) * fx;
-  return gross - fee + num(sale.shippingIn) - num(sale.shippingOut);
+  /* Częściowy zwrot pieniędzy (rabat po reklamacji) — towar zostaje u kupującego. */
+  return gross - fee + num(sale.shippingIn) - num(sale.shippingOut) - num(sale.refund) * fx;
 }
 function saleFees(sale) {
   if (!sale) return 0;
   const fx = fxFor(sale.currency, sale.fx);
   return (num(sale.price) * num(sale.feePct) / 100 + num(sale.feeAbs)) * fx + num(sale.shippingOut) - num(sale.shippingIn);
+}
+/** VAT z faktur platformy za prowizję i wysyłkę — odliczany, gdy kanał wystawia fakturę na firmę. */
+function saleCostVat(sale) {
+  if (!saleInVat(sale)) return { fee: 0, ship: 0 };
+  const ch = (settings.channels || []).find(c => c.name === sale.channel) || {};
+  return {
+    fee: ch.feeVat ? vatInGross(saleCommission(sale)) : 0,
+    ship: ch.shipVat ? vatInGross(Math.max(0, num(sale.shippingOut))) : 0
+  };
 }
 function saleGross(sale) {
   if (!sale) return 0;
@@ -575,6 +602,9 @@ function buildVatLedger(attr, sales) {
   const rows = [];
   for (const s of sales) {
     if (!s.vatIn) continue;
+    /* VAT z faktur platformy za prowizję i wysyłkę — naliczony, w okresie sprzedaży. */
+    if (s.feeVatIn) rows.push({ side: 'in', kind: 'fees', date: s.date, ref: { type: s.kind, id: s.id }, label: `Prowizja ${s.channel} — ${s.name}`, vat: s.feeVatIn, base: s.commission - s.feeVatIn, channel: s.channel });
+    if (s.shipVatIn) rows.push({ side: 'in', kind: 'ship', date: s.date, ref: { type: s.kind, id: s.id }, label: `Wysyłka ${s.channel} — ${s.name}`, vat: s.shipVatIn, base: num(s.sale.shippingOut) - s.shipVatIn, channel: s.channel });
     rows.push({ side: 'out', kind: s.scheme, date: s.date, ref: { type: s.kind, id: s.id }, label: s.name, gross: s.taxable, vat: s.vat, base: s.taxable - s.vat, channel: s.channel, invoiced: !!(s.ref.sale && s.ref.sale.invoiced), cost: s.vatCost });
   }
   for (const e of attr.events) rows.push({ side: e.kind === 'wnt' ? 'wnt' : 'in', ...e });
@@ -610,11 +640,13 @@ function buildVatLedger(attr, sales) {
       wntBase: sum(wnt, r => r.base), wntVat: sum(wnt, r => r.vat),
       buyBase: sum(buys, r => r.base), buyVat: sum(buys, r => r.vat), buyCount: buys.length,
       corrVat: sum(corr, r => r.vat), corrCount: corr.length,
+      feeVat: sum(pick(r => r.side === 'in' && r.kind === 'fees'), r => r.vat),
+      shipVat: sum(pick(r => r.side === 'in' && r.kind === 'ship'), r => r.vat),
       otherOut: sum(pick(r => r.kind === 'other' && r.side === 'out'), r => r.vat),
       otherIn: sum(pick(r => r.kind === 'other' && r.side === 'in'), r => r.vat)
     };
     p.outVat = p.stdVat + p.marginVat + p.wntVat + p.otherOut;
-    p.inVat = p.buyVat + p.corrVat + p.wntVat + p.otherIn;
+    p.inVat = p.buyVat + p.corrVat + p.wntVat + p.otherIn + p.feeVat + p.shipVat;
     p.carryIn = carry;
     p.due = p.outVat - p.inVat - carry;
     p.payable = Math.max(0, p.due);
@@ -627,7 +659,7 @@ function buildVatLedger(attr, sales) {
     return p;
   });
   const outTotal = sum(periods, p => p.stdVat + p.marginVat);
-  const inTotal = sum(periods, p => p.buyVat + p.corrVat);
+  const inTotal = sum(periods, p => p.buyVat + p.corrVat + p.feeVat + p.shipVat);
   return {
     periods, byKey: new Map(periods.map(p => [p.key, p])), outTotal, inTotal,
     balance: outTotal - inTotal,
@@ -759,7 +791,8 @@ function compute() {
     const vatOut = sold ? (saleInVat(card.sale) ? outputVat(scheme, saleTaxable(card.sale), vatCost) : 0) : 0;
     const vatExpected = !sold && vatLive ? outputVat(scheme, mv, vatCost) : 0;
     const mvNet = mv - vatExpected;
-    const pnl = sold ? net - vatOut - basis : mvNet - basis;
+    const cv = sold ? saleCostVat(card.sale) : { fee: 0, ship: 0 };
+    const pnl = sold ? net - vatOut + cv.fee + cv.ship - basis : mvNet - basis;
     const daysHeld = sold ? daysBetween(card.date, card.sale.date) : daysSince(card.date);
     return {
       ...card,
@@ -771,6 +804,9 @@ function compute() {
       vatCost,
       vatOut,
       vatExpected,
+      feeVatIn: cv.fee,
+      shipVatIn: cv.ship,
+      costVat: cv.fee + cv.ship,
       marketValueNet: mvNet,
       marketValue: mv,
       hasValuation: mvRaw !== null,
@@ -810,7 +846,8 @@ function compute() {
     const isFlip = box.status === 'sold';
     const scheme = saleSchemeFor(box.sale, doc);
     const vatOut = isFlip && saleInVat(box.sale) ? outputVat(scheme, saleTaxable(box.sale), landedGross) : 0;
-    const pnl = isFlip ? flipNet - vatOut - landed : (box.status === 'opened' ? ret - landed : 0);
+    const cvb = isFlip ? saleCostVat(box.sale) : { fee: 0, ship: 0 };
+    const pnl = isFlip ? flipNet - vatOut + cvb.fee + cvb.ship - landed : (box.status === 'opened' ? ret - landed : 0);
     return {
       ...box,
       landed,
@@ -819,6 +856,9 @@ function compute() {
       vatDoc: doc,
       vatScheme: scheme,
       vatOut,
+      feeVatIn: cvb.fee,
+      shipVatIn: cvb.ship,
+      costVat: cvb.fee + cvb.ship,
       pulls,
       pullsReturn,
       bulk,
@@ -870,7 +910,8 @@ function compute() {
   const vatOutTotal = sum(soldCards, c => c.vatOut) + sum(flipped, b => b.vatOut) + vatOutReturns;
   const vatExpenseDed = sum([...attr.expense.values()]);
   const vatUnallocDed = sum([...attr.unalloc.values()]);
-  const vatDedTotal = sum(cards, c => c.vatDed) + sum(boxes.filter(b => b.status !== 'opened'), b => b.vatDed) + vatUnallocDed + vatExpenseDed;
+  const vatCostDed = sum(soldCards, c => c.costVat) + sum(flipped, b => b.costVat);
+  const vatDedTotal = sum(cards, c => c.vatDed) + sum(boxes.filter(b => b.status !== 'opened'), b => b.vatDed) + vatUnallocDed + vatExpenseDed + vatCostDed;
   const vatBalance = vatOutTotal - vatDedTotal;
   const overheadNet = overhead - vatExpenseDed;
 
@@ -897,6 +938,7 @@ function compute() {
       commission: saleCommission(c.sale), shipping: saleShipping(c.sale),
       net: c.net, basis: c.basis, pnl: c.pnl,
       vat: c.vatOut, vatIn: saleInVat(c.sale), scheme: c.vatScheme, taxable: saleTaxable(c.sale), vatCost: c.vatCost,
+      feeVatIn: c.feeVatIn, shipVatIn: c.shipVatIn,
       roi: c.basis > 0 ? c.pnl / c.basis * 100 : null,
       margin: saleGross(c.sale) > 0 ? c.pnl / saleGross(c.sale) * 100 : null,
       days: c.daysHeld
@@ -907,6 +949,7 @@ function compute() {
       commission: saleCommission(b.sale), shipping: saleShipping(b.sale),
       net: b.flipNet, basis: b.landed, pnl: b.pnl,
       vat: b.vatOut, vatIn: saleInVat(b.sale), scheme: b.vatScheme, taxable: saleTaxable(b.sale), vatCost: b.landedGross,
+      feeVatIn: b.feeVatIn, shipVatIn: b.shipVatIn,
       roi: b.landed > 0 ? b.pnl / b.landed * 100 : null,
       margin: saleGross(b.sale) > 0 ? b.pnl / saleGross(b.sale) * 100 : null,
       days: b.daysHeld
@@ -5124,7 +5167,7 @@ function removeVatExtra(id) {
 function vatRegisterRows(key) {
   const p = M.vatLedger.byKey.get(key);
   if (!p) return [];
-  const label = { std: 'Sprzedaż 23%', margin: 'Sprzedaż — marża', zero: 'Sprzedaż 0%/zw', in: 'Zakup', corr: 'Korekta — towar na stanie', wnt: 'WNT', other: 'Poza kartami' };
+  const label = { std: 'Sprzedaż 23%', margin: 'Sprzedaż — marża', zero: 'Sprzedaż 0%/zw', in: 'Zakup', corr: 'Korekta — towar na stanie', wnt: 'WNT', other: 'Poza kartami', fees: 'Prowizja platformy', ship: 'Wysyłka' };
   return [...p.rows].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map(r => {
     const out = r.side === 'out';
     const doc = r.kind === 'other' ? 'faktura (poza kartami)' : out ? (r.invoiced ? 'faktura' : `DW/${r.date.replaceAll('-', '/')}`) : r.kind === 'corr' ? 'spis z natury' : r.ref.type === 'expense' ? 'faktura (koszt)' : 'faktura zakupu';
@@ -6135,8 +6178,12 @@ function init() {
   renderGradingCalc();
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
+/* Nowy interfejs (cards.html) ładuje ten plik jako silnik: ustawia CARDS_HEADLESS
+   i sam woła loadState/compute. Stary interfejs (cards-legacy.html) startuje jak dawniej. */
+if (!window.CARDS_HEADLESS) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+}
 
 /* ============================================================
    Integracja z Budżetem

@@ -1,36 +1,86 @@
-# Moduł Karty — kolekcja i odsprzedaż kart piłkarskich
+# Moduł Karty — sprzedaż kart i sealed na działalności (VAT + ryczałt)
 
-Osobna sekcja LifeOS (`cards.html`) do prowadzenia kolekcji jak portfela
-inwestycyjnego: co kupione, ile warte dziś, ile realnie wyszło z boxa,
-gdzie zostaje najwięcej marży i co wymaga decyzji.
+Osobna sekcja LifeOS (`cards.html`) do prowadzenia biznesu z kartami: zakupy,
+magazyn, sprzedaż na kilku platformach, zysk na czysto po VAT i ryczałcie,
+przepływ pieniędzy i comiesięczne podatki.
 
 ```bash
 node server.js
 # http://localhost:8787/cards.html
 ```
 
-Pliki: `cards.html` (widok), `cards.css` (tokeny + komponenty), `cards.js` (logika).
-System komponentów dziedziczy z `styles.css` i `trading.css` — tak samo jak moduł Zakłady.
+Pliki:
 
-Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`**.
+| Plik | Rola |
+|---|---|
+| `cards.html` + `cards-ui.js` + `cards-ui.css` | **nowy interfejs** (od 11.2026) |
+| `cards.js` | silnik: stan, `compute()`, VAT, alokacja kosztu boxa na karty, zwroty, budżet/KPI. Ładowany przez nowy interfejs w trybie `window.CARDS_HEADLESS` |
+| `cards-legacy.html` + `cards.css` | poprzednia wersja interfejsu na tych samych danych (link w Ustawieniach) |
 
-## Co ogarnia
+System komponentów dziedziczy z `styles.css`, `trading.css` i `cards.css` (tokeny `--tc-*`,
+`tc-card`, `tc-kpi`, `seg`, `btn-small`, `tc-modal`), wykresy idą przez Chart.js z tymi samymi
+osiami, legendą i tooltipem (`axisPLN`, `legendBottom`, `TOOLTIP` z silnika).
+
+Dane siedzą w `localStorage` pod kluczem **`lifeos_cards_v1`** — oba interfejsy czytają
+i zapisują ten sam schemat.
+
+## Nowy interfejs — zakładki
 
 | Zakładka | Do czego służy |
 |---|---|
-| **Przegląd** | Wartość kolekcji, pasek odzysku kapitału, lejek kapitału od zakupu przez stock do sprzedaży, wynik łączny, krzywa wyceny vs koszt, lista „do zrobienia", ruchy wyceny, najcenniejsze karty |
-| **Kolekcja** | Tabela kart z filtrami i sortowaniem, szczegóły karty z historią wyceny i osią zdarzeń |
-| **Boxy i breaki** | Sealed na stanie, wynik każdego breaka, EV produktów, flipy sealed |
-| **Sprzedaż** | Pipeline wystawionych, historia transakcji z rozbiciem na prowizje, zwroty, raport ING, analiza kanałów, próg 6 miesięcy (PIT) |
-| **Grading** | Wysyłki do PSA/BGS/SGC/CGC, wynik gradingu, kalkulator opłacalności |
-| **Koszty** | Struktura wszystkich kosztów, przepływy miesięczne, koszt otwartych boxów miesięcznie (po dacie otwarcia, ze średnią 3 mies.), rozbicie wyniku (kontrola spójności), rejestr kosztów ogólnych |
-| **VAT** | Korekta VAT za towar na stanie w dniu rejestracji, rozliczenie okres po okresie, ewidencja dla księgowej, ceny sealed po VAT |
-| **Analityka** | Zarządczy dashboard sprzedaży: tempo do tego samego dnia, dzień po dniu ze średnią 7-dniową, rentowność kanałów w wybranym okresie, trend tygodniowy i miesięczny |
-| **Watchlista** | Karty na celowniku z ceną docelową i luką do rynku |
+| **Pulpit** | Zysk na czysto z 30 dni, towar na stanie, gotówka do odzyskania, VAT do zapłaty. „Do zrobienia” (DW do ING, VAT, faktura B2B, leżaki, sklepy do sprawdzenia, daty z przyszłości, spójność danych), „Pora domówić”, „W drodze”, bestsellery |
+| **Magazyn** | Boxy pogrupowane po produkcie: koszt brutto/netto, czy VAT odliczony, dni na stanie, ostatnia cena, **rekomendowana cena per kanał** dla docelowego ROI z zyskiem na czysto; Otwórz / Sprzedaj / Dostarczone. Przełącznik na karty (sprzedaż głównie na Vinted) |
+| **Sprzedaże** | Miesiąc po miesiącu z filtrami (boxy/karty, kanał, szukaj). Klik w sprzedaż = edycja, zwrot pełny albo rabat, usunięcie |
+| **Zakupy** | Zamówienia (jeden sklep i dzień, wiele pozycji): edycja, zwrot do sklepu, usunięcie. Podzakładka **Sklepy**: baza pogrupowana po krajach ze statusem B2B / faktura / bez odliczenia / do sprawdzenia |
+| **Wyniki** | Tempo (dziś / tydzień / miesiąc / 30 dni / rok / prognoza), tydzień i miesiąc narastająco, dzień po dniu ze średnimi 7 i 28 dni, trend z rachunkiem wyników, rentowność kanałów, odzysk kapitału, otwarte boxy, rotacja produktów („co się kręci”) |
+| **Podatki** | **VAT**: lejek jednego miesiąca (B2B + sprzedaż kart − zakupy kart − prowizje − wysyłka − pozostałe) z rozwijanymi pozycjami, „oznacz jako zapłacone”, przypomnienia o fakturach. **Ryczałt i dowody wewnętrzne**: DW na każdy dzień sprzedaży bez faktury, kopiowanie kwot do ING, status „wprowadzone” |
+| **Ustawienia** | Marketplace’y (prowizja %, opłata stała, wysyłka, faktura z VAT za prowizję/wysyłkę), docelowy ROI, czas dostawy, próg leżaków, ryczałt, podział kosztu boxa na karty, eksport |
 
-Przycisk **Wgraj dane demo** w Ustawieniach wypełnia moduł przykładową kolekcją
-(3 breaki, flip sealed, grading w toku i rozliczony, sprzedaże, koszty) — dobre
-do obejrzenia wszystkich widoków przed pierwszym własnym wpisem.
+Okna: **Zakup** (wiele pozycji, sklep z listy, dokument VAT z bazy sklepów, „w drodze”),
+**Sprzedaż** (prowizja i wysyłka nadpisywalne per sprzedaż, faktura dla kupującego),
+**Otwieram box**, **Kalkulator opłacalności** (cena wystawienia per kanał dla zadanego ROI,
+wynik przy cenie rynkowej, maksymalna cena zakupu), **Sklep**, **Zakup firmowy / faktura B2B**.
+
+### Zysk na czysto
+
+`zysk = cena − prowizja − wysyłka − VAT należny + VAT z faktur za prowizję i wysyłkę − koszt netto − ryczałt`,
+gdzie ryczałt to `stawka × (cena − VAT należny)`. ROI = zysk / koszt netto. Silnik liczy wynik
+przed ryczałtem (`pnl`); interfejs odejmuje ryczałt (`pnlNet`) we wszystkich widokach.
+
+### Pora domówić
+
+Produkt musi schodzić regularnie: ≥4 szt. w 60 dni, w ≥3 różnych tygodniach i ≥2 szt.
+w ostatnich 30 dniach. Tempo = 0,6 × (30 dni) + 0,4 × (60 dni). Alert, gdy zapas (na stanie
+i w drodze) wystarczy na krócej niż czas dostawy + 14 dni; ilość do zamówienia pokrywa
+~45 dni sprzedaży po dostawie.
+
+### Nowe pola w danych
+
+- `box.transit` — zamówione, jeszcze nie dotarło (status zostaje `sealed`, liczy się do kapitału)
+- `box.orderId`, `box.shopId` — grupowanie w zamówienia i powiązanie ze sklepem
+- `state.shops[]` — `{ id, name, cc, url, cur, st: b2b|fv|import|none|unknown, note, alias[] }`
+- `state.dwDone` — dni sprzedaży wprowadzone do ING jako dowód wewnętrzny
+- `settings.channels[]` — `fee` (%), `fixed`, `ship`, `feeVat`, `shipVat`, `hidden`
+- `settings.ryczalt`, `leadTime`, `slowDays`, `cardChannel`, `uiV2` (data jednorazowej migracji)
+- `settings.vat.extra[]` — faktury B2B (`side: out`) i zakupy firmowe (`side: in`, `cat`, `gross`, `vatFull`, `pct`, `vat` = odliczona część, `rec`)
+- `sale.refund` — rabat po reklamacji, pomniejsza wpływ, VAT i przychód
+
+VAT od prowizji i wysyłki (kanał z `feeVat` / `shipVat`) silnik liczy jako VAT naliczony
+w okresie sprzedaży i dolicza do zysku — rachunek spójności dalej domyka się do zera.
+
+## Poprzednia wersja — zakładki (cards-legacy.html)
+
+| Zakładka | Do czego służy |
+|---|---|
+| **Przegląd** | Wartość kolekcji, pasek odzysku kapitału, lejek kapitału, wynik łączny, krzywa wyceny vs koszt, ruchy wyceny, najcenniejsze karty |
+| **Kolekcja** | Tabela kart z filtrami, szczegóły karty z historią wyceny |
+| **Boxy i breaki** | Sealed na stanie, wynik breaków, EV produktów, flipy sealed |
+| **Sprzedaż** | Wystawione, historia, zwroty, raport ING, kanały, próg 6 miesięcy (PIT) |
+| **Grading** | Wysyłki do PSA/BGS/SGC/CGC, kalkulator opłacalności gradingu |
+| **Koszty** | Struktura kosztów, przepływy, rozbicie wyniku, koszty ogólne |
+| **VAT** | Korekta za towar na stanie, rozliczenie okresów, ewidencja, ceny sealed po VAT |
+| **Analityka** | Tempo, dzień po dniu, rentowność kanałów, trend |
+| **Watchlista** | Karty na celowniku |
 
 ## Cztery ścieżki, które moduł obsługuje
 
