@@ -76,13 +76,13 @@ function calc(it, ch, P, noVat) {
   const profit = cashIn - vatPay - it.cost - ryc;
   return { P, outVat, fee, feeVat, ship, shipVat, cashIn, vatPay, ryc, cost: it.cost, profit, roi: it.cost > 0 ? profit / it.cost * 100 : 0 };
 }
-/* Zaokrąglenie w górę do ceny kończącej się na 4 albo 9 (powyżej 1000 zł — na 9, co 10 zł),
+/* Zaokrąglenie w górę do najbliższej ceny z końcówką 5 albo 9 (np. 285, 289, 295…),
    żeby ROI nie odjeżdżało od celu o więcej niż ok. 2–3 punkty. */
 function nicePrice(p) {
   if (p <= 0) return 0;
-  if (p < 30) return Math.ceil(p);
-  const step = p < 1000 ? 5 : 10;
-  return Math.ceil((p + 1) / step) * step - 1;
+  if (p < 5) return Math.ceil(p);
+  const base = Math.floor(p / 10) * 10;
+  return [base + 5, base + 9, base + 15].find(c => c >= p);
 }
 /** Dokładna najniższa cena, przy której zysk na czysto ≥ ROI × koszt. */
 function breakPrice(it, ch, roi = TM(), noVat) {
@@ -1268,7 +1268,7 @@ function renderCalc() {
     <div class="cx-grid3">${CHS().slice(0, 3).map((c, i) => { const P = recommend(it, c, roi), r = calc(it, c, P); return `<div class="tc-card"><div class="tc-card-body">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${dot(c.name)} ${esc(c.name)}</b><span class="cx-note">${num(c.fee) ? num(c.fee) + '% prowizji' : 'bez prowizji'}${num(c.ship) ? ` · wysyłka ${fmt2(num(c.ship))}` : ''}</span></div>
       <div style="font-size:26px;font-weight:700;font-family:var(--mono);margin:8px 0 4px">${fmt(P)}</div>
-      <div class="cx-note">minimum dla ${roi}%: ${fmt2(breakPrice(it, c, roi))} — zaokrąglone w górę do końcówki 4/9</div>
+      <div class="cx-note">minimum dla ${roi}%: ${fmt2(breakPrice(it, c, roi))} — zaokrąglone w górę do końcówki 5/9</div>
       <div class="cx-note">na konto ${fmt2(r.cashIn)} · VAT ${fmt2(r.vatPay)} · ryczałt ${fmt2(r.ryc)}<br>zysk <b class="pos">${fmt2(r.profit)}</b> · ROI ${pct(r.roi)} · marża ${pct(r.profit / P * 100)}</div>
       <div class="cx-try"><label class="cx-note" for="k-tryin-${i}">Twoja cena (np. konkurencja − 10 zł)</label><input id="k-tryin-${i}" inputmode="decimal" placeholder="np. ${fmt(Math.max(0, P - 10)).replace(/\s?zł/, '')}" value="${esc(kTryP[c.name] || '')}" oninput="UI.kTry(${i}, this.value)"><div id="k-try-${i}">${kTryHtml(it, c, parseFloat(String(kTryP[c.name] || '').replace(',', '.')))}</div></div></div></div>`; }).join('')}</div>
     ${mkt ? `<div class="cd-section"><span class="ico"><span class="material-symbols-outlined">storefront</span></span><h2>Przy cenie rynkowej ${fmt(mkt)}</h2><span class="line"></span></div>
