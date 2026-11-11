@@ -1230,9 +1230,19 @@ function saveOpen() {
    KALKULATOR OPŁACALNOŚCI (przed zakupem)
    ============================================================ */
 let kDed = true;
+let kTryP = {};   // „Twoja cena” wpisana w karcie kanału (np. konkurencja minus 10 zł)
+function kTryHtml(it, c, P) {
+  if (!(P > 0) || !it.cost) return '';
+  const r = calc(it, c, P), rec = recommend(it, c, num(getv('k-roi')));
+  return `<div class="cx-note" style="margin-top:6px">zysk <b class="${r.profit >= 0 ? 'pos' : 'neg'}">${fmt2(r.profit)}</b> · ROI <span class="cx-pill ${r.roi >= num(getv('k-roi')) ? 'pos' : r.roi >= 0 ? 'warn' : 'neg'}">${pct(r.roi)}</span> · marża ${pct(r.profit / P * 100)}<br>na konto ${fmt2(r.cashIn)} · VAT ${fmt2(r.vatPay)} · ryczałt ${fmt2(r.ryc)}${P !== rec ? ` · ${P < rec ? fmt(rec - P) + ' poniżej' : fmt(P - rec) + ' powyżej'} rekomendowanej` : ''}</div>`;
+}
+function kTry(i, v) {
+  const c = CHS()[i]; if (!c) return;
+  kTryP[c.name] = v; $('k-try-' + i).innerHTML = kTryHtml(calcItem(), c, parseFloat(String(v).replace(',', '.')));
+}
 function openCalc() {
   $('dl-products').innerHTML = [...new Set(state.boxes.map(b => b.name))].map(n => `<option value="${esc(n)}">`).join('');
-  setv('k-roi', TM()); $('k-roi-q').innerHTML = [10, 20, 30, 50].map(v => `<button onclick="UI.kRoi(${v})">${v}%</button>`).join('');
+  kTryP = {}; setv('k-roi', TM()); $('k-roi-q').innerHTML = [10, 20, 30, 50].map(v => `<button onclick="UI.kRoi(${v})">${v}%</button>`).join('');
   open_('m-calc'); renderCalc(); setTimeout(() => $('k-price').focus(), 50);
 }
 function calcItem() {
@@ -1255,11 +1265,12 @@ function renderCalc() {
   const mkt = numIn('k-market'), lv = [0, 10, 20, 30, 40, 50];
   $('k-out').innerHTML = `
     <div class="cd-section" style="margin-top:6px"><span class="ico"><span class="material-symbols-outlined">sell</span></span><h2>Po ile wystawić, żeby mieć ${roi}% na czysto</h2><span class="line"></span></div>
-    <div class="cx-grid3">${CHS().slice(0, 3).map(c => { const P = recommend(it, c, roi), r = calc(it, c, P); return `<div class="tc-card"><div class="tc-card-body">
+    <div class="cx-grid3">${CHS().slice(0, 3).map((c, i) => { const P = recommend(it, c, roi), r = calc(it, c, P); return `<div class="tc-card"><div class="tc-card-body">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${dot(c.name)} ${esc(c.name)}</b><span class="cx-note">${num(c.fee) ? num(c.fee) + '% prowizji' : 'bez prowizji'}${num(c.ship) ? ` · wysyłka ${fmt2(num(c.ship))}` : ''}</span></div>
       <div style="font-size:26px;font-weight:700;font-family:var(--mono);margin:8px 0 4px">${fmt(P)}</div>
       <div class="cx-note">minimum dla ${roi}%: ${fmt2(breakPrice(it, c, roi))} — zaokrąglone w górę do końcówki 4/9</div>
-      <div class="cx-note">na konto ${fmt2(r.cashIn)} · VAT ${fmt2(r.vatPay)} · ryczałt ${fmt2(r.ryc)}<br>zysk <b class="pos">${fmt2(r.profit)}</b> · ROI ${pct(r.roi)} · marża ${pct(r.profit / P * 100)}</div></div></div>`; }).join('')}</div>
+      <div class="cx-note">na konto ${fmt2(r.cashIn)} · VAT ${fmt2(r.vatPay)} · ryczałt ${fmt2(r.ryc)}<br>zysk <b class="pos">${fmt2(r.profit)}</b> · ROI ${pct(r.roi)} · marża ${pct(r.profit / P * 100)}</div>
+      <div class="cx-try"><label class="cx-note" for="k-tryin-${i}">Twoja cena (np. konkurencja − 10 zł)</label><input id="k-tryin-${i}" inputmode="decimal" placeholder="np. ${fmt(Math.max(0, P - 10)).replace(/\s?zł/, '')}" value="${esc(kTryP[c.name] || '')}" oninput="UI.kTry(${i}, this.value)"><div id="k-try-${i}">${kTryHtml(it, c, parseFloat(String(kTryP[c.name] || '').replace(',', '.')))}</div></div></div></div>`; }).join('')}</div>
     ${mkt ? `<div class="cd-section"><span class="ico"><span class="material-symbols-outlined">storefront</span></span><h2>Przy cenie rynkowej ${fmt(mkt)}</h2><span class="line"></span></div>
     <div class="tc-card"><div class="tc-tbl-wrap"><table class="tc-tbl"><thead><tr><th>Kanał</th><th class="num">Na konto</th><th class="num">VAT + ryczałt</th><th class="num">Zysk</th><th class="num">ROI</th><th class="num">Maks. cena zakupu dla ${roi}% ROI</th></tr></thead><tbody>
       ${CHS().slice(0, 4).map(c => { const r = calc(it, c, mkt); const keep = r.cashIn - r.vatPay - r.ryc; const maxC = keep / (1 + roi / 100); const maxIn = maxC / it.fx - numIn('k-ship');
@@ -1438,7 +1449,7 @@ window.UI = {
   salesCh: v => { SF.ch = v; renderSales(); }, toastInfo: t => toast(t),
   openBuy, saveBuy, deleteOrder, toggleBuyRet, saveBuyRet, line, addLine, delLine,
   openOpen, saveOpen, pull, addPull, delPull,
-  openCalc, calcToBuy, kRoi: v => { setv('k-roi', v); renderCalc(); },
+  openCalc, calcToBuy, kTry, kRoi: v => { setv('k-roi', v); renderCalc(); },
   openShop, saveShop, closeShop, deleteShop, setShopSt,
   vatMonth, vatPaid, addB2b, repeatBiz, exportVat, openBiz, saveBiz, deleteBiz,
   revMonth, dwDone, copyDw, exportDw,
