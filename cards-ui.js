@@ -483,8 +483,8 @@ function renderBuys() {
 /* ============================================================
    SKLEPY — baza z oznaczeniem B2B
    ============================================================ */
-const COUNTRIES = { PL: 'Polska', DE: 'Niemcy', NL: 'Holandia', ES: 'Hiszpania', FR: 'Francja', IT: 'Włochy', SE: 'Szwecja', BE: 'Belgia', AT: 'Austria', IE: 'Irlandia', DK: 'Dania', CZ: 'Czechy', UK: 'Wielka Brytania', US: 'USA', '??': 'Kraj do uzupełnienia' };
-const EU = ['DE', 'NL', 'ES', 'FR', 'IT', 'SE', 'BE', 'AT', 'IE', 'DK', 'CZ'];
+const COUNTRIES = { PL: 'Polska', DE: 'Niemcy', NL: 'Holandia', ES: 'Hiszpania', FR: 'Francja', IT: 'Włochy', SE: 'Szwecja', BE: 'Belgia', AT: 'Austria', IE: 'Irlandia', DK: 'Dania', CZ: 'Czechy', PT: 'Portugalia', FI: 'Finlandia', GR: 'Grecja', HU: 'Węgry', SK: 'Słowacja', SI: 'Słowenia', HR: 'Chorwacja', RO: 'Rumunia', BG: 'Bułgaria', LT: 'Litwa', LV: 'Łotwa', EE: 'Estonia', LU: 'Luksemburg', MT: 'Malta', CY: 'Cypr', UK: 'Wielka Brytania', US: 'USA', '??': 'Kraj do uzupełnienia' };
+const EU = ['DE', 'NL', 'ES', 'FR', 'IT', 'SE', 'BE', 'AT', 'IE', 'DK', 'CZ', 'PT', 'FI', 'GR', 'HU', 'SK', 'SI', 'HR', 'RO', 'BG', 'LT', 'LV', 'EE', 'LU', 'MT', 'CY'];
 const zone = cc => cc === 'PL' ? 'pl' : (EU.includes(cc) || cc === '??') ? 'eu' : 'out';
 const SHOP_ST = {
   b2b:     { l: 'B2B — faktura 0% (WNT)', s: 'B2B', doc: 'wnt', ok: true, tone: 'pos', zones: ['eu'], hint: 'Podajesz numer VAT-UE, sklep nie dolicza VAT. W JPK naliczasz i odliczasz 23% — wychodzi na zero.' },
