@@ -87,7 +87,7 @@ a.btn-small { text-decoration: none; color: inherit; }
 .cx-bar > i { display: block; height: 100%; border-radius: 4px; }
 
 /* Magazyn: wiersz produktu z cenami per kanał */
-.cx-prod { display: grid; grid-template-columns: 54px minmax(0, 2.2fr) minmax(0, 1.05fr) minmax(0, 2.5fr) auto; gap: 14px; align-items: center; padding: 13px 16px; border-top: 1px solid var(--tc-line); }
+.cx-prod { display: grid; grid-template-columns: 54px minmax(0, 1.9fr) minmax(0, 0.95fr) minmax(0, 3.3fr) auto; gap: 14px; align-items: center; padding: 13px 16px; border-top: 1px solid var(--tc-line); }
 .cx-prod:first-child { border-top: 0; }
 .cx-prod .name { font-weight: 600; line-height: 1.3; display: flex; gap: 8px; align-items: flex-start; color: var(--tc-ink); }
 .cx-prod .meta { font-size: 12px; color: var(--tc-muted); margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -303,7 +303,6 @@ body.cx .cx-try input { width: 100%; box-sizing: border-box; padding: 7px 10px; 
   .cx-qn { height: 44px; }
   .cx-qn b { font-size: 17px; }
   .cx-prod .cost { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .cx-prod .cx-prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cx-pc { min-width: 0; }
   .cx-price { padding: 6px 7px; }
   .cx-lst { padding: 4px 3px; font-size: 10.5px; }
@@ -374,3 +373,25 @@ details.cx-how[open] > summary::before { transform: rotate(90deg); }
 details.cx-how > summary:hover { color: var(--tc-accent); }
 .cx-ck { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tc-muted); cursor: pointer; white-space: nowrap; }
 .cx-chtbl.cx-fit input[type="number"] { width: 74px; }
+
+/* ---------- Magazyn: okienko kanału z własną ceną wystawienia ---------- */
+.cx-pc .cx-price { cursor: default; padding: 7px 9px 8px; }
+.cx-pc .cx-price:hover { border-color: var(--tc-line-strong); }
+.cx-pc .cx-price:focus-within { border-color: var(--tc-accent); box-shadow: 0 0 0 3px var(--tc-accent-tint); }
+.cx-pc .cx-price .c span:not(.cx-dot) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-sellb { border: 0; background: transparent; color: var(--tc-muted); padding: 0; margin: -2px -3px -2px 0; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; cursor: pointer; flex: none; }
+.cx-sellb .material-symbols-outlined { font-size: 14px; }
+.cx-sellb:hover { background: var(--tc-accent); color: #fff; }
+.cx-pc .pin { display: flex; align-items: baseline; gap: 3px; margin-top: 3px; border-bottom: 1px dashed var(--tc-line-strong); cursor: text; }
+.cx-pc .pin input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; padding: 1px 0; font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--tc-ink); }
+.cx-pc .pin input::placeholder { color: var(--tc-muted); font-weight: 600; opacity: 1; }
+.cx-pc .pin span { font-family: var(--mono); font-size: 11px; color: var(--tc-muted); }
+.cx-pc.mine .pin { border-bottom-style: solid; border-bottom-color: var(--tc-accent); }
+.cx-pc .o .z { font-size: 11px; margin-top: 4px; }
+.cx-pc .o .z.warn { color: var(--tc-warn); }
+.cx-pc .o .d { font-size: 10.5px; color: var(--tc-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-pc .o .d b.warn { color: var(--tc-warn); } .cx-pc .o .d b.pos { color: var(--tc-pos); }
+.cx-prod .cx-prices { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 6px; align-items: start; }
+.cx-pc { min-width: 0; }
+.cx-prod.transit .pin input::placeholder, .cx-prod.transit .pin input { color: var(--tc-muted); }
+@media (max-width: 640px) { .cx-pc { min-width: 0; } .cx-pc .o .z, .cx-pc .o .d { white-space: normal; } .cx-pc .pin input { font-size: 13px; } }

@@ -271,7 +271,13 @@ function renderHome() {
    WYSTAWIENIA — gdzie towar jest już wystawiony (bez cen)
    ============================================================ */
 const LCH = () => CHS().slice(0, 4);
-const lst = (key, ch) => ((state.listings || {})[key] || {})[ch] || '';   // '' do wystawienia · 'on' wystawione · 'skip' pomijam
+const lstRaw = (key, ch) => ((state.listings || {})[key] || {})[ch];
+const isOn = v => v === 'on' || (typeof v === 'number' && v > 0);
+/* Wpis: 'on' wystawione · liczba = wystawione za tę cenę · 'skip' pomijam · brak = do wystawienia */
+const lst = (key, ch) => { const v = lstRaw(key, ch); return isOn(v) ? 'on' : v === 'skip' ? 'skip' : ''; };
+const lstPrice = (key, ch) => { const v = lstRaw(key, ch); return typeof v === 'number' && v > 0 ? v : 0; };
+const parseP = v => { const n = parseFloat(String(v == null ? '' : v).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0; };
+const pStr = n => n ? (n % 1 ? n.toFixed(2) : String(n)).replace('.', ',') : '';
 const LST_LBL = { '': 'wystaw', on: 'wystawione', skip: 'pomijam' };
 function setListing(key, ch, v) {
   const L = state.listings = state.listings || {}, o = { ...(L[key] || {}) };
@@ -284,13 +290,39 @@ const todoCount = ch => stockNames().filter(n => !lst(n, ch)).length;
 /** Produkty sprzedane do zera, które wciąż są oznaczone jako wystawione. */
 function staleListings() {
   const have = new Set(M.sealed.map(b => b.name));
-  return Object.entries(state.listings || {}).filter(([k, o]) => !k.startsWith('card:') && !have.has(k) && Object.values(o).includes('on'))
-    .map(([name, o]) => ({ name, chs: Object.keys(o).filter(c => o[c] === 'on') }));
+  return Object.entries(state.listings || {}).filter(([k, o]) => !k.startsWith('card:') && !have.has(k) && Object.values(o).some(isOn))
+    .map(([name, o]) => ({ name, chs: Object.keys(o).filter(c => isOn(o[c])) }));
 }
 function cycleListing(gi, ci) {
   const g = G[gi], c = LCH()[ci]; if (!g || !c) return;
   const cur = lst(g.name, c.name), next = cur === '' ? 'on' : cur === 'on' ? 'skip' : '';
   setListing(g.name, c.name, next); savePrefs(); renderStock();
+}
+/** Wynik dla ceny w okienku kanału: zysk, ROI i różnica do rekomendowanej. */
+function chipOut(g, c, mine) {
+  const it = gItem(g), rec = recommend(it, c), P = mine || rec, r = calc(it, c, P), d = P - rec;
+  return `<div class="z ${r.profit < 0 ? 'neg' : r.roi < TM() - 0.5 ? 'warn' : 'pos'}">zysk <b>${fmt(r.profit)}</b> · ROI ${pct(r.roi)}</div>
+    <div class="d">${mine ? (Math.abs(d) >= 0.5 ? `<b class="${d < 0 ? 'warn' : 'pos'}">${d > 0 ? '+' : '−'}${fmt(Math.abs(d))}</b> · rekom. ${fmt(rec)}` : `równo z rekom. ${fmt(rec)}`) : 'rekomendowana'}</div>`;
+}
+function chipHtml(g, gi, c, ci) {
+  const st = lst(g.name, c.name), mine = lstPrice(g.name, c.name), rec = recommend(gItem(g), c);
+  return `<div class="cx-pc ${st}${mine ? ' mine' : ''}" id="pc-${gi}-${ci}"><div class="cx-price">
+      <div class="c">${dot(c.name)}<span>${esc(c.name)}</span><button class="cx-sellb" tabindex="-1" title="Sprzedaj na ${esc(c.name)} za ${fmt(mine || rec)}" onclick="UI.sellAt(${gi},${ci})"><span class="material-symbols-outlined">sell</span></button></div>
+      <label class="pin" title="Wpisz cenę, za którą wystawiłeś na ${esc(c.name)} — policzę zysk i ROI. Puste pole = cena rekomendowana."><input inputmode="decimal" autocomplete="off" aria-label="Twoja cena na ${esc(c.name)}" value="${pStr(mine)}" placeholder="${Math.round(rec)}" oninput="UI.myPriceLive(${gi},${ci},this.value)" onchange="UI.myPrice(${gi},${ci},this.value)" onkeydown="if(event.key==='Enter')this.blur()"><span>zł</span></label>
+      <div class="o" id="po-${gi}-${ci}">${chipOut(g, c, mine)}</div></div>
+    <button class="cx-lst ${st}" tabindex="-1" title="Kliknij, żeby zmienić: do wystawienia → wystawione → pomijam ten kanał" onclick="UI.cycleListing(${gi},${ci})"><span class="material-symbols-outlined">${st === 'on' ? 'check_circle' : st === 'skip' ? 'block' : 'radio_button_unchecked'}</span>${LST_LBL[st]}</button></div>`;
+}
+function myPriceLive(gi, ci, v) { const g = G[gi], c = LCH()[ci]; if (g && c && $(`po-${gi}-${ci}`)) $(`po-${gi}-${ci}`).innerHTML = chipOut(g, c, parseP(v)); }
+/** Zapis ceny wystawienia: wpisana cena = produkt jest wystawiony; wyczyszczona = zostaje wystawiony bez ceny. */
+function myPrice(gi, ci, v) {
+  const g = G[gi], c = LCH()[ci]; if (!g || !c) return;
+  const P = parseP(v), had = lstPrice(g.name, c.name);
+  if (P === had) return;
+  setListing(g.name, c.name, P || (lst(g.name, c.name) === 'on' ? 'on' : ''));
+  savePrefs();
+  /* Ten sam produkt może mieć dwa wiersze (np. część w drodze) — odświeżam wszystkie jego okienka tego kanału. */
+  G.forEach((x, xi) => { if (x.name === g.name && $(`pc-${xi}-${ci}`) && !$(`pc-${xi}-${ci}`).contains(document.activeElement)) $(`pc-${xi}-${ci}`).outerHTML = chipHtml(x, xi, c, ci); });
+  renderLstBar();
 }
 function cardListing(id) {
   const cc = settings.cardChannel || 'Vinted', k = 'card:' + id;
@@ -306,11 +338,16 @@ function unlist(i) {
    ============================================================ */
 let stockKind = 'box', stockF = 'all', stockCh = '', stockSort = 'capital', cardTodo = false;
 function stockFilter(f, ch) { stockKind = 'box'; stockF = f; stockCh = ch || ''; segSet('stock-kind', 'box'); segSet('stock-filter', f); go('stock'); }
+function renderLstBar() {
+  if (stockKind !== 'box') return;
+  $('stock-lst').hidden = false;
+  $('stock-lst').innerHTML = `<span class="lbl">Do wystawienia:</span>` + LCH().map(c => { const n = todoCount(c.name), act = stockF === 'todo' && stockCh === c.name;
+    return `<button class="${act ? 'active' : ''} ${n ? '' : 'done'}" onclick="UI.stockFilter('todo','${act ? '' : esc(c.name)}')">${dot(c.name)}${esc(c.name)} <b>${n || '✓'}</b></button>`; }).join('') +
+    `<span class="cx-note">z ${stockNames().length} produktów na stanie${stockF === 'todo' ? ` · pokazuję niewystawione${stockCh ? ' na ' + esc(stockCh) : ' na którymkolwiek kanale'}` : ''}</span>`;
+}
 function priceChips(g) {
-  const it = gItem(g), gi = G.indexOf(g);
-  return `<div class="cx-prices">${LCH().map((c, ci) => { const P = recommend(it, c), r = calc(it, c, P), st = lst(g.name, c.name);
-    return `<div class="cx-pc ${st}"><button class="cx-price" title="Sprzedaj na ${esc(c.name)} za ${fmt(P)}" onclick="UI.sellAt(${gi},${ci},${P})"><div class="c">${dot(c.name)}${esc(c.name)}</div><div class="p">${fmt(P)}</div><div class="z ${r.profit >= 0 ? 'pos' : 'neg'}">zysk ${fmt(r.profit)}</div></button>
-      <button class="cx-lst ${st}" title="Kliknij, żeby zmienić: do wystawienia → wystawione → pomijam ten kanał" onclick="UI.cycleListing(${gi},${ci})"><span class="material-symbols-outlined">${st === 'on' ? 'check_circle' : st === 'skip' ? 'block' : 'radio_button_unchecked'}</span>${LST_LBL[st]}</button></div>`; }).join('')}</div>`;
+  const gi = G.indexOf(g);
+  return `<div class="cx-prices" style="--n:${LCH().length}">${LCH().map((c, ci) => chipHtml(g, gi, c, ci)).join('')}</div>`;
 }
 function renderStock() {
   $('stock-filter').style.display = $('stock-sort').style.display = stockKind === 'box' ? '' : 'none';
@@ -321,14 +358,12 @@ function renderStock() {
   $('stock-kpi').innerHTML = [
     kpi('Boxy na stanie', `${sum(H, g => g.n)} szt.`, `${H.length} produktów${inTransit().length ? ` · ${sum(inTransit(), g => g.n)} szt. w drodze` : ''}`),
     kpi('Koszt netto', fmt(sum(H, g => g.capital)), `brutto ${fmt(sum(H, g => g.n * g.gross))} · VAT odliczony ${fmt(sum(H, g => g.n * g.vat))}`),
-    kpi('Zysk przy cenach rekomendowanych', fmt(sum(H, g => g.n * calc(gItem(g), v, recommend(gItem(g), v)).profit)), `wszystko na ${esc(v.name)}, ROI ${TM()}%`, 'pos'),
+    (() => { const nm = stockNames().filter(n => LCH().some(c => lstPrice(n, c.name))).length; const best = g => { const m = LCH().filter(c => lstPrice(g.name, c.name)).map(c => calc(gItem(g), c, lstPrice(g.name, c.name)).profit); return m.length ? Math.max(...m) : calc(gItem(g), v, recommend(gItem(g), v)).profit; };
+      return kpi(nm ? 'Zysk przy obecnych cenach' : 'Zysk przy cenach rekomendowanych', fmt(sum(H, g => g.n * best(g))), nm ? `Twoje ceny dla ${nm} ${plural(nm, 'produktu', 'produktów', 'produktów')}, reszta rekomendowane` : `wszystko na ${esc(v.name)}, ROI ${TM()}%`, 'pos'); })(),
     kpi(`Leżą ponad ${slowD} dni`, fmt(sum(slow, g => g.capital)), `${sum(slow, g => g.n)} szt. — warto obniżyć cenę`, slow.length ? 'warn' : '')
   ].join('');
-  $('stock-note').innerHTML = `Przy każdym kanale: rekomendowana cena dla <b>ROI ${TM()}%</b> i zysk na czysto (po VAT, prowizji, wysyłce i ryczałcie ${RYC()}%) — kliknij cenę, żeby sprzedać. Pod ceną zaznaczasz, czy produkt jest tam już wystawiony.`;
-  $('stock-lst').hidden = false;
-  $('stock-lst').innerHTML = `<span class="lbl">Do wystawienia:</span>` + LCH().map(c => { const n = todoCount(c.name), act = stockF === 'todo' && stockCh === c.name;
-    return `<button class="${act ? 'active' : ''} ${n ? '' : 'done'}" onclick="UI.stockFilter('todo','${act ? '' : esc(c.name)}')">${dot(c.name)}${esc(c.name)} <b>${n || '✓'}</b></button>`; }).join('') +
-    `<span class="cx-note">z ${stockNames().length} produktów na stanie${stockF === 'todo' ? ` · pokazuję niewystawione${stockCh ? ' na ' + esc(stockCh) : ' na którymkolwiek kanale'}` : ''}</span>`;
+  $('stock-note').innerHTML = `W okienku kanału widzisz cenę rekomendowaną dla <b>ROI ${TM()}%</b>. Wpisz w nie cenę, za którą faktycznie wystawiłeś — policzę zysk na czysto (po VAT, prowizji, wysyłce i ryczałcie ${RYC()}%), ROI i różnicę do rekomendowanej. Metka w rogu sprzedaje na tym kanale.`;
+  renderLstBar();
   const isTodo = g => !g.transit && (stockCh ? !lst(g.name, stockCh) : todoChs(g.name).length > 0);
   const L = G.filter(g => (stockF === 'all' || (stockF === 'todo' && isTodo(g)) || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005) || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)))
     .sort((a, b) => stockSort === 'days' ? b.days - a.days : stockSort === 'name' ? a.name.localeCompare(b.name, 'pl') : b.capital - a.capital);
@@ -1021,7 +1056,7 @@ function saveSale() {
     /* Ostatnia sztuka: ogłoszenie na kanale sprzedaży kończy się samo, pozostałe trzeba zdjąć ręcznie. */
     if (!state.boxes.some(b => b.status === 'sealed' && b.name === box.name)) {
       setListing(box.name, S.ch, '');
-      const o = (state.listings || {})[box.name] || {}, left = Object.keys(o).filter(c => o[c] === 'on');
+      const o = (state.listings || {})[box.name] || {}, left = Object.keys(o).filter(c => isOn(o[c]));
       if (left.length) unlistMsg = ` Ostatnia sztuka — zdejmij ogłoszenie z: ${left.join(', ')}.`; else if (state.listings) delete state.listings[box.name];
     }
   }
@@ -1682,7 +1717,8 @@ window.UI = {
   openBuy, saveBuy, deleteOrder, toggleBuyRet, saveBuyRet, line, addLine, delLine,
   openOpen, saveOpen, pull, addPull, delPull,
   cycleListing, cardListing, unlist, cardTodo: () => { cardTodo = !cardTodo; renderStock(); },
-  sellAt: (gi, ci, P) => { const g = G[gi], c = LCH()[ci]; if (g && c) openSell('box', g.key, c.name, P); },
+  sellAt: (gi, ci) => { const g = G[gi], c = LCH()[ci]; if (g && c) openSell('box', g.key, c.name, lstPrice(g.name, c.name) || recommend(gItem(g), c)); },
+  myPrice, myPriceLive,
   openDeal, saveDeal, deleteDeal, dealToBuy,
   openCalc, calcToBuy, calcToDeal, kTry, kRoi: v => { setv('k-roi', v); renderCalc(); },
   openShop, saveShop, closeShop, deleteShop, setShopSt,
