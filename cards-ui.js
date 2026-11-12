@@ -241,7 +241,7 @@ function renderHome() {
     out.push(li('bookmark', 'acc', `${DL.length} ${plural(DL.length, 'okazja czeka', 'okazje czekają', 'okazji czeka')} na decyzję`, `${bst ? `najlepsza: ${esc(bst.d.name || bst.host)} — ROI ${pct(bst.v.r.roi)} · ` : ''}najstarsza zapisana ${old ? `${old} ${plural(old, 'dzień', 'dni', 'dni')} temu` : 'dzisiaj'}`, '', "UI.go('deals')")); }
   const slowD = num(settings.slowDays) || 45, slow = onHand().filter(g => g.days > slowD).sort((a, b) => b.days - a.days);
   if (slow.length) out.push(li('hourglass_top', 'warn', `${nBoxes(sum(slow, g => g.n))} leży ponad ${slowD} dni`, `${fmt(sum(slow, g => g.capital))} zamrożone · najdłużej: ${esc(slow[0].name)} (${slow[0].days} dni)`, '', "UI.stockFilter('slow')"));
-  const novat = onHand().filter(g => g.vat < 0.005 && vatOn());
+  const novat = onHand().filter(g => g.vat < 0.005 && g.doc !== 'wnt' && vatOn());
   if (novat.length) out.push(li('percent', 'acc', `${nBoxes(sum(novat, g => g.n))} bez odliczonego VAT`, 'przy sprzedaży oddajesz VAT od całej ceny — rekomendowane ceny już to uwzględniają', '', "UI.stockFilter('novat')"));
   const unk = (state.shops || []).filter(s => s.st === 'unknown').length;
   if (unk) out.push(li('storefront', 'mut', `${unk} ${plural(unk, 'sklep', 'sklepy', 'sklepów')} do sprawdzenia`, 'czy mają konto B2B (faktura 0% na VAT-UE)', '', "UI.go('shops')"));
@@ -365,7 +365,7 @@ function renderStock() {
   $('stock-note').innerHTML = `W okienku kanału widzisz cenę rekomendowaną dla <b>ROI ${TM()}%</b>. Wpisz w nie cenę, za którą faktycznie wystawiłeś — policzę zysk na czysto (po VAT, prowizji, wysyłce i ryczałcie ${RYC()}%), ROI i różnicę do rekomendowanej. Metka w rogu sprzedaje na tym kanale.`;
   renderLstBar();
   const isTodo = g => !g.transit && (stockCh ? !lst(g.name, stockCh) : todoChs(g.name).length > 0);
-  const L = G.filter(g => (stockF === 'all' || (stockF === 'todo' && isTodo(g)) || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005) || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)))
+  const L = G.filter(g => (stockF === 'all' || (stockF === 'todo' && isTodo(g)) || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005 && g.doc !== 'wnt') || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)))
     .sort((a, b) => stockSort === 'days' ? b.days - a.days : stockSort === 'name' ? a.name.localeCompare(b.name, 'pl') : b.capital - a.capital);
   const T = today();
   const row = g => {
@@ -373,8 +373,8 @@ function renderStock() {
     return `<div class="cx-prod${g.transit ? ' transit' : ''}">
       <div class="cx-qn" title="${g.n} szt. ${g.transit ? 'w drodze' : 'na stanie'}"><b>${g.n}</b><span>szt.</span></div>
       <div style="min-width:0"><div class="name">${esc(g.name)}</div>
-        <div class="meta">${g.transit ? `<span class="cx-pill acc"><span class="material-symbols-outlined" style="font-size:14px">local_shipping</span>w drodze · ${daysBetween(g.date, T)} dni</span>` : `<span class="${old ? 'cx-pill warn' : ''}">${g.days} dni na stanie</span>`}${vatOn() ? `<span class="cx-pill ${ded ? 'pos' : 'warn'}">${ded ? 'VAT odliczony' : 'bez odliczenia VAT'}</span>` : ''}<span>${esc(g.src)}</span>${ls ? `<span>ostatnio ${fmt(ls.gross)} na ${esc(ls.channel)} (${dShort(ls.date)})</span>` : ''}</div></div>
-      <div class="cost"><b>${fmt2(g.cost)}</b> <span class="mut">/szt.</span><div class="s">${g.n > 1 ? `razem ${fmt(g.capital)} · ` : ''}${ded ? `brutto ${fmt2(g.gross)}` : `${vatOn() ? 'VAT nie wraca' : 'brutto'}`}</div></div>
+        <div class="meta">${g.transit ? `<span class="cx-pill acc"><span class="material-symbols-outlined" style="font-size:14px">local_shipping</span>w drodze · ${daysBetween(g.date, T)} dni</span>` : `<span class="${old ? 'cx-pill warn' : ''}">${g.days} dni na stanie</span>`}${vatOn() ? (g.doc === 'wnt' ? '<span class="cx-pill pos" title="Faktura 0% (WNT): VAT naliczony i należny znoszą się, koszt nie zawiera VAT">B2B · VAT 0%</span>' : `<span class="cx-pill ${ded ? 'pos' : 'warn'}">${ded ? 'VAT odliczony' : 'bez odliczenia VAT'}</span>`) : ''}<span>${esc(g.src)}</span>${ls ? `<span>ostatnio ${fmt(ls.gross)} na ${esc(ls.channel)} (${dShort(ls.date)})</span>` : ''}</div></div>
+      <div class="cost"><b>${fmt2(g.cost)}</b> <span class="mut">/szt.</span><div class="s">${g.n > 1 ? `razem ${fmt(g.capital)} · ` : ''}${ded ? `brutto ${fmt2(g.gross)}` : g.doc === 'wnt' ? 'bez VAT w koszcie' : `${vatOn() ? 'VAT nie wraca' : 'brutto'}`}</div></div>
       ${priceChips(g)}
       <div class="act">${g.transit ? `<button class="btn-small" onclick="UI.deliver('${esc(g.key)}')"><span class="material-symbols-outlined">task_alt</span>Dostarczone</button>` : `<button class="btn-small" onclick="UI.openOpen('${esc(g.key)}')">Otwórz</button><button class="btn-small primary" onclick="UI.openSell('box','${esc(g.key)}')">Sprzedaj</button>`}</div>
     </div>`;
