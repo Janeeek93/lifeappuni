@@ -130,7 +130,7 @@ const inTransit = () => G.filter(g => g.transit);
    Nawigacja
    ============================================================ */
 let view = 'home';
-const TAB_OF = { shops: 'buys', rev: 'vat' };
+const TAB_OF = { shops: 'buys', deals: 'buys', rev: 'vat' };
 function go(v) {
   view = v;
   const tab = TAB_OF[v] || v;
@@ -141,7 +141,7 @@ function go(v) {
   try { history.replaceState(null, '', '#' + v); } catch (e) { /* plik lokalny bez historii */ }
 }
 function renderView(v) {
-  ({ home: renderHome, stock: renderStock, sales: renderSales, buys: renderBuys, shops: renderShops, results: renderResults, vat: renderVat, rev: renderRev, settings: renderSettings }[v] || renderHome)();
+  ({ home: renderHome, stock: renderStock, sales: renderSales, buys: renderBuys, shops: renderShops, deals: renderDeals, results: renderResults, vat: renderVat, rev: renderRev, settings: renderSettings }[v] || renderHome)();
 }
 function renderAll() {
   renderCounts();
@@ -155,11 +155,14 @@ function commit(msg, kind = 'ok') {
 }
 function renderCounts() {
   $('cnt-stock').textContent = sum(onHand(), g => g.n);
-  const unk = (state.shops || []).filter(s => s.st === 'unknown').length;
-  $('cnt-shops').hidden = !unk; $('cnt-shops').textContent = unk;
+  const unk = (state.shops || []).filter(s => s.st === 'unknown').length, nd = (state.deals || []).length;
+  $('cnt-deals').hidden = !nd; $('cnt-deals').textContent = nd; $('cnt-deals').title = 'zapisane okazje';
   const dw = dwPending().length, vatDue = vatUnpaid();
   $('cnt-tax').hidden = !(dw || vatDue); $('cnt-tax').textContent = dw || '!';
-  ['shops-sub-1', 'shops-sub-2'].forEach(i => { if ($(i)) $(i).innerHTML = unk ? `<span class="cx-count">· ${unk}</span>` : ''; });
+  ['buys', 'shops', 'deals'].forEach(v => {
+    if ($('shops-sub-' + v)) $('shops-sub-' + v).innerHTML = unk ? `<span class="cx-count">· ${unk}</span>` : '';
+    if ($('deals-sub-' + v)) $('deals-sub-' + v).innerHTML = nd ? `<span class="cx-count acc">· ${nd}</span>` : '';
+  });
   ['dw-sub', 'dw-sub-2'].forEach(i => { if ($(i)) $(i).innerHTML = dw ? `<span class="cx-count">· ${dw} do ING</span>` : ''; });
 }
 
@@ -220,6 +223,12 @@ function renderHome() {
     out.push(li('description', 'warn', `Faktura B2B za ${mLow(mk(T))}`, 'wystaw z datą ostatniego dnia miesiąca i dodaj w Podatkach', '', "UI.go('vat')"));
   const fut = M.sales.filter(s => s.date > T && !s.isReturn);
   fut.forEach(s => out.push(li('event_busy', 'warn', 'Sprzedaż z datą z przyszłości', `${esc(s.name)} · ${dFull(s.date)} · ${esc(s.channel)} · ${fmt(s.gross)} — pewnie literówka w dacie`, '', `UI.editSale('${s.kind}','${s.id}')`)));
+  staleListings().forEach((x, i) => out.push(li('playlist_remove', 'neg', `Zdejmij ogłoszenie: ${esc(x.name)}`, `sprzedane do zera, a wciąż oznaczone jako wystawione na: ${esc(x.chs.join(', '))}`, `<button class="btn-small" onclick="UI.unlist(${i})">Zdjęte</button>`)));
+  const tdo = LCH().map(c => [c.name, todoCount(c.name)]).filter(x => x[1]);
+  if (tdo.length) out.push(li('campaign', 'acc', `${stockNames().filter(n => todoChs(n).length).length} z ${stockNames().length} produktów do wystawienia`, tdo.map(([c, n]) => `${dot(c)} ${esc(c)} ${n}`).join(' · ') + ' — zaznacz w Magazynie, co już wisi', '', "UI.stockFilter('todo')"));
+  const DL = dealRows();
+  if (DL.length) { const bst = DL.filter(d => d.v).sort((a, b) => b.v.r.roi - a.v.r.roi)[0], old = Math.max(...DL.map(d => d.age));
+    out.push(li('bookmark', 'acc', `${DL.length} ${plural(DL.length, 'okazja czeka', 'okazje czekają', 'okazji czeka')} na decyzję`, `${bst ? `najlepsza: ${esc(bst.d.name || bst.host)} — ROI ${pct(bst.v.r.roi)} · ` : ''}najstarsza zapisana ${old} ${plural(old, 'dzień', 'dni', 'dni')} temu`, '', "UI.go('deals')")); }
   const slowD = num(settings.slowDays) || 45, slow = onHand().filter(g => g.days > slowD).sort((a, b) => b.days - a.days);
   if (slow.length) out.push(li('hourglass_top', 'warn', `${nBoxes(sum(slow, g => g.n))} leży ponad ${slowD} dni`, `${fmt(sum(slow, g => g.capital))} zamrożone · najdłużej: ${esc(slow[0].name)} (${slow[0].days} dni)`, '', "UI.stockFilter('slow')"));
   const novat = onHand().filter(g => g.vat < 0.005 && vatOn());
@@ -249,12 +258,49 @@ function renderHome() {
 }
 
 /* ============================================================
+   WYSTAWIENIA — gdzie towar jest już wystawiony (bez cen)
+   ============================================================ */
+const LCH = () => CHS().slice(0, 4);
+const lst = (key, ch) => ((state.listings || {})[key] || {})[ch] || '';   // '' do wystawienia · 'on' wystawione · 'skip' pomijam
+const LST_LBL = { '': 'wystaw', on: 'wystawione', skip: 'pomijam' };
+function setListing(key, ch, v) {
+  const L = state.listings = state.listings || {}, o = { ...(L[key] || {}) };
+  if (v) o[ch] = v; else delete o[ch];
+  if (Object.keys(o).length) L[key] = o; else delete L[key];
+}
+const todoChs = name => LCH().filter(c => !lst(name, c.name)).map(c => c.name);
+const stockNames = () => [...new Set(onHand().map(g => g.name))];
+const todoCount = ch => stockNames().filter(n => !lst(n, ch)).length;
+/** Produkty sprzedane do zera, które wciąż są oznaczone jako wystawione. */
+function staleListings() {
+  const have = new Set(M.sealed.map(b => b.name));
+  return Object.entries(state.listings || {}).filter(([k, o]) => !k.startsWith('card:') && !have.has(k) && Object.values(o).includes('on'))
+    .map(([name, o]) => ({ name, chs: Object.keys(o).filter(c => o[c] === 'on') }));
+}
+function cycleListing(gi, ci) {
+  const g = G[gi], c = LCH()[ci]; if (!g || !c) return;
+  const cur = lst(g.name, c.name), next = cur === '' ? 'on' : cur === 'on' ? 'skip' : '';
+  setListing(g.name, c.name, next); savePrefs(); renderStock();
+}
+function cardListing(id) {
+  const cc = settings.cardChannel || 'Vinted', k = 'card:' + id;
+  setListing(k, cc, lst(k, cc) ? '' : 'on'); savePrefs(); renderStock();
+}
+function unlist(i) {
+  const x = staleListings()[i]; if (!x) return;
+  delete state.listings[x.name]; savePrefs(); renderAll(); toast(`Ogłoszenia zdjęte: ${x.name}`, 'ok');
+}
+
+/* ============================================================
    MAGAZYN
    ============================================================ */
-let stockKind = 'box', stockF = 'all';
-function stockFilter(f) { stockKind = 'box'; stockF = f; segSet('stock-kind', 'box'); segSet('stock-filter', f); go('stock'); }
-function priceChips(it, gKey, kind) {
-  return `<div class="cx-prices">${CHS().slice(0, 4).map(c => { const P = recommend(it, c); const r = calc(it, c, P); return `<button class="cx-price" onclick="UI.openSell('${kind}','${esc(gKey)}','${esc(c.name)}',${P})"><div class="c">${dot(c.name)}${esc(c.name)}</div><div class="p">${fmt(P)}</div><div class="z ${r.profit >= 0 ? 'pos' : 'neg'}">zysk ${fmt(r.profit)}</div></button>`; }).join('')}</div>`;
+let stockKind = 'box', stockF = 'all', stockCh = '', stockSort = 'capital', cardTodo = false;
+function stockFilter(f, ch) { stockKind = 'box'; stockF = f; stockCh = ch || ''; segSet('stock-kind', 'box'); segSet('stock-filter', f); go('stock'); }
+function priceChips(g) {
+  const it = gItem(g), gi = G.indexOf(g);
+  return `<div class="cx-prices">${LCH().map((c, ci) => { const P = recommend(it, c), r = calc(it, c, P), st = lst(g.name, c.name);
+    return `<div class="cx-pc ${st}"><button class="cx-price" title="Sprzedaj na ${esc(c.name)} za ${fmt(P)}" onclick="UI.sellAt(${gi},${ci},${P})"><div class="c">${dot(c.name)}${esc(c.name)}</div><div class="p">${fmt(P)}</div><div class="z ${r.profit >= 0 ? 'pos' : 'neg'}">zysk ${fmt(r.profit)}</div></button>
+      <button class="cx-lst ${st}" title="Kliknij, żeby zmienić: do wystawienia → wystawione → pomijam ten kanał" onclick="UI.cycleListing(${gi},${ci})"><span class="material-symbols-outlined">${st === 'on' ? 'check_circle' : st === 'skip' ? 'block' : 'radio_button_unchecked'}</span>${LST_LBL[st]}</button></div>`; }).join('')}</div>`;
 }
 function renderStock() {
   $('stock-filter').style.display = stockKind === 'box' ? '' : 'none';
@@ -268,18 +314,24 @@ function renderStock() {
     kpi('Zysk przy cenach rekomendowanych', fmt(sum(H, g => g.n * calc(gItem(g), v, recommend(gItem(g), v)).profit)), `wszystko na ${esc(v.name)}, ROI ${TM()}%`, 'pos'),
     kpi(`Leżą ponad ${slowD} dni`, fmt(sum(slow, g => g.capital)), `${sum(slow, g => g.n)} szt. — warto obniżyć cenę`, slow.length ? 'warn' : '')
   ].join('');
-  $('stock-note').innerHTML = `Ceny przy kanałach: rekomendowana cena dla <b>ROI ${TM()}%</b> i zysk na czysto — po VAT, prowizji, wysyłce i ryczałcie ${RYC()}%. Kliknij cenę, żeby sprzedać.`;
-  const L = G.filter(g => (stockF === 'all' || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005) || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)));
+  $('stock-note').innerHTML = `Przy każdym kanale: rekomendowana cena dla <b>ROI ${TM()}%</b> i zysk na czysto (po VAT, prowizji, wysyłce i ryczałcie ${RYC()}%) — kliknij cenę, żeby sprzedać. Pod ceną zaznaczasz, czy produkt jest tam już wystawiony.`;
+  $('stock-lst').hidden = false;
+  $('stock-lst').innerHTML = `<span class="lbl">Do wystawienia:</span>` + LCH().map(c => { const n = todoCount(c.name), act = stockF === 'todo' && stockCh === c.name;
+    return `<button class="${act ? 'active' : ''} ${n ? '' : 'done'}" onclick="UI.stockFilter('todo','${act ? '' : esc(c.name)}')">${dot(c.name)}${esc(c.name)} <b>${n || '✓'}</b></button>`; }).join('') +
+    `<span class="cx-note">z ${stockNames().length} produktów na stanie${stockF === 'todo' ? ` · pokazuję niewystawione${stockCh ? ' na ' + esc(stockCh) : ' na którymkolwiek kanale'}` : ''}</span>`;
+  const isTodo = g => !g.transit && (stockCh ? !lst(g.name, stockCh) : todoChs(g.name).length > 0);
+  const L = G.filter(g => (stockF === 'all' || (stockF === 'todo' && isTodo(g)) || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005) || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)))
+    .sort((a, b) => stockSort === 'days' ? b.days - a.days : stockSort === 'name' ? a.name.localeCompare(b.name, 'pl') : b.capital - a.capital);
   $('stock-list').innerHTML = L.length ? L.map(g => {
-    const ls = LAST[g.name], ded = g.vat > 0.005, it = gItem(g);
+    const ls = LAST[g.name], ded = g.vat > 0.005;
     return `<div class="cx-prod">
       <div><div class="name">${kindIco('box')}<span class="cx-qty">×${g.n}</span><span>${esc(g.name)}</span></div>
         <div class="meta">${g.transit ? '<span class="cx-pill acc"><span class="material-symbols-outlined" style="font-size:14px">local_shipping</span>w drodze</span>' : ''}${vatOn() ? `<span class="cx-pill ${ded ? 'pos' : 'warn'}">${ded ? 'VAT odliczony' : 'bez odliczenia VAT'}</span>` : ''}<span>${esc(g.src)}</span><span class="${g.days > slowD && !g.transit ? 'warn' : ''}">${g.days} dni</span>${ls ? `<span>ostatnio ${fmt(ls.gross)} na ${esc(ls.channel)} (${dShort(ls.date)})</span>` : ''}</div></div>
       <div class="cost"><b>${fmt2(g.cost)}</b> <span class="mut">/szt.</span><div class="s">${ded ? `brutto ${fmt2(g.gross)} − VAT ${fmt2(g.vat)}` : `brutto ${fmt2(g.gross)}${vatOn() ? ', VAT nie wraca' : ''}`}</div></div>
-      ${priceChips(it, g.key, 'box')}
+      ${priceChips(g)}
       <div class="act">${g.transit ? `<button class="btn-small" onclick="UI.deliver('${esc(g.key)}')">Dostarczone</button>` : `<button class="btn-small" onclick="UI.openOpen('${esc(g.key)}')">Otwórz</button><button class="btn-small primary" onclick="UI.openSell('box','${esc(g.key)}')">Sprzedaj</button>`}</div>
     </div>`;
-  }).join('') : empty('Nic tu nie ma dla tych filtrów.');
+  }).join('') : empty(stockF === 'todo' ? `Wszystko wystawione${stockCh ? ' na ' + esc(stockCh) : ''}.` : 'Nic tu nie ma dla tych filtrów.');
 }
 function renderStockCards(q) {
   const T = today(), c90 = deals().filter(s => s.kind === 'card' && s.date >= addDays(T, -90));
@@ -291,14 +343,18 @@ function renderStockCards(q) {
   ].join('');
   const cc = settings.cardChannel || 'Vinted';
   $('stock-note').innerHTML = `Karty sprzedajesz głównie na <b>${esc(cc)}</b> — sugerowana cena to wycena (albo koszt, jeśli wyższy). Posortowane od najcenniejszych.`;
-  const all = M.held.slice().sort((a, b) => b.marketValue - a.marketValue);
+  const nOn = M.held.filter(c => lst('card:' + c.id, cc)).length;
+  $('stock-lst').hidden = false;
+  $('stock-lst').innerHTML = `<span class="lbl">Wystawione na ${esc(cc)}:</span><b>${nOn}</b><span class="cx-note">z ${M.held.length} kart</span><button class="${cardTodo ? 'active' : ''}" onclick="UI.cardTodo()">${dot(cc)}Pokaż tylko niewystawione <b>${M.held.length - nOn}</b></button>`;
+  const all = M.held.filter(c => !cardTodo || !lst('card:' + c.id, cc)).sort((a, b) => b.marketValue - a.marketValue);
   const L = all.filter(c => !q || cardTitle(c).toLowerCase().includes(q)).slice(0, 80);
-  $('stock-list').innerHTML = L.length ? `<div class="tc-tbl-wrap"><table class="tc-tbl"><thead><tr><th></th><th>Karta</th><th class="num">Koszt netto</th><th class="num">Wycena</th><th class="num">Cena na ${esc(cc)}</th><th class="num">Zysk</th><th></th></tr></thead><tbody>` +
+  $('stock-list').innerHTML = L.length ? `<div class="tc-tbl-wrap"><table class="tc-tbl"><thead><tr><th></th><th>Karta</th><th class="num">Koszt netto</th><th class="num">Wycena</th><th class="num">Cena na ${esc(cc)}</th><th class="num">Zysk</th><th>Ogłoszenie</th><th></th></tr></thead><tbody>` +
     L.map(c => { const it = cItem(c), P = Math.max(Math.round(c.marketValue || 0), recommend(it, chOf(cc), 0)), r = calc(it, chOf(cc), P);
       return `<tr><td style="width:40px">${kindIco('card')}</td><td><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.product, c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}</span></div></td>
         <td class="num">${fmt2(c.basis)}</td><td class="num">${c.hasValuation ? fmt(c.marketValue) : '—'}</td><td class="num"><b>${fmt(P)}</b></td><td class="num ${r.profit >= 0 ? 'pos' : 'neg'}">${fmt(r.profit)}</td>
+        <td>${(st => `<button class="cx-lst ${st}" onclick="UI.cardListing('${c.id}')"><span class="material-symbols-outlined">${st ? 'check_circle' : 'radio_button_unchecked'}</span>${st ? 'wystawiona' : 'wystaw'}</button>`)(lst('card:' + c.id, cc))}</td>
         <td><button class="btn-small" onclick="UI.openSell('card','${c.id}')">Sprzedaj</button></td></tr>`; }).join('') +
-    `</tbody></table></div>${all.length > 80 && !q ? `<p class="cx-note" style="padding:10px 16px">Pokazuję 80 najcenniejszych z ${all.length} — wpisz nazwisko, żeby znaleźć resztę.</p>` : ''}` : empty('Brak kart dla tego wyszukiwania.');
+    `</tbody></table></div>${all.length > 80 && !q ? `<p class="cx-note" style="padding:10px 16px">Pokazuję 80 najcenniejszych z ${all.length} — wpisz nazwisko, żeby znaleźć resztę.</p>` : ''}` : empty(cardTodo && !q ? `Wszystkie karty są wystawione na ${esc(cc)}.` : 'Brak kart dla tego wyszukiwania.');
 }
 
 /* ============================================================
@@ -327,9 +383,9 @@ function renderSales() {
     return `<details class="cx-month" ${k === openK ? 'open' : ''}><summary><span class="mname">${mFull(k)}${fut ? ' <span class="cx-pill warn">przyszła data?</span>' : ''}</span>
       <span class="st"><span><b>${n}</b> szt.</span><span>sprzedaż <b>${fmt(r)}</b></span><span>VAT <b>${fmt(sum(L, s => s.vat))}</b></span><span>koszty <b>${fmt(sum(L, s => s.fees) + sum(L, saleRyc))}</b></span><span>zysk <b class="${pr >= 0 ? 'pos' : 'neg'}">${fmt(pr)}</b></span></span>
       <span style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap">${CHS().map(c => { const x = L.filter(s => s.channel === c.name && !s.isReturn).length; return x ? `<span class="cx-pill">${dot(c.name)}${x}</span>` : ''; }).join('')}</span></summary>
-      <div class="tc-tbl-wrap"><table class="tc-tbl"><thead><tr><th></th><th>Data</th><th>Produkt</th><th>Kanał</th><th class="num">Cena</th><th class="num">VAT</th><th class="num">Prowizja + wysyłka</th><th class="num">Ryczałt</th><th class="num">Koszt</th><th class="num">Zysk</th></tr></thead><tbody>
+      <div class="tc-tbl-wrap"><table class="tc-tbl cx-fit"><thead><tr><th></th><th>Data</th><th>Produkt</th><th>Kanał</th><th class="num">Cena</th><th class="num">VAT</th><th class="num">Prowizja, wysyłka</th><th class="num">Ryczałt</th><th class="num">Koszt</th><th class="num">Zysk</th></tr></thead><tbody>
       ${L.map(s => `<tr class="click" onclick="${s.isReturn ? `UI.undoReturn('${s.kind}','${s.id}','${s.retId}')` : s.returned ? `UI.toastInfo('Ta sprzedaż została zwrócona — zwrot widać w dniu zwrotu')` : `UI.editSale('${s.kind}','${s.id}')`}">
-        <td style="width:40px">${kindIco(s.kind)}</td><td class="cd-mono">${dShort(s.date)}</td><td>${esc(s.name)}${s.isReturn ? ' <span class="cx-pill neg">zwrot</span>' : s.returned ? ' <span class="cx-pill">zwrócona</span>' : ''}${s.sale && s.sale.invoiced ? ' <span class="cx-pill acc">faktura</span>' : ''}</td>
+        <td style="width:40px">${kindIco(s.kind)}</td><td class="cd-mono">${dShort(s.date)}</td><td class="wrap">${esc(s.name)}${s.isReturn ? ' <span class="cx-pill neg">zwrot</span>' : s.returned ? ' <span class="cx-pill">zwrócona</span>' : ''}${s.sale && s.sale.invoiced ? ' <span class="cx-pill acc">faktura</span>' : ''}</td>
         <td style="white-space:nowrap">${dot(s.channel)} ${esc(s.channel)}</td><td class="num">${fmt2(s.gross)}</td><td class="num mut">${s.vat ? fmt2(s.vat) : '—'}</td><td class="num mut">${s.fees ? fmt2(s.fees) : '—'}</td><td class="num mut">${fmt2(saleRyc(s))}</td><td class="num mut">${fmt2(s.basis)}</td><td class="num ${pnlNet(s) >= 0 ? 'pos' : 'neg'}"><b>${fmt2(pnlNet(s))}</b></td></tr>`).join('')}
       </tbody></table></div></details>`;
   }).join('');
@@ -361,15 +417,15 @@ function renderBuys() {
     kpi('Koszt netto', fmt(g - v), 'tyle naprawdę kosztował towar'),
     kpi('Bez odliczenia VAT', fmt(sum(nod, b => b.landedGross)), 'VAT naliczony przez sklep został w koszcie', 'warn')
   ].join('');
-  $('buys-wrap').innerHTML = `<table class="tc-tbl"><thead><tr><th>Data</th><th>Sklep</th><th>Co</th><th>Dokument</th><th class="num">Brutto</th><th class="num">VAT</th><th class="num">Netto</th><th>Status</th></tr></thead><tbody>` +
+  $('buys-wrap').innerHTML = `<table class="tc-tbl cx-fit"><thead><tr><th>Data</th><th>Sklep</th><th>Co</th><th>Dokument</th><th class="num">Brutto</th><th class="num">VAT</th><th class="num">Netto</th><th>Status</th></tr></thead><tbody>` +
     ORDERS.map((o, i) => {
       const cnt = {}; o.items.forEach(b => { cnt[b.name] = (cnt[b.name] || 0) + 1; });
       const sh = shopOfBox(o.items[0]);
-      return `<tr class="click" onclick="UI.openBuy(${i})"><td class="cd-mono">${dShort(o.date)}</td><td>${sh ? `<span class="cx-cc">${sh.cc}</span> ` : ''}<b>${esc(sh ? sh.name : (o.source || '—'))}</b></td>
-        <td style="font-size:12.5px">${Object.entries(cnt).map(([n, q]) => `${q > 1 ? q + '× ' : ''}${esc(n)}`).join('<br>')}</td>
+      return `<tr class="click" onclick="UI.openBuy(${i})"><td class="cd-mono">${dShort(o.date)}</td><td class="wrap">${sh ? `<span class="cx-cc">${sh.cc}</span> ` : ''}<b>${esc(sh ? sh.name : (o.source || '—'))}</b></td>
+        <td class="wrap" style="font-size:12.5px;width:40%">${Object.entries(cnt).map(([n, q]) => `${q > 1 ? q + '× ' : ''}${esc(n)}`).join('<br>')}</td>
         <td>${vatOn() ? `<span class="cx-pill ${o.vat > 0.005 || o.doc === 'wnt' ? 'pos' : 'warn'}">${esc(DOC_LBL[o.doc] || o.doc || '—')}</span>` : '—'}</td>
         <td class="num">${fmt2(o.g)}</td><td class="num pos">${o.vat > 0.005 ? fmt2(o.vat) : '—'}</td><td class="num">${fmt2(o.g - o.vat)}</td>
-        <td>${Object.entries(o.st).map(([s, q]) => `<span class="cx-pill ${(ST_LBL[s] || ['', ''])[1]}">${(ST_LBL[s] || [s])[0]} ${q}</span>`).join(' ')}</td></tr>`;
+        <td class="wrap">${Object.entries(o.st).map(([s, q]) => `<span class="cx-pill ${(ST_LBL[s] || ['', ''])[1]}">${(ST_LBL[s] || [s])[0]} ${q}</span>`).join(' ')}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 
@@ -934,17 +990,24 @@ function saveSale() {
   }
   const x = S.list[+getv('s-item')]; if (!x) { toast('Wybierz towar', 'err'); return; }
   const sale = { date, price: P, currency: 'PLN', fx: null, channel: S.ch, feePct: num(ch.fee), feeAbs: num(ch.fixed), shippingOut: num(ch.ship), shippingIn: 0, orderId: '', refund: 0, invoiced: $('s-inv').checked, note: '' };
-  let pnl;
+  let pnl, unlistMsg = '';
   if (S.kind === 'card') {
     const card = state.cards.find(c => c.id === x.id);
     card.sale = sale; card.status = 'sold'; card.listing = null;
+    if (state.listings) delete state.listings['card:' + card.id];
     pnl = calc(cItem(x), ch, P, sNoVat()).profit;
   } else {
     const box = state.boxes.find(b => b.id === x.items.find(i => !i.transit).id);
     box.sale = sale; box.status = 'sold';
     pnl = calc(gItem(x), ch, P, sNoVat()).profit;
+    /* Ostatnia sztuka: ogłoszenie na kanale sprzedaży kończy się samo, pozostałe trzeba zdjąć ręcznie. */
+    if (!state.boxes.some(b => b.status === 'sealed' && b.name === box.name)) {
+      setListing(box.name, S.ch, '');
+      const o = (state.listings || {})[box.name] || {}, left = Object.keys(o).filter(c => o[c] === 'on');
+      if (left.length) unlistMsg = ` Ostatnia sztuka — zdejmij ogłoszenie z: ${left.join(', ')}.`; else if (state.listings) delete state.listings[box.name];
+    }
   }
-  close(); commit(`Sprzedane — zysk na czysto ${fmtPLN0(pnl, true)}`, pnl >= 0 ? 'ok' : 'err');
+  close(); commit(`Sprzedane — zysk na czysto ${fmtPLN0(pnl, true)}.${unlistMsg}`, pnl >= 0 ? 'ok' : 'err');
 }
 function deleteSale() {
   const ref = S.ref.kind === 'card' ? state.cards.find(c => c.id === S.ref.id) : state.boxes.find(b => b.id === S.ref.id);
@@ -1044,6 +1107,7 @@ function pickShop() {
   renderBuy();
 }
 function openBuy(oi, preset) {
+  B.dealId = null;
   $('dl-products').innerHTML = [...new Set(state.boxes.map(b => b.name))].map(n => `<option value="${esc(n)}">`).join('');
   $('b-ret').hidden = true;
   if (oi != null) {
@@ -1122,7 +1186,10 @@ function saveBuy() {
   if (B.mode === 'new') {
     const orderId = uid('ord');
     for (const l of lines_) for (let i = 0; i < l.q; i++) state.boxes.push({ id: uid('box'), status: 'sealed', bulkValue: 0, createdAt: new Date().toISOString(), notes: '', ...base(l), orderId, transit });
-    close(); commit(`Zakup zapisany: ${nBoxes(sum(lines_, l => l.q))}${transit ? ' w drodze' : ''}`); return;
+    const dl = B.dealId ? (state.deals || []).find(d => d.id === B.dealId) : null, rest = dl ? state.deals.filter(d => d !== dl && d.name && dKey(d.name) === dKey(dl.name)).length : 0;
+    if (dl) state.deals = state.deals.filter(d => d !== dl);
+    B.dealId = null;
+    close(); commit(`Zakup zapisany: ${nBoxes(sum(lines_, l => l.q))}${transit ? ' w drodze' : ''}${dl ? ' — okazja zdjęta z listy' + (rest ? ` (${rest} ${plural(rest, 'inna oferta', 'inne oferty', 'innych ofert')} tego produktu zostaje)` : '') : ''}`); return;
   }
   /* Edycja: ceny i dane zamówienia dla wszystkich sztuk; liczba sztuk — dokładamy albo zdejmujemy nieotwarte. */
   const o = B.order, ids = new Set(o.items.map(b => b.id)), orderId = o.items[0].orderId || uid('ord');
@@ -1286,6 +1353,148 @@ function calcToBuy() {
   toast(kDed ? 'Wybierz sklep z B2B albo z fakturą PL' : 'Wybierz sklep');
 }
 
+function calcToDeal() {
+  const pre = { name: getv('k-name').trim(), price: getv('k-price'), cur: getv('k-cur') || 'PLN', ship: getv('k-ship'), vat: kDed ? 'net' : 'none', sell: getv('k-market') };
+  close(); openDeal(null, pre);
+}
+
+/* ============================================================
+   OKAZJE — zapisane oferty zakupu, te same produkty obok siebie
+   ============================================================ */
+/* Ten sam produkt = ta sama nazwa razem z sezonem (tin 2025/26 to nie to samo co 2026/27). */
+const dKey = n => String(n || '').toLowerCase().replace(/[^a-z0-9ąćęłńóśźż]+/g, ' ').trim();
+function safeUrl(u) {
+  u = String(u || '').trim(); if (!u || /\s/.test(u)) return '';
+  try { const x = new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u); return /^https?:$/.test(x.protocol) && x.hostname.includes('.') ? x.href : ''; } catch (e) { return ''; }
+}
+const hostOf = u => { const s = safeUrl(u); return s ? new URL(s).hostname.replace(/^www\./, '') : ''; };
+function shopByHost(h) {
+  if (!h) return null;
+  return (state.shops || []).find(s => { const sh = hostOf(s.url); return sh && (h === sh || h.endsWith('.' + sh) || sh.endsWith('.' + h)); }) || null;
+}
+/** Nazwa z adresu oferty: najpierw znany produkt, potem słowa z końcówki linku. */
+function nameFromUrl(u) {
+  const s = safeUrl(u); if (!s) return '';
+  let seg = ''; try { seg = decodeURIComponent(new URL(s).pathname.split('/').filter(Boolean).pop() || ''); } catch (e) { return ''; }
+  const slug = normName(seg.replace(/\.(html?|php|aspx?)$/i, '').replace(/[-_+]+/g, ' '));
+  if (slug.length < 6) return '';
+  const words = new Set(slug.split(' '));
+  const raw = seg.toLowerCase(), buyDate = n => state.boxes.filter(b => b.name === n).map(b => b.date).sort().pop() || '';
+  const yrs = n => (n.match(/\d{2,4}/g) || []).filter(y => raw.includes(y)).length;
+  const known = [...new Set(state.boxes.map(b => b.name))].map(n => ({ n, w: normName(n).split(' ').filter(Boolean) })).filter(x => x.w.length >= 2 && x.w.every(w => words.has(w)))
+    .sort((a, b) => b.w.length - a.w.length || yrs(b.n) - yrs(a.n) || (buyDate(a.n) < buyDate(b.n) ? 1 : -1))[0];
+  return known ? known.n : seg.replace(/\.(html?|php|aspx?)$/i, '').replace(/[-_+]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b[a-ząćęłńóśźż]/g, c => c.toUpperCase()).slice(0, 80);
+}
+const DEAL_VAT = {
+  net:  { l: 'B2B bez VAT — cena netto', s: 'B2B, cena netto', doc: 'wnt' },
+  fv:   { l: 'Faktura PL — cena brutto, VAT wraca', s: 'faktura PL, VAT wraca', doc: 'fv' },
+  none: { l: 'Nie odliczam — cena brutto', s: 'bez odliczenia VAT', doc: 'foreign' }
+};
+const dealVatOfShop = sh => !sh ? 'none' : sh.st === 'b2b' ? 'net' : sh.st === 'fv' ? 'fv' : 'none';
+function dealItem(d) {
+  const fx = d.cur === 'PLN' ? 1 : num(settings.fx[d.cur]) || 1, unit = (num(d.price) + num(d.ship)) * fx, k = 1 + vatRate() / 100;
+  return d.vat === 'net' ? { cost: unit, vatCost: unit * k, scheme: 'std', fx } : d.vat === 'fv' ? { cost: unit / k, vatCost: unit, scheme: 'std', fx } : { cost: unit, vatCost: unit, scheme: 'std', fx };
+}
+/** Cena, po której realnie sprzedasz: wpisana przy okazji albo ostatnia sprzedaż tego produktu. */
+function dealRef(d) {
+  if (num(d.sell) > 0) return { P: num(d.sell), src: 'Twoja cena' };
+  const k = dKey(d.name); if (!k) return null;
+  const ls = Object.values(LAST).filter(s => s.kind === 'box' && dKey(s.name) === k).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+  return ls ? { P: ls.gross, src: `ostatnio ${dShort(ls.date)} na ${ls.channel}` } : null;
+}
+function dealVerdict(d) {
+  const it = dealItem(d), ref = dealRef(d); if (!it.cost || !ref) return null;
+  const best = LCH().map(c => ({ c, r: calc(it, c, ref.P) })).sort((a, b) => b.r.profit - a.r.profit)[0];
+  return best ? { ...best, ref } : null;
+}
+function dealRows() {
+  return (state.deals || []).map(d => ({ d, it: dealItem(d), v: dealVerdict(d), host: hostOf(d.url), shop: (state.shops || []).find(s => s.id === d.shopId) || shopByHost(hostOf(d.url)), age: Math.max(0, daysBetween(d.added || today(), today())) }));
+}
+function dealVerdictHtml(d) {
+  const it = dealItem(d), v = dealVerdict(d);
+  if (!it.cost) return '<span class="cx-note">wpisz cenę, żeby policzyć opłacalność</span>';
+  if (v) return `<span class="cx-pill ${v.r.roi >= TM() ? 'pos' : v.r.profit >= 0 ? 'warn' : 'neg'}">ROI ${pct(v.r.roi)}</span> <span class="cx-note">zysk <b class="${v.r.profit >= 0 ? 'pos' : 'neg'}">${fmt(v.r.profit)}</b> przy ${fmt(v.ref.P)} na ${esc(v.c.name)} · ${esc(v.ref.src)}</span>`;
+  return `<span class="cx-note">dla ROI ${TM()}% wystaw od: ${LCH().slice(0, 3).map(c => `${esc(c.name)} <b>${fmt(recommend(it, c))}</b>`).join(' · ')}</span>`;
+}
+function renderDeals() {
+  const R = dealRows();
+  const groups = new Map();
+  R.forEach(r => { const k = dKey(r.d.name) || r.d.id; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  const GR = [...groups.values()].map(L => L.sort((a, b) => a.it.cost - b.it.cost));
+  const withV = R.filter(r => r.v), best = withV.slice().sort((a, b) => b.v.r.roi - a.v.r.roi)[0];
+  const spread = sum(GR.filter(L => L.length > 1 && L[0].it.cost), L => L[L.length - 1].it.cost - L[0].it.cost);
+  const old = R.length ? Math.max(...R.map(r => r.age)) : 0;
+  $('deals-kpi').innerHTML = [
+    kpi('Zapisane okazje', R.length, `${GR.length} ${plural(GR.length, 'produkt', 'produkty', 'produktów')}`),
+    kpi('Najlepszy ROI', best ? pct(best.v.r.roi) : '—', best ? esc(`${best.d.name || best.host} · ${best.shop ? best.shop.name : best.host}`) : 'dodaj cenę sprzedaży albo produkt z historią', best && best.v.r.roi >= TM() ? 'pos' : ''),
+    kpi('Różnica w cenach', fmt(spread), 'między najdroższą a najtańszą ofertą tego samego produktu, na sztuce'),
+    kpi('Najstarsza czeka', R.length ? `${old} ${plural(old, 'dzień', 'dni', 'dni')}` : '—', 'okazje znikają — kup albo usuń', old > 7 ? 'warn' : '')
+  ].join('');
+  $('deals-list').innerHTML = GR.length ? GR.sort((a, b) => Math.min(...a.map(r => r.age)) - Math.min(...b.map(r => r.age))).map(L => {
+    const name = L[0].d.name, have = name ? G.filter(g => dKey(g.name) === dKey(name)) : [], nH = sum(have.filter(g => !g.transit), g => g.n), nT = sum(have.filter(g => g.transit), g => g.n);
+    const u60 = name ? deals().filter(s => s.kind === 'box' && dKey(s.name) === dKey(name) && s.date >= addDays(today(), -59)).length : 0;
+    return `<div class="tc-card" style="margin-bottom:12px"><div class="tc-card-head"><h3>${kindIco('box')}&nbsp; ${esc(name || 'Bez nazwy produktu')}</h3><span class="sub">${[nH ? `na stanie ${nH} szt. po ${fmt(sum(have.filter(g => !g.transit), g => g.capital) / nH)}` : 'nie masz na stanie', nT ? `w drodze ${nT}` : '', u60 ? `${u60} szt. sprzedane w 60 dni` : 'brak sprzedaży w 60 dni', L.length > 1 ? `${L.length} oferty` : ''].filter(Boolean).join(' · ')}</span></div>` +
+      L.map((r, i) => { const d = r.d, url = safeUrl(d.url), more = i && L[0].it.cost ? r.it.cost - L[0].it.cost : 0;
+        return `<div class="cx-deal"><div style="min-width:0"><div class="t">${r.shop ? `<span class="cx-cc">${esc(r.shop.cc)}</span> ` : ''}${esc(r.shop ? r.shop.name : (r.host || 'bez linku'))}${L.length > 1 && i === 0 && r.it.cost ? ' <span class="cx-pill pos">najtaniej</span>' : ''}${more > 0.5 ? ` <span class="cx-pill">+${fmt(more)}/szt.</span>` : ''}</div>
+          <div class="s">${num(d.price) ? `${fmt2(num(d.price)).replace(/\s?zł/, '')} ${esc(d.cur)}${num(d.ship) ? ` + ${fmt2(num(d.ship)).replace(/\s?zł/, '')} wysyłka` : ''} · ` : ''}${DEAL_VAT[d.vat].s} · zapisane ${r.age ? `${r.age} ${plural(r.age, 'dzień', 'dni', 'dni')} temu` : 'dzisiaj'}${d.note ? ` · ${esc(d.note)}` : ''}</div></div>
+          <div class="cost"><b>${r.it.cost ? fmt2(r.it.cost) : '—'}</b> <span class="mut">/szt. ${d.vat === 'none' ? 'brutto' : 'netto'}</span><div class="s">${dealVerdictHtml(d)}</div></div>
+          <div class="act">${url ? `<a class="btn-small" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><span class="material-symbols-outlined">open_in_new</span>Otwórz</a>` : ''}<button class="btn-small" onclick="UI.openDeal('${d.id}')">Edytuj</button><button class="btn-small primary" onclick="UI.dealToBuy('${d.id}')">Kupuję</button></div></div>`; }).join('') + '</div>';
+  }).join('') : `<div class="tc-card">${empty('Nie masz zapisanych okazji. Wklej wyżej link do oferty, którą oglądasz — porównam ją z innymi i przypomnę o niej na Pulpicie.')}</div>`;
+}
+let dEdit = null, dVat = 'none', dVatTouched = false;
+function openDeal(id, pre) {
+  $('dl-products').innerHTML = [...new Set(state.boxes.map(b => b.name))].map(n => `<option value="${esc(n)}">`).join('');
+  dEdit = id ? (state.deals || []).find(d => d.id === id) : null;
+  const d = dEdit || { url: '', name: '', price: '', cur: 'EUR', ship: '', vat: '', sell: '', note: '', ...(pre || {}) };
+  $('d-title').textContent = dEdit ? 'Okazja — edycja' : 'Nowa okazja';
+  setv('d-url', d.url); setv('d-name', d.name); setv('d-price', d.price); setv('d-cur', d.cur || 'EUR'); setv('d-ship', d.ship); setv('d-sell', d.sell); setv('d-note', d.note);
+  dVat = d.vat || 'none'; dVatTouched = !!d.vat;
+  $('d-foot').innerHTML = `${dEdit ? `<button class="btn-small ghost" style="margin-right:auto;color:var(--tc-neg)" onclick="UI.deleteDeal()"><span class="material-symbols-outlined">delete</span>Usuń</button>` : ''}<button class="btn-small ghost" onclick="UI.close()">Anuluj</button><button class="btn-small primary" onclick="UI.saveDeal()">Zapisz okazję</button>`;
+  open_('m-deal'); dealUrlChanged(!!dEdit);
+  setTimeout(() => $(getv('d-url') ? (getv('d-name') ? 'd-price' : 'd-name') : 'd-url').focus(), 50);
+}
+/** Po wpisaniu linku: rozpoznaj sklep, ustaw walutę i VAT, podpowiedz nazwę. */
+function dealUrlChanged(keep) {
+  const h = hostOf(getv('d-url')), sh = shopByHost(h);
+  if (!keep) {
+    if (sh) { setv('d-cur', sh.cur || getv('d-cur')); if (!dVatTouched) dVat = dealVatOfShop(sh); }
+    if (!getv('d-name').trim()) setv('d-name', nameFromUrl(getv('d-url')));
+  }
+  $('d-shop-hint').innerHTML = !getv('d-url').trim() ? 'Wklej adres strony z ofertą — rozpoznam sklep z Twojej bazy.' : !h ? '<span class="neg">To nie wygląda na adres strony.</span>'
+    : sh ? `Sklep z Twojej bazy: <b>${esc(sh.name)}</b> · ${esc((SHOP_ST[sh.st] || SHOP_ST.unknown).s)}` : `Sklep <b>${esc(h)}</b> — nie ma go jeszcze w bazie sklepów (dodasz przy zakupie).`;
+  renderDealOut();
+}
+function dealDraft() { return { url: getv('d-url').trim(), name: getv('d-name').trim(), price: getv('d-price').replace(',', '.'), cur: getv('d-cur') || 'PLN', ship: getv('d-ship').replace(',', '.'), vat: dVat, sell: getv('d-sell').replace(',', '.'), note: getv('d-note').trim() }; }
+function renderDealOut() {
+  chipRow('d-vat', Object.entries(DEAL_VAT).map(([k, v]) => [k, v.l]), dVat, v => { dVat = v; dVatTouched = true; renderDealOut(); });
+  $('d-price-l').textContent = dVat === 'net' ? 'Cena za szt. netto' : 'Cena za szt. brutto';
+  const d = dealDraft(), it = dealItem(d);
+  $('d-out').innerHTML = it.cost ? `<div class="r"><span>Koszt na sztukę${it.fx !== 1 ? ` (kurs ${it.fx})` : ''}</span><b>${fmt2(it.cost)} ${dVat === 'none' ? 'brutto' : 'netto'}</b></div><div class="r">${dealVerdictHtml(d)}</div>` : '';
+}
+function saveDeal() {
+  const d = dealDraft();
+  if (!d.url && !d.name) { toast('Wklej link albo podaj nazwę produktu', 'err'); return; }
+  if (d.url && !safeUrl(d.url)) { toast('Link nie wygląda na adres strony', 'err'); return; }
+  d.url = safeUrl(d.url); const sh = shopByHost(hostOf(d.url)); d.shopId = sh ? sh.id : null;
+  state.deals = state.deals || [];
+  if (dEdit) Object.assign(dEdit, d); else state.deals.push({ id: uid('deal'), added: today(), ...d });
+  const wasNew = !dEdit; close(); savePrefs(); renderCounts(); go('deals'); toast(wasNew ? 'Okazja zapisana' : 'Okazja poprawiona', 'ok');
+}
+function deleteDeal() {
+  if (!dEdit) return;
+  state.deals = state.deals.filter(d => d !== dEdit); close(); savePrefs(); renderAll(); toast('Okazja usunięta', 'ok');
+}
+function dealToBuy(id) {
+  const d = (state.deals || []).find(x => x.id === id); if (!d) return;
+  const sh = (state.shops || []).find(s => s.id === d.shopId) || shopByHost(hostOf(d.url));
+  openBuy(null, { line: { n: d.name, q: 1, p: String(d.price || '') }, cur: d.cur, doc: DEAL_VAT[d.vat].doc });
+  B.dealId = d.id;
+  if (sh) { fillShopSelect(sh.id); pickShop(); }
+  if (vatOn()) B.doc = DEAL_VAT[d.vat].doc;
+  setv('b-cur', d.cur || 'PLN'); setv('b-ship', d.ship || ''); renderBuy();
+  toast(sh ? 'Sprawdź liczbę sztuk i wysyłkę za całe zamówienie' : 'Wybierz sklep — „＋ Nowy sklep…”, jeśli go nie ma w bazie');
+}
+
 /* ============================================================
    SKLEP
    ============================================================ */
@@ -1417,7 +1626,7 @@ function init() {
   try { publishCardsSummary(M); } catch (e) { /* Dashboard dostanie dane przy najbliższym zapisie */ }
   document.querySelectorAll('#cx-tabs .trade-tab, .cx-gear').forEach(b => b.addEventListener('click', () => go(b.dataset.v)));
   segBind('stock-kind', v => { stockKind = v; renderStock(); });
-  segBind('stock-filter', v => { stockF = v; renderStock(); });
+  segBind('stock-filter', v => { stockF = v; stockCh = ''; renderStock(); });
   $('stock-q').addEventListener('input', renderStock);
   segBind('sf-kind', v => { SF.k = v; renderSales(); });
   $('sf-q').addEventListener('input', () => { SF.q = getv('sf-q').trim().toLowerCase(); renderSales(); });
@@ -1435,12 +1644,17 @@ function init() {
   $('bz-cat').addEventListener('change', bzCat);
   ['bz-gross', 'bz-date'].forEach(i => $(i).addEventListener('input', () => bzCalc()));
   ['bz-vat', 'bz-pct'].forEach(i => $(i).addEventListener('input', () => bzCalc(true)));
+  $('stock-sort').addEventListener('change', () => { stockSort = getv('stock-sort'); renderStock(); });
+  $('deal-paste').addEventListener('keydown', e => { if (e.key === 'Enter' && getv('deal-paste').trim()) { const u = getv('deal-paste').trim(); setv('deal-paste', ''); openDeal(null, { url: u }); } });
+  $('deal-paste').addEventListener('paste', e => { const u = (e.clipboardData || window.clipboardData).getData('text').trim(); if (safeUrl(u)) { e.preventDefault(); openDeal(null, { url: u }); } });
+  $('d-url').addEventListener('input', () => dealUrlChanged());
+  ['d-name', 'd-price', 'd-cur', 'd-ship', 'd-sell'].forEach(i => $(i).addEventListener('input', renderDealOut));
   bindSettings();
   document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if ($('m-shop').classList.contains('on')) closeShop(); else close(); });
   window.addEventListener('storage', e => { if (e.key === CARDS_KEY) { loadState(); rebuild(); renderAll(); } });
   renderCounts();
   const h = (location.hash || '').slice(1);
-  go(['home', 'stock', 'sales', 'buys', 'shops', 'results', 'vat', 'rev', 'settings'].includes(h) ? h : 'home');
+  go(['home', 'stock', 'sales', 'buys', 'shops', 'deals', 'results', 'vat', 'rev', 'settings'].includes(h) ? h : 'home');
 }
 
 window.UI = {
@@ -1449,7 +1663,10 @@ window.UI = {
   salesCh: v => { SF.ch = v; renderSales(); }, toastInfo: t => toast(t),
   openBuy, saveBuy, deleteOrder, toggleBuyRet, saveBuyRet, line, addLine, delLine,
   openOpen, saveOpen, pull, addPull, delPull,
-  openCalc, calcToBuy, kTry, kRoi: v => { setv('k-roi', v); renderCalc(); },
+  cycleListing, cardListing, unlist, cardTodo: () => { cardTodo = !cardTodo; renderStock(); },
+  sellAt: (gi, ci, P) => { const g = G[gi], c = LCH()[ci]; if (g && c) openSell('box', g.key, c.name, P); },
+  openDeal, saveDeal, deleteDeal, dealToBuy,
+  openCalc, calcToBuy, calcToDeal, kTry, kRoi: v => { setv('k-roi', v); renderCalc(); },
   openShop, saveShop, closeShop, deleteShop, setShopSt,
   vatMonth, vatPaid, addB2b, repeatBiz, exportVat, openBiz, saveBiz, deleteBiz,
   revMonth, dwDone, copyDw, exportDw,

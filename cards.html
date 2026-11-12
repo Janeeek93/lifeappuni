@@ -57,7 +57,7 @@
             <button class="trade-tab active" data-v="home"><span class="material-symbols-outlined">dashboard</span>Pulpit</button>
             <button class="trade-tab" data-v="stock"><span class="material-symbols-outlined">inventory_2</span>Magazyn<span class="cd-tab-count" id="cnt-stock">0</span></button>
             <button class="trade-tab" data-v="sales"><span class="material-symbols-outlined">sell</span>Sprzedaże</button>
-            <button class="trade-tab" data-v="buys"><span class="material-symbols-outlined">shopping_cart</span>Zakupy<span class="cd-tab-count warn" id="cnt-shops" hidden>0</span></button>
+            <button class="trade-tab" data-v="buys"><span class="material-symbols-outlined">shopping_cart</span>Zakupy<span class="cd-tab-count" id="cnt-deals" hidden>0</span></button>
             <button class="trade-tab" data-v="results"><span class="material-symbols-outlined">query_stats</span>Wyniki</button>
             <button class="trade-tab" data-v="vat"><span class="material-symbols-outlined">account_balance</span>Podatki<span class="cd-tab-count warn" id="cnt-tax" hidden>!</span></button>
           </div>
@@ -82,9 +82,11 @@
           <div class="tc-grid-kpi cx-kpi4" id="stock-kpi"></div>
           <div class="cx-toolbar">
             <div class="seg" id="stock-kind"><button data-v="box" class="active">Boxy</button><button data-v="card">Karty</button></div>
-            <div class="seg" id="stock-filter"><button data-v="all" class="active">Wszystko</button><button data-v="slow">Leżaki</button><button data-v="novat">Bez odliczenia VAT</button><button data-v="transit">W drodze</button></div>
+            <div class="seg" id="stock-filter"><button data-v="all" class="active">Wszystko</button><button data-v="todo">Do wystawienia</button><button data-v="slow">Leżaki</button><button data-v="novat">Bez odliczenia VAT</button><button data-v="transit">W drodze</button></div>
             <input class="cx-search" id="stock-q" placeholder="Szukaj…">
+            <select class="cx-select" id="stock-sort" aria-label="Sortowanie"><option value="capital">Najwięcej kapitału</option><option value="days">Najdłużej leżą</option><option value="name">Nazwa A–Z</option></select>
           </div>
+          <div class="cx-lstbar" id="stock-lst"></div>
           <p class="cx-note" id="stock-note"></p>
           <div class="tc-card" id="stock-list"></div>
         </section>
@@ -103,7 +105,7 @@
 
         <!-- ══════════ ZAKUPY ══════════ -->
         <section class="cx-view" id="v-buys">
-          <div class="cx-toolbar"><div class="seg cx-subnav"><button class="active" onclick="UI.go('buys')">Zamówienia</button><button onclick="UI.go('shops')">Sklepy <span id="shops-sub-1"></span></button></div></div>
+          <div class="cx-toolbar"><div class="seg cx-subnav"><button class="active" onclick="UI.go('buys')">Zamówienia <span id="buys-sub-buys"></span></button><button onclick="UI.go('shops')">Sklepy <span id="shops-sub-buys"></span></button><button onclick="UI.go('deals')">Okazje <span id="deals-sub-buys"></span></button></div></div>
           <div class="tc-grid-kpi cx-kpi4" id="buys-kpi"></div>
           <div class="cd-section"><span class="ico"><span class="material-symbols-outlined">receipt_long</span></span><h2>Zamówienia</h2><span class="desc">pogrupowane po sklepie i dniu · kliknij, żeby poprawić albo zwrócić do sklepu</span><span class="line"></span></div>
           <div class="tc-card"><div class="tc-tbl-wrap" id="buys-wrap"></div></div>
@@ -111,7 +113,7 @@
 
         <!-- ══════════ SKLEPY ══════════ -->
         <section class="cx-view" id="v-shops">
-          <div class="cx-toolbar"><div class="seg cx-subnav"><button onclick="UI.go('buys')">Zamówienia</button><button class="active" onclick="UI.go('shops')">Sklepy <span id="shops-sub-2"></span></button></div></div>
+          <div class="cx-toolbar"><div class="seg cx-subnav"><button onclick="UI.go('buys')">Zamówienia <span id="buys-sub-shops"></span></button><button class="active" onclick="UI.go('shops')">Sklepy <span id="shops-sub-shops"></span></button><button onclick="UI.go('deals')">Okazje <span id="deals-sub-shops"></span></button></div></div>
           <div class="tc-grid-kpi cx-kpi4" id="shops-kpi"></div>
           <div class="cd-alert info"><span class="material-symbols-outlined">info</span><span><strong>VAT od zakupu odliczysz tylko na dwa sposoby:</strong> faktura 0% ze sklepu z UE na Twój numer VAT-UE (konto B2B — w JPK to WNT, VAT wychodzi na zero) albo polska faktura z 23%. VAT naliczony przez sklep z UE jak konsumentowi zostaje w koszcie — formularz zakupu pokaże, ile tracisz i czy marża to udźwignie.</span></div>
           <div class="cx-toolbar">
@@ -120,6 +122,19 @@
             <button class="btn-small primary" onclick="UI.openShop()"><span class="material-symbols-outlined">add</span>Dodaj sklep</button>
           </div>
           <div id="shops-list"></div>
+        </section>
+
+
+        <!-- ══════════ OKAZJE ══════════ -->
+        <section class="cx-view" id="v-deals">
+          <div class="cx-toolbar"><div class="seg cx-subnav"><button onclick="UI.go('buys')">Zamówienia <span id="buys-sub-deals"></span></button><button onclick="UI.go('shops')">Sklepy <span id="shops-sub-deals"></span></button><button class="active" onclick="UI.go('deals')">Okazje <span id="deals-sub-deals"></span></button></div></div>
+          <div class="tc-grid-kpi cx-kpi4" id="deals-kpi"></div>
+          <div class="cx-toolbar">
+            <input class="cx-search" id="deal-paste" placeholder="Wklej link do oferty i naciśnij Enter…" autocomplete="off">
+            <button class="btn-small primary" onclick="UI.openDeal()"><span class="material-symbols-outlined">add</span>Dodaj okazję</button>
+          </div>
+          <p class="cx-note">Zapisuj oferty, które oglądasz — te same produkty zestawię obok siebie i pokażę najtańszą po przeliczeniu na złotówki, z wysyłką i VAT. Koszt i zysk liczę tak samo jak kalkulator.</p>
+          <div id="deals-list"></div>
         </section>
 
         <!-- ══════════ WYNIKI ══════════ -->
@@ -314,7 +329,7 @@
       <div><div class="cx-wf" id="k-sum"></div><div id="k-hist"></div></div>
     </div>
     <div id="k-out"></div></div>
-    <div class="tc-modal-foot"><button class="btn-small ghost" onclick="UI.close()">Zamknij</button><button class="btn-small primary" onclick="UI.calcToBuy()">Kupuję — przejdź do zakupu</button></div>
+    <div class="tc-modal-foot"><button class="btn-small ghost" onclick="UI.close()">Zamknij</button><button class="btn-small" onclick="UI.calcToDeal()"><span class="material-symbols-outlined">bookmark_add</span>Zapisz jako okazję</button><button class="btn-small primary" onclick="UI.calcToBuy()">Kupuję — przejdź do zakupu</button></div>
   </div>
 </div>
 
@@ -329,6 +344,23 @@
       <div class="ff"><label>Notatka</label><input id="sh-note" placeholder="np. B2B po rejestracji konta firmowego, min. zamówienie 200 €"></div>
     </div>
     <div class="tc-modal-foot"><button class="btn-small ghost" id="sh-del" style="margin-right:auto;color:var(--tc-neg)" onclick="UI.deleteShop()">Usuń</button><button class="btn-small ghost" onclick="UI.closeShop()">Anuluj</button><button class="btn-small primary" onclick="UI.saveShop()">Zapisz sklep</button></div>
+  </div>
+</div>
+
+<!-- ══════════ OKNO: OKAZJA ══════════ -->
+<div class="tc-modal-ov" id="m-deal" onclick="if(event.target===this)UI.close()">
+  <div class="tc-modal">
+    <div class="tc-modal-head"><h3 id="d-title">Okazja</h3><button class="row-btn" onclick="UI.close()"><span class="material-symbols-outlined">close</span></button></div>
+    <div class="tc-modal-body">
+      <div class="ff"><label>Link do oferty</label><input id="d-url" inputmode="url" placeholder="https://…" autocomplete="off"><div class="hint" id="d-shop-hint"></div></div>
+      <div class="ff"><label>Produkt</label><input id="d-name" list="dl-products" placeholder="np. Topps FC Barcelona Collector Tin"></div>
+      <div class="ff"><label>Jak sklep liczy VAT</label><div class="cx-chips" id="d-vat"></div></div>
+      <div class="ff-grid"><div class="ff"><label id="d-price-l">Cena za szt.</label><input id="d-price" inputmode="decimal" placeholder="0"></div><div class="ff"><label>Waluta</label><select id="d-cur"><option>EUR</option><option>PLN</option><option>GBP</option><option>USD</option></select></div></div>
+      <div class="ff-grid"><div class="ff"><label>Wysyłka na szt.</label><input id="d-ship" inputmode="decimal" placeholder="0"></div><div class="ff"><label>Za ile sprzedasz (opcjonalnie)</label><input id="d-sell" inputmode="decimal" placeholder="biorę z historii"></div></div>
+      <div class="ff"><label>Notatka</label><input id="d-note" placeholder="np. kod −10% do niedzieli, min. 6 szt."></div>
+      <div class="cx-dealout" id="d-out"></div>
+    </div>
+    <div class="tc-modal-foot" id="d-foot"></div>
   </div>
 </div>
 

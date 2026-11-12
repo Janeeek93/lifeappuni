@@ -84,7 +84,9 @@ const EMPTY_STATE = {
   expenses: [],
   watchlist: [],
   shops: [],               // baza sklepów: { id, name, cc, url, cur, st: b2b|fv|import|none|unknown, note, alias[] }
-  dwDone: {}               // dni sprzedaży wprowadzone do ING jako dowód wewnętrzny: { '2026-11-12': true }
+  dwDone: {},              // dni sprzedaży wprowadzone do ING jako dowód wewnętrzny: { '2026-11-12': true }
+  listings: {},            // gdzie towar jest wystawiony: { 'Nazwa produktu' | 'card:<id>': { Vinted: 'on' | 'skip' } }
+  deals: []                // zapisane oferty zakupu: { id, url, name, price, cur, ship, vat: net|fv|none, shopId, sell, note, added }
 };
 
 let state = null;
@@ -233,6 +235,8 @@ function loadState() {
   }
   if (!Array.isArray(state.shops)) state.shops = [];
   if (!state.dwDone || typeof state.dwDone !== 'object') state.dwDone = {};
+  if (!state.listings || typeof state.listings !== 'object' || Array.isArray(state.listings)) state.listings = {};
+  if (!Array.isArray(state.deals)) state.deals = [];
   state.settings = settings;
 
   /* Samonaprawa: box otwarty, ale któryś pull bez zapisanej bazy kosztowej

@@ -255,3 +255,58 @@ details.cx-month[open] > summary { border-bottom: 1px solid var(--tc-line); }
 body.cx .cx-try { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--tc-line); }
 body.cx .cx-try label { display: block; margin-bottom: 4px; }
 body.cx .cx-try input { width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--tc-line-strong); border-radius: 8px; font: inherit; font-family: var(--mono); background: var(--tc-card); color: var(--tc-ink); }
+
+/* ---------- Magazyn: wystawienia na kanałach ---------- */
+.cx-select { flex: none; max-width: 100%; border: 1px solid var(--tc-line); border-radius: 8px; padding: 7px 9px; background: var(--tc-card); font: inherit; font-size: 12.5px; color: var(--tc-ink); }
+.cx-pc { display: flex; flex-direction: column; gap: 4px; min-width: 96px; }
+.cx-pc .cx-price { min-width: 0; width: 100%; }
+.cx-pc.on .cx-price { border-color: color-mix(in srgb, var(--tc-pos) 45%, var(--tc-line)); }
+.cx-pc.skip .cx-price { opacity: .5; }
+.cx-lst { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px dashed var(--tc-line-strong); background: transparent; color: var(--tc-muted); border-radius: 7px; padding: 3px 7px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.cx-lst .material-symbols-outlined { font-size: 14px; }
+.cx-lst:hover { border-color: var(--tc-accent); color: var(--tc-accent); }
+.cx-lst.on { border: 1px solid transparent; background: var(--tc-pos-tint); color: var(--tc-pos); }
+.cx-lst.skip { border-style: solid; border-color: var(--tc-line); background: var(--tc-surface); color: var(--tc-muted); text-decoration: line-through; }
+.cx-lstbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--tc-ink); }
+.cx-lstbar[hidden] { display: none; }
+.cx-lstbar .lbl { font-weight: 600; }
+.cx-lstbar button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--tc-line-strong); background: var(--tc-card); border-radius: 999px; padding: 4px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--tc-ink); }
+.cx-lstbar button b { font-family: var(--mono); color: var(--tc-warn); }
+.cx-lstbar button.done b { color: var(--tc-pos); }
+.cx-lstbar button.active { border-color: var(--tc-accent); background: var(--tc-accent-tint); color: var(--tc-accent-ink); }
+.seg button .cx-count.acc { color: var(--tc-accent); }
+
+/* ---------- Okazje ---------- */
+.cx-deal { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.7fr) auto; gap: 14px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--tc-line); }
+.cx-deal .t { font-weight: 600; color: var(--tc-ink); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cx-deal .s { font-size: 12px; color: var(--tc-muted); margin-top: 4px; line-height: 1.5; }
+.cx-deal .cost b { font-family: var(--mono); font-size: 13.5px; }
+.cx-deal .act { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.cx-deal .act .material-symbols-outlined { font-size: 15px; }
+.cx-dealout { background: var(--tc-surface); border-radius: 10px; padding: 0 12px; }
+.cx-dealout:empty { display: none; }
+.cx-dealout .r { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; font-size: 13px; flex-wrap: wrap; }
+.cx-dealout .r + .r { border-top: 1px solid var(--tc-line); }
+@media (max-width: 860px) { .cx-deal { grid-template-columns: 1fr; gap: 8px; } .cx-deal .act { justify-content: flex-start; } }
+
+/* ---------- Tabele mieszczące się bez przewijania w bok ---------- */
+.tc-tbl.cx-fit tbody td.wrap { white-space: normal; min-width: 150px; line-height: 1.4; }
+.tc-tbl.cx-fit thead th, .tc-tbl.cx-fit tbody td { padding-left: 9px; padding-right: 9px; }
+
+/* ---------- Magazyn na telefonie: zwarty wiersz produktu ---------- */
+@media (max-width: 640px) {
+  body.cx .tc-grid-kpi.cx-kpi4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  body.cx .tc-grid-kpi.cx-kpi4 .tc-kpi { padding: 10px 12px; }
+  body.cx .tc-grid-kpi.cx-kpi4 .tc-kpi .v { font-size: 17px; }
+  .cx-prod { grid-template-columns: 1fr; gap: 9px; padding: 12px; }
+  .cx-prod .cost { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .cx-prod .cx-prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cx-pc { min-width: 0; }
+  .cx-price { padding: 6px 7px; }
+  .cx-lst { padding: 4px 3px; font-size: 10.5px; }
+  .cx-prod .act .btn-small { flex: 1; justify-content: center; }
+  .cx-toolbar .seg { overflow-x: auto; max-width: 100%; flex-wrap: nowrap; }
+  .cx-toolbar .seg button { white-space: nowrap; flex: none; }
+}
+
+@media (min-width: 1001px) { .cx-prod .act { min-width: 152px; } }

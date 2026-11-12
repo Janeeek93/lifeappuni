@@ -60,6 +60,8 @@ i w drodze) wystarczy na krócej niż czas dostawy + 14 dni; ilość do zamówie
 - `box.orderId`, `box.shopId` — grupowanie w zamówienia i powiązanie ze sklepem
 - `state.shops[]` — `{ id, name, cc, url, cur, st: b2b|fv|import|none|unknown, note, alias[] }`
 - `state.dwDone` — dni sprzedaży wprowadzone do ING jako dowód wewnętrzny
+- `state.listings` — gdzie towar jest wystawiony (bez cen): `{ 'Nazwa produktu' | 'card:<id>': { Vinted: 'on' | 'skip' } }`; brak wpisu = do wystawienia. Po sprzedaży ostatniej sztuki oznaczenie kanału sprzedaży znika samo, pozostałe trafiają na Pulpit jako „Zdejmij ogłoszenie”
+- `state.deals` — zapisane oferty zakupu (Zakupy → Okazje): `{ id, url, name, price, cur, ship, vat: net|fv|none, shopId, sell, note, added }`; ten sam produkt (nazwa z sezonem) jest zestawiany obok siebie od najtańszej oferty
 - `settings.channels[]` — `fee` (%), `fixed`, `ship`, `feeVat`, `shipVat`, `hidden`
 - `settings.ryczalt`, `leadTime`, `slowDays`, `cardChannel`, `uiV2` (data jednorazowej migracji)
 - `settings.vat.extra[]` — faktury B2B (`side: out`) i zakupy firmowe (`side: in`, `cat`, `gross`, `vatFull`, `pct`, `vat` = odliczona część, `rec`)
