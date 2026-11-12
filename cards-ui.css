@@ -60,8 +60,8 @@ a.btn-small { text-decoration: none; color: inherit; }
 .cx-cc { display: inline-grid; place-items: center; min-width: 30px; height: 21px; padding: 0 6px; border-radius: 5px; background: var(--tc-ink); color: #fff; font-size: 10.5px; font-weight: 700; font-family: var(--mono); }
 .cx-kind { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; flex: none; }
 .cx-kind .material-symbols-outlined { font-size: 16px; }
-.cx-kind.box { background: var(--tc-accent-tint); color: var(--tc-accent); }
-.cx-kind.card { background: var(--cd-auto-tint, #f1ebfd); color: var(--cd-auto, #6d28d9); }
+.cx-kind.kb { background: var(--tc-accent-tint); color: var(--tc-accent); }
+.cx-kind.kc { background: var(--cd-auto-tint, #f1ebfd); color: var(--cd-auto, #6d28d9); }
 .cx-qty { display: inline-grid; place-items: center; min-width: 30px; height: 24px; padding: 0 6px; border-radius: 6px; background: var(--tc-accent-tint); color: var(--tc-accent); font-weight: 700; font-size: 12px; font-family: var(--mono); flex: none; }
 .pos { color: var(--tc-pos); } .neg { color: var(--tc-neg); } .warn { color: var(--tc-warn); } .mut { color: var(--tc-muted); }
 
@@ -87,7 +87,7 @@ a.btn-small { text-decoration: none; color: inherit; }
 .cx-bar > i { display: block; height: 100%; border-radius: 4px; }
 
 /* Magazyn: wiersz produktu z cenami per kanał */
-.cx-prod { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(0, 1.05fr) minmax(0, 2.5fr) auto; gap: 14px; align-items: center; padding: 13px 16px; border-top: 1px solid var(--tc-line); }
+.cx-prod { display: grid; grid-template-columns: 54px minmax(0, 2.2fr) minmax(0, 1.05fr) minmax(0, 2.5fr) auto; gap: 14px; align-items: center; padding: 13px 16px; border-top: 1px solid var(--tc-line); }
 .cx-prod:first-child { border-top: 0; }
 .cx-prod .name { font-weight: 600; line-height: 1.3; display: flex; gap: 8px; align-items: flex-start; color: var(--tc-ink); }
 .cx-prod .meta { font-size: 12px; color: var(--tc-muted); margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -101,7 +101,7 @@ a.btn-small { text-decoration: none; color: inherit; }
 .cx-price .p { font-weight: 700; font-family: var(--mono); font-size: 13px; margin-top: 2px; color: var(--tc-ink); }
 .cx-price .z { font-size: 11px; }
 @media (max-width: 1000px) {
-  .cx-prod { grid-template-columns: 1fr 1fr; }
+  .cx-prod { grid-template-columns: 54px 1fr 1fr; }
   .cx-prod .cx-prices, .cx-prod .act { grid-column: 1 / -1; justify-content: flex-start; }
 }
 
@@ -257,14 +257,14 @@ body.cx .cx-try label { display: block; margin-bottom: 4px; }
 body.cx .cx-try input { width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--tc-line-strong); border-radius: 8px; font: inherit; font-family: var(--mono); background: var(--tc-card); color: var(--tc-ink); }
 
 /* ---------- Magazyn: wystawienia na kanałach ---------- */
-.cx-select { flex: none; max-width: 100%; border: 1px solid var(--tc-line); border-radius: 8px; padding: 7px 9px; background: var(--tc-card); font: inherit; font-size: 12.5px; color: var(--tc-ink); }
+.cx-select { flex: none; width: auto; max-width: 100%; border: 1px solid var(--tc-line); border-radius: 8px; padding: 7px 9px; background: var(--tc-card); font: inherit; font-size: 12.5px; color: var(--tc-ink); }
 .cx-pc { display: flex; flex-direction: column; gap: 4px; min-width: 96px; }
 .cx-pc .cx-price { min-width: 0; width: 100%; }
 .cx-pc.on .cx-price { border-color: color-mix(in srgb, var(--tc-pos) 45%, var(--tc-line)); }
 .cx-pc.skip .cx-price { opacity: .5; }
-.cx-lst { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px dashed var(--tc-line-strong); background: transparent; color: var(--tc-muted); border-radius: 7px; padding: 3px 7px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.cx-lst { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; background: transparent; color: var(--tc-muted); border-radius: 7px; padding: 3px 7px; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .cx-lst .material-symbols-outlined { font-size: 14px; }
-.cx-lst:hover { border-color: var(--tc-accent); color: var(--tc-accent); }
+.cx-lst:hover { border-color: var(--tc-accent); color: var(--tc-accent); background: var(--tc-accent-tint); }
 .cx-lst.on { border: 1px solid transparent; background: var(--tc-pos-tint); color: var(--tc-pos); }
 .cx-lst.skip { border-style: solid; border-color: var(--tc-line); background: var(--tc-surface); color: var(--tc-muted); text-decoration: line-through; }
 .cx-lstbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--tc-ink); }
@@ -298,7 +298,10 @@ body.cx .cx-try input { width: 100%; box-sizing: border-box; padding: 7px 10px; 
   body.cx .tc-grid-kpi.cx-kpi4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   body.cx .tc-grid-kpi.cx-kpi4 .tc-kpi { padding: 10px 12px; }
   body.cx .tc-grid-kpi.cx-kpi4 .tc-kpi .v { font-size: 17px; }
-  .cx-prod { grid-template-columns: 1fr; gap: 9px; padding: 12px; }
+  .cx-prod { grid-template-columns: 46px minmax(0, 1fr); gap: 9px 10px; padding: 12px; }
+  .cx-prod .cost, .cx-prod .cx-prices, .cx-prod .act { grid-column: 1 / -1; }
+  .cx-qn { height: 44px; }
+  .cx-qn b { font-size: 17px; }
   .cx-prod .cost { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
   .cx-prod .cx-prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cx-pc { min-width: 0; }
@@ -310,3 +313,64 @@ body.cx .cx-try input { width: 100%; box-sizing: border-box; padding: 7px 10px; 
 }
 
 @media (min-width: 1001px) { .cx-prod .act { min-width: 152px; } }
+
+/* ============================================================
+   Szlif wizualny — audyt
+   ============================================================ */
+body.cx .content { min-height: calc(100vh - 66px); align-content: start; }
+body.cx .tc-grid-kpi.cx-kpi3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.cx .tc-kpi .n > span { display: block; }
+@media (max-width: 760px) { body.cx .tc-grid-kpi.cx-kpi3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+body.cx .tc-modal .hint { font-size: 12px; color: var(--tc-muted); line-height: 1.5; margin-top: 4px; }
+
+/* Liczba sztuk — pierwsza rzecz, którą widać w wierszu */
+.cx-qn { display: grid; place-items: center; align-content: center; width: 100%; height: 50px; border-radius: 11px; background: var(--tc-accent-tint); color: var(--tc-accent-ink, var(--tc-accent)); line-height: 1; }
+.cx-qn b { font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.cx-qn span { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .7; margin-top: 3px; }
+.cx-prod .name { font-size: 14px; }
+
+/* Nagłówki sekcji w liście magazynu */
+.cx-sec { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 16px; background: var(--tc-surface); border-top: 1px solid var(--tc-line); border-bottom: 1px solid var(--tc-line); font-size: 12px; color: var(--tc-muted); }
+.cx-sec:first-child { border-top: 0; border-radius: var(--tc-radius-lg) var(--tc-radius-lg) 0 0; }
+.cx-sec b { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--tc-ink); display: inline-flex; align-items: center; gap: 6px; }
+.cx-sec b .material-symbols-outlined { font-size: 16px; }
+.cx-sec + .cx-prod { border-top: 0; }
+.cx-sec.way b { color: var(--tc-muted); }
+
+/* W drodze: wyraźnie inna pozycja niż towar na półce */
+.cx-prod.transit { background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--tc-line) 45%, transparent) 9px 10px); }
+.cx-prod.transit .cx-qn { background: transparent; border: 1.5px dashed var(--tc-line-strong); color: var(--tc-muted); }
+.cx-prod.transit .name { color: var(--tc-ink-2, var(--tc-muted)); }
+.cx-prod.transit .cost b, .cx-prod.transit .cx-price .p { color: var(--tc-muted); }
+.cx-prod.transit .cx-price { background: transparent; border-style: dashed; }
+.cx-prod.transit .cx-price .z { opacity: .75; }
+.cx-prod.transit .cx-dot { opacity: .55; }
+
+/* Pulpit: obieg towaru */
+.cx-flow { display: flex; align-items: stretch; padding: 6px; gap: 0; }
+.cx-step { flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; row-gap: 1px; align-items: center; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 10px 12px; font: inherit; color: var(--tc-ink); cursor: pointer; }
+.cx-step:hover { background: var(--tc-surface); }
+.cx-step .ic { grid-row: 1 / span 3; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--tc-accent-tint); color: var(--tc-accent); align-self: start; margin-top: 2px; }
+.cx-step .ic .material-symbols-outlined { font-size: 17px; }
+.cx-step.warn .ic { background: var(--tc-warn-tint); color: var(--tc-warn); }
+.cx-step.pos .ic { background: var(--tc-pos-tint); color: var(--tc-pos); }
+.cx-step .l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--tc-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-step .v { font-family: var(--mono); font-size: 19px; font-weight: 700; line-height: 1.2; }
+.cx-step .v small { font-family: inherit; font-size: 11px; font-weight: 600; color: var(--tc-muted); }
+.cx-step .s { font-size: 11.5px; color: var(--tc-muted); line-height: 1.35; }
+.cx-step-arrow { align-self: center; color: var(--tc-line-strong); font-size: 20px; flex: none; }
+@media (max-width: 1100px) {
+  .cx-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cx-step-arrow { display: none; }
+}
+@media (max-width: 640px) { .cx-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* „Jak to liczę?” i ukryte kanały */
+details.cx-how { margin-top: 10px; }
+details.cx-how > summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--tc-muted); list-style: none; display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; }
+details.cx-how > summary::-webkit-details-marker { display: none; }
+details.cx-how > summary::before { content: 'chevron_right'; font-family: 'Material Symbols Outlined'; font-size: 16px; transition: transform .15s; }
+details.cx-how[open] > summary::before { transform: rotate(90deg); }
+details.cx-how > summary:hover { color: var(--tc-accent); }
+.cx-ck { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tc-muted); cursor: pointer; white-space: nowrap; }
+.cx-chtbl.cx-fit input[type="number"] { width: 74px; }

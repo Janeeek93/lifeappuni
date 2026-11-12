@@ -33,7 +33,7 @@ const vin = g => g * vatRate() / (100 + vatRate());
 const CH_COLORS = { Vinted: '#09b1ba', Empik: '#e2001a', Allegro: '#ff5a00', eBay: '#0064d2', Cardmarket: '#1f3a93', Whatnot: '#e0a100', OLX: '#002f34' };
 const chColor = n => CH_COLORS[n] || PALETTE[(Math.max(0, settings.channels.findIndex(c => c.name === n)) + 3) % PALETTE.length];
 const dot = n => `<span class="cx-dot" style="background:${chColor(n)}"></span>`;
-const kindIco = k => `<span class="cx-kind ${k === 'card' ? 'card' : 'box'}" title="${k === 'card' ? 'Karta' : 'Box'}"><span class="material-symbols-outlined">${k === 'card' ? 'style' : 'inventory_2'}</span></span>`;
+const kindIco = k => `<span class="cx-kind ${k === 'card' ? 'kc' : 'kb'}" title="${k === 'card' ? 'Karta' : 'Box'}"><span class="material-symbols-outlined">${k === 'card' ? 'style' : 'inventory_2'}</span></span>`;
 const CHS = () => settings.channels.filter(c => !c.hidden);
 const chOf = n => settings.channels.find(c => c.name === n) || { name: n, fee: 0, fixed: 0, ship: 0 };
 
@@ -47,7 +47,7 @@ function delta(cur, prev, mode) {
   const good = mode === 'invert' ? d < 0 : d > 0;
   return `<span class="cx-delta ${good ? 'up' : 'down'}">${arrow} ${Math.abs(Math.round(d))}%</span>`;
 }
-const kpi = (k, v, n, cls) => `<div class="tc-kpi"><span class="k">${k}</span><span class="v ${cls || ''}">${v}</span><span class="n">${n || ''}</span></div>`;
+const kpi = (k, v, n, cls) => `<div class="tc-kpi"><span class="k">${k}</span><span class="v ${cls || ''}">${v}</span><span class="n"><span>${n || ''}</span></span></div>`;
 function li(ic, tone, t, d, rt, onclick) {
   const icon = /^[a-z_0-9]+$/.test(ic) ? `<span class="material-symbols-outlined">${ic}</span>` : `<b style="font-size:12px">${ic}</b>`;
   return `<div class="cx-item${onclick ? ' click' : ''}"${onclick ? ` onclick="${onclick}"` : ''}><div class="ic ${tone}">${icon}</div><div class="bd"><div class="t">${t}</div>${d ? `<div class="d">${d}</div>` : ''}</div>${rt ? `<div class="rt">${rt}</div>` : ''}</div>`;
@@ -214,6 +214,16 @@ function renderHome() {
     due ? kpi(`VAT do zapłaty do ${dShort(due.dueDate)}`, fmt2(due.payable), `za ${mLow(due.key)} · <a href="#" onclick="UI.go('vat');return false">rozliczenie</a>`, 'neg')
       : kpi('VAT — bieżący miesiąc', cur ? fmt2(Math.max(0, cur.due)) : '—', cur ? `${mLow(cur.key)} · termin ${dShort(cur.dueDate)}` : 'VAT wyłączony')
   ].join('');
+  // Obieg: od okazji do sprzedaży
+  const nD = (state.deals || []).length, tr0 = inTransit(), oh = onHand(), names = stockNames(), nTodo = names.filter(n => todoChs(n).length).length;
+  const step = (ic, label, val, sub, on, tone) => `<button class="cx-step ${tone || ''}" onclick="${on}"><span class="ic"><span class="material-symbols-outlined">${ic}</span></span><span class="l">${label}</span><span class="v">${val}</span><span class="s">${sub}</span></button>`;
+  $('home-flow').innerHTML = [
+    step('bookmark', 'Okazje', nD, nD ? 'zapisane oferty do decyzji' : 'zapisuj linki do ofert', "UI.go('deals')"),
+    step('local_shipping', 'W drodze', `${sum(tr0, g => g.n)} <small>szt.</small>`, tr0.length ? `${fmt(sum(tr0, g => g.capital))} zapłacone` : 'nic nie jedzie', "UI.stockFilter('transit')"),
+    step('inventory_2', 'Na stanie', `${sum(oh, g => g.n)} <small>szt.</small>`, `${names.length} ${plural(names.length, 'produkt', 'produkty', 'produktów')} · ${fmt(sum(oh, g => g.capital))}`, "UI.stockFilter('all')"),
+    step('campaign', 'Do wystawienia', `${nTodo} <small>z ${names.length}</small>`, nTodo ? 'produktów nie wisi na którymś kanale' : 'wszystko wystawione', "UI.stockFilter('todo')", nTodo ? 'warn' : 'pos'),
+    step('sell', 'Sprzedane — 30 dni', `${m30.length} <small>szt.</small>`, `${fmt(sum(m30, s => s.gross))} · zysk ${fmt(sum(m30, pnlNet))}`, "UI.go('sales')", 'pos')
+  ].join('<span class="cx-step-arrow material-symbols-outlined">chevron_right</span>');
   // Do zrobienia
   const out = [];
   const dw = dwPending();
@@ -228,7 +238,7 @@ function renderHome() {
   if (tdo.length) out.push(li('campaign', 'acc', `${stockNames().filter(n => todoChs(n).length).length} z ${stockNames().length} produktów do wystawienia`, tdo.map(([c, n]) => `${dot(c)} ${esc(c)} ${n}`).join(' · ') + ' — zaznacz w Magazynie, co już wisi', '', "UI.stockFilter('todo')"));
   const DL = dealRows();
   if (DL.length) { const bst = DL.filter(d => d.v).sort((a, b) => b.v.r.roi - a.v.r.roi)[0], old = Math.max(...DL.map(d => d.age));
-    out.push(li('bookmark', 'acc', `${DL.length} ${plural(DL.length, 'okazja czeka', 'okazje czekają', 'okazji czeka')} na decyzję`, `${bst ? `najlepsza: ${esc(bst.d.name || bst.host)} — ROI ${pct(bst.v.r.roi)} · ` : ''}najstarsza zapisana ${old} ${plural(old, 'dzień', 'dni', 'dni')} temu`, '', "UI.go('deals')")); }
+    out.push(li('bookmark', 'acc', `${DL.length} ${plural(DL.length, 'okazja czeka', 'okazje czekają', 'okazji czeka')} na decyzję`, `${bst ? `najlepsza: ${esc(bst.d.name || bst.host)} — ROI ${pct(bst.v.r.roi)} · ` : ''}najstarsza zapisana ${old ? `${old} ${plural(old, 'dzień', 'dni', 'dni')} temu` : 'dzisiaj'}`, '', "UI.go('deals')")); }
   const slowD = num(settings.slowDays) || 45, slow = onHand().filter(g => g.days > slowD).sort((a, b) => b.days - a.days);
   if (slow.length) out.push(li('hourglass_top', 'warn', `${nBoxes(sum(slow, g => g.n))} leży ponad ${slowD} dni`, `${fmt(sum(slow, g => g.capital))} zamrożone · najdłużej: ${esc(slow[0].name)} (${slow[0].days} dni)`, '', "UI.stockFilter('slow')"));
   const novat = onHand().filter(g => g.vat < 0.005 && vatOn());
@@ -244,7 +254,7 @@ function renderHome() {
      <div class="cx-bar" style="width:110px;margin-top:6px"><i style="width:${Math.min(100, o.cover / (o.need + 14) * 100)}%;background:${o.level === 'now' ? 'var(--tc-neg)' : 'var(--tc-warn)'}"></i></div>`,
     `<span class="cx-pill ${o.level === 'now' ? 'neg' : 'warn'}">${o.level === 'now' ? 'zamów teraz' : 'wkrótce'}</span><span class="cx-note">~${o.qty} szt.</span>`)).join('')
     : empty('Żaden regularnie sprzedawany produkt się nie kończy.')) +
-    `<p class="cx-note" style="margin-top:10px">Liczę tylko produkty, które schodzą regularnie: min. 4 szt. w 60 dni, w co najmniej 3 różnych tygodniach, i nadal się sprzedają (min. 2 w 30 dni). Alert, gdy zapas na stanie i w drodze wystarczy na krócej niż dostawa (${num(settings.leadTime) || 14} dni) + 2 tygodnie.</p>`;
+    `<details class="cx-how"><summary>Jak to liczę?</summary><p class="cx-note">Liczę tylko produkty, które schodzą regularnie: min. 4 szt. w 60 dni, w co najmniej 3 różnych tygodniach, i nadal się sprzedają (min. 2 w 30 dni). Alert, gdy zapas na stanie i w drodze wystarczy na krócej niż dostawa (${num(settings.leadTime) || 14} dni) + 2 tygodnie.</p></details>`;
   // W drodze
   const tr = inTransit();
   $('home-transit-sub').textContent = tr.length ? `${sum(tr, g => g.n)} szt. · ${fmt(sum(tr, g => g.capital))}` : '';
@@ -303,7 +313,7 @@ function priceChips(g) {
       <button class="cx-lst ${st}" title="Kliknij, żeby zmienić: do wystawienia → wystawione → pomijam ten kanał" onclick="UI.cycleListing(${gi},${ci})"><span class="material-symbols-outlined">${st === 'on' ? 'check_circle' : st === 'skip' ? 'block' : 'radio_button_unchecked'}</span>${LST_LBL[st]}</button></div>`; }).join('')}</div>`;
 }
 function renderStock() {
-  $('stock-filter').style.display = stockKind === 'box' ? '' : 'none';
+  $('stock-filter').style.display = $('stock-sort').style.display = stockKind === 'box' ? '' : 'none';
   const q = getv('stock-q').trim().toLowerCase();
   if (stockKind === 'card') return renderStockCards(q);
   const v = chOf(CHS()[0] ? CHS()[0].name : 'Vinted');
@@ -322,16 +332,22 @@ function renderStock() {
   const isTodo = g => !g.transit && (stockCh ? !lst(g.name, stockCh) : todoChs(g.name).length > 0);
   const L = G.filter(g => (stockF === 'all' || (stockF === 'todo' && isTodo(g)) || (stockF === 'slow' && g.days > slowD && !g.transit) || (stockF === 'novat' && g.vat < 0.005) || (stockF === 'transit' && g.transit)) && (!q || g.name.toLowerCase().includes(q)))
     .sort((a, b) => stockSort === 'days' ? b.days - a.days : stockSort === 'name' ? a.name.localeCompare(b.name, 'pl') : b.capital - a.capital);
-  $('stock-list').innerHTML = L.length ? L.map(g => {
-    const ls = LAST[g.name], ded = g.vat > 0.005;
-    return `<div class="cx-prod">
-      <div><div class="name">${kindIco('box')}<span class="cx-qty">×${g.n}</span><span>${esc(g.name)}</span></div>
-        <div class="meta">${g.transit ? '<span class="cx-pill acc"><span class="material-symbols-outlined" style="font-size:14px">local_shipping</span>w drodze</span>' : ''}${vatOn() ? `<span class="cx-pill ${ded ? 'pos' : 'warn'}">${ded ? 'VAT odliczony' : 'bez odliczenia VAT'}</span>` : ''}<span>${esc(g.src)}</span><span class="${g.days > slowD && !g.transit ? 'warn' : ''}">${g.days} dni</span>${ls ? `<span>ostatnio ${fmt(ls.gross)} na ${esc(ls.channel)} (${dShort(ls.date)})</span>` : ''}</div></div>
-      <div class="cost"><b>${fmt2(g.cost)}</b> <span class="mut">/szt.</span><div class="s">${ded ? `brutto ${fmt2(g.gross)} − VAT ${fmt2(g.vat)}` : `brutto ${fmt2(g.gross)}${vatOn() ? ', VAT nie wraca' : ''}`}</div></div>
+  const T = today();
+  const row = g => {
+    const ls = LAST[g.name], ded = g.vat > 0.005, old = g.days > slowD && !g.transit;
+    return `<div class="cx-prod${g.transit ? ' transit' : ''}">
+      <div class="cx-qn" title="${g.n} szt. ${g.transit ? 'w drodze' : 'na stanie'}"><b>${g.n}</b><span>szt.</span></div>
+      <div style="min-width:0"><div class="name">${esc(g.name)}</div>
+        <div class="meta">${g.transit ? `<span class="cx-pill acc"><span class="material-symbols-outlined" style="font-size:14px">local_shipping</span>w drodze · ${daysBetween(g.date, T)} dni</span>` : `<span class="${old ? 'cx-pill warn' : ''}">${g.days} dni na stanie</span>`}${vatOn() ? `<span class="cx-pill ${ded ? 'pos' : 'warn'}">${ded ? 'VAT odliczony' : 'bez odliczenia VAT'}</span>` : ''}<span>${esc(g.src)}</span>${ls ? `<span>ostatnio ${fmt(ls.gross)} na ${esc(ls.channel)} (${dShort(ls.date)})</span>` : ''}</div></div>
+      <div class="cost"><b>${fmt2(g.cost)}</b> <span class="mut">/szt.</span><div class="s">${g.n > 1 ? `razem ${fmt(g.capital)} · ` : ''}${ded ? `brutto ${fmt2(g.gross)}` : `${vatOn() ? 'VAT nie wraca' : 'brutto'}`}</div></div>
       ${priceChips(g)}
-      <div class="act">${g.transit ? `<button class="btn-small" onclick="UI.deliver('${esc(g.key)}')">Dostarczone</button>` : `<button class="btn-small" onclick="UI.openOpen('${esc(g.key)}')">Otwórz</button><button class="btn-small primary" onclick="UI.openSell('box','${esc(g.key)}')">Sprzedaj</button>`}</div>
+      <div class="act">${g.transit ? `<button class="btn-small" onclick="UI.deliver('${esc(g.key)}')"><span class="material-symbols-outlined">task_alt</span>Dostarczone</button>` : `<button class="btn-small" onclick="UI.openOpen('${esc(g.key)}')">Otwórz</button><button class="btn-small primary" onclick="UI.openSell('box','${esc(g.key)}')">Sprzedaj</button>`}</div>
     </div>`;
-  }).join('') : empty(stockF === 'todo' ? `Wszystko wystawione${stockCh ? ' na ' + esc(stockCh) : ''}.` : 'Nic tu nie ma dla tych filtrów.');
+  };
+  const here = L.filter(g => !g.transit), way = L.filter(g => g.transit);
+  $('stock-list').innerHTML = L.length ? (here.length ? `<div class="cx-sec"><b>Na stanie</b><span>${sum(here, g => g.n)} szt. · ${here.length} ${plural(here.length, 'produkt', 'produkty', 'produktów')} · ${fmt(sum(here, g => g.capital))} netto</span></div>` + here.map(row).join('') : '') +
+    (way.length ? `<div class="cx-sec way"><b><span class="material-symbols-outlined">local_shipping</span>W drodze — jeszcze nie w magazynie</b><span>${sum(way, g => g.n)} szt. · ${fmt(sum(way, g => g.capital))} netto · możesz już wystawiać w przedsprzedaży</span></div>` + way.map(row).join('') : '')
+    : empty(stockF === 'todo' ? `Wszystko wystawione${stockCh ? ' na ' + esc(stockCh) : ''}.` : 'Nic tu nie ma dla tych filtrów.');
 }
 function renderStockCards(q) {
   const T = today(), c90 = deals().filter(s => s.kind === 'card' && s.date >= addDays(T, -90));
@@ -348,9 +364,9 @@ function renderStockCards(q) {
   $('stock-lst').innerHTML = `<span class="lbl">Wystawione na ${esc(cc)}:</span><b>${nOn}</b><span class="cx-note">z ${M.held.length} kart</span><button class="${cardTodo ? 'active' : ''}" onclick="UI.cardTodo()">${dot(cc)}Pokaż tylko niewystawione <b>${M.held.length - nOn}</b></button>`;
   const all = M.held.filter(c => !cardTodo || !lst('card:' + c.id, cc)).sort((a, b) => b.marketValue - a.marketValue);
   const L = all.filter(c => !q || cardTitle(c).toLowerCase().includes(q)).slice(0, 80);
-  $('stock-list').innerHTML = L.length ? `<div class="tc-tbl-wrap"><table class="tc-tbl"><thead><tr><th></th><th>Karta</th><th class="num">Koszt netto</th><th class="num">Wycena</th><th class="num">Cena na ${esc(cc)}</th><th class="num">Zysk</th><th>Ogłoszenie</th><th></th></tr></thead><tbody>` +
+  $('stock-list').innerHTML = L.length ? `<div class="tc-tbl-wrap"><table class="tc-tbl cx-fit"><thead><tr><th></th><th>Karta</th><th class="num">Koszt netto</th><th class="num">Wycena</th><th class="num">Cena na ${esc(cc)}</th><th class="num">Zysk</th><th>Ogłoszenie</th><th></th></tr></thead><tbody>` +
     L.map(c => { const it = cItem(c), P = Math.max(Math.round(c.marketValue || 0), recommend(it, chOf(cc), 0)), r = calc(it, chOf(cc), P);
-      return `<tr><td style="width:40px">${kindIco('card')}</td><td><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.product, c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}</span></div></td>
+      return `<tr><td style="width:40px">${kindIco('card')}</td><td class="wrap"><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.product, c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}</span></div></td>
         <td class="num">${fmt2(c.basis)}</td><td class="num">${c.hasValuation ? fmt(c.marketValue) : '—'}</td><td class="num"><b>${fmt(P)}</b></td><td class="num ${r.profit >= 0 ? 'pos' : 'neg'}">${fmt(r.profit)}</td>
         <td>${(st => `<button class="cx-lst ${st}" onclick="UI.cardListing('${c.id}')"><span class="material-symbols-outlined">${st ? 'check_circle' : 'radio_button_unchecked'}</span>${st ? 'wystawiona' : 'wystaw'}</button>`)(lst('card:' + c.id, cc))}</td>
         <td><button class="btn-small" onclick="UI.openSell('card','${c.id}')">Sprzedaj</button></td></tr>`; }).join('') +
@@ -492,7 +508,7 @@ const barDs = (label, data, color, o = {}) => ({ type: 'bar', label, data, backg
 
 function pace(label, cur, prev, prevLabel, L, extra) {
   const p = sum(L, pnlNet), g = sum(L, s => s.gross);
-  return `<div class="tc-kpi"><span class="k">${label}</span><span class="v">${fmt(cur)}${prev === null ? ' <span class="cx-delta flat">nowe</span>' : delta(cur, prev)}</span><span class="n">${prevLabel}${prev !== null ? `: <b>${fmt(prev)}</b>` : ''}</span><span class="n">${extra || `zysk ${fmt(p)} · marża ${g ? pct(p / g * 100) : '—'} · ${L.filter(s => !s.isReturn).length} szt.`}</span></div>`;
+  return `<div class="tc-kpi"><span class="k">${label}</span><span class="v">${fmt(cur)}${prev === null ? ' <span class="cx-delta flat">nowe</span>' : delta(cur, prev)}</span><span class="n"><span>${prevLabel}${prev !== null ? `: <b>${fmt(prev)}</b>` : ''}</span></span><span class="n">${extra || `zysk ${fmt(p)} · marża ${g ? pct(p / g * 100) : '—'} · ${L.filter(s => !s.isReturn).length} szt.`}</span></div>`;
 }
 
 function renderResults() {
@@ -850,16 +866,18 @@ function exportDw() {
    ============================================================ */
 function renderSettings() {
   const used = new Set(M.sales.map(s => s.channel));
-  $('set-channels').innerHTML = `<table class="tc-tbl cx-chtbl"><thead><tr><th>Kanał</th><th>Pokaż</th><th class="num">Prowizja %</th><th class="num">Opłata stała (zł)</th><th>Faktura z VAT za prowizję</th><th class="num">Wysyłka po Twojej stronie (zł)</th><th>Faktura z VAT za wysyłkę</th><th>Przykład: box za 100 zł</th></tr></thead><tbody>` +
-    settings.channels.map((c, i) => { const r = calc({ cost: 0, vatCost: 0, scheme: 'std' }, c, 100);
-      return `<tr><td><b>${dot(c.name)} ${esc(c.name)}</b>${used.has(c.name) ? '' : ' <span class="cx-note">· brak sprzedaży</span>'}</td>
-      <td><input type="checkbox" ${c.hidden ? '' : 'checked'} onchange="UI.setCh(${i},'hidden',!this.checked)"></td>
+  const chRow = (c, i) => { const r = calc({ cost: 0, vatCost: 0, scheme: 'std' }, c, 100);
+    return `<tr><td class="wrap"><b>${dot(c.name)} ${esc(c.name)}</b>${used.has(c.name) ? '' : ' <span class="cx-note">· brak sprzedaży</span>'}</td>
+      <td><label class="cx-ck"><input type="checkbox" ${c.hidden ? '' : 'checked'} onchange="UI.setCh(${i},'hidden',!this.checked)">${c.hidden ? 'ukryty' : 'używam'}</label></td>
       <td class="num"><input type="number" step="0.1" value="${num(c.fee)}" onchange="UI.setCh(${i},'fee',this.value)"></td>
       <td class="num"><input type="number" step="0.5" value="${num(c.fixed)}" onchange="UI.setCh(${i},'fixed',this.value)"></td>
-      <td><input type="checkbox" ${c.feeVat ? 'checked' : ''} onchange="UI.setCh(${i},'feeVat',this.checked)"> odliczam</td>
+      <td><label class="cx-ck"><input type="checkbox" ${c.feeVat ? 'checked' : ''} onchange="UI.setCh(${i},'feeVat',this.checked)">odliczam</label></td>
       <td class="num"><input type="number" step="0.5" value="${num(c.ship)}" onchange="UI.setCh(${i},'ship',this.value)"></td>
-      <td><input type="checkbox" ${c.shipVat ? 'checked' : ''} onchange="UI.setCh(${i},'shipVat',this.checked)"> odliczam</td>
-      <td class="cx-note">na konto ${fmt2(r.cashIn)} · zostaje po VAT i ryczałcie <b>${fmt2(r.cashIn - r.vatPay - r.ryc)}</b></td></tr>`; }).join('') + '</tbody></table>';
+      <td><label class="cx-ck"><input type="checkbox" ${c.shipVat ? 'checked' : ''} onchange="UI.setCh(${i},'shipVat',this.checked)">odliczam</label></td>
+      <td class="num" title="Ze 100 zł ceny: na konto ${fmt2(r.cashIn)}, po VAT i ryczałcie ${fmt2(r.cashIn - r.vatPay - r.ryc)}"><b>${fmt2(r.cashIn - r.vatPay - r.ryc)}</b></td></tr>`; };
+  const chTbl = L => `<div class="tc-tbl-wrap"><table class="tc-tbl cx-chtbl cx-fit"><thead><tr><th>Kanał</th><th>Status</th><th class="num">Prowizja %</th><th class="num">Opłata stała zł</th><th>VAT z prowizji</th><th class="num">Wysyłka zł</th><th>VAT z wysyłki</th><th class="num" title="Ile zostaje ze 100 zł ceny po prowizji, wysyłce, VAT i ryczałcie">Zostaje ze 100 zł</th></tr></thead><tbody>${L.map(([c, i]) => chRow(c, i)).join('')}</tbody></table></div>`;
+  const chAll = settings.channels.map((c, i) => [c, i]), chOn = chAll.filter(([c]) => !c.hidden), chOff = chAll.filter(([c]) => c.hidden);
+  $('set-channels').innerHTML = chTbl(chOn) + (chOff.length ? `<details class="cx-how" style="padding:0 16px 4px"${window._chOffOpen ? ' open' : ''} ontoggle="window._chOffOpen=this.open"><summary>Ukryte kanały (${chOff.length}) — zaznacz „używam”, żeby pojawił się w Magazynie i formularzach</summary>${chTbl(chOff)}</details>` : '');
   setv('set-tm', num(settings.targetMargin)); setv('set-lt', num(settings.leadTime) || 14); setv('set-slow', num(settings.slowDays) || 45); setv('set-ryc', RYC());
   $('set-cardch').innerHTML = settings.channels.map(c => `<option ${c.name === settings.cardChannel ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   setv('set-alloc', settings.alloc || 'value'); setv('set-bulk', settings.bulkOffset || 'yes');
@@ -1428,7 +1446,7 @@ function renderDeals() {
     kpi('Zapisane okazje', R.length, `${GR.length} ${plural(GR.length, 'produkt', 'produkty', 'produktów')}`),
     kpi('Najlepszy ROI', best ? pct(best.v.r.roi) : '—', best ? esc(`${best.d.name || best.host} · ${best.shop ? best.shop.name : best.host}`) : 'dodaj cenę sprzedaży albo produkt z historią', best && best.v.r.roi >= TM() ? 'pos' : ''),
     kpi('Różnica w cenach', fmt(spread), 'między najdroższą a najtańszą ofertą tego samego produktu, na sztuce'),
-    kpi('Najstarsza czeka', R.length ? `${old} ${plural(old, 'dzień', 'dni', 'dni')}` : '—', 'okazje znikają — kup albo usuń', old > 7 ? 'warn' : '')
+    kpi('Najstarsza czeka', R.length ? (old ? `${old} ${plural(old, 'dzień', 'dni', 'dni')}` : 'od dziś') : '—', 'okazje znikają — kup albo usuń', old > 7 ? 'warn' : '')
   ].join('');
   $('deals-list').innerHTML = GR.length ? GR.sort((a, b) => Math.min(...a.map(r => r.age)) - Math.min(...b.map(r => r.age))).map(L => {
     const name = L[0].d.name, have = name ? G.filter(g => dKey(g.name) === dKey(name)) : [], nH = sum(have.filter(g => !g.transit), g => g.n), nT = sum(have.filter(g => g.transit), g => g.n);
