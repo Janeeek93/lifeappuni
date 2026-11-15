@@ -155,7 +155,7 @@ function commit(msg, kind = 'ok') {
 }
 function renderCounts() {
   $('cnt-stock').textContent = sum(onHand(), g => g.n);
-  const unk = (state.shops || []).filter(s => s.st === 'unknown').length, nd = (state.deals || []).length;
+  const unk = (state.shops || []).filter(s => shStage(s) === 'new').length, nd = (state.deals || []).length;
   $('cnt-deals').hidden = !nd; $('cnt-deals').textContent = nd; $('cnt-deals').title = 'zapisane okazje';
   const dw = dwPending().length, vatDue = vatUnpaid();
   $('cnt-tax').hidden = !(dw || vatDue); $('cnt-tax').textContent = dw || '!';
@@ -243,8 +243,9 @@ function renderHome() {
   if (slow.length) out.push(li('hourglass_top', 'warn', `${nBoxes(sum(slow, g => g.n))} leży ponad ${slowD} dni`, `${fmt(sum(slow, g => g.capital))} zamrożone · najdłużej: ${esc(slow[0].name)} (${slow[0].days} dni)`, '', "UI.stockFilter('slow')"));
   const novat = onHand().filter(g => g.vat < 0.005 && g.doc !== 'wnt' && vatOn());
   if (novat.length) out.push(li('percent', 'acc', `${nBoxes(sum(novat, g => g.n))} bez odliczonego VAT`, 'przy sprzedaży oddajesz VAT od całej ceny — rekomendowane ceny już to uwzględniają', '', "UI.stockFilter('novat')"));
-  const unk = (state.shops || []).filter(s => s.st === 'unknown').length;
-  if (unk) out.push(li('storefront', 'mut', `${unk} ${plural(unk, 'sklep', 'sklepy', 'sklepów')} do sprawdzenia`, 'czy mają konto B2B (faktura 0% na VAT-UE)', '', "UI.go('shops')"));
+  const unk = (state.shops || []).filter(s => shStage(s) === 'new').length, wt = (state.shops || []).filter(s => shStage(s) === 'wait').length;
+  if (unk) out.push(li('storefront', 'mut', `${unk} ${plural(unk, 'sklep', 'sklepy', 'sklepów')} do sprawdzenia`, 'jeszcze nie pytałeś o konto B2B (faktura 0% na VAT-UE)', '', "UI.go('shops')"));
+  if (wt) out.push(li('forward_to_inbox', 'mut', `${wt} ${plural(wt, 'sklep', 'sklepy', 'sklepów')} czeka na odpowiedź`, 'napisane mailem albo przez formularz', '', "UI.go('shops')"));
   if (Math.abs(M.residual) > 0.5) out.push(li('error', 'neg', 'Dane się nie spinają', `różnica ${fmt2(M.residual)} — sprawdź ostatnie zmiany`, ''));
   $('home-todo').innerHTML = out.join('') || empty('Wszystko zrobione.');
   // Pora domówić
@@ -493,6 +494,10 @@ const SHOP_ST = {
   none:    { l: 'Tylko z VAT — bez odliczenia', s: 'Bez odliczenia', doc: 'foreign', ok: false, tone: 'warn', zones: ['pl', 'eu', 'out'], hint: 'Sklep dolicza VAT jak konsumentowi — ten VAT zostaje w koszcie.' },
   unknown: { l: 'Nie wiem — do sprawdzenia', s: 'Do sprawdzenia', doc: 'foreign', ok: false, tone: '', zones: ['pl', 'eu', 'out'], hint: 'Dopóki nie sprawdzisz, zakup liczy się jak bez odliczenia.' }
 };
+/* etap kontaktu ze sklepem: 'new' = nie ruszony, 'wait' = napisałem i czekam, 'done' = status VAT już znany */
+const shStage = s => s.st !== 'unknown' ? 'done' : s.ct === 'wait' ? 'wait' : 'new';
+const CT_VIA = { mail: 'mail', form: 'formularz' };
+const ctLabel = s => s.ct === 'wait' ? `napisano${s.ctDate ? ' ' + dShort(s.ctDate) : ''}${CT_VIA[s.ctVia] ? ' · ' + CT_VIA[s.ctVia] : ''}` : '';
 function shopStats(sh) {
   const B = M.boxes.filter(b => b.shopId === sh.id || (!b.shopId && ((sh.alias || []).includes(b.source) || b.source === sh.name)));
   return { n: B.length, orders: new Set(B.map(orderKeyOf)).size, g: sum(B, b => b.landedGross), last: B.map(b => b.date).sort().pop() || null, noDed: sum(B.filter(b => b.vatDed < 0.005 && b.vatDoc !== 'wnt'), b => b.landedGross) };
@@ -504,21 +509,28 @@ function renderShops() {
   $('shops-kpi').innerHTML = [
     kpi('Sklepy', S.length, `w ${new Set(S.map(s => s.cc).filter(c => c !== '??')).size} krajach`),
     kpi('Odliczam VAT', S.filter(s => (SHOP_ST[s.st] || {}).ok).length, 'B2B z UE albo faktura z Polski', 'pos'),
-    kpi('Do sprawdzenia', S.filter(s => s.st === 'unknown').length, 'zapytaj o konto B2B / fakturę 0%', S.some(s => s.st === 'unknown') ? 'warn' : ''),
+    kpi('Nie ruszone', S.filter(s => shStage(s) === 'new').length, 'jeszcze nie pisałeś — zapytaj o B2B / fakturę 0%', S.some(s => shStage(s) === 'new') ? 'warn' : ''),
+    kpi('Czekam na odpowiedź', S.filter(s => shStage(s) === 'wait').length, 'napisane mailem albo przez formularz'),
     kpi('Kupione bez odliczenia', fmt(noDed), `${pct(all ? noDed / all * 100 : 0)} zakupów · VAT został w koszcie`, 'warn')
   ].join('');
   const q = getv('shops-q').trim().toLowerCase();
-  const vis = st.filter(({ s }) => (shF === 'all' || (shF === 'ok' && (SHOP_ST[s.st] || {}).ok) || (shF === 'none' && s.st === 'none') || (shF === 'unknown' && s.st === 'unknown')) && (!q || (s.name + ' ' + (s.url || '')).toLowerCase().includes(q)));
+  const vis = st.filter(({ s }) => (shF === 'all' || (shF === 'ok' && (SHOP_ST[s.st] || {}).ok) || (shF === 'none' && s.st === 'none') || (shF === 'new' && shStage(s) === 'new') || (shF === 'wait' && shStage(s) === 'wait')) && (!q || (s.name + ' ' + (s.url || '')).toLowerCase().includes(q)));
   const byC = {}; vis.forEach(o => (byC[o.s.cc] = byC[o.s.cc] || []).push(o));
   const order = Object.keys(byC).sort((a, b) => (a === '??') - (b === '??') || sum(byC[b], o => o.x.g) - sum(byC[a], o => o.x.g));
   $('shops-list').innerHTML = order.length ? order.map(cc => {
     const L = byC[cc].sort((a, b) => b.x.g - a.x.g);
     return `<div class="tc-card" style="margin-bottom:12px"><div class="tc-card-head"><h3><span class="cx-cc">${cc}</span>&nbsp; ${COUNTRIES[cc] || cc}</h3><span class="sub">${cc === '??' ? 'kliknij „Edytuj” i uzupełnij kraj' : zone(cc) === 'eu' ? 'UE — odliczenie tylko przez B2B (faktura 0%)' : zone(cc) === 'pl' ? 'Polska — faktura z 23% VAT' : 'poza UE — import'} · ${L.length} ${plural(L.length, 'sklep', 'sklepy', 'sklepów')} · ${fmt(sum(L, o => o.x.g))}</span></div>` +
       L.map(({ s, x }) => `<div class="cx-shop"><div style="min-width:0"><div class="t">${esc(s.name)}</div><div class="s">${s.url ? esc(s.url) + ' · ' : ''}${esc(s.cur)}${s.note ? ' · ' + esc(s.note) : ''}</div></div>
-        <div class="cx-chips sm">${Object.entries(SHOP_ST).filter(([k, v]) => v.zones.includes(zone(s.cc))).map(([k, v]) => `<button class="${s.st === k ? 'active ' + v.tone : ''}" title="${esc(v.hint)}" onclick="UI.setShopSt('${s.id}','${k}')">${v.s}</button>`).join('')}</div>
+        <div><div class="cx-chips sm">${Object.entries(SHOP_ST).filter(([k, v]) => v.zones.includes(zone(s.cc))).map(([k, v]) => `<button class="${s.st === k ? 'active ' + v.tone : ''}" title="${esc(v.hint)}" onclick="UI.setShopSt('${s.id}','${k}')">${k === 'unknown' ? 'Do sprawdzenia' : v.s}</button>`).join('')}</div>
+        ${s.st === 'unknown' ? `<div class="cx-chips sm" style="margin-top:6px"><button class="${shStage(s) === 'new' ? 'active warn' : ''}" onclick="UI.setShopCt('${s.id}','')">Nie ruszony</button><button class="${s.ct === 'wait' && s.ctVia !== 'form' ? 'active' : ''}" title="Napisałem maila — czekam na odpowiedź" onclick="UI.setShopCt('${s.id}','mail')">✉ Mail — czekam</button><button class="${s.ct === 'wait' && s.ctVia === 'form' ? 'active' : ''}" title="Wysłałem formularz B2B — czekam na odpowiedź" onclick="UI.setShopCt('${s.id}','form')">Formularz — czekam</button></div>${s.ct === 'wait' ? `<div class="s" style="margin-top:4px">${esc(ctLabel(s))}</div>` : ''}` : ''}</div>
         <div class="st">${x.orders ? `${x.orders} zam. · ${x.n} szt.<br>${fmt(x.g)}${x.last ? ` · ost. ${dShort(x.last)}` : ''}` : 'brak zakupów'}</div>
         <div><button class="btn-small" onclick="UI.openShop('${s.id}')">Edytuj</button></div></div>`).join('') + '</div>';
   }).join('') : `<div class="tc-card">${empty('Brak sklepów.')}</div>`;
+}
+function setShopCt(id, via) {
+  const s = state.shops.find(x => x.id === id); if (!s) return;
+  if (!via) { delete s.ct; delete s.ctVia; delete s.ctDate; } else { s.ct = 'wait'; s.ctVia = via; s.ctDate = s.ctDate || today(); }
+  commit(`${s.name}: ${via ? 'czekam na odpowiedź (' + CT_VIA[via] + ')' : 'nie ruszony'}`);
 }
 function setShopSt(id, st) { const s = state.shops.find(x => x.id === id); if (!s) return; s.st = st; commit(`${s.name}: ${SHOP_ST[st].l}`); }
 
@@ -1551,13 +1563,14 @@ function dealToBuy(id) {
 /* ============================================================
    SKLEP
    ============================================================ */
-let shEdit = null, shFromBuy = false, shSt = 'unknown';
+let shEdit = null, shFromBuy = false, shSt = 'unknown', shCt = '';
 function openShop(id, fromBuy) {
   shEdit = id ? state.shops.find(s => s.id === id) : null; shFromBuy = !!fromBuy;
   $('sh-title').textContent = shEdit ? 'Sklep — edycja' : 'Nowy sklep'; $('sh-del').style.display = shEdit ? '' : 'none';
   $('sh-cc').innerHTML = Object.entries(COUNTRIES).map(([k, v]) => `<option value="${k}">${k === '??' ? v : `${k} — ${v}`}</option>`).join('');
   setv('sh-name', shEdit ? shEdit.name : ''); setv('sh-url', shEdit ? shEdit.url : ''); setv('sh-note', shEdit ? shEdit.note : '');
   setv('sh-cc', shEdit ? shEdit.cc : 'DE'); setv('sh-cur', shEdit ? shEdit.cur : 'EUR'); shSt = shEdit ? shEdit.st : 'unknown';
+  shCt = shEdit && shEdit.ct === 'wait' ? (shEdit.ctVia || 'mail') : ''; setv('sh-ctd', shEdit && shEdit.ctDate ? shEdit.ctDate : '');
   open_('m-shop'); renderShopSt(); setTimeout(() => $('sh-name').focus(), 50);
 }
 function renderShopSt() {
@@ -1565,12 +1578,18 @@ function renderShopSt() {
   if (!SHOP_ST[shSt] || !SHOP_ST[shSt].zones.includes(z)) shSt = 'unknown';
   chipRow('sh-st', Object.entries(SHOP_ST).filter(([k, v]) => v.zones.includes(z)).map(([k, v]) => [k, v.l, v.tone]), shSt, v => { shSt = v; renderShopSt(); });
   $('sh-st-hint').textContent = SHOP_ST[shSt].hint;
+  $('sh-ct-wrap').style.display = shSt === 'unknown' ? '' : 'none';
+  chipRow('sh-ct', [['', 'Nie ruszony', 'warn'], ['mail', '✉ Mail — czekam'], ['form', 'Formularz — czekam']], shCt, v => { shCt = v; if (v && !getv('sh-ctd')) setv('sh-ctd', today()); renderShopSt(); });
+  $('sh-ctd-wrap').style.display = shCt ? '' : 'none';
 }
 function closeShop() { $('m-shop').classList.remove('on'); if (shFromBuy) fillShopSelect(getv('b-shop')); }
 function saveShop() {
   const name = getv('sh-name').trim(); if (!name) { toast('Podaj nazwę sklepu', 'err'); return; }
   const data = { name, cc: getv('sh-cc'), url: getv('sh-url').trim(), cur: getv('sh-cur'), st: shSt, note: getv('sh-note').trim() };
-  let s = shEdit;
+  const wait = shSt === 'unknown' && shCt;
+  data.ct = wait ? 'wait' : undefined; data.ctVia = wait ? shCt : undefined; data.ctDate = wait ? (getv('sh-ctd') || today()) : undefined;
+  Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
+  let s = shEdit; if (s) { delete s.ct; delete s.ctVia; delete s.ctDate; }
   if (s) { if (s.name !== name) s.alias = [...new Set([...(s.alias || []), s.name])]; Object.assign(s, data); }
   else { s = { id: uid('shop'), alias: [name], ...data }; state.shops.push(s); }
   $('m-shop').classList.remove('on');
@@ -1721,7 +1740,7 @@ window.UI = {
   myPrice, myPriceLive,
   openDeal, saveDeal, deleteDeal, dealToBuy,
   openCalc, calcToBuy, calcToDeal, kTry, kRoi: v => { setv('k-roi', v); renderCalc(); },
-  openShop, saveShop, closeShop, deleteShop, setShopSt,
+  openShop, saveShop, closeShop, deleteShop, setShopSt, setShopCt,
   vatMonth, vatPaid, addB2b, repeatBiz, exportVat, openBiz, saveBiz, deleteBiz,
   revMonth, dwDone, copyDw, exportDw,
   setCh, addChannel, exportCsv: () => exportCsv(), backupJson

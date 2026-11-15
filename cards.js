@@ -83,7 +83,7 @@ const EMPTY_STATE = {
   gradings: [],
   expenses: [],
   watchlist: [],
-  shops: [],               // baza sklepów: { id, name, cc, url, cur, st: b2b|fv|import|none|unknown, note, alias[] }
+  shops: [],               // baza sklepów: { id, name, cc, url, cur, st: b2b|fv|import|none|unknown, ct?: 'wait' (napisane, czekam), ctVia?: mail|form, ctDate?, note, alias[] }
   dwDone: {},              // dni sprzedaży wprowadzone do ING jako dowód wewnętrzny: { '2026-11-12': true }
   listings: {},            // gdzie towar jest wystawiony: { 'Nazwa produktu' | 'card:<id>': { Vinted: 'on' | 'skip' } }
   deals: []                // zapisane oferty zakupu: { id, url, name, price, cur, ship, vat: net|fv|none, shopId, sell, note, added }
