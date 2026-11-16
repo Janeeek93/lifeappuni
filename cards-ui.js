@@ -968,12 +968,70 @@ function chipRow(id, opts, cur, onPick) {
 /* ============================================================
    SPRZEDAŻ — nowa, edycja, zwrot
    ============================================================ */
-const S = { mode: 'new', kind: 'box', list: [], ch: 'Vinted', ref: null, ret: 'full' };
+const S = { mode: 'new', kind: 'box', list: [], ch: 'Vinted', ref: null, ret: 'full', extra: [], bl: [], cl: [], members: [] };
 const sellList = () => S.kind === 'card' ? M.held.slice().sort((a, b) => b.marketValue - a.marketValue) : onHand();
 function sItem() {
   if (S.mode === 'edit') { const it = S.ref.kind === 'card' ? M.byId.get(S.ref.id) : M.boxes.find(b => b.id === S.ref.id); return S.ref.kind === 'card' ? cItem(it) : { cost: it.landed, vatCost: it.landedGross, scheme: it.vatScheme }; }
   const x = S.list[+getv('s-item')]; if (!x) return null;
   return S.kind === 'card' ? cItem(x) : gItem(x);
+}
+/* ---------- Koszyk: kilka pozycji w jednym zamówieniu, wysyłka dzielona po cenach ---------- */
+const r2 = x => Math.round(x * 100) / 100;
+/** Dzieli kwotę proporcjonalnie do cen; grosze z zaokrągleń trafiają do najdroższej pozycji. */
+function splitBy(total, prices) {
+  const sp = sum(prices, p => p), n = prices.length; if (!n) return [];
+  const parts = prices.map(p => r2(total * (sp > 0 ? p / sp : 1 / n)));
+  const big = prices.indexOf(Math.max(...prices)); parts[big] = r2(parts[big] + total - sum(parts, x => x));
+  return parts;
+}
+const allSold = () => [...state.boxes.filter(b => b.sale).map(b => ({ kind: 'box', ref: b, name: b.name })), ...state.cards.filter(c => c.sale).map(c => ({ kind: 'card', ref: c, name: cardTitle(c) }))];
+/** Pozycje koszyka przy nowej sprzedaży: pierwsza z głównego pola + dodatkowe wiersze. */
+function cartLines() {
+  const out = [], x = S.list[+getv('s-item')];
+  if (x) out.push({ kind: S.kind, x, it: S.kind === 'card' ? cItem(x) : gItem(x), P: numIn('s-price') });
+  S.extra.forEach(e => {
+    const [k, i] = (e.v || '').split(':'), y = (k === 'c' ? S.cl : S.bl)[+i]; if (!y) return;
+    out.push({ kind: k === 'c' ? 'card' : 'box', x: y, it: k === 'c' ? cItem(y) : gItem(y), P: num(String(e.price).replace(',', '.')) });
+  });
+  return out;
+}
+function cartOpts() {
+  return `<optgroup label="Boxy">${S.bl.map((g, i) => `<option value="b:${i}">${esc(g.name)} (×${g.n})</option>`).join('')}</optgroup><optgroup label="Karty">${S.cl.map((c, i) => `<option value="c:${i}">${esc(cardTitle(c))}</option>`).join('')}</optgroup>`;
+}
+function renderCart() {
+  const box = $('s-cart'); if (!box) return;
+  if (S.mode !== 'new') { box.innerHTML = ''; return; }
+  box.innerHTML = S.extra.map((e, i) => `<div class="cx-cartrow"><select onchange="UI.cartSet(${i},'v',this.value)">${cartOpts().replace(`value="${e.v}"`, `value="${e.v}" selected`)}</select><input inputmode="decimal" placeholder="cena zł" value="${esc(String(e.price))}" oninput="UI.cartSet(${i},'price',this.value,true)"><button class="row-btn" title="Usuń z koszyka" onclick="UI.cartDel(${i})"><span class="material-symbols-outlined">close</span></button></div>`).join('') +
+    `<button class="btn-small" onclick="UI.cartAdd()"><span class="material-symbols-outlined">add_shopping_cart</span>Dodaj produkt do tego koszyka</button>`;
+}
+function cartAdd() {
+  S.bl = onHand(); S.cl = M.held.slice().sort((a, b) => b.marketValue - a.marketValue);
+  if (!S.bl.length && !S.cl.length) { toast('Brak towaru do dodania', 'err'); return; }
+  const e = { v: S.bl.length ? 'b:0' : 'c:0', price: '' }; S.extra.push(e); cartPrice(S.extra.length - 1); renderCart(); renderSell();
+}
+function cartPrice(i) {
+  const e = S.extra[i], [k, j] = e.v.split(':'), y = (k === 'c' ? S.cl : S.bl)[+j]; if (!y) return;
+  const it = k === 'c' ? cItem(y) : gItem(y), c = sCh();
+  e.price = String(k === 'c' ? Math.max(Math.round(it.value || 0), recommend(it, { ...c, ship: 0 }, 0, sNoVat())) : recommend(it, { ...c, ship: 0 }, TM(), sNoVat()));
+}
+function cartSet(i, f, v, live) { if (!S.extra[i]) return; S.extra[i][f] = v; if (f === 'v') { cartPrice(i); renderCart(); } renderSell(); }
+function cartDel(i) { S.extra.splice(i, 1); renderCart(); renderSell(); }
+/** Edycja: sprzedaże z tego samego dnia i kanału, które można spiąć w jedno zamówienie. */
+function mergeCands() {
+  if (S.mode !== 'edit' || !S.sale) return [];
+  return allSold().filter(o => o.ref.sale.date === S.sale.date && o.ref.sale.channel === S.sale.channel && !(o.ref.sale.refund > 0) && !o.ref.sale.returned);
+}
+function renderMerge() {
+  const box = $('s-merge'); if (!box) return;
+  const L = mergeCands(), me = S.ref && S.ref.id;
+  if (S.mode !== 'edit' || L.length < 2) { box.innerHTML = ''; return; }
+  box.innerHTML = `<label>Jedno zamówienie (koszyk)</label><div class="hint" style="margin-bottom:6px">Zaznacz pozycje wysłane razem — wysyłkę z pola poniżej podzielę między nie po cenach.</div>` + L.map(o => `<label class="cx-check"><input type="checkbox" ${o.ref.id === me ? 'checked disabled' : ''} ${S.members.includes(o.ref.id) ? 'checked' : ''} onchange="UI.mergeToggle('${o.ref.id}',this.checked)"> ${esc(o.name)} · ${fmt(num(o.ref.sale.price))}</label>`).join('');
+}
+function mergeToggle(id, on) { S.members = on ? [...new Set([...S.members, id])] : S.members.filter(x => x !== id); renderSell(); }
+/** Wszystkie pozycje bieżącego zamówienia przy edycji (z własną wartością ceny z formularza). */
+function editCart() {
+  const me = S.ref.id, ids = new Set([me, ...S.members]);
+  return allSold().filter(o => ids.has(o.ref.id)).map(o => ({ ...o, it: o.kind === 'card' ? cItem(M.byId.get(o.ref.id)) : (b => ({ cost: b.landed, vatCost: b.landedGross, scheme: b.vatScheme }))(M.boxes.find(b => b.id === o.ref.id)), P: o.ref.id === me ? numIn('s-price') : num(o.ref.sale.price) * fxFor(o.ref.sale.currency, o.ref.sale.fx) }));
 }
 const sNoVat = () => !vatOn() || (getv('s-date') || today()) < vatFrom();
 function sCh() { const c = chOf(S.ch); return { ...c, fee: numIn('s-pct'), fixed: S.mode === 'edit' && S.sale ? num(S.sale.feeAbs) : num(c.fixed), ship: numIn('s-ship') }; }
@@ -984,14 +1042,14 @@ function defaultPrice() {
   return recommend(it, sCh(), TM(), sNoVat());
 }
 function openSell(kind = 'box', key, ch, price) {
-  S.mode = 'new'; S.kind = kind; S.ref = null; S.sale = null;
+  S.mode = 'new'; S.kind = kind; S.ref = null; S.sale = null; S.extra = []; S.members = [];
   S.ch = ch || (kind === 'card' ? (settings.cardChannel || 'Vinted') : (CHS()[0] || {}).name || 'Vinted');
   $('s-title').textContent = 'Sprzedaż'; $('s-pick').hidden = false; $('s-fixed').hidden = true; $('s-ret').hidden = true;
   setv('s-date', today()); $('s-inv').checked = false; setFeeFromCh();
   fillSellItems(key);
   if (price) setv('s-price', price);
   $('s-foot').innerHTML = `<button class="btn-small ghost" onclick="UI.close()">Anuluj</button><button class="btn-small primary" onclick="UI.saveSale()">Zapisz sprzedaż</button>`;
-  open_('m-sell'); renderSell();
+  open_('m-sell'); renderCart(); renderMerge(); renderSell();
 }
 function fillSellItems(key) {
   segSet('s-kind', S.kind);
@@ -1005,15 +1063,17 @@ function fillSellItems(key) {
 function editSale(kind, id) {
   const ref = kind === 'card' ? state.cards.find(c => c.id === id) : state.boxes.find(b => b.id === id);
   if (!ref || !ref.sale) return;
-  S.mode = 'edit'; S.kind = kind; S.ref = { kind, id }; S.sale = ref.sale; S.ch = ref.sale.channel || 'Vinted';
+  S.mode = 'edit'; S.kind = kind; S.ref = { kind, id }; S.sale = ref.sale; S.ch = ref.sale.channel || 'Vinted'; S.extra = [];
+  S.members = ref.sale.orderId ? allSold().filter(o => o.ref.sale.orderId === ref.sale.orderId).map(o => o.ref.id) : [id];
+  if (S.members.length > 1) setv('s-ship', 0);
   const view = kind === 'card' ? M.byId.get(id) : M.boxes.find(b => b.id === id);
   $('s-title').textContent = 'Sprzedaż — edycja'; $('s-pick').hidden = true; $('s-fixed').hidden = false; $('s-ret').hidden = true;
   $('s-fixed').innerHTML = `<label>Sprzedany towar</label><div class="cx-strong">${kindIco(kind)} ${esc(kind === 'card' ? cardTitle(ref) : ref.name)}</div><div class="hint">koszt ${fmt2(kind === 'card' ? view.basis : view.landed)} netto · sprzedane ${dFull(ref.sale.date)}</div>`;
   setv('s-price', num(ref.sale.price) * fxFor(ref.sale.currency, ref.sale.fx)); setv('s-date', ref.sale.date);
-  setv('s-pct', num(ref.sale.feePct)); setv('s-ship', num(ref.sale.shippingOut)); $('s-inv').checked = !!ref.sale.invoiced;
+  setv('s-pct', num(ref.sale.feePct)); setv('s-ship', S.members.length > 1 ? +sum(allSold().filter(o => S.members.includes(o.ref.id)), o => num(o.ref.sale.shippingOut)).toFixed(2) : num(ref.sale.shippingOut)); $('s-inv').checked = !!ref.sale.invoiced;
   $('s-foot').innerHTML = `<button class="btn-small ghost" style="margin-right:auto;color:var(--tc-neg)" onclick="UI.deleteSale()"><span class="material-symbols-outlined">delete</span>Usuń sprzedaż</button>
     <button class="btn-small" onclick="UI.toggleRet()"><span class="material-symbols-outlined">undo</span>Zwrot</button><button class="btn-small primary" onclick="UI.saveSale()">Zapisz zmiany</button>`;
-  open_('m-sell'); renderSell();
+  open_('m-sell'); renderCart(); renderMerge(); renderSell();
 }
 function renderSell() {
   const it = sItem(), ch = sCh(), cfg = chOf(S.ch), nv = sNoVat();
@@ -1028,9 +1088,20 @@ function renderSell() {
     if (it.value) opts.unshift([Math.round(it.value), 'wycena']);
     $('s-sugg').innerHTML = opts.map(([p, l]) => `<button onclick="UI.setPrice(${p})">${fmt(p)} · ${l}</button>`).join('');
   } else $('s-sugg').innerHTML = `<button onclick="UI.setPrice(${num(S.sale.price) * fxFor(S.sale.currency, S.sale.fx)})">przywróć ${fmt2(num(S.sale.price) * fxFor(S.sale.currency, S.sale.fx))}</button>`;
-  const P = numIn('s-price'), r = calc(it, ch, P, nv);
+  const lines = S.mode === 'new' ? cartLines() : S.members.length > 1 ? editCart() : [];
+  const multi = lines.length > 1;
+  $('s-ship-l').textContent = multi ? `Wysyłka za całe zamówienie (zł) — ${lines.length} poz.` : 'Wysyłka po Twojej stronie (zł)';
+  let P = numIn('s-price'), r = calc(it, ch, P, nv);
+  $('s-price-l').textContent = S.mode === 'new' && multi ? 'Cena pierwszego produktu (zł)' : 'Cena, którą płaci kupujący (zł)';
+  if (multi) {
+    const prices = lines.map(l => l.P), sh = splitBy(numIn('s-ship'), prices), fx = splitBy(S.mode === 'edit' ? sum(lines, l => num(l.ref.sale.feeAbs)) : num(ch.fixed), prices);
+    const rs = lines.map((l, i) => calc(l.it, { ...ch, ship: sh[i], fixed: fx[i] }, l.P, nv));
+    r = { ...r }; ['P', 'outVat', 'fee', 'feeVat', 'ship', 'shipVat', 'cashIn', 'vatPay', 'ryc', 'cost', 'profit'].forEach(k => r[k] = sum(rs, q => q[k]));
+    r.roi = r.cost > 0 ? r.profit / r.cost * 100 : 0; P = r.P;
+    $('s-sugg').innerHTML = `<span class="hint">Koszyk: ${lines.map((l, i) => `${fmt2(l.P)} (wysyłka ${fmt2(sh[i])})`).join(' + ')}</span>`;
+  }
   $('s-wf').innerHTML = `
-    <div class="r"><span>Kupujący płaci</span><b>${fmt2(P)}</b></div>
+    <div class="r"><span>Kupujący płaci${multi ? ' (razem)' : ''}</span><b>${fmt2(P)}</b></div>
     <div class="r"><span>− prowizja ${esc(ch.name)}${num(ch.fee) ? ` (${num(ch.fee)}%)` : ''}</span><span>${r.fee ? '−' + fmt2(r.fee) : '—'}</span></div>
     <div class="r"><span>− wysyłka po Twojej stronie</span><span>${r.ship ? '−' + fmt2(r.ship) : '—'}</span></div>
     <div class="r tot"><span>Wpłynie na konto</span><span>${fmt2(r.cashIn)}</span></div>
@@ -1042,6 +1113,7 @@ function renderSell() {
     <div class="r tot"><span>Zysk na czysto</span><span class="${r.profit >= 0 ? 'pos' : 'neg'}">${fmt2(r.profit)}</span></div>`;
   $('s-res').innerHTML = `<div class="box"><div class="k">ROI (zysk / koszt)</div><div class="v ${r.roi >= TM() ? 'pos' : r.roi >= 0 ? 'warn' : 'neg'}">${pct(r.roi)}</div></div>
     <div class="box"><div class="k">Odłóż na podatki</div><div class="v">${fmt2(r.vatPay + r.ryc)}</div><div class="n">VAT ${fmt2(r.vatPay)} · ryczałt ${fmt2(r.ryc)}</div></div>`;
+  renderMerge();
   if (!$('s-ret').hidden) renderRet();
 }
 function saveSale() {
@@ -1050,34 +1122,59 @@ function saveSale() {
   const date = getv('s-date') || today(), ch = sCh();
   if (S.mode === 'edit') {
     const ref = S.ref.kind === 'card' ? state.cards.find(c => c.id === S.ref.id) : state.boxes.find(b => b.id === S.ref.id);
+    const prevOrder = ref.sale.orderId, before = prevOrder ? allSold().filter(o => o.ref.sale.orderId === prevOrder) : [];
     ref.sale = { ...ref.sale, date, price: P, currency: 'PLN', fx: null, channel: S.ch, feePct: num(ch.fee), shippingOut: num(ch.ship), invoiced: $('s-inv').checked };
-    close(); commit('Sprzedaż poprawiona'); return;
-  }
-  const x = S.list[+getv('s-item')]; if (!x) { toast('Wybierz towar', 'err'); return; }
-  const sale = { date, price: P, currency: 'PLN', fx: null, channel: S.ch, feePct: num(ch.fee), feeAbs: num(ch.fixed), shippingOut: num(ch.ship), shippingIn: 0, orderId: '', refund: 0, invoiced: $('s-inv').checked, note: '' };
-  let pnl, unlistMsg = '';
-  if (S.kind === 'card') {
-    const card = state.cards.find(c => c.id === x.id);
-    card.sale = sale; card.status = 'sold'; card.listing = null;
-    if (state.listings) delete state.listings['card:' + card.id];
-    pnl = calc(cItem(x), ch, P, sNoVat()).profit;
-  } else {
-    const box = state.boxes.find(b => b.id === x.items.find(i => !i.transit).id);
-    box.sale = sale; box.status = 'sold';
-    pnl = calc(gItem(x), ch, P, sNoVat()).profit;
-    /* Ostatnia sztuka: ogłoszenie na kanale sprzedaży kończy się samo, pozostałe trzeba zdjąć ręcznie. */
-    if (!state.boxes.some(b => b.status === 'sealed' && b.name === box.name)) {
-      setListing(box.name, S.ch, '');
-      const o = (state.listings || {})[box.name] || {}, left = Object.keys(o).filter(c => isOn(o[c]));
-      if (left.length) unlistMsg = ` Ostatnia sztuka — zdejmij ogłoszenie z: ${left.join(', ')}.`; else if (state.listings) delete state.listings[box.name];
+    if (S.members.length > 1) {
+      /* koszyk: wspólna data, kanał i prowizja %, wysyłka i opłata stała dzielone po cenach */
+      const cart = editCart(), oid = prevOrder || uid('sord'), prices = cart.map(l => l.P);
+      const sh = splitBy(numIn('s-ship'), prices), fx = splitBy(sum(cart, l => num(l.ref.sale.feeAbs)), prices);
+      cart.forEach((l, i) => Object.assign(l.ref.sale, { date, channel: S.ch, feePct: num(ch.fee), shippingOut: sh[i], feeAbs: fx[i], orderId: oid }));
     }
+    /* pozycje odznaczone z koszyka wracają jako osobne sprzedaże (wysyłka zostaje, jaka była) */
+    before.filter(o => !S.members.includes(o.ref.id)).forEach(o => { o.ref.sale.orderId = ''; });
+    const left = prevOrder ? allSold().filter(o => o.ref.sale.orderId === prevOrder) : [];
+    if (left.length === 1) left[0].ref.sale.orderId = '';
+    close(); commit(S.members.length > 1 ? `Zamówienie poprawione — ${S.members.length} poz.` : 'Sprzedaż poprawiona'); return;
   }
-  close(); commit(`Sprzedane — zysk na czysto ${fmtPLN0(pnl, true)}.${unlistMsg}`, pnl >= 0 ? 'ok' : 'err');
+  if (!S.list[+getv('s-item')]) { toast('Wybierz towar', 'err'); return; }
+  const lines = cartLines();
+  if (lines.some(l => l.P <= 0)) { toast('Podaj cenę każdej pozycji w koszyku', 'err'); return; }
+  /* dwie pozycje z tego samego produktu nie mogą zabrać więcej sztuk, niż jest na stanie */
+  const need = new Map(); lines.filter(l => l.kind === 'box').forEach(l => need.set(l.x.key, (need.get(l.x.key) || 0) + 1));
+  for (const l of lines) if (l.kind === 'box' && need.get(l.x.key) > l.x.items.filter(i => !i.transit).length) { toast(`Na stanie jest tylko ${l.x.items.filter(i => !i.transit).length} szt. „${l.x.name}”`, 'err'); return; }
+  const multi = lines.length > 1, prices = lines.map(l => l.P), sh = splitBy(num(ch.ship), prices), fxs = splitBy(num(ch.fixed), prices), oid = multi ? uid('sord') : '';
+  const used = new Set(); let pnl = 0, unlistMsg = '';
+  lines.forEach((l, i) => {
+    const sale = { date, price: l.P, currency: 'PLN', fx: null, channel: S.ch, feePct: num(ch.fee), feeAbs: multi ? fxs[i] : num(ch.fixed), shippingOut: multi ? sh[i] : num(ch.ship), shippingIn: 0, orderId: oid, refund: 0, invoiced: $('s-inv').checked, note: '' };
+    if (l.kind === 'card') {
+      const card = state.cards.find(c => c.id === l.x.id);
+      card.sale = sale; card.status = 'sold'; card.listing = null;
+      if (state.listings) delete state.listings['card:' + card.id];
+    } else {
+      const box = state.boxes.find(b => !b.transit && !used.has(b.id) && l.x.items.some(it => it.id === b.id));
+      used.add(box.id); box.sale = sale; box.status = 'sold';
+      /* Ostatnia sztuka: ogłoszenie na kanale sprzedaży kończy się samo, pozostałe trzeba zdjąć ręcznie. */
+      if (!state.boxes.some(b => b.status === 'sealed' && b.name === box.name)) {
+        setListing(box.name, S.ch, '');
+        const o = (state.listings || {})[box.name] || {}, left = Object.keys(o).filter(c => isOn(o[c]));
+        if (left.length) unlistMsg += ` Ostatnia sztuka „${box.name}” — zdejmij ogłoszenie z: ${left.join(', ')}.`; else if (state.listings) delete state.listings[box.name];
+      }
+    }
+    pnl += calc(l.it, { ...ch, ship: multi ? sh[i] : num(ch.ship), fixed: multi ? fxs[i] : num(ch.fixed) }, l.P, sNoVat()).profit;
+  });
+  close(); commit(`Sprzedane${multi ? ` ${lines.length} poz.` : ''} — zysk na czysto ${fmtPLN0(pnl, true)}.${unlistMsg}`, pnl >= 0 ? 'ok' : 'err');
 }
 function deleteSale() {
   const ref = S.ref.kind === 'card' ? state.cards.find(c => c.id === S.ref.id) : state.boxes.find(b => b.id === S.ref.id);
   if (!ref || !confirm('Usunąć tę sprzedaż? Towar wróci na stan.')) return;
+  const oid = ref.sale.orderId, gone = ref.sale;
   ref.sale = null; ref.status = S.ref.kind === 'card' ? 'held' : 'sealed';
+  /* zostają pozycje z tego koszyka — przejmują wysyłkę i opłatę stałą usuniętej, podzielone po cenach */
+  const rest = oid ? allSold().filter(o => o.ref.sale.orderId === oid) : [];
+  if (rest.length) {
+    const pr = rest.map(o => num(o.ref.sale.price)), sh = splitBy(sum(rest, o => num(o.ref.sale.shippingOut)) + num(gone.shippingOut), pr), fx = splitBy(sum(rest, o => num(o.ref.sale.feeAbs)) + num(gone.feeAbs), pr);
+    rest.forEach((o, i) => { o.ref.sale.shippingOut = sh[i]; o.ref.sale.feeAbs = fx[i]; if (rest.length === 1) o.ref.sale.orderId = ''; });
+  }
   close(); commit('Sprzedaż usunięta — towar wrócił na stan');
 }
 /* Zwrot: pełny (towar wraca) albo częściowy (rabat, towar zostaje u kupującego). */
@@ -1731,7 +1828,7 @@ function init() {
 
 window.UI = {
   go, close, stockFilter, deliver: key => { const g = gByKey(key); if (!g) return; g.items.forEach(b => { const x = state.boxes.find(y => y.id === b.id); x.transit = false; x.deliveredDate = today(); }); commit(`Dostarczone: ${g.n}× ${g.name}`); },
-  openSell, editSale, saveSale, deleteSale, toggleRet, saveRet, undoReturn, setPrice: p => { setv('s-price', p); renderSell(); }, feeReset: () => { setFeeFromCh(); renderSell(); },
+  openSell, editSale, saveSale, cartAdd, cartSet, cartDel, mergeToggle, deleteSale, toggleRet, saveRet, undoReturn, setPrice: p => { setv('s-price', p); renderSell(); }, feeReset: () => { setFeeFromCh(); renderSell(); },
   salesCh: v => { SF.ch = v; renderSales(); }, toastInfo: t => toast(t),
   openBuy, saveBuy, deleteOrder, toggleBuyRet, saveBuyRet, line, addLine, delLine,
   openOpen, saveOpen, pull, addPull, delPull,

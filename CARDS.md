@@ -493,3 +493,5 @@ Moduł planuje i przygotowuje dane dla księgowej — nie generuje JPK.
   ceny parallela z niskim nakładem.
 - Nie obsługuje wielu egzemplarzy tej samej karty w jednym rekordzie — każda karta
   to osobna pozycja, bo każda ma własny stan, wycenę i historię.
+
+- Koszyk: kilka sprzedaży z jednego zamówienia mają wspólne `sale.orderId` (`sord_…`). Wysyłka (`shippingOut`) i opłata stała (`feeAbs`) są dzielone między nie proporcjonalnie do cen (grosze do najdroższej pozycji); przy edycji, odpinaniu i usuwaniu pozycji podział liczy się od nowa.
