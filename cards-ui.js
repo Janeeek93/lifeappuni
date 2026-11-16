@@ -731,15 +731,23 @@ function renderBreaks() {
 
 /* Rotacja: co kupione, ile sprzedane, jak szybko i z jakim zyskiem. */
 function renderRotation() {
-  const Gm = new Map();
-  M.boxes.forEach(b => { const k = normName(b.name); if (!Gm.has(k)) Gm.set(k, { name: b.name, bought: 0, sold: 0, stock: 0, p: 0, g: 0, dd: 0, n: 0 }); const o = Gm.get(k); o.bought++; if (b.status === 'sold') o.sold++; else if (b.status === 'sealed') o.stock++; });
-  deals().filter(s => s.kind === 'box').forEach(s => { const o = Gm.get(normName(s.name)); if (!o) return; o.p += pnlNet(s); o.g += s.gross; o.dd += s.days || 0; o.n++; });
+  /* Klucz = produkt + sezon (25/26 i 26/27 to osobne pozycje), a to, co jeszcze jedzie, nie liczy się do kupionych ani do stanu. */
+  const Gm = new Map(), keyOf = {};
+  M.boxes.forEach(b => {
+    const k = normName(b.name) + '|' + (b.season || ((b.name.match(/20\d\d[\/-]\d{2}/) || [''])[0]));
+    keyOf[b.id] = k;
+    if (!Gm.has(k)) Gm.set(k, { name: b.name, bought: 0, sold: 0, stock: 0, way: 0, p: 0, g: 0, dd: 0, n: 0 });
+    const o = Gm.get(k);
+    if (b.transit && b.status === 'sealed') { o.way++; return; }
+    o.bought++; if (b.status === 'sold') o.sold++; else if (b.status === 'sealed') o.stock++;
+  });
+  deals().filter(s => s.kind === 'box').forEach(s => { const o = Gm.get(keyOf[s.id] || ''); if (!o) return; o.p += pnlNet(s); o.g += s.gross; o.dd += s.days || 0; o.n++; });
   const L = [...Gm.values()].filter(o => o.bought >= 2).sort((a, b) => b.p - a.p).slice(0, 15);
   $('r-rot').innerHTML = `<table class="tc-tbl"><thead><tr><th>Produkt</th><th class="num">Kupione</th><th class="num">Sprzedane</th><th>Sprzedaż z zakupu</th><th class="num">Na stanie</th><th class="num">Śr. dni</th><th class="num">Marża</th><th class="num">Zysk</th><th>Ocena</th></tr></thead><tbody>` +
     L.map(o => { const st = o.sold / o.bought * 100, dd = o.n ? o.dd / o.n : null, m = o.g ? o.p / o.g * 100 : null;
       const tag = st >= 70 && dd !== null && dd <= 21 && m >= 20 ? ['pos', 'kupuj dalej'] : st < 30 && o.stock ? ['warn', 'stoi'] : m !== null && m < 15 ? ['neg', 'słaba marża'] : ['', 'ok'];
-      return `<tr><td>${esc(o.name)}</td><td class="num">${o.bought}</td><td class="num">${o.sold}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="cx-bar" style="width:90px"><i style="width:${st}%;background:${st >= 70 ? 'var(--tc-pos)' : st >= 30 ? 'var(--tc-accent)' : 'var(--tc-warn)'}"></i></div><span class="cx-note">${pct(st)}</span></div></td><td class="num">${o.stock || '—'}</td><td class="num">${dd !== null ? Math.round(dd) : '—'}</td><td class="num">${pct(m)}</td><td class="num ${o.p >= 0 ? 'pos' : 'neg'}"><b>${o.n ? fmt(o.p) : '—'}</b></td><td><span class="cx-pill ${tag[0]}">${tag[1]}</span></td></tr>`; }).join('') +
-    `</tbody></table><p class="cx-note" style="padding:10px 16px">„Kupuj dalej”: sprzedane ≥70% zakupu, średnio do 3 tygodni, marża ≥20%. „Stoi”: sprzedane poniżej 30% i jest jeszcze na stanie. Produkty kupione min. 2 razy, posortowane po zysku na czysto.</p>`;
+      return `<tr><td>${esc(o.name)}</td><td class="num">${o.bought}</td><td class="num">${o.sold}</td><td><div style="display:flex;align-items:center;gap:8px"><div class="cx-bar" style="width:90px"><i style="width:${st}%;background:${st >= 70 ? 'var(--tc-pos)' : st >= 30 ? 'var(--tc-accent)' : 'var(--tc-warn)'}"></i></div><span class="cx-note">${pct(st)}</span></div></td><td class="num">${o.stock || '—'}${o.way ? ` <span class="cx-note" title="w drodze — jeszcze nie liczone">+${o.way} w drodze</span>` : ''}</td><td class="num">${dd !== null ? Math.round(dd) : '—'}</td><td class="num">${pct(m)}</td><td class="num ${o.p >= 0 ? 'pos' : 'neg'}"><b>${o.n ? fmt(o.p) : '—'}</b></td><td><span class="cx-pill ${tag[0]}">${tag[1]}</span></td></tr>`; }).join('') +
+    `</tbody></table><p class="cx-note" style="padding:10px 16px">„Kupuj dalej”: sprzedane ≥70% zakupu, średnio do 3 tygodni, marża ≥20%. „Stoi”: sprzedane poniżej 30% i jest jeszcze na stanie. Produkty kupione min. 2 razy (osobno każdy sezon; to, co jeszcze w drodze, nie wlicza się do kupionych), posortowane po zysku na czysto.</p>`;
 }
 
 /* ============================================================
