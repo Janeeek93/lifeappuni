@@ -354,6 +354,7 @@ function renderStock() {
   $('stock-filter').style.display = $('stock-sort').style.display = stockKind === 'box' ? '' : 'none';
   const q = getv('stock-q').trim().toLowerCase();
   if (stockKind === 'card') return renderStockCards(q);
+  if (stockKind === 'open') return renderStockOpened(q);
   const v = chOf(CHS()[0] ? CHS()[0].name : 'Vinted');
   const H = onHand(), slowD = num(settings.slowDays) || 45, slow = H.filter(g => g.days > slowD);
   $('stock-kpi').innerHTML = [
@@ -385,6 +386,41 @@ function renderStock() {
     (way.length ? `<div class="cx-sec way"><b><span class="material-symbols-outlined">local_shipping</span>W drodze — jeszcze nie w magazynie</b><span>${sum(way, g => g.n)} szt. · ${fmt(sum(way, g => g.capital))} netto · możesz już wystawiać w przedsprzedaży</span></div>` + way.map(row).join('') : '')
     : empty(stockF === 'todo' ? `Wszystko wystawione${stockCh ? ' na ' + esc(stockCh) : ''}.` : 'Nic tu nie ma dla tych filtrów.');
 }
+/* ---------- Otwarte boxy: wynik breaka i losy kart z każdego boxa ---------- */
+const openedExp = new Set();
+function openedToggle(id) { if (openedExp.has(id)) openedExp.delete(id); else openedExp.add(id); renderStockOpened(getv('stock-q').trim().toLowerCase()); }
+function openedFocus(id) { stockKind = 'open'; openedExp.add(id); segSet('stock-kind', 'open'); go('stock'); renderStock(); setTimeout(() => { const el = document.getElementById('opn-' + id); if (el) el.scrollIntoView({ block: 'center' }); }, 50); }
+function pullVal(c) { return c.sold ? c.net - c.vatOut : c.marketValueNet; }
+function renderStockOpened(q) {
+  const O = M.opened.slice().sort((a, b) => ((a.openedDate || a.date) < (b.openedDate || b.date) ? 1 : -1)).filter(b => !q || b.name.toLowerCase().includes(q));
+  const allPulls = sum(M.opened, b => b.pulls.length), soldN = sum(M.opened, b => b.pulls.filter(c => c.sold).length), bs = M.breakStats;
+  $('stock-lst').hidden = true;
+  $('stock-kpi').innerHTML = [
+    kpi('Otwarte boxy', `${M.opened.length} szt.`, `koszt netto ${fmt(bs.cost)}`),
+    kpi('Wynik breaków', fmt(bs.pnl), `wróciło ${fmt(bs.ret)} · ROI ${pct(bs.roi)}`, bs.pnl >= 0 ? 'pos' : 'neg'),
+    kpi('Karty z boxów', `${allPulls} szt.`, `${soldN} sprzedanych · ${allPulls - soldN} jeszcze na stanie`),
+    kpi('Na minusie', `${M.opened.filter(b => b.pnl < 0).length}/${M.opened.length}`, 'boxów, które nie oddały kosztu (na papierze)', M.opened.some(b => b.pnl < 0) ? 'warn' : '')
+  ].join('');
+  $('stock-note').innerHTML = 'Wynik boxa = sprzedane karty (po VAT i kosztach) + wycena kart, które masz jeszcze na stanie + bulk − koszt boxa. Kliknij box, żeby zobaczyć jego karty. Nie widzisz otwartego boxa? Zapisz jego otwarcie w <b>Boxy → Otwórz</b>.';
+  const T = today();
+  $('stock-list').innerHTML = O.length ? O.map(b => {
+    const ex = openedExp.has(b.id), sold = b.pulls.filter(c => c.sold), held = b.pulls.filter(c => !c.sold);
+    const rs = sum(sold, c => c.net - c.vatOut), rh = sum(held, c => c.marketValueNet), rb = b.bulk, tot = Math.max(b.landed, rs + rh + rb) || 1;
+    const seg = (v, col) => v > 0 ? `<i style="width:${v / tot * 100}%;background:${col}"></i>` : '';
+    const head = `<div class="cx-opn-h" onclick="UI.openedToggle('${b.id}')"><span class="material-symbols-outlined cx-opn-chev">${ex ? 'expand_more' : 'chevron_right'}</span>
+      <div style="min-width:0"><div class="name">${esc(b.name)}</div><div class="meta"><span>otwarty ${dShort(b.openedDate || b.date)} (${daysBetween(b.openedDate || b.date, T)} dni temu)</span><span>${b.pulls.length ? `${nCards(b.pulls.length)}: ${sold.length} sprzedanych, ${held.length} na stanie` : '<span class="cx-pill warn">brak wpisanych kart</span>'}</span></div></div>
+      <div class="cx-opn-bar" title="sprzedane ${fmt(rs)} · na stanie ${fmt(rh)} · bulk ${fmt(rb)}"><div class="cx-bar" style="width:180px;position:relative">${seg(rs, 'var(--tc-pos)')}${seg(rh, 'var(--tc-accent)')}${seg(rb, 'var(--tc-line-strong)')}<span class="cx-opn-cost" style="left:${Math.min(100, b.landed / tot * 100)}%"></span></div><span class="cx-note">${fmt(rs + rh + rb)} z ${fmt(b.landed)}</span></div>
+      <div class="cx-opn-r"><b class="${b.pnl >= 0 ? 'pos' : 'neg'}">${fmt(b.pnl)}</b><span class="cx-pill ${b.pnl >= 0 ? 'pos' : 'neg'}">${b.multiple == null ? '—' : b.multiple.toFixed(2).replace('.', ',') + '×'}</span></div></div>`;
+    const body = !ex ? '' : (b.pulls.length || rb ? `<div class="tc-tbl-wrap"><table class="tc-tbl cx-fit"><thead><tr><th>Karta</th><th>Status</th><th class="num">Koszt netto</th><th class="num">Sprzedaż / wycena</th><th class="num">Zysk</th><th></th></tr></thead><tbody>` +
+      b.pulls.slice().sort((x, y) => (y.sold - x.sold) || pullVal(y) - pullVal(x)).map(c => `<tr><td class="wrap"><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}</span></div></td>
+        <td>${c.sold ? `<span class="cx-pill pos">sprzedana ${dShort(c.sale.date)} · ${esc(c.sale.channel || '')}</span>` : c.status === 'grading' ? '<span class="cx-pill acc">w gradingu</span>' : `<span class="cx-pill">na stanie · ${c.daysHeld} dni</span>`}</td>
+        <td class="num">${fmt2(c.basis)}</td><td class="num">${c.sold ? fmt(c.net - c.vatOut) : (c.hasValuation ? '≈ ' + fmt(c.marketValueNet) : '<span class="mut">brak wyceny</span>')}</td><td class="num ${c.pnl >= 0 ? 'pos' : 'neg'}">${fmt(c.pnl)}</td>
+        <td>${c.sold ? `<button class="btn-small" onclick="UI.editSale('card','${c.id}')">Sprzedaż</button>` : `<button class="btn-small primary" onclick="UI.openSell('card','${c.id}')">Sprzedaj</button>`}</td></tr>`).join('') +
+      (rb ? `<tr><td class="wrap"><span class="cd-name"><span class="t">Bulk (reszta boxa)</span></span></td><td></td><td class="num">—</td><td class="num">${fmt(rb)}</td><td class="num">${fmt(rb)}</td><td></td></tr>` : '') +
+      `</tbody><tfoot><tr><td>Razem</td><td></td><td class="num">${fmt2(b.landed)}</td><td class="num">${fmt(rs + rh + rb)}</td><td class="num ${b.pnl >= 0 ? 'pos' : 'neg'}">${fmt(b.pnl)}</td><td></td></tr></tfoot></table></div>`
+      : `<p class="cx-note" style="padding:12px 16px">Do tego boxa nie przypisano żadnych kart — wynik liczy się jako czysta strata kosztu. Karty z otwarcia dodasz w oknie otwarcia albo jako nową kartę z wyborem boxa.</p>`);
+    return `<div class="cx-opn${ex ? ' open' : ''}" id="opn-${b.id}">${head}${body}</div>`; }).join('') : empty(q ? 'Brak otwartych boxów dla tego wyszukiwania.' : 'Nie otworzyłeś jeszcze żadnego boxa.');
+}
 function renderStockCards(q) {
   const T = today(), c90 = deals().filter(s => s.kind === 'card' && s.date >= addDays(T, -90));
   $('stock-kpi').innerHTML = [
@@ -402,7 +438,7 @@ function renderStockCards(q) {
   const L = all.filter(c => !q || cardTitle(c).toLowerCase().includes(q)).slice(0, 80);
   $('stock-list').innerHTML = L.length ? `<div class="tc-tbl-wrap"><table class="tc-tbl cx-fit"><thead><tr><th></th><th>Karta</th><th class="num">Koszt netto</th><th class="num">Wycena</th><th class="num">Cena na ${esc(cc)}</th><th class="num">Zysk</th><th>Ogłoszenie</th><th></th></tr></thead><tbody>` +
     L.map(c => { const it = cItem(c), P = Math.max(Math.round(c.marketValue || 0), recommend(it, chOf(cc), 0)), r = calc(it, chOf(cc), P);
-      return `<tr><td style="width:40px">${kindIco('card')}</td><td class="wrap"><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.product, c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}</span></div></td>
+      return `<tr><td style="width:40px">${kindIco('card')}</td><td class="wrap"><div class="cd-name"><span class="t">${esc(c.player)}${c.rookie ? ' <span class="cd-tag rc">RC</span>' : ''}${c.auto ? ' <span class="cd-tag auto">AUTO</span>' : ''}</span><span class="s">${esc([c.product, c.parallel, c.run ? '/' + String(c.run).replace(/^\//, '') : ''].filter(Boolean).join(' · '))}${c.boxId ? ` · <a href="#" onclick="UI.openedFocus('${c.boxId}');return false">wynik boxa ›</a>` : ''}</span></div></td>
         <td class="num">${fmt2(c.basis)}</td><td class="num">${c.hasValuation ? fmt(c.marketValue) : '—'}</td><td class="num"><b>${fmt(P)}</b></td><td class="num ${r.profit >= 0 ? 'pos' : 'neg'}">${fmt(r.profit)}</td>
         <td>${(st => `<button class="cx-lst ${st}" onclick="UI.cardListing('${c.id}')"><span class="material-symbols-outlined">${st ? 'check_circle' : 'radio_button_unchecked'}</span>${st ? 'wystawiona' : 'wystaw'}</button>`)(lst('card:' + c.id, cc))}</td>
         <td><button class="btn-small" onclick="UI.openSell('card','${c.id}')">Sprzedaj</button></td></tr>`; }).join('') +
@@ -1836,7 +1872,7 @@ function init() {
 
 window.UI = {
   go, close, stockFilter, deliver: key => { const g = gByKey(key); if (!g) return; g.items.forEach(b => { const x = state.boxes.find(y => y.id === b.id); x.transit = false; x.deliveredDate = today(); }); commit(`Dostarczone: ${g.n}× ${g.name}`); },
-  openSell, editSale, saveSale, cartAdd, cartSet, cartDel, mergeToggle, deleteSale, toggleRet, saveRet, undoReturn, setPrice: p => { setv('s-price', p); renderSell(); }, feeReset: () => { setFeeFromCh(); renderSell(); },
+  openSell, editSale, saveSale, openedToggle, openedFocus, cartAdd, cartSet, cartDel, mergeToggle, deleteSale, toggleRet, saveRet, undoReturn, setPrice: p => { setv('s-price', p); renderSell(); }, feeReset: () => { setFeeFromCh(); renderSell(); },
   salesCh: v => { SF.ch = v; renderSales(); }, toastInfo: t => toast(t),
   openBuy, saveBuy, deleteOrder, toggleBuyRet, saveBuyRet, line, addLine, delLine,
   openOpen, saveOpen, pull, addPull, delPull,
