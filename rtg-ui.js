@@ -90,7 +90,7 @@
     if (warm.length) h += '<div><div class="rg-road-lbl">Rozgrzewka przed sezonem</div><div class="rg-road-warm">' + warm.map(roadTile).join('') + '</div></div>';
     var q = ['I kwartał', 'II kwartał', 'III kwartał', 'IV kwartał'];
     for (var i = 0; i < season.length; i += 13) h += '<div><div class="rg-road-lbl">' + q[i / 13] + ' · tygodnie ' + (i + 1) + '–' + Math.min(season.length, i + 13) + '</div><div class="rg-road-grid">' + season.slice(i, i + 13).map(roadTile).join('') + '</div></div>';
-    h += '</div><div class="rg-legend"><span>Kwadraciki: siłownia · bieg / kalorie · czytanie</span><span><span class="rg-lv lv-hit"></span>zaliczone</span><span><span class="rg-lv lv-part"></span>prawie / do tyłu</span><span><span class="rg-lv lv-miss"></span>pudło</span><span><span class="rg-lv lv-none"></span>przyszłość</span><span style="color:#b8860b">▣ złota ramka = tydzień zamknięty (wszystkie 4 cele)</span></div>';
+    h += '</div><div class="rg-legend"><span>Kwadraciki: siłownia · bieg / kalorie · czytanie</span><span><span class="rg-lv lv-hit"></span>zaliczone</span><span><span class="rg-lv lv-part"></span>prawie / do tyłu</span><span><span class="rg-lv lv-miss"></span>pudło</span><span><span class="rg-lv lv-none"></span>przyszłość</span><span style="color:#b8860b">▣ złota ramka = tydzień zamknięty (średnia realizacji celów ≥ 100%)</span></div>';
     return h;
   }
   function renderHome() {
@@ -115,14 +115,14 @@
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Ten tydzień</h3><span class="sub">' + (w.off ? 'tydzień wolny — nie liczy się do serii' : 'wynik tygodnia: ' + w.score + '%') + '</span></div><div class="rg-matrix">' +
       '<div class="rg-mrow head"><div class="rg-mname">Cel</div>' + w.days.map(function (d, i) { return '<div class="c' + (d.today ? ' today' : '') + '" style="text-align:center">' + DAYS[i] + ' ' + (+d.date.slice(8)) + '</div>'; }).join('') + '<div class="rg-mst">Status</div></div>' +
       ['gym', 'run', 'kcal', 'read'].map(function (k) { return matrixRow(k, w); }).join('') + '</div></div>';
-    h += '<div class="rg-grid2"><div class="rg-card"><div class="rg-card-h"><h3>Do zrobienia</h3><span class="sub">do niedzieli</span></div>' + todoHtml(s) + '</div>' +
+    h += '<div class="rg-grid2"><div class="rg-card"><div class="rg-card-h"><h3>Do zrobienia</h3><span class="sub">do zamknięcia tygodnia brakuje ' + Math.max(0, 100 - s.cur.score) + ' pkt proc.</span></div>' + todoHtml(s) + '</div>' +
       '<div class="rg-card"><div class="rg-card-h"><h3>Konsekwencja</h3><span class="sub">% tygodni z zaliczonym celem</span></div><div class="rg-card-b" style="padding:0">' + ratesTable(s) + '</div></div></div>';
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Droga do chwały</h3><span class="sub">' + esc(st.season.name) + ' · ' + st.season.weeks + ' tygodni od ' + dmy(st.season.start) + '</span></div><div class="rg-card-b">' + roadHtml(s) + '</div></div>';
     $('v-home').innerHTML = h;
   }
   function todoHtml(s) {
     if (s.cur.phase !== 'current') return '<div class="rg-empty">—</div>';
-    if (!s.todo.length) return '<div class="rg-empty"><b>Tydzień zamknięty 🏆</b>Wszystkie cztery cele zaliczone. Reszta tygodnia to bonus.</div>';
+    if (!s.todo.length) return '<div class="rg-empty"><b>Tydzień zamknięty 🏆</b>Średnia realizacji celów ≥ 100%. Reszta tygodnia to bonus.</div>';
     return '<div class="rg-todo">' + s.todo.map(function (t) {
       return '<div class="rg-todo-i ' + t.lvl + '"><div class="dot" style="background:' + G[t.key].color + '"><span class="material-symbols-outlined">' + G[t.key].ic + '</span></div><div><div class="t">' + esc(t.title) + '</div><div class="s">' + esc(t.sub) + '</div></div></div>';
     }).join('') + '</div>';
@@ -159,7 +159,7 @@
     }
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Porównanie z poprzednimi latami</h3><span class="sub">stare dane z modułu Progres — bez kalorii (nie były śledzone)</span></div><div class="rg-card-b"><div class="rg-years">' +
       ls.slice(-2).map(function (y) { return yearCard(y, false); }).join('') + yearCard(cur, true) + '</div>' +
-      (ls.length ? '<p class="rg-note" style="margin:12px 0 0">Archiwum: <a href="trainings-legacy.html">otwórz stary moduł Progres</a> (dane nietknięte, bez edycji tutaj). Do zamknięcia tygodnia w starym module liczyły się 3 cele; teraz są 4.</p>' : '') + '</div></div>';
+      (ls.length ? '<p class="rg-note" style="margin:12px 0 0">Archiwum: <a href="trainings-legacy.html">otwórz stary moduł Progres</a> (dane nietknięte, bez edycji tutaj). Tydzień zamknięty = średnia realizacji celów ≥ 100% (nadwyżka pokrywa braki; w 2027 doszły kalorie, liczone maks. do 100%).</p>' : '') + '</div></div>';
     h += '<div class="rg-grid2"><div class="rg-card"><div class="rg-card-h"><h3>Konsekwencja</h3><span class="sub">% tygodni z zaliczonym celem</span></div><div style="padding:0">' + ratesTable(s) + '</div></div>' +
       '<div class="rg-card"><div class="rg-card-h"><h3>Wynik tygodni</h3><span class="sub">% realizacji 4 celów</span></div><div class="rg-card-b"><div class="rg-chart sm"><canvas id="ch-weeks"></canvas></div></div></div></div>';
     // miesiące

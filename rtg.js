@@ -141,9 +141,15 @@
       read: { done: pages, target: g.pagesPerWeek, lvl: lvlCount(pages, g.pagesPerWeek, phase, elapsed, left, false) },
       kcal: { done: kOk, target: kT, bad: kBad, pending: kPending, lvl: kLvl }
     };
-    var ratios = GOALS.map(function (k) { var o = w[k]; return o.target > 0 ? Math.min(1, o.done / o.target) : 1; });
-    w.score = Math.round(100 * sum(ratios) / ratios.length);
-    w.closed = GOALS.every(function (k) { return w[k].lvl === 'hit'; });
+    // nadwyżka jednego celu pokrywa braki innego (jak w starym module); kalorie max 100%
+    var ratios = GOALS.map(function (k) {
+      var o = w[k], r = o.target > 0 ? o.done / o.target : 1;
+      return k === 'kcal' ? Math.min(1, r) : r;
+    });
+    var avg = sum(ratios) / ratios.length;
+    w.score = Math.round(100 * avg);
+    w.closed = phase !== 'future' && w.score >= 100; // zaokrąglenie do pełnych % jak w starym module
+    w.strict = GOALS.every(function (k) { return w[k].lvl === 'hit'; });
     return w;
   }
 
@@ -249,7 +255,7 @@
   function fmt(n, d) { return Number(n).toLocaleString('pl-PL', { maximumFractionDigits: d == null ? 1 : d }); }
   function todoList(st, w) {
     var out = [];
-    if (w.phase !== 'current') return out;
+    if (w.phase !== 'current' || w.closed) return out;
     var left = w.left, ds = left + ' ' + plural(left, 'dzień', 'dni', 'dni');
     var g = w.gym;
     if (g.lvl !== 'hit') {
@@ -279,7 +285,8 @@
   }
 
   /* ---------- dane z poprzedniego roku (stary moduł) ---------- */
-  function legacyStats(legacy, lg) {
+  function legacyStats(legacy, lg, today) {
+    today = today || todayStr();
     // legacy: {activities:{date:[{type,completed,loggedValue,plannedValue}]}, vacations:{date:true}}
     lg = lg || { gym: 3, run: 5, read: 100 };
     if (!legacy || !legacy.activities) return null;
@@ -301,7 +308,8 @@
     });
     if (!first) return null;
     var res = {};
-    for (var m = mondayOf(first); m <= mondayOf(last); m = addDays(m, 7)) {
+    var lastMon = addDays(mondayOf(today), -7); if (mondayOf(last) > lastMon) lastMon = mondayOf(last);
+    for (var m = mondayOf(first); m <= lastMon; m = addDays(m, 7)) {
       var vdays = 0; for (var i = 0; i < 7; i++) if (vac[addDays(m, i)]) vdays++;
       if (vdays >= 4) continue;
       var y = addDays(m, 3).slice(0, 4);
@@ -310,7 +318,7 @@
       r.weeks++;
       var hg = o.gym >= lg.gym, hr = o.run >= lg.run, hp = o.read >= lg.read;
       if (hg) r.gym++; if (hr) r.run++; if (hp) r.read++;
-      if (hg && hr && hp) r.closed++;
+      if (Math.round(100 * (o.gym / lg.gym + o.run / lg.run + o.read / lg.read) / 3) >= 100) r.closed++;
       r.gymSum += o.gym; r.kmSum += o.run; r.pagesSum += o.read;
     }
     return Object.keys(res).sort().map(function (k) { return res[k]; });
