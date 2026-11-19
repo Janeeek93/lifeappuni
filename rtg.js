@@ -15,12 +15,13 @@
   function defaults() {
     return {
       v: 1,
-      season: { name: 'Road to Glory 2027', start: '2027-01-04', weeks: 52 },
+      season: { name: 'Road to Glory 2027', start: '2026-11-23', weeks: 57 },
       goals: {
         gymPerWeek: 3, gymMinMinutes: 20,
         runKmPerWeek: 5,
         pagesPerWeek: 100,
-        kcalMin: 2100, kcalMax: 2400, proteinMin: 140, kcalDaysPerWeek: 6, kcalConfirmed: true
+        kcalMin: 2100, kcalMax: 2400, proteinMin: 140, kcalDaysPerWeek: 6, kcalConfirmed: true,
+        stepsTarget: 8000, sleepTarget: 7
       },
       workouts: [],   // {id,date,kind:'gym'|'run'|'other',min,km,avgHr,maxHr,kcal,src}
       days: {},       // 'YYYY-MM-DD': {kcal,protein,carbs,fat,pages,steps,sleepH,rhr,hrv}
@@ -67,7 +68,9 @@
     });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(out.season.start))) out.season.start = d.season.start;
     out.season.start = mondayOf(out.season.start);
-    if (!(out.season.weeks > 0)) out.season.weeks = 52;
+    if (!(out.season.weeks > 0)) out.season.weeks = d.season.weeks;
+    // migracja: poprzedni domyślny start (4.01.2027, 52 tyg.) -> start 23.11.2026
+    if (out.season.start === '2027-01-04' && out.season.weeks === 52) { out.season.start = d.season.start; out.season.weeks = d.season.weeks; }
     return out;
   }
   function wid(w) { return 'w_' + w.date + '_' + (w.kind || 'x') + '_' + (w.start || w.min || w.km || '0'); }
@@ -162,7 +165,7 @@
   function firstDataDate(st) {
     var ds = [];
     st.workouts.forEach(function (w) { ds.push(w.date); });
-    Object.keys(st.days).forEach(function (d) { ds.push(d); });
+    Object.keys(st.days).forEach(function (d) { var x = st.days[d] || {}; if (x.kcal || x.pages) ds.push(d); });
     ds.sort();
     return ds[0] || null;
   }
@@ -182,7 +185,7 @@
       if (num(x.kcal) > 0 && (!last.kcal || d > last.kcal)) last.kcal = d;
       if (num(x.pages) > 0 && (!last.read || d > last.read)) last.read = d;
     });
-    st.body.forEach(function (b) { if (!last.body || b.date > last.body) last.body = b.date; });
+    bodyAll(st).forEach(function (b) { if (b.weight != null && (!last.body || b.date > last.body)) last.body = b.date; });
     var out = {};
     Object.keys(last).forEach(function (k) { out[k] = { date: last[k], ago: last[k] ? Math.max(0, diffDays(today, last[k])) : null }; });
     return out;
@@ -196,6 +199,7 @@
     var curMon = mondayOf(today);
     // rozgrzewka: tygodnie przed startem sezonu, od pierwszych danych (lub bieżący, jeśli sezon jeszcze nie ruszył)
     var wStart = warmFrom && warmFrom < sMon ? warmFrom : (curMon < sMon ? curMon : null);
+    var cap = addDays(sMon, -56); if (wStart && wStart < cap) wStart = cap;
     if (wStart) for (var m = wStart, k = 0; m < sMon && k < 80; m = addDays(m, 7), k++) list.push({ idx: -diffDays(sMon, m) / 7, mon: m, warm: true });
     for (i = 0; i < n; i++) list.push({ idx: i + 1, mon: addDays(sMon, 7 * i), warm: false });
     return list.map(function (x) { var w = weekData(st, x.mon, today); w.idx = x.idx; w.warm = x.warm; return w; });
@@ -332,10 +336,96 @@
   /* ---------- ciało ---------- */
   function bodySeries(st) { return st.body.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
 
+
+  /* ---------- ciało: nowe pomiary + archiwum 2026 (rtg ma pierwszeństwo) ---------- */
+  function bodyAll(st) {
+    var map = {};
+    try {
+      (JSON.parse(root.localStorage.getItem(BODY_KEY) || '[]') || []).forEach(function (x) {
+        if (x && x.date) map[x.date] = { date: x.date, weight: num(x.weight), bf: num(x.bf), lean: null, waist: null, arch: true };
+      });
+    } catch (e) { }
+    st.body.forEach(function (b) { map[b.date] = Object.assign({}, map[b.date] || {}, b, { arch: false }); });
+    return Object.keys(map).sort().map(function (k) { return map[k]; });
+  }
+  function weeklyBody(arr) {
+    var m = {};
+    arr.forEach(function (b) {
+      var mon = mondayOf(b.date), o = m[mon] || (m[mon] = { mon: mon, n: 0, w: [], f: [], l: [] });
+      o.n++; if (b.weight != null) o.w.push(b.weight); if (b.bf != null) o.f.push(b.bf); if (b.lean != null) o.l.push(b.lean);
+    });
+    var avg = function (a) { return a.length ? sum(a) / a.length : null; };
+    return Object.keys(m).sort().map(function (k) { var o = m[k]; return { mon: o.mon, n: o.n, weight: avg(o.w), bf: avg(o.f), lean: avg(o.l) }; });
+  }
+
+  /* ---------- zdrowie: kroki, sen, tętno, HRV, trend wagi -> wnioski ---------- */
+  function avgField(st, from, to, f) {
+    var v = [];
+    for (var d = from; d <= to; d = addDays(d, 1)) { var x = num((st.days[d] || {})[f]); if (x != null && x > 0) v.push(x); }
+    return { n: v.length, avg: v.length ? sum(v) / v.length : null };
+  }
+  function slopePerWeek(pts) { // pts: [{date, v}] -> kg/tydz. (regresja liniowa)
+    if (pts.length < 3) return null;
+    var t0 = pts[0].date, xs = pts.map(function (p) { return diffDays(p.date, t0); }), ys = pts.map(function (p) { return p.v; });
+    var mx = sum(xs) / xs.length, my = sum(ys) / ys.length, nu = 0, de = 0;
+    for (var i = 0; i < xs.length; i++) { nu += (xs[i] - mx) * (ys[i] - my); de += (xs[i] - mx) * (xs[i] - mx); }
+    return de > 0 ? 7 * nu / de : null;
+  }
+  function health(st, today) {
+    today = today || todayStr();
+    var g = st.goals, a7 = addDays(today, -6), b1 = addDays(today, -7), b0 = addDays(today, -34);
+    var F = ['steps', 'sleepH', 'rhr', 'hrv', 'kcal', 'protein'], cur = {}, base = {};
+    F.forEach(function (f) { cur[f] = avgField(st, a7, today, f); base[f] = avgField(st, b0, b1, f); });
+    var out = [], add = function (lvl, title, text) { out.push({ lvl: lvl, title: title, text: text }); };
+    // pokrycie danych
+    if (cur.steps.n < 5) add('info', 'Mało danych o krokach', 'Tylko ' + cur.steps.n + ' z 7 dni — telefon/zegarek nie zapisuje kroków albo eksport jest stary.');
+    if (cur.sleepH.n === 0) add('info', 'Brak danych o śnie', 'Sen mierzy tylko zegarek noszony w nocy. Bez niego nie ocenię regeneracji.');
+    // kroki
+    if (cur.steps.n >= 3) {
+      var s7 = Math.round(cur.steps.avg);
+      if (s7 < g.stepsTarget * 0.75) add('warn', 'Mało ruchu: ' + fmt(s7, 0) + ' kroków dziennie', 'Cel ' + fmt(g.stepsTarget, 0) + '. Trening trwa kilkadziesiąt minut, resztę dnia spalanie zależy od chodzenia — dodatkowe 20–30 min spaceru to ok. 150–250 kcal dziennie bez wpływu na regenerację.');
+      else if (s7 >= g.stepsTarget) add('good', 'Kroki OK: ' + fmt(s7, 0) + ' dziennie', 'Ponad cel ' + fmt(g.stepsTarget, 0) + '.');
+      else add('info', 'Kroki: ' + fmt(s7, 0) + ' dziennie', 'Do celu ' + fmt(g.stepsTarget, 0) + ' brakuje ' + fmt(g.stepsTarget - s7, 0) + '.');
+    }
+    // sen
+    if (cur.sleepH.n >= 3) {
+      var h = cur.sleepH.avg;
+      if (h < 6.5) add('bad', 'Za mało snu: ' + fmt(h) + ' h', 'Poniżej 6,5 h rośnie apetyt, spada siła i regeneracja, a deficyt kaloryczny częściej zjada mięśnie zamiast tłuszczu. To największa dźwignia w tym planie.');
+      else if (h < g.sleepTarget) add('warn', 'Sen krótszy niż cel: ' + fmt(h) + ' h', 'Cel ' + fmt(g.sleepTarget) + ' h. Stałe godziny zasypiania pomagają bardziej niż jedna długa noc w weekend.');
+      else add('good', 'Sen OK: ' + fmt(h) + ' h', 'Średnia z ' + cur.sleepH.n + ' nocy.');
+    }
+    // przemęczenie / infekcja
+    if (cur.rhr.n >= 3 && base.rhr.n >= 10) {
+      var dr = cur.rhr.avg - base.rhr.avg, dh = (cur.hrv.n >= 3 && base.hrv.n >= 10) ? (cur.hrv.avg / base.hrv.avg - 1) * 100 : null;
+      if (dr >= 4 && dh != null && dh <= -15) add('bad', 'Sygnał przemęczenia lub infekcji', 'Tętno spoczynkowe +' + fmt(dr, 0) + ' bpm, HRV ' + fmt(dh, 0) + '% względem ostatnich 4 tygodni. Lżejszy tydzień, sen, nawodnienie; jeśli utrzymuje się ponad 2 tygodnie albo są objawy — warto do lekarza.');
+      else if (dr >= 4 || (dh != null && dh <= -20)) add('warn', 'Regeneracja pogorszona', (dr >= 4 ? 'Tętno spoczynkowe +' + fmt(dr, 0) + ' bpm. ' : '') + (dh != null && dh <= -20 ? 'HRV ' + fmt(dh, 0) + '%. ' : '') + 'Obserwuj kolejne dni; unikaj podwójnych dni ciężkiego treningu.');
+      else add('good', 'Tętno i HRV w normie', 'Tętno spoczynkowe ' + fmt(cur.rhr.avg, 0) + ' bpm' + (cur.hrv.n >= 3 ? ', HRV ' + fmt(cur.hrv.avg, 0) + ' ms' : '') + ' — bez odchylenia od ostatnich 4 tygodni.');
+    }
+    // odżywianie
+    if (cur.kcal.n < 5) { if (cur.kcal.n > 0 || base.kcal.n > 0) add('info', 'Liczenie kalorii: ' + cur.kcal.n + ' z 7 dni', 'Wnioski o diecie mają sens od ok. 5 z 7 dni zapisanych.'); }
+    else {
+      var kc = cur.kcal.avg;
+      add(kc > g.kcalMax ? 'warn' : (kc < g.kcalMin ? 'warn' : 'good'), 'Średnio ' + fmt(kc, 0) + ' kcal', 'Widełki ' + g.kcalMin + '–' + g.kcalMax + '.' + (cur.protein.n >= 3 ? ' Białko średnio ' + fmt(cur.protein.avg, 0) + ' g (min ' + g.proteinMin + ').' : ''));
+    }
+    // trend wagi
+    var all = bodyAll(st), pts = all.filter(function (b) { return b.weight != null && b.date >= addDays(today, -28) && b.date <= today; }).map(function (b) { return { date: b.date, v: b.weight }; });
+    var lastB = all.length ? all[all.length - 1] : null, trend = null;
+    if (pts.length >= 3) {
+      trend = slopePerWeek(pts);
+      if (trend < -0.6) add('warn', 'Waga spada szybko: ' + fmt(trend, 2) + ' kg/tydz.', 'Przy rekompozycji celuj w −0,2…−0,5. Dołóż ok. 150 kcal i pilnuj białka, żeby nie tracić mięśni.');
+      else if (trend < -0.1) add('good', 'Tempo spadku wagi dobre: ' + fmt(trend, 2) + ' kg/tydz.', 'Mieści się w zakresie bezpiecznym dla mięśni.');
+      else if (trend <= 0.15) add('info', 'Waga stoi (' + fmt(trend, 2) + ' kg/tydz.)', 'W rekompozycji to może być dobrze, jeśli talia/BF spadają. Jeśli nie — obetnij ok. 150–200 kcal albo dołóż kroków.');
+      else add('warn', 'Waga rośnie: +' + fmt(trend, 2) + ' kg/tydz.', 'Sprawdź kalorie i weekendy; przy deficycie to nie powinno się dziać.');
+    } else if (!lastB || diffDays(today, lastB.date) > 21) {
+      add('warn', 'Za mało pomiarów wagi', lastB ? 'Ostatni: ' + lastB.date + '. Ważenie 2–3 razy w tygodniu rano po toalecie wystarczy do trendu.' : 'Brak pomiarów.');
+    }
+    return { cur: cur, base: base, insights: out, trend: trend };
+  }
+
   /* ---------- scalanie paczki od Claude ---------- */
   function merge(st, patch) {
     patch = patch && patch.rtg ? patch.rtg : patch;
-    var rep = { workouts: 0, days: 0, body: 0 };
+    var rep = { workouts: 0, days: 0, body: 0, replaced: 0 };
     if (!patch || typeof patch !== 'object') return rep;
     var have = {};
     st.workouts.forEach(function (w) { have[w.id] = w; });
@@ -344,6 +434,11 @@
       var n = Object.assign({}, w);
       if (n.kind !== 'gym' && n.kind !== 'run') n.kind = 'other';
       if (!n.id) n.id = wid(n);
+      if (!have[n.id] && n.src && n.src !== 'ręcznie') {
+        // wzbogacenie: zastąp jeden ręczny wpis z tego dnia i rodzaju danymi z zegarka
+        var mi = st.workouts.findIndex(function (x) { return x.date === n.date && x.kind === n.kind && (!x.src || x.src === 'ręcznie'); });
+        if (mi >= 0) { delete have[st.workouts[mi].id]; st.workouts.splice(mi, 1); rep.replaced = (rep.replaced || 0) + 1; }
+      }
       if (have[n.id]) { Object.assign(have[n.id], n); }
       else { st.workouts.push(n); have[n.id] = n; }
       rep.workouts++;
@@ -369,7 +464,7 @@
     defaults: defaults, normalize: normalize, load: load, save: save, merge: merge,
     today: todayStr, addDays: addDays, diffDays: diffDays, mondayOf: mondayOf, monthOfWeek: monthOfWeek,
     weekData: weekData, roadWeeks: roadWeeks, summary: summary, freshness: freshness,
-    lastDataDate: lastDataDate, legacyStats: legacyStats, bodySeries: bodySeries,
+    lastDataDate: lastDataDate, legacyStats: legacyStats, bodySeries: bodySeries, bodyAll: bodyAll, weeklyBody: weeklyBody, health: health, avgField: avgField,
     fmt: fmt, plural: plural, num: num
   };
   root.RTG = API;

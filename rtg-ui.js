@@ -8,6 +8,7 @@
   var tab = 'home';
   var charts = {};
   var logTab = 'workout';
+  var weekOff = 0; // przesunięcie wyświetlanego tygodnia (0 = bieżący)
 
   var G = {
     gym:  { name: 'Siłownia', ic: 'fitness_center', color: 'var(--rg-gym)', unit: 'treningi' },
@@ -63,7 +64,7 @@
     var pct = o.target > 0 ? Math.min(100, Math.round(100 * o.done / o.target)) : 100;
     var cells = w.days.map(function (d) {
       var cls = 'rg-cell ' + k + (d.today ? ' today' : ''), txt = '';
-      if (k === 'gym') { if (d.gym) { cls += ' has'; txt = d.gymMin ? Math.round(d.gymMin) + '′' : '✓'; } else if (d.future) cls += ' fut'; else txt = '·'; }
+      if (k === 'gym') { if (d.gym) { cls += ' has'; txt = d.gymMin ? Math.round(d.gymMin) + '′' : '✓'; if (d.gym > 1) txt += '×' + d.gym; } else if (d.future) cls += ' fut'; else txt = '·'; }
       else if (k === 'run') { if (d.km > 0) { cls += ' has'; txt = fmt(d.km); } else if (d.future) cls += ' fut'; else txt = '·'; }
       else if (k === 'read') { if (d.pages > 0) { cls += ' has'; txt = fmt(d.pages, 0); } else if (d.future) cls += ' fut'; else txt = '·'; }
       else {
@@ -71,7 +72,8 @@
         if (d.kcal) txt = d.kcal; else if (d.kcalState === 'open') { if (d.future) cls += ' fut'; txt = d.today ? '…' : ''; } else txt = '?';
       }
       var tt = d.date + (k === 'kcal' && d.kcal ? ' · ' + d.kcal + ' kcal' + (d.protein ? ' · białko ' + Math.round(d.protein) + ' g' + (d.kcalState === 'lowp' ? ' (za mało)' : '') : ' · brak białka') : '');
-      return '<div class="' + cls + '" title="' + tt + '">' + txt + '</div>';
+      var act = d.future ? '' : ' data-act="cell" data-k="' + k + '" data-d="' + d.date + '" style="cursor:pointer"';
+      return '<div class="' + cls + '" title="' + tt + '"' + act + '>' + txt + '</div>';
     }).join('');
     return '<div class="rg-mrow"><div class="rg-mname"><div class="t"><span class="material-symbols-outlined" style="color:' + g.color + '">' + g.ic + '</span>' + g.name + '</div>' +
       '<div class="val"><b>' + val(k, o).split(' / ')[0] + '</b> / ' + val(k, o).split(' / ')[1] + '</div>' +
@@ -87,9 +89,9 @@
   function roadHtml(s) {
     var warm = s.weeks.filter(function (w) { return w.warm; }), season = s.weeks.filter(function (w) { return !w.warm; });
     var h = '<div class="rg-road">';
-    if (warm.length) h += '<div><div class="rg-road-lbl">Rozgrzewka przed sezonem</div><div class="rg-road-warm">' + warm.map(roadTile).join('') + '</div></div>';
-    var q = ['I kwartał', 'II kwartał', 'III kwartał', 'IV kwartał'];
-    for (var i = 0; i < season.length; i += 13) h += '<div><div class="rg-road-lbl">' + q[i / 13] + ' · tygodnie ' + (i + 1) + '–' + Math.min(season.length, i + 13) + '</div><div class="rg-road-grid">' + season.slice(i, i + 13).map(roadTile).join('') + '</div></div>';
+    if (warm.length) h += '<div><div class="rg-road-lbl">Przed startem sezonu</div><div class="rg-road-warm">' + warm.map(roadTile).join('') + '</div></div>';
+    
+    for (var i = 0; i < season.length; i += 13) h += '<div><div class="rg-road-lbl">Tygodnie ' + (i + 1) + '–' + Math.min(season.length, i + 13) + ' · od ' + dm(season[i].mon) + '</div><div class="rg-road-grid">' + season.slice(i, i + 13).map(roadTile).join('') + '</div></div>';
     h += '</div><div class="rg-legend"><span>Kwadraciki: siłownia · bieg / kalorie · czytanie</span><span><span class="rg-lv lv-hit"></span>zaliczone</span><span><span class="rg-lv lv-part"></span>prawie / do tyłu</span><span><span class="rg-lv lv-miss"></span>pudło</span><span><span class="rg-lv lv-none"></span>przyszłość</span><span style="color:#b8860b">▣ złota ramka = tydzień zamknięty (średnia realizacji celów ≥ 100%)</span></div>';
     return h;
   }
@@ -112,9 +114,11 @@
       '<div class="rg-kpi"><div class="k">Rekord serii</div><div class="v">' + s.bestStreak + '</div></div>' +
       '<div class="rg-kpi"><div class="k">Skuteczność</div><div class="v">' + (rc.pct == null ? '—' : rc.pct + '%') + '</div></div>' +
       '</div></div>';
-    h += '<div class="rg-card"><div class="rg-card-h"><h3>Ten tydzień</h3><span class="sub">' + (w.off ? 'tydzień wolny — nie liczy się do serii' : 'wynik tygodnia: ' + w.score + '%') + '</span></div><div class="rg-matrix">' +
-      '<div class="rg-mrow head"><div class="rg-mname">Cel</div>' + w.days.map(function (d, i) { return '<div class="c' + (d.today ? ' today' : '') + '" style="text-align:center">' + DAYS[i] + ' ' + (+d.date.slice(8)) + '</div>'; }).join('') + '<div class="rg-mst">Status</div></div>' +
-      ['gym', 'run', 'kcal', 'read'].map(function (k) { return matrixRow(k, w); }).join('') + '</div></div>';
+    var vw = weekOff === 0 ? w : R.weekData(st, R.addDays(w.mon, 7 * weekOff), s.today);
+    var navTitle = weekOff === 0 ? 'Ten tydzień' : (weekOff === -1 ? 'Poprzedni tydzień' : (weekOff === 1 ? 'Następny tydzień' : 'Tydzień'));
+    h += '<div class="rg-card"><div class="rg-card-h"><div style="display:flex;align-items:center;gap:6px"><button class="rg-ibtn" style="color:var(--rg-ink2)" data-act="wk" data-o="-1" title="Wcześniejszy tydzień"><span class="material-symbols-outlined">chevron_left</span></button><h3>' + navTitle + ' · ' + rng(vw.mon) + '</h3><button class="rg-ibtn" style="color:var(--rg-ink2)" data-act="wk" data-o="1" title="Następny tydzień"><span class="material-symbols-outlined">chevron_right</span></button>' + (weekOff !== 0 ? '<button class="rg-hbtn sm" data-act="wk" data-o="0">Wróć do bieżącego</button>' : '') + '</div><span class="sub">' + (vw.off ? 'tydzień wolny — nie liczy się do serii' : 'wynik tygodnia: ' + vw.score + '% · kliknij komórkę, żeby dodać') + '</span></div><div class="rg-matrix">' +
+      '<div class="rg-mrow head"><div class="rg-mname">Cel</div>' + vw.days.map(function (d, i) { return '<div class="c' + (d.today ? ' today' : '') + '" style="text-align:center">' + DAYS[i] + ' ' + (+d.date.slice(8)) + '</div>'; }).join('') + '<div class="rg-mst">Status</div></div>' +
+      ['gym', 'run', 'kcal', 'read'].map(function (k) { return matrixRow(k, vw); }).join('') + '</div></div>';
     h += '<div class="rg-grid2"><div class="rg-card"><div class="rg-card-h"><h3>Do zrobienia</h3><span class="sub">do zamknięcia tygodnia brakuje ' + Math.max(0, 100 - s.cur.score) + ' pkt proc.</span></div>' + todoHtml(s) + '</div>' +
       '<div class="rg-card"><div class="rg-card-h"><h3>Konsekwencja</h3><span class="sub">% tygodni z zaliczonym celem</span></div><div class="rg-card-b" style="padding:0">' + ratesTable(s) + '</div></div></div>';
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Droga do chwały</h3><span class="sub">' + esc(st.season.name) + ' · ' + st.season.weeks + ' tygodni od ' + dmy(st.season.start) + '</span></div><div class="rg-card-b">' + roadHtml(s) + '</div></div>';
@@ -200,7 +204,7 @@
 
   /* ---------------- CIAŁO ---------------- */
   function renderBody() {
-    var b = R.bodySeries(st), today = R.today(), h = '';
+    var b = R.bodyAll(st), today = R.today(), h = '';
     var last = b[b.length - 1];
     function nearest(daysAgo, key) { var t = R.addDays(today, -daysAgo), best = null; b.forEach(function (x) { if (x[key] != null && x.date <= t) best = x; }); return best; }
     function delta(key, d) { if (!last || last[key] == null) return null; var o = nearest(d, key); return o ? last[key] - o[key] : null; }
@@ -214,22 +218,15 @@
       '<div class="rg-bkpi"><div class="k">Masa beztłuszczowa</div><div class="v">' + (last && last.lean != null ? fmt(last.lean) + ' kg' : '—') + '</div>' + dTxt(delta('lean', 30), false) + '</div>' +
       '<div class="rg-bkpi"><div class="k">Talia</div><div class="v">' + (last && last.waist != null ? fmt(last.waist) + ' cm' : '—') + '</div>' + (last && last.waist != null ? dTxt(delta('waist', 30), true) : '<div class="d">dodaj pomiar centymetrem raz w tygodniu</div>') + '</div>' +
       '</div></div>';
-    h += '<div class="rg-card"><div class="rg-card-h"><h3>Waga i tkanka tłuszczowa</h3><span class="sub">linia przerywana = archiwum 2026</span></div><div class="rg-card-b"><div class="rg-chart"><canvas id="ch-body"></canvas></div></div></div>';
+    h += '<div class="rg-card"><div class="rg-card-h"><h3>Waga i tkanka tłuszczowa</h3><span class="sub">średnia z pomiarów w tygodniu (liczba pomiarów w podpowiedzi) · dane z archiwum 2026 są dołączone</span></div><div class="rg-card-b"><div class="rg-chart"><canvas id="ch-body"></canvas></div></div></div>';
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Pomiary</h3><button class="rg-hbtn sm primary" data-act="add" data-t="body"><span class="material-symbols-outlined">add</span>Pomiar</button></div><div class="rg-scroll"><table class="rg-tbl"><thead><tr><th>Data</th><th class="r">Waga</th><th class="r">BF %</th><th class="r">Beztłuszcz.</th><th class="r">Talia</th><th></th></tr></thead><tbody>' +
-      (b.slice(-20).reverse().map(function (x) { return '<tr><td>' + dmy(x.date) + '</td><td class="r rg-mono">' + (x.weight != null ? fmt(x.weight) : '—') + '</td><td class="r rg-mono">' + (x.bf != null ? fmt(x.bf) : '—') + '</td><td class="r rg-mono">' + (x.lean != null ? fmt(x.lean) : '—') + '</td><td class="r rg-mono">' + (x.waist != null ? fmt(x.waist) : '—') + '</td><td class="r"><button class="rg-ibtn" data-act="delbody" data-d="' + x.date + '"><span class="material-symbols-outlined">delete</span></button></td></tr>'; }).join('') || '<tr><td colspan="6" class="rg-empty">Brak pomiarów.</td></tr>') + '</tbody></table></div></div>';
+      (b.slice(-20).reverse().map(function (x) { return '<tr><td>' + dmy(x.date) + '</td><td class="r rg-mono">' + (x.weight != null ? fmt(x.weight) : '—') + '</td><td class="r rg-mono">' + (x.bf != null ? fmt(x.bf) : '—') + '</td><td class="r rg-mono">' + (x.lean != null ? fmt(x.lean) : '—') + '</td><td class="r rg-mono">' + (x.waist != null ? fmt(x.waist) : '—') + '</td><td class="r">' + (x.arch ? '<span class="rg-note">archiwum</span>' : '<button class="rg-ibtn" data-act="delbody" data-d="' + x.date + '"><span class="material-symbols-outlined">delete</span></button>') + '</td></tr>'; }).join('') || '<tr><td colspan="6" class="rg-empty">Brak pomiarów.</td></tr>') + '</tbody></table></div></div>';
     $('v-body').innerHTML = h;
-    // wykres
-    var legacy = []; try { legacy = JSON.parse(localStorage.getItem(R.BODY_KEY) || '[]') || []; } catch (e) { }
-    legacy = legacy.filter(function (x) { return x && x.date; }).sort(function (a, c) { return a.date < c.date ? -1 : 1; });
-    var all = {}; b.forEach(function (x) { all[x.date] = 1; }); legacy.forEach(function (x) { all[x.date] = 1; });
-    var labels = Object.keys(all).sort();
-    function ser(arr, key) { var m = {}; arr.forEach(function (x) { if (x[key] != null) m[x.date] = x[key]; }); return labels.map(function (d) { return m[d] != null ? m[d] : null; }); }
-    var ds = [];
-    if (b.some(function (x) { return x.weight != null; })) ds.push({ label: 'Waga (kg)', data: ser(b, 'weight'), borderColor: '#0057c0', backgroundColor: '#0057c0', yAxisID: 'y', tension: .3, spanGaps: true, pointRadius: 3 });
-    if (b.some(function (x) { return x.bf != null; })) ds.push({ label: 'BF (%)', data: ser(b, 'bf'), borderColor: '#ea580c', backgroundColor: '#ea580c', yAxisID: 'y2', tension: .3, spanGaps: true, pointRadius: 3 });
-    ds.push({ label: 'Waga 2026', data: ser(legacy, 'weight'), borderColor: '#0057c0', borderDash: [5, 4], borderWidth: 1.5, yAxisID: 'y', tension: .3, spanGaps: true, pointRadius: 0 });
-    ds.push({ label: 'BF 2026', data: ser(legacy, 'bf'), borderColor: '#ea580c', borderDash: [5, 4], borderWidth: 1.5, yAxisID: 'y2', tension: .3, spanGaps: true, pointRadius: 0 });
-    mkChart('ch-body', { type: 'line', data: { labels: labels.map(dm), datasets: ds }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { position: 'left', title: { display: true, text: 'kg' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '% BF' } }, x: { ticks: { maxTicksLimit: 10, maxRotation: 0 } } } } });
+    // wykres: średnie tygodniowe (kropka = tydzień; w podpowiedzi liczba pomiarów)
+    var wb = R.weeklyBody(b).slice(-40), ds = [];
+    ds.push({ label: 'Waga (kg, średnia tyg.)', data: wb.map(function (x) { return x.weight == null ? null : Math.round(x.weight * 100) / 100; }), borderColor: '#0057c0', backgroundColor: '#0057c0', yAxisID: 'y', tension: 0, spanGaps: false, pointRadius: 4 });
+    ds.push({ label: 'BF (%, średnia tyg.)', data: wb.map(function (x) { return x.bf == null ? null : Math.round(x.bf * 10) / 10; }), borderColor: '#ea580c', backgroundColor: '#ea580c', yAxisID: 'y2', tension: 0, spanGaps: false, pointRadius: 4 });
+    mkChart('ch-body', { type: 'line', data: { labels: wb.map(function (x) { return dm(x.mon); }), datasets: ds }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { tooltip: { callbacks: { afterBody: function (it) { var x = wb[it[0].dataIndex]; return x ? 'pomiarów w tygodniu: ' + x.n : ''; } } } }, scales: { y: { position: 'left', title: { display: true, text: 'kg' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '% BF' } }, x: { ticks: { maxTicksLimit: 12, maxRotation: 0 } } } } });
   }
 
   /* ---------------- DZIENNIK ---------------- */
@@ -257,7 +254,7 @@
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Cele tygodniowe</h3></div><div class="rg-card-b"><div class="rg-set">' +
       inp('g-gym', 'Siłownia (treningi / tydz.)', g.gymPerWeek) + inp('g-gymmin', 'Min. długość treningu (min)', g.gymMinMinutes) +
       inp('g-run', 'Bieganie (km / tydz.)', g.runKmPerWeek, 0.5) + inp('g-read', 'Czytanie (stron / tydz.)', g.pagesPerWeek, 10) +
-      inp('g-kmin', 'Kalorie — od (kcal)', g.kcalMin, 50) + inp('g-kmax', 'Kalorie — do (kcal)', g.kcalMax, 50) + inp('g-prot', 'Białko — minimum (g / dzień)', g.proteinMin, 5) + inp('g-kdays', 'Dni w normie / tydz.', g.kcalDaysPerWeek) +
+      inp('g-kmin', 'Kalorie — od (kcal)', g.kcalMin, 50) + inp('g-kmax', 'Kalorie — do (kcal)', g.kcalMax, 50) + inp('g-prot', 'Białko — minimum (g / dzień)', g.proteinMin, 5) + inp('g-steps', 'Kroki — cel (dziennie)', g.stepsTarget, 500) + inp('g-sleep', 'Sen — cel (godziny)', g.sleepTarget, 0.5) + inp('g-kdays', 'Dni w normie / tydz.', g.kcalDaysPerWeek) +
       '<div class="rg-ff"><label>Start sezonu (poniedziałek)</label><input id="g-start" type="date" value="' + st.season.start + '"></div></div>' +
       '<p class="rg-note" style="margin:12px 0 0">Dzień „w normie” = kcal w widełkach i białko ≥ minimum (gdy wpisane; brak białka w danych nie blokuje dnia). Trening siłowy z zegarka krótszy niż minimum nie jest liczony. Zmiana celów przelicza także tygodnie wstecz.</p>' +
       '<div style="margin-top:12px"><button class="rg-hbtn primary" data-act="savegoals"><span class="material-symbols-outlined">save</span>Zapisz cele</button></div></div></div>';
@@ -270,9 +267,87 @@
     $('v-set').innerHTML = h;
   }
 
+
+  /* ---------------- ZDROWIE ---------------- */
+  function renderHealth() {
+    var today = R.today(), hl = R.health(st, today), c = hl.cur, b = hl.base, h = '';
+    function kpi(label, cur, base, unit, d, goodUp) {
+      var v = cur.avg == null ? '—' : fmt(cur.avg, d) + ' <small style="font-size:12px;color:var(--rg-mut)">' + unit + '</small>';
+      var dl = '';
+      if (cur.avg != null && base.avg != null) { var x = cur.avg - base.avg, cls = Math.abs(x) < 0.01 * base.avg ? '' : ((x > 0) === goodUp ? 'good' : 'bad'); dl = '<div class="d ' + cls + '">' + (x > 0 ? '+' : '') + fmt(x, d) + ' vs poprz. 4 tyg.</div>'; }
+      else dl = '<div class="d">' + (cur.n ? 'brak bazy do porównania' : 'brak danych (7 dni)') + '</div>';
+      return '<div class="rg-bkpi"><div class="k">' + label + '</div><div class="v">' + v + '</div>' + dl + '<div class="d" style="font-size:11px">' + cur.n + ' z 7 dni z danymi</div></div>';
+    }
+    h += '<div class="rg-card"><div class="rg-bkpis">' + kpi('Kroki / dzień', c.steps, b.steps, '', 0, true) + kpi('Sen', c.sleepH, b.sleepH, 'h', 1, true) + kpi('Tętno spoczynkowe', c.rhr, b.rhr, 'bpm', 0, false) + kpi('HRV', c.hrv, b.hrv, 'ms', 0, true) + '</div></div>';
+    h += '<div class="rg-card"><div class="rg-card-h"><h3>Wnioski</h3><span class="sub">z ostatnich 7 dni vs poprzednie 4 tygodnie</span></div>' +
+      (hl.insights.length ? '<div class="rg-todo">' + hl.insights.map(function (i) {
+        var col = { good: 'var(--rg-hit)', warn: 'var(--rg-part)', bad: 'var(--rg-bad)', info: 'var(--rg-mut2)' }[i.lvl], ic = { good: 'check_circle', warn: 'warning', bad: 'error', info: 'info' }[i.lvl];
+        return '<div class="rg-todo-i"><div class="dot" style="background:' + col + '"><span class="material-symbols-outlined">' + ic + '</span></div><div><div class="t">' + esc(i.title) + '</div><div class="s">' + esc(i.text) + '</div></div></div>';
+      }).join('') + '</div>' : '<div class="rg-empty">Za mało danych na wnioski. Wczytaj eksport z Health Auto Export.</div>') +
+      '<div class="rg-card-b" style="border-top:1px solid var(--rg-line)"><p class="rg-note" style="margin:0">To obserwacje z danych, nie diagnoza. Utrzymujące się odchylenia tętna/HRV z objawami omów z lekarzem.</p></div></div>';
+    h += '<div class="rg-grid2"><div class="rg-card"><div class="rg-card-h"><h3>Kroki</h3><span class="sub">ostatnie 8 tygodni, cel ' + fmt(st.goals.stepsTarget, 0) + '</span></div><div class="rg-card-b"><div class="rg-chart sm"><canvas id="ch-steps"></canvas></div></div></div>' +
+      '<div class="rg-card"><div class="rg-card-h"><h3>Sen</h3><span class="sub">godziny na dobę, cel ' + fmt(st.goals.sleepTarget) + ' h</span></div><div class="rg-card-b"><div class="rg-chart sm"><canvas id="ch-sleep"></canvas></div></div></div></div>' +
+      '<div class="rg-card"><div class="rg-card-h"><h3>Tętno spoczynkowe i HRV</h3><span class="sub">średnie tygodniowe, ostatnie 26 tygodni</span></div><div class="rg-card-b"><div class="rg-chart sm"><canvas id="ch-hr"></canvas></div></div></div>';
+    $('v-health').innerHTML = h;
+    // dane do wykresów
+    var from = R.addDays(R.mondayOf(today), -7 * 7), labels = [], steps = [], sleep = [];
+    for (var d = from; d <= today; d = R.addDays(d, 1)) { var x = st.days[d] || {}; labels.push(dm(d)); steps.push(R.num(x.steps) > 0 ? Math.round(x.steps) : null); sleep.push(R.num(x.sleepH) > 0 ? R.num(x.sleepH) : null); }
+    var tgt = function (v) { return labels.map(function () { return v; }); };
+    mkChart('ch-steps', { type: 'bar', data: { labels: labels, datasets: [{ label: 'Kroki', data: steps, backgroundColor: steps.map(function (v) { return v != null && v >= st.goals.stepsTarget ? '#0b8a4a' : '#7da7e8'; }), borderRadius: 2 }, { type: 'line', label: 'Cel', data: tgt(st.goals.stepsTarget), borderColor: '#c0362c', borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8, maxRotation: 0 } } } } });
+    mkChart('ch-sleep', { type: 'bar', data: { labels: labels, datasets: [{ label: 'Sen (h)', data: sleep, backgroundColor: sleep.map(function (v) { return v != null && v >= st.goals.sleepTarget ? '#0b8a4a' : (v != null && v < 6.5 ? '#c0362c' : '#e0a63a'); }), borderRadius: 2 }, { type: 'line', label: 'Cel', data: tgt(st.goals.sleepTarget), borderColor: '#334155', borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0 }, x: { ticks: { maxTicksLimit: 8, maxRotation: 0 } } } } });
+    var wl = [], rh = [], hv = [], m0 = R.addDays(R.mondayOf(today), -7 * 25);
+    for (var m = m0; m <= today; m = R.addDays(m, 7)) { var e = R.addDays(m, 6); wl.push(dm(m)); var a = R.avgField(st, m, e, 'rhr'), v = R.avgField(st, m, e, 'hrv'); rh.push(a.n ? Math.round(a.avg * 10) / 10 : null); hv.push(v.n ? Math.round(v.avg) : null); }
+    mkChart('ch-hr', { type: 'line', data: { labels: wl, datasets: [{ label: 'Tętno spoczynkowe (bpm)', data: rh, borderColor: '#c0362c', backgroundColor: '#c0362c', yAxisID: 'y', spanGaps: true, tension: .25, pointRadius: 3 }, { label: 'HRV (ms)', data: hv, borderColor: '#0057c0', backgroundColor: '#0057c0', yAxisID: 'y2', spanGaps: true, tension: .25, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { position: 'left', title: { display: true, text: 'bpm' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'ms' } }, x: { ticks: { maxTicksLimit: 9, maxRotation: 0 } } } } });
+  }
+
+  /* ---------------- SZYBKIE WPISY (klik w komórkę dnia) ---------------- */
+  function closePop() { var p = $('pop'); if (p) p.remove(); }
+  function wsOf(date, kind) { return st.workouts.filter(function (w) { return w.date === date && w.kind === kind; }); }
+  function manualOf(date, kind) { return wsOf(date, kind).filter(function (w) { return !w.src || w.src === 'ręcznie'; })[0]; }
+  function dayObj(date) { return st.days[date] || (st.days[date] = {}); }
+  function openCell(el, k, date) {
+    closePop();
+    if (k === 'gym' && !wsOf(date, 'gym').length) {
+      st.workouts.push({ id: 'w_' + date + '_gym_' + Date.now().toString(36), date: date, kind: 'gym', src: 'ręcznie' });
+      persist(); renderAll(); toast('Siłownia ✓ ' + dm(date) + ' — kliknij ponownie, żeby edytować', 'ok'); return;
+    }
+    var pop = document.createElement('div'); pop.className = 'rg-pop'; pop.id = 'pop';
+    var d = st.days[date] || {}, html = '<div class="rg-pop-h">' + { gym: 'Siłownia', run: 'Bieg', read: 'Czytanie', kcal: 'Kalorie i białko' }[k] + ' · ' + dm(date) + '</div>';
+    if (k === 'gym') {
+      var gs = wsOf(date, 'gym');
+      html += gs.map(function (w, i) { return '<div class="rg-pop-r"><span>Trening ' + (i + 1) + ' · ' + (w.src && w.src !== 'ręcznie' ? esc(w.src) : 'ręcznie') + (w.min ? ' · ' + Math.round(w.min) + ' min' : '') + '</span><button class="rg-ibtn" data-act="popdelw" data-id="' + esc(w.id) + '" title="Usuń"><span class="material-symbols-outlined">delete</span></button></div>'; }).join('') +
+        '<div class="rg-pop-r"><button class="rg-hbtn sm" data-act="popaddgym" data-d="' + date + '">+ kolejny trening</button></div>';
+    } else if (k === 'run') {
+      var mr = manualOf(date, 'run'), wr = wsOf(date, 'run').filter(function (w) { return w !== mr; });
+      html += (wr.length ? '<div class="rg-note">Z zegarka: ' + wr.map(function (w) { return fmt(w.km || 0) + ' km'; }).join(', ') + '</div>' : '') + '<div class="rg-ff"><label>Dystans (km)' + (wr.length ? ' — dodatkowy' : '') + '</label><input id="pp-km" inputmode="decimal" value="' + (mr && mr.km ? mr.km : '') + '"></div>';
+    } else if (k === 'read') {
+      html += '<div class="rg-ff"><label>Przeczytane strony</label><input id="pp-pages" inputmode="decimal" value="' + (d.pages || '') + '"></div>';
+    } else {
+      html += '<div class="rg-ffg"><div class="rg-ff"><label>Kalorie</label><input id="pp-kcal" inputmode="decimal" value="' + (d.kcal || '') + '"></div><div class="rg-ff"><label>Białko (g)</label><input id="pp-prot" inputmode="decimal" value="' + (d.protein || '') + '"></div></div>';
+    }
+    if (k !== 'gym') html += '<div class="rg-pop-f"><button class="rg-hbtn sm" data-act="popclear" data-k="' + k + '" data-d="' + date + '">Wyczyść</button><button class="rg-hbtn sm primary" data-act="popsave" data-k="' + k + '" data-d="' + date + '">Zapisz</button></div>';
+    else html += '<div class="rg-pop-f"><button class="rg-hbtn sm" data-act="popclose">Zamknij</button></div>';
+    pop.innerHTML = html; document.body.appendChild(pop);
+    var r = el.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left + r.width / 2 - pw / 2)) + 'px';
+    pop.style.top = Math.max(8, (r.bottom + ph + 12 > window.innerHeight ? r.top - ph - 6 : r.bottom + 6)) + 'px';
+    var inp = pop.querySelector('input'); if (inp) { inp.focus(); inp.select(); }
+    pop.addEventListener('keydown', function (e) { if (e.key === 'Enter') { var sv = pop.querySelector('[data-act="popsave"]'); if (sv) sv.click(); } if (e.key === 'Escape') closePop(); });
+  }
+  function popSave(k, date) {
+    var g = function (id) { var el = $(id); return el ? R.num(el.value) : null; };
+    if (k === 'run') {
+      var km = g('pp-km'), mr = manualOf(date, 'run');
+      if (km > 0) { if (mr) mr.km = km; else st.workouts.push({ id: 'w_' + date + '_run_' + Date.now().toString(36), date: date, kind: 'run', km: km, src: 'ręcznie' }); }
+      else if (mr) st.workouts = st.workouts.filter(function (w) { return w !== mr; });
+    } else if (k === 'read') { var pg = g('pp-pages'), d1 = dayObj(date); if (pg > 0) d1.pages = pg; else delete d1.pages; }
+    else if (k === 'kcal') { var d2 = dayObj(date), kc = g('pp-kcal'), pr = g('pp-prot'); if (kc > 0) d2.kcal = kc; else delete d2.kcal; if (pr > 0) d2.protein = pr; else delete d2.protein; }
+    persist(); closePop(); renderAll(); toast('Zapisano', 'ok');
+  }
+
   /* ---------------- AKCJE ---------------- */
   function renderAll() {
-    ({ home: renderHome, cons: renderCons, body: renderBody, log: renderLog, set: renderSet })[tab]();
+    ({ home: renderHome, cons: renderCons, body: renderBody, health: renderHealth, log: renderLog, set: renderSet })[tab]();
   }
   function setTab(t) {
     tab = t;
@@ -316,9 +391,17 @@
     persist(); closeAdd(); toast('Zapisano', 'ok'); renderAll();
   }
   function onClick(e) {
+    if (!e.target.closest('#pop') && !e.target.closest('[data-act="cell"]')) closePop();
     var t = e.target.closest('[data-act]'); if (!t) return;
     var a = t.dataset.act;
-    if (a === 'add') openAdd(t.dataset.t);
+    if (a === 'cell') openCell(t, t.dataset.k, t.dataset.d);
+    else if (a === 'wk') { var o = +t.dataset.o; weekOff = o === 0 ? 0 : weekOff + o; renderAll(); }
+    else if (a === 'popsave') popSave(t.dataset.k, t.dataset.d);
+    else if (a === 'popclose') closePop();
+    else if (a === 'popclear') { var kk = t.dataset.k, dd = t.dataset.d; if (kk === 'run') { st.workouts = st.workouts.filter(function (w) { return !(w.date === dd && w.kind === 'run' && (!w.src || w.src === 'ręcznie')); }); } else if (kk === 'read') delete dayObj(dd).pages; else { delete dayObj(dd).kcal; delete dayObj(dd).protein; } persist(); closePop(); renderAll(); }
+    else if (a === 'popdelw') { st.workouts = st.workouts.filter(function (w) { return w.id !== t.dataset.id; }); persist(); closePop(); renderAll(); }
+    else if (a === 'popaddgym') { st.workouts.push({ id: 'w_' + t.dataset.d + '_gym_' + Date.now().toString(36), date: t.dataset.d, kind: 'gym', src: 'ręcznie' }); persist(); closePop(); renderAll(); }
+    else if (a === 'add') openAdd(t.dataset.t);
     else if (a === 'off') { var m = t.dataset.mon; if (st.offWeeks[m] != null) delete st.offWeeks[m]; else st.offWeeks[m] = 'wolny'; persist(); renderAll(); }
     else if (a === 'delw') { st.workouts = st.workouts.filter(function (w) { return w.id !== t.dataset.id; }); persist(); renderAll(); }
     else if (a === 'delday') { delete st.days[t.dataset.d]; persist(); renderAll(); }
@@ -326,7 +409,7 @@
     else if (a === 'savegoals') {
       var g = st.goals, n = function (id, dv) { var v = R.num($(id).value); return v == null ? dv : v; };
       g.gymPerWeek = n('g-gym', g.gymPerWeek); g.gymMinMinutes = n('g-gymmin', g.gymMinMinutes); g.runKmPerWeek = n('g-run', g.runKmPerWeek); g.pagesPerWeek = n('g-read', g.pagesPerWeek);
-      g.kcalMin = n('g-kmin', g.kcalMin); g.kcalMax = n('g-kmax', g.kcalMax); g.proteinMin = n('g-prot', g.proteinMin); g.kcalDaysPerWeek = Math.max(1, Math.min(7, n('g-kdays', g.kcalDaysPerWeek)));
+      g.kcalMin = n('g-kmin', g.kcalMin); g.kcalMax = n('g-kmax', g.kcalMax); g.proteinMin = n('g-prot', g.proteinMin); g.stepsTarget = n('g-steps', g.stepsTarget); g.sleepTarget = n('g-sleep', g.sleepTarget); g.kcalDaysPerWeek = Math.max(1, Math.min(7, n('g-kdays', g.kcalDaysPerWeek)));
       if (g.kcalMin > g.kcalMax) return toast('„Od” musi być mniejsze niż „do”', 'err');
       g.kcalConfirmed = true;
       if ($('g-start').value) st.season.start = R.mondayOf($('g-start').value);
@@ -343,7 +426,7 @@
       try {
         var p = JSON.parse(rd.result), rep = R.merge(st, p);
         if (!rep.workouts && !rep.days && !rep.body && !(p.rtg || p).goals && !(p.rtg || p).offWeeks) return toast('Plik nie zawiera danych RTG', 'err');
-        persist(); toast('Wczytano: ' + rep.workouts + ' treningów, ' + rep.days + ' dni, ' + rep.body + ' pomiarów', 'ok'); renderAll();
+        persist(); toast('Wczytano: ' + rep.workouts + ' treningów' + (rep.replaced ? ' (' + rep.replaced + ' wpisów ręcznych zastąpiono danymi z zegarka)' : '') + ', ' + rep.days + ' dni, ' + rep.body + ' pomiarów', 'ok'); renderAll();
       } catch (e) { toast('Nieprawidłowy plik', 'err'); }
     };
     rd.readAsText(f); ev.target.value = '';
@@ -359,9 +442,9 @@
     $('btn-close').addEventListener('click', closeAdd); $('btn-cancel').addEventListener('click', closeAdd);
     $('btn-save').addEventListener('click', saveEntry);
     document.addEventListener('change', function (e) { if (e.target.id === 'imp-file') onImport(e); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAdd(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeAdd(); closePop(); } });
     var t0 = 'home'; try { t0 = localStorage.getItem('lifeos_rtg_tab') || 'home'; } catch (e) { }
-    if (!{ home: 1, cons: 1, body: 1, log: 1, set: 1 }[t0]) t0 = 'home';
+    if (!{ home: 1, cons: 1, body: 1, health: 1, log: 1, set: 1 }[t0]) t0 = 'home';
     setTab(t0);
   });
   window.RTG_UI = { reload: function () { st = R.load(); renderAll(); } };
