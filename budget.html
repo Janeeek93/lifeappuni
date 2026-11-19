@@ -8790,6 +8790,16 @@
     return guessQuoteCurrencyFromSymbol(asset?.priceSymbol||'');
   }
 
+  /* Zamiennik z giełdy USA (np. VOO zamiast VUAA.DE): mnożnik dopasowuje cenę zamiennika do ceny w PLN papieru, który faktycznie masz.
+     asset.priceFactor — stały mnożnik; asset.priceAnchor {pln,date} — jednorazowa kalibracja: przy pierwszym pobraniu mnożnik = cena_wzorcowa / cena_zamiennika. */
+  function applyPriceFactor(asset,pln){
+    const f=Number(asset&&asset.priceFactor);
+    if(f>0) return pln*f;
+    const anc=asset&&asset.priceAnchor;
+    if(anc&&Number(anc.pln)>0&&pln>0){asset.priceFactor=Number(anc.pln)/pln;delete asset.priceAnchor;return Number(anc.pln);}
+    return pln;
+  }
+
   async function fetchAssetPrice(asset){
     const provider=String(asset.priceProvider||'manual');
     const symbol=String(asset.priceSymbol||'').trim();
@@ -8830,7 +8840,7 @@
         try{
           const out=await fetchFmpStablePrice(symbol);
           const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
-          const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
+          const pricePln=applyPriceFactor(asset,await convertQuoteToPln(out.price,quoteCurrency));
           return {price:pricePln,currency:'PLN'};
         }catch(fmpErr){
           /* Papiery spoza USA (np. .DE, .AS) często nie są w darmowym FMP — próbujemy Yahoo, potem Stooq. */
@@ -8838,7 +8848,7 @@
           try{rawPrice=await fetchYahooPrice(symbol);}catch(_e){rawPrice=null;}
           if(!(rawPrice&&rawPrice>0)){try{rawPrice=await fetchStooqPrice(symbol);}catch(_e){rawPrice=null;}}
           if(rawPrice&&rawPrice>0){
-            const pricePln=await convertQuoteToPln(rawPrice,resolveQuoteCurrency(asset));
+            const pricePln=applyPriceFactor(asset,await convertQuoteToPln(rawPrice,resolveQuoteCurrency(asset)));
             return {price:pricePln,currency:'PLN'};
           }
           throw new Error((fmpErr&&fmpErr.message||'Błąd FMP')+'; Yahoo/Stooq też bez ceny');
