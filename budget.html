@@ -8827,10 +8827,22 @@
       if(provider==='coingecko') return {price:await fetchCoinGeckoPrice(symbol,currency)};
       if(provider==='nbp') return {price:await fetchNbpFxPrice(symbol)};
       if(provider==='fmp'){
-        const out=await fetchFmpStablePrice(symbol);
-        const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
-        const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
-        return {price:pricePln,currency:'PLN'};
+        try{
+          const out=await fetchFmpStablePrice(symbol);
+          const quoteCurrency=resolveQuoteCurrency(asset,out.quoteCurrency);
+          const pricePln=await convertQuoteToPln(out.price,quoteCurrency);
+          return {price:pricePln,currency:'PLN'};
+        }catch(fmpErr){
+          /* Papiery spoza USA (np. .DE, .AS) często nie są w darmowym FMP — próbujemy Yahoo, potem Stooq. */
+          let rawPrice=null;
+          try{rawPrice=await fetchYahooPrice(symbol);}catch(_e){rawPrice=null;}
+          if(!(rawPrice&&rawPrice>0)){try{rawPrice=await fetchStooqPrice(symbol);}catch(_e){rawPrice=null;}}
+          if(rawPrice&&rawPrice>0){
+            const pricePln=await convertQuoteToPln(rawPrice,resolveQuoteCurrency(asset));
+            return {price:pricePln,currency:'PLN'};
+          }
+          throw new Error((fmpErr&&fmpErr.message||'Błąd FMP')+'; Yahoo/Stooq też bez ceny');
+        }
       }
       return {price:null,error:'Nieznany provider'};
     }catch(err){
@@ -8848,19 +8860,23 @@
     if(modalRefreshBtn) modalRefreshBtn.disabled=true;
     setInvPriceStatus('Odświeżanie cen...');
     let updated=0,skipped=0,failed=0;
+    const failedList=[];
     const today=new Date().toISOString().slice(0,10);
     for(const asset of assets){
       const out=await fetchAssetPrice(asset);
       if(out.skipped){skipped++;continue;}
-      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;updated++;}
-      else failed++;
+      if(out.price&&out.price>0){asset.currentPrice=out.price;asset.priceDate=today;delete asset.priceError;updated++;}
+      else{failed++;const why=out.error||'brak ceny';asset.priceError=why;failedList.push({name:asset.name,symbol:asset.priceSymbol||'',why});}
     }
     save(state);
     renderInvestments();
     if(refreshBtn) refreshBtn.disabled=false;
     if(modalRefreshBtn) modalRefreshBtn.disabled=false;
-    const msg=`Odświeżono: ${updated}, pominięto: ${skipped}, błędy: ${failed}.`;
+    const msg=`Odświeżono: ${updated}, pominięto: ${skipped}, błędy: ${failed}${failed?' — '+failedList.map(f=>f.name+(f.symbol?' ('+f.symbol+')':'')).join(', '):''}.`;
     setInvPriceStatus(msg,failed>0&&updated===0);
+    const statusEl=document.getElementById('inv-refresh-status');
+    if(statusEl) statusEl.title=failedList.map(f=>f.name+': '+f.why).join('\n');
+    if(failedList.length) console.warn('Błędy odświeżania cen:',failedList);
   }
 
   function toggleInvestmentModal(open){
