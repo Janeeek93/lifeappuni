@@ -346,16 +346,45 @@
       });
     } catch (e) { }
     st.body.forEach(function (b) { map[b.date] = Object.assign({}, map[b.date] || {}, b, { arch: false }); });
-    return Object.keys(map).sort().map(function (k) { return map[k]; });
+    return Object.keys(map).sort().map(function (k) {
+      var b = map[k];
+      if (b.lean == null && b.weight != null && b.bf != null) { b.lean = Math.round(b.weight * (1 - b.bf / 100) * 100) / 100; b.leanCalc = true; }
+      b.fat = b.weight != null && b.bf != null ? Math.round(b.weight * b.bf) / 100 : null;
+      return b;
+    });
   }
   function weeklyBody(arr) {
     var m = {};
     arr.forEach(function (b) {
       var mon = mondayOf(b.date), o = m[mon] || (m[mon] = { mon: mon, n: 0, w: [], f: [], l: [] });
-      o.n++; if (b.weight != null) o.w.push(b.weight); if (b.bf != null) o.f.push(b.bf); if (b.lean != null) o.l.push(b.lean);
+      o.n++; if (b.weight != null) o.w.push(b.weight); if (b.bf != null) o.f.push(b.bf); if (b.lean != null) o.l.push(b.lean); if (b.fat != null) (o.k || (o.k = [])).push(b.fat);
     });
     var avg = function (a) { return a.length ? sum(a) / a.length : null; };
-    return Object.keys(m).sort().map(function (k) { var o = m[k]; return { mon: o.mon, n: o.n, weight: avg(o.w), bf: avg(o.f), lean: avg(o.l) }; });
+    return Object.keys(m).sort().map(function (k) { var o = m[k]; return { mon: o.mon, n: o.n, weight: avg(o.w), bf: avg(o.f), lean: avg(o.l), fat: avg(o.k || []) }; });
+  }
+
+
+  /* ---------- skład ciała: ostatnie 28 dni vs poprzednie 28 (średnie z pomiarów) ---------- */
+  function composition(st, today) {
+    today = today || todayStr();
+    var all = bodyAll(st).filter(function (b) { return b.weight != null && b.fat != null && b.lean != null; });
+    function win(from, to) {
+      var v = all.filter(function (b) { return b.date >= from && b.date <= to; });
+      if (v.length < 3) return null;
+      var m = function (k) { return sum(v.map(function (b) { return b[k]; })) / v.length; };
+      return { n: v.length, weight: m('weight'), fat: m('fat'), lean: m('lean'), bf: m('bf') };
+    }
+    var A = win(addDays(today, -27), today), B = win(addDays(today, -55), addDays(today, -28));
+    if (!A || !B) return { ok: false, A: A, B: B, reason: !A ? 'mało pomiarów z ostatnich 4 tygodni (potrzeba min. 3 z wagą i BF)' : 'mało pomiarów z poprzednich 4 tygodni' };
+    var d = { weight: A.weight - B.weight, fat: A.fat - B.fat, lean: A.lean - B.lean, bf: A.bf - B.bf }, lvl, title, text;
+    var TH = 0.3; // poniżej ok. 0,3 kg zmiana mieści się w szumie wagi bioimpedancyjnej
+    if (d.lean <= -0.5 && d.weight < 0) { lvl = 'bad'; title = 'Chudniesz także z mięśni'; text = 'Masa beztłuszczowa ' + fmt(d.lean, 1) + ' kg przy spadku wagi ' + fmt(d.weight, 1) + ' kg. Zwolnij deficyt (+150–200 kcal), pilnuj białka i progresji ciężarów.'; }
+    else if (d.fat <= -TH && d.lean >= -TH) { lvl = 'good'; title = 'Rekompozycja działa'; text = 'Tłuszcz ' + fmt(d.fat, 1) + ' kg, masa beztłuszczowa ' + (Math.abs(d.lean) < TH ? 'stabilna (' + (d.lean > 0 ? '+' : '') + fmt(d.lean, 1) + ' kg, w granicach szumu pomiaru)' : '+' + fmt(d.lean, 1) + ' kg') + ' — tego układu szukamy.'; }
+    else if (Math.abs(d.fat) < TH && d.lean >= TH) { lvl = 'good'; title = 'Masa beztłuszczowa rośnie przy stałym tłuszczu'; text = '+' + fmt(d.lean, 1) + ' kg bez przyrostu tłuszczu.'; }
+    else if (d.fat >= TH && d.lean >= TH) { lvl = 'info'; title = 'Przyrost: tłuszcz i masa beztłuszczowa'; text = 'Tłuszcz +' + fmt(d.fat, 1) + ' kg, beztłuszczowa +' + fmt(d.lean, 1) + ' kg — to nadwyżka, nie rekompozycja.'; }
+    else if (d.fat >= TH && d.lean < TH) { lvl = 'warn'; title = 'Tłuszcz rośnie'; text = 'Tłuszcz +' + fmt(d.fat, 1) + ' kg przy stałej masie beztłuszczowej — sprawdź kalorie i kroki.'; }
+    else { lvl = 'info'; title = 'Bez wyraźnej zmiany składu'; text = 'Zmiany poniżej ok. 0,3 kg mieszczą się w szumie pomiaru.'; }
+    return { ok: true, A: A, B: B, d: d, lvl: lvl, title: title, text: text };
   }
 
   /* ---------- zdrowie: kroki, sen, tętno, HRV, trend wagi -> wnioski ---------- */
@@ -419,7 +448,9 @@
     } else if (!lastB || diffDays(today, lastB.date) > 21) {
       add('warn', 'Za mało pomiarów wagi', lastB ? 'Ostatni: ' + lastB.date + '. Ważenie 2–3 razy w tygodniu rano po toalecie wystarczy do trendu.' : 'Brak pomiarów.');
     }
-    return { cur: cur, base: base, insights: out, trend: trend };
+    var cp = composition(st, today);
+    if (cp.ok) out.push({ lvl: cp.lvl, title: 'Skład ciała: ' + cp.title, text: cp.text });
+    return { cur: cur, base: base, insights: out, trend: trend, comp: cp };
   }
 
   /* ---------- scalanie paczki od Claude ---------- */
@@ -464,7 +495,7 @@
     defaults: defaults, normalize: normalize, load: load, save: save, merge: merge,
     today: todayStr, addDays: addDays, diffDays: diffDays, mondayOf: mondayOf, monthOfWeek: monthOfWeek,
     weekData: weekData, roadWeeks: roadWeeks, summary: summary, freshness: freshness,
-    lastDataDate: lastDataDate, legacyStats: legacyStats, bodySeries: bodySeries, bodyAll: bodyAll, weeklyBody: weeklyBody, health: health, avgField: avgField,
+    lastDataDate: lastDataDate, legacyStats: legacyStats, bodySeries: bodySeries, bodyAll: bodyAll, weeklyBody: weeklyBody, health: health, composition: composition, avgField: avgField,
     fmt: fmt, plural: plural, num: num
   };
   root.RTG = API;
