@@ -12,7 +12,7 @@
   var G = {
     gym:  { name: 'Siłownia', ic: 'fitness_center', color: 'var(--rg-gym)', unit: 'treningi' },
     run:  { name: 'Bieganie', ic: 'directions_run', color: 'var(--rg-run)', unit: 'km' },
-    kcal: { name: 'Kalorie', ic: 'restaurant', color: 'var(--rg-kcal)', unit: 'dni w widełkach' },
+    kcal: { name: 'Kalorie + białko', ic: 'restaurant', color: 'var(--rg-kcal)', unit: 'dni w normie' },
     read: { name: 'Czytanie', ic: 'menu_book', color: 'var(--rg-read)', unit: 'stron' }
   };
   var LV = { hit: 'Zaliczone', ok: 'W normie', behind: 'Do tyłu', lost: 'Stracone', part: 'Prawie', miss: 'Pudło', future: '—' };
@@ -70,7 +70,7 @@
         cls += ' kc-' + d.kcalState;
         if (d.kcal) txt = d.kcal; else if (d.kcalState === 'open') { if (d.future) cls += ' fut'; txt = d.today ? '…' : ''; } else txt = '?';
       }
-      var tt = d.date + (k === 'kcal' && d.kcal ? ' · ' + d.kcal + ' kcal' : '');
+      var tt = d.date + (k === 'kcal' && d.kcal ? ' · ' + d.kcal + ' kcal' + (d.protein ? ' · białko ' + Math.round(d.protein) + ' g' + (d.kcalState === 'lowp' ? ' (za mało)' : '') : ' · brak białka') : '');
       return '<div class="' + cls + '" title="' + tt + '">' + txt + '</div>';
     }).join('');
     return '<div class="rg-mrow"><div class="rg-mname"><div class="t"><span class="material-symbols-outlined" style="color:' + g.color + '">' + g.ic + '</span>' + g.name + '</div>' +
@@ -103,7 +103,7 @@
     var r12 = s.rates.all.w12;
     var rc = s.seasonStarted ? s.rates.all.season : s.rates.all.w12;
     var h = '';
-    if (!st.goals.kcalConfirmed) h += '<div class="rg-alert"><span class="material-symbols-outlined">tune</span><div><b>Widełki kalorii są domyślne (' + st.goals.kcalMin + '–' + st.goals.kcalMax + ' kcal, ' + st.goals.kcalDaysPerWeek + ' dni w tygodniu).</b> Ustaw własne w zakładce Ustawienia — to ona decyduje, czy dzień się liczy.</div></div>';
+    if (!st.goals.kcalConfirmed) h += '<div class="rg-alert"><span class="material-symbols-outlined">tune</span><div><b>Widełki kalorii są domyślne.</b></div></div>';
     h += '<div class="rg-card rg-hero">' + ring(pct, w.closed ? 'var(--rg-hit)' : 'var(--rg-acc)') +
       '<div><h2>' + esc(title) + '</h2><div class="sub">' + esc(sub) + '</div><div class="rg-fresh" style="margin-top:10px">' + freshChips(s) + '</div></div>' +
       '<div class="rg-kpis">' +
@@ -257,9 +257,9 @@
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Cele tygodniowe</h3></div><div class="rg-card-b"><div class="rg-set">' +
       inp('g-gym', 'Siłownia (treningi / tydz.)', g.gymPerWeek) + inp('g-gymmin', 'Min. długość treningu (min)', g.gymMinMinutes) +
       inp('g-run', 'Bieganie (km / tydz.)', g.runKmPerWeek, 0.5) + inp('g-read', 'Czytanie (stron / tydz.)', g.pagesPerWeek, 10) +
-      inp('g-kmin', 'Kalorie — od (kcal)', g.kcalMin, 50) + inp('g-kmax', 'Kalorie — do (kcal)', g.kcalMax, 50) + inp('g-kdays', 'Dni w widełkach / tydz.', g.kcalDaysPerWeek) +
+      inp('g-kmin', 'Kalorie — od (kcal)', g.kcalMin, 50) + inp('g-kmax', 'Kalorie — do (kcal)', g.kcalMax, 50) + inp('g-prot', 'Białko — minimum (g / dzień)', g.proteinMin, 5) + inp('g-kdays', 'Dni w normie / tydz.', g.kcalDaysPerWeek) +
       '<div class="rg-ff"><label>Start sezonu (poniedziałek)</label><input id="g-start" type="date" value="' + st.season.start + '"></div></div>' +
-      '<p class="rg-note" style="margin:12px 0 0">Dzień kalorii „liczy się”, gdy suma mieści się w widełkach. Trening siłowy z zegarka krótszy niż minimum nie jest liczony. Zmiana celów przelicza także tygodnie wstecz.</p>' +
+      '<p class="rg-note" style="margin:12px 0 0">Dzień „w normie” = kcal w widełkach i białko ≥ minimum (gdy wpisane; brak białka w danych nie blokuje dnia). Trening siłowy z zegarka krótszy niż minimum nie jest liczony. Zmiana celów przelicza także tygodnie wstecz.</p>' +
       '<div style="margin-top:12px"><button class="rg-hbtn primary" data-act="savegoals"><span class="material-symbols-outlined">save</span>Zapisz cele</button></div></div></div>';
     var offs = Object.keys(st.offWeeks).sort();
     h += '<div class="rg-card"><div class="rg-card-h"><h3>Tygodnie wolne</h3><span class="sub">urlop, choroba — nie psują serii</span></div><div class="rg-card-b">' +
@@ -326,7 +326,7 @@
     else if (a === 'savegoals') {
       var g = st.goals, n = function (id, dv) { var v = R.num($(id).value); return v == null ? dv : v; };
       g.gymPerWeek = n('g-gym', g.gymPerWeek); g.gymMinMinutes = n('g-gymmin', g.gymMinMinutes); g.runKmPerWeek = n('g-run', g.runKmPerWeek); g.pagesPerWeek = n('g-read', g.pagesPerWeek);
-      g.kcalMin = n('g-kmin', g.kcalMin); g.kcalMax = n('g-kmax', g.kcalMax); g.kcalDaysPerWeek = Math.max(1, Math.min(7, n('g-kdays', g.kcalDaysPerWeek)));
+      g.kcalMin = n('g-kmin', g.kcalMin); g.kcalMax = n('g-kmax', g.kcalMax); g.proteinMin = n('g-prot', g.proteinMin); g.kcalDaysPerWeek = Math.max(1, Math.min(7, n('g-kdays', g.kcalDaysPerWeek)));
       if (g.kcalMin > g.kcalMax) return toast('„Od” musi być mniejsze niż „do”', 'err');
       g.kcalConfirmed = true;
       if ($('g-start').value) st.season.start = R.mondayOf($('g-start').value);

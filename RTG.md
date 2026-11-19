@@ -8,7 +8,7 @@ w backupie pod kluczem `rtg`.
 
 ## Cele (domyślne, edytowalne w Ustawieniach)
 siłownia 3 treningi/tydz. (trening z zegarka < 20 min nie liczy się) · bieg 5 km/tydz. · czytanie 100 str./tydz. ·
-kalorie: dzień „w widełkach” (domyślnie 2100–2400, wymaga potwierdzenia w Ustawieniach), min. 6 dni/tydz.
+kalorie + białko: dzień „w normie” = 2100–2400 kcal (cel 2250) i białko ≥ 140 g (jeśli wpisane), min. 6 dni/tydz.
 Tydzień = pon–nd. Tydzień „zamknięty” = średnia realizacji 4 celów ≥ 100% (zaokrąglona do pełnych %, jak w starym module):
 nadwyżka siłowni/biegu/czytania pokrywa braki innego celu, kalorie liczą się maks. do 100%. Tygodnie wolne (`offWeeks`) nie psują serii.
 Sezon: 52 tygodnie od `season.start` (pn 2027-01-04); wcześniejsze tygodnie to „rozgrzewka” (nie liczą się do sezonu).

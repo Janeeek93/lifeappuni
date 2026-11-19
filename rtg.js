@@ -20,7 +20,7 @@
         gymPerWeek: 3, gymMinMinutes: 20,
         runKmPerWeek: 5,
         pagesPerWeek: 100,
-        kcalMin: 2100, kcalMax: 2400, kcalDaysPerWeek: 6, kcalConfirmed: false
+        kcalMin: 2100, kcalMax: 2400, proteinMin: 140, kcalDaysPerWeek: 6, kcalConfirmed: true
       },
       workouts: [],   // {id,date,kind:'gym'|'run'|'other',min,km,avgHr,maxHr,kcal,src}
       days: {},       // 'YYYY-MM-DD': {kcal,protein,carbs,fat,pages,steps,sleepH,rhr,hrv}
@@ -92,7 +92,12 @@
       else other++;
     });
     var kc = num(dd.kcal), ks;
-    if (kc > 0) ks = kc > g.kcalMax ? 'over' : (kc < g.kcalMin ? 'under' : 'ok');
+    var pr = num(dd.protein);
+    if (kc > 0) {
+      ks = kc > g.kcalMax ? 'over' : (kc < g.kcalMin ? 'under' : 'ok');
+      // białko: brak wpisu nie blokuje dnia (dane mogą przyjść bez makro), wpisane za niskie — blokuje
+      if (ks === 'ok' && g.proteinMin > 0 && pr != null && pr > 0 && pr < g.proteinMin) ks = 'lowp';
+    }
     else ks = ds >= today ? 'open' : 'unknown';
     return {
       date: ds, today: ds === today, future: ds > today,
@@ -123,7 +128,7 @@
     var runKm = r1(sum(days.map(function (d) { return d.km; })));
     var pages = sum(days.map(function (d) { return d.pages; }));
     var kOk = days.filter(function (d) { return d.kcalState === 'ok'; }).length;
-    var kBad = days.filter(function (d) { return d.kcalState === 'over' || d.kcalState === 'under' || (phase === 'past' && d.kcalState === 'unknown'); }).length;
+    var kBad = days.filter(function (d) { return d.kcalState === 'over' || d.kcalState === 'under' || d.kcalState === 'lowp' || (phase === 'past' && d.kcalState === 'unknown'); }).length;
     var kPending = days.filter(function (d) { return d.kcalState === 'open' || (phase === 'current' && d.kcalState === 'unknown'); }).length;
     var kT = Math.min(7, g.kcalDaysPerWeek);
     var kLvl;
@@ -278,7 +283,7 @@
     var k = w.kcal;
     if (k.lvl !== 'hit') {
       var kn = k.target - k.done;
-      out.push({ key: 'kcal', lvl: k.lvl, title: 'Kalorie: jeszcze ' + kn + ' ' + plural(kn, 'dzień', 'dni', 'dni') + ' w widełkach',
+      out.push({ key: 'kcal', lvl: k.lvl, title: 'Kalorie i białko: jeszcze ' + kn + ' ' + plural(kn, 'dzień', 'dni', 'dni') + ' w normie',
         sub: k.lvl === 'lost' ? 'cel tygodnia nie do zaliczenia — celuj w kolejny' : 'zapas pomyłek: ' + Math.max(0, (7 - k.target) - k.bad) });
     }
     return out;
