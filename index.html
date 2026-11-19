@@ -205,7 +205,7 @@
           <!-- ③ Training Goals — 7/12 -->
           <div class="bento-card bento-span-7 training-card" style="animation-delay:.12s;">
             <div class="training-card-header">
-              <span class="bento-section-title">Cele tygodniowe</span>
+              <span class="bento-section-title">Road to Glory — ten tydzień</span>
               <a href="trainings.html" class="btn ghost" style="font-size:12px;padding:6px 12px;">
                 Szczegóły
                 <span class="material-symbols-outlined" style="font-size:15px;">arrow_forward</span>
@@ -306,6 +306,7 @@
     })();
   </script>
 
+<script src="rtg.js"></script>
 <script>
 /* === STORAGE KEYS === */
 const BUDGET_STORAGE_KEY = 'lifeos_budget_v4';
@@ -330,6 +331,7 @@ const INV_CORS_PROXY_KEY = 'invCorsProxyTemplate';
 const INV_FMP_API_KEY_STORE = 'invFmpApiKey';
 const INV_CAL_GOAL_KEY = 'invCalGoal';
 const TRAININGS_MIGRATION_KEY = 'lifeos_trainings_migrated_to_month_v1';
+const RTG_STORAGE_KEY = 'lifeos_rtg_v1';
 const TRADING_STORAGE_KEY = 'lifeos_trading_v2';
 const TRADING_SETTINGS_KEY = 'lifeos_trading_settings_v1';
 const BETTING_STORAGE_KEY = 'lifeos_betting_v1';
@@ -1463,104 +1465,63 @@ function renderLoanCard(){
 function renderTrainingGoals(){
   const container = document.getElementById('training-goals-visual');
   if(!container) return;
-
-  const now = new Date();
-  const [isoYear, isoWeek] = getWeekNumber(now);
-  const store = getTrainingStore();
-
-  if(store.type === 'none'){
-    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px 0;grid-column:1/-1;">Brak danych treningowych. Otwórz moduł Progres.</p>';
-    return;
-  }
-
-  function getStats(year, week){
-    return store.type==='modern'
-      ? computeModernTrainingWeekStats(store.data, year, week)
-      : computeLegacyWeekStatsBasic(store.data, year, week);
-  }
-
-  const currentStats = getStats(isoYear, isoWeek);
-  const goalPercents = currentStats.goalPercents || {};
-
-  /* Total week progress — uncapped per goal (overachieving compensates) */
-  const totalRaw = currentStats.averageRaw || 0; // already uncapped average across goals
-  const isWeekDone = totalRaw >= 100;
-
-  /* Last 10 weeks — store averageRaw for uncapped dot coloring */
-  const historyWeeks = [];
-  for(let w = Math.max(1, isoWeek-9); w < isoWeek; w++){
-    const s = getStats(isoYear, w);
-    historyWeeks.push({ week: w, raw: s.averageRaw||0, completed: isTrainingWeekCompleted(s) });
-  }
-
-  const CIRCUM  = 201.06; // 2*π*32
-  const CIRCUM2 = 282.74; // 2*π*45 for total gauge (larger)
-  const COLORS  = { gym:'#0057c0', running:'#059669', reading:'#5f2bf2' };
-
-  /* Total gauge (large, 100px) */
-  const totalPctCapped = Math.min(100, totalRaw);
-  const totalOffset = (CIRCUM2*(1-totalPctCapped/100)).toFixed(2);
-  const totalColor  = isWeekDone ? 'var(--green)' : totalRaw > 60 ? '#0057c0' : 'var(--orange)';
-  const totalLabel  = isWeekDone ? '✓ Tydzień zamknięty!' : `${Math.round(totalRaw)}% łącznie`;
-
-  const totalGauge = `
+  if(!window.RTG){ container.innerHTML=''; return; }
+  const st = RTG.load();
+  const sum = RTG.summary(st);
+  const w = sum.cur;
+  const META = {
+    gym:  { color:'#6d3fd1', icon:'fitness_center', label:'treningi' },
+    run:  { color:'#059669', icon:'directions_run', label:'km' },
+    kcal: { color:'#ea580c', icon:'restaurant',     label:'dni kcal' },
+    read: { color:'#0057c0', icon:'menu_book',      label:'stron' }
+  };
+  const CIRCUM = 201.06, CIRCUM2 = 282.74;
+  const done = w.closed;
+  const totalOffset = (CIRCUM2*(1-Math.min(100,w.score)/100)).toFixed(2);
+  const totalColor = done ? 'var(--green)' : w.score > 60 ? '#0057c0' : 'var(--orange)';
+  const hist = sum.weeks.filter(x=>x.phase==='past' && !x.off).slice(-10);
+  const title = sum.seasonStarted && !w.warm ? 'Tydzień '+w.idx+' / '+st.season.weeks : 'Rozgrzewka';
+  const sub = done ? '✓ Tydzień zamknięty!' : (sum.seasonStarted ? 'Seria: '+sum.streak+' tyg.' : 'Sezon za '+sum.daysToStart+' dni');
+  const total = `
     <div class="tg-total-item">
       <div class="tg-gauge-wrap tg-gauge-total">
         <svg viewBox="0 0 100 100" class="tg-gauge-svg" style="width:100px;height:100px;">
           <circle fill="none" stroke="var(--line)" stroke-width="9" cx="50" cy="50" r="45"/>
           <circle fill="none" stroke="${totalColor}" stroke-width="9" cx="50" cy="50" r="45"
-            stroke-dasharray="${CIRCUM2}" stroke-dashoffset="${totalOffset}"
-            stroke-linecap="round" transform="rotate(-90 50 50)"
-            style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1);"/>
+            stroke-dasharray="${CIRCUM2}" stroke-dashoffset="${totalOffset}" stroke-linecap="round" transform="rotate(-90 50 50)"/>
         </svg>
-        <div class="tg-gauge-center">
-          <span class="tg-pct" style="font-size:16px;${isWeekDone?'color:var(--green);':''}">${Math.round(totalRaw)}%</span>
-        </div>
+        <div class="tg-gauge-center"><span class="tg-pct" style="font-size:16px;${done?'color:var(--green);':''}">${w.score}%</span></div>
       </div>
       <div class="tg-total-info">
-        <div class="tg-name" style="font-size:15px;">Tydzień ${isoWeek}</div>
-        <div class="tg-progress-label" style="font-size:13px;font-weight:600;${isWeekDone?'color:var(--green);':'color:var(--muted);'}">${totalLabel}</div>
-        <div class="tg-dots-row" style="margin-top:8px;" title="Ostatnie tygodnie">
-          ${historyWeeks.map(w=>{
-            const cls = w.raw>=100 ? 'tg-dot done' : w.raw>=40 ? 'tg-dot partial' : 'tg-dot empty';
-            return `<span class="${cls}" title="Tydzień ${w.week}: ${Math.round(w.raw)}%"></span>`;
-          }).join('')}
+        <div class="tg-name" style="font-size:15px;">${title}</div>
+        <div class="tg-progress-label" style="font-size:13px;font-weight:600;${done?'color:var(--green);':'color:var(--muted);'}">${sub}</div>
+        <div class="tg-dots-row" style="margin-top:8px;">
+          ${hist.map(x=>`<span class="${x.closed?'tg-dot done':x.score>=40?'tg-dot partial':'tg-dot empty'}" title="${x.mon}: ${x.score}%"></span>`).join('')}
         </div>
       </div>
     </div>`;
-
-  /* Individual goal gauges */
-  const goalsHTML = Object.entries(TRAINING_GOALS).map(([type, meta])=>{
-    const info    = goalPercents[type] || { progress:0, percent:0, rawPercent:0, target:meta.target };
-    const rawPct  = Number(info.rawPercent||0); // uncapped for display
-    const pct     = Math.min(100, rawPct);       // capped for SVG arc
-    const current = formatGoalValue(type, info.progress||0);
-    const offset  = (CIRCUM*(1-pct/100)).toFixed(2);
-    const color   = COLORS[type] || '#0057c0';
-    const overcap = rawPct > 100;
-
+  const goals = ['gym','run','kcal','read'].map(k=>{
+    const o = w[k], m = META[k];
+    const pct = o.target>0 ? Math.min(100, Math.round(100*o.done/o.target)) : 100;
+    const off = (CIRCUM*(1-pct/100)).toFixed(2);
+    const val = k==='run' ? (Math.round(o.done*10)/10) : Math.round(o.done);
     return `
       <div class="training-goal-item">
         <div class="tg-gauge-wrap">
           <svg viewBox="0 0 80 80" class="tg-gauge-svg">
             <circle class="tg-gauge-bg" cx="40" cy="40" r="32"/>
-            <circle class="tg-gauge-fg" cx="40" cy="40" r="32"
-              stroke="${overcap ? 'var(--green)' : color}"
-              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${offset}"
-              stroke-linecap="round" transform="rotate(-90 40 40)"/>
+            <circle class="tg-gauge-fg" cx="40" cy="40" r="32" stroke="${pct>=100?'var(--green)':m.color}"
+              stroke-dasharray="${CIRCUM}" stroke-dashoffset="${off}" stroke-linecap="round" transform="rotate(-90 40 40)"/>
           </svg>
-          <div class="tg-gauge-center">
-            <span class="tg-pct" style="${overcap?'color:var(--green);font-size:11px;':''}">${Math.round(rawPct)}%</span>
-          </div>
+          <div class="tg-gauge-center"><span class="tg-pct">${pct}%</span></div>
         </div>
         <div class="tg-details">
-          <span class="material-symbols-outlined tg-ms-icon" style="color:${overcap?'var(--green)':color};">${meta.msIcon}</span>
-          <div class="tg-progress-label">${current} <span>/ ${meta.target} ${meta.unit}</span></div>
+          <span class="material-symbols-outlined tg-ms-icon" style="color:${pct>=100?'var(--green)':m.color};">${m.icon}</span>
+          <div class="tg-progress-label">${val} <span>/ ${o.target} ${m.label}</span></div>
         </div>
       </div>`;
   }).join('');
-
-  container.innerHTML = totalGauge + goalsHTML;
+  container.innerHTML = total + goals;
 }
 
 /* === MISC === */
@@ -1679,6 +1640,7 @@ exportBtn.onclick = ()=>{
     betting_state: JSON.parse(localStorage.getItem(BETTING_STORAGE_KEY) || 'null'),
     betting_settings: JSON.parse(localStorage.getItem(BETTING_SETTINGS_KEY) || 'null'),
     cards: JSON.parse(localStorage.getItem(CARDS_STORAGE_KEY) || 'null'),
+    rtg: JSON.parse(localStorage.getItem(RTG_STORAGE_KEY) || 'null'),
     inv_cors_proxy: localStorage.getItem(INV_CORS_PROXY_KEY) || null,
     inv_fmp_api_key: localStorage.getItem(INV_FMP_API_KEY_STORE) || null,
     inv_cal_goal: localStorage.getItem(INV_CAL_GOAL_KEY) || null,
@@ -1758,6 +1720,10 @@ importInput.onchange = (e)=>{
       if(Object.prototype.hasOwnProperty.call(data,'cards')){
         if(data.cards && typeof data.cards==='object') localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(data.cards));
         else if(data.cards===null) localStorage.removeItem(CARDS_STORAGE_KEY);
+      }
+      if(Object.prototype.hasOwnProperty.call(data,'rtg')){
+        if(data.rtg && typeof data.rtg==='object') localStorage.setItem(RTG_STORAGE_KEY, JSON.stringify(data.rtg));
+        else if(data.rtg===null) localStorage.removeItem(RTG_STORAGE_KEY);
       }
       if(data.inv_cors_proxy) localStorage.setItem(INV_CORS_PROXY_KEY, data.inv_cors_proxy);
       if(data.inv_fmp_api_key) localStorage.setItem(INV_FMP_API_KEY_STORE, data.inv_fmp_api_key);
